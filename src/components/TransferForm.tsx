@@ -25,7 +25,6 @@ export type TransferData = {
   transfer: {
     amount: number;
     currency: string;
-    reason: string;
     code: string;
   };
 };
@@ -48,7 +47,6 @@ const INITIAL_DATA: TransferData = {
   transfer: {
     amount: 0,
     currency: "XAF",
-    reason: "",
     code: "",
   },
 };
@@ -99,10 +97,10 @@ const TransferForm = () => {
   const CurrentStepComponent = steps[currentStep].component;
 
   return (
-    <div className="container max-w-2xl mx-auto p-4">
-      <Card className="p-6">
+    <div className="container max-w-2xl mx-auto p-4 min-h-screen flex flex-col justify-center">
+      <Card className="p-6 shadow-lg rounded-xl bg-white/95 backdrop-blur">
         <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex flex-wrap md:flex-nowrap justify-between items-center mb-4 gap-4">
             {steps.map((step, index) => (
               <div
                 key={step.title}
@@ -111,7 +109,7 @@ const TransferForm = () => {
                 }`}
               >
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
                     index <= currentStep
                       ? "bg-primary text-white"
                       : "bg-gray-200 text-gray-600"
@@ -120,7 +118,7 @@ const TransferForm = () => {
                   {index + 1}
                 </div>
                 <div
-                  className={`text-sm ml-2 ${
+                  className={`text-sm ml-2 transition-colors ${
                     index <= currentStep ? "text-primary" : "text-gray-500"
                   }`}
                 >
@@ -128,7 +126,7 @@ const TransferForm = () => {
                 </div>
                 {index < steps.length - 1 && (
                   <div
-                    className={`h-0.5 flex-1 mx-4 ${
+                    className={`hidden md:block h-0.5 flex-1 mx-4 transition-colors ${
                       index < currentStep ? "bg-primary" : "bg-gray-200"
                     }`}
                   />
@@ -138,18 +136,18 @@ const TransferForm = () => {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-6">
           <CurrentStepComponent {...data} updateFields={updateFields} />
           
-          <div className="mt-6 flex justify-between">
+          <div className="mt-6 flex justify-between gap-4">
             {currentStep !== 0 && (
-              <Button type="button" variant="outline" onClick={back}>
+              <Button type="button" variant="outline" className="w-full md:w-auto">
                 Retour
               </Button>
             )}
             <Button
               type="submit"
-              className={`${currentStep === 0 ? "ml-auto" : ""}`}
+              className={`w-full md:w-auto ${currentStep === 0 ? "ml-auto" : ""}`}
             >
               {currentStep === steps.length - 1 ? "Valider le Transfert" : "Continuer"}
             </Button>
