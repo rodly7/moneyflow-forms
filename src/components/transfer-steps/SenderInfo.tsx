@@ -1,12 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TransferData } from "../TransferForm";
 
 type SenderInfoProps = TransferData & {
@@ -14,6 +8,9 @@ type SenderInfoProps = TransferData & {
 };
 
 const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
+  const countries = ["Congo Brazzaville", "Sénégal", "Gabon"];
+  const paymentMethods = ["Airtel Money", "Mobile Money"];
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -22,7 +19,7 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
           id="fullName"
           type="text"
           required
-          placeholder="Comme indiqué sur la pièce d'identité"
+          placeholder="Votre nom complet"
           value={sender.fullName}
           onChange={(e) =>
             updateFields({ sender: { ...sender, fullName: e.target.value } })
@@ -50,7 +47,7 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
           id="phone"
           type="tel"
           required
-          placeholder="+33612345678"
+          placeholder="+242 XX XXX XXXX"
           value={sender.phone}
           onChange={(e) =>
             updateFields({ sender: { ...sender, phone: e.target.value } })
@@ -59,36 +56,45 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="idType">Type de Pièce d'Identité</Label>
+        <Label htmlFor="country">Pays</Label>
         <Select
-          value={sender.idType}
+          value={sender.country}
           onValueChange={(value) =>
-            updateFields({ sender: { ...sender, idType: value } })
+            updateFields({ sender: { ...sender, country: value } })
           }
         >
           <SelectTrigger>
-            <SelectValue placeholder="Sélectionnez le type" />
+            <SelectValue placeholder="Sélectionnez votre pays" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="passport">Passeport</SelectItem>
-            <SelectItem value="nationalId">Carte d'Identité</SelectItem>
-            <SelectItem value="drivingLicense">Permis de Conduire</SelectItem>
+            {countries.map((country) => (
+              <SelectItem key={country} value={country}>
+                {country}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="idNumber">Numéro de Pièce d'Identité</Label>
-        <Input
-          id="idNumber"
-          type="text"
-          required
-          placeholder="Entrez le numéro"
-          value={sender.idNumber}
-          onChange={(e) =>
-            updateFields({ sender: { ...sender, idNumber: e.target.value } })
+        <Label htmlFor="paymentMethod">Mode de Paiement</Label>
+        <Select
+          value={sender.paymentMethod}
+          onValueChange={(value) =>
+            updateFields({ sender: { ...sender, paymentMethod: value } })
           }
-        />
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionnez le mode de paiement" />
+          </SelectTrigger>
+          <SelectContent>
+            {paymentMethods.map((method) => (
+              <SelectItem key={method} value={method}>
+                {method}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );

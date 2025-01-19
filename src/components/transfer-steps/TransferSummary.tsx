@@ -10,7 +10,7 @@ const TransferSummary = ({
   recipient,
   transfer,
 }: TransferSummaryProps) => {
-  const fees = transfer.amount * 0.01;
+  const fees = transfer.amount * 0.02;
   const total = transfer.amount + fees;
 
   return (
@@ -32,10 +32,10 @@ const TransferSummary = ({
             <span>{sender.address}</span>
             <span className="text-muted-foreground">Téléphone :</span>
             <span>{sender.phone}</span>
-            <span className="text-muted-foreground">Type de Pièce d'Identité :</span>
-            <span>{sender.idType}</span>
-            <span className="text-muted-foreground">Numéro de Pièce d'Identité :</span>
-            <span>{sender.idNumber}</span>
+            <span className="text-muted-foreground">Pays :</span>
+            <span>{sender.country}</span>
+            <span className="text-muted-foreground">Mode de Paiement :</span>
+            <span>{sender.paymentMethod}</span>
           </div>
         </Card>
 
@@ -48,12 +48,10 @@ const TransferSummary = ({
             <span>{recipient.address}</span>
             <span className="text-muted-foreground">Téléphone :</span>
             <span>{recipient.phone}</span>
-            <span className="text-muted-foreground">Banque :</span>
-            <span>{recipient.bankName}</span>
-            <span className="text-muted-foreground">Compte :</span>
-            <span>{recipient.accountNumber}</span>
-            <span className="text-muted-foreground">SWIFT/BIC :</span>
-            <span>{recipient.swiftCode}</span>
+            <span className="text-muted-foreground">Pays :</span>
+            <span>{recipient.country}</span>
+            <span className="text-muted-foreground">Mode de Réception :</span>
+            <span>{recipient.receiveMethod}</span>
           </div>
         </Card>
 
@@ -64,7 +62,7 @@ const TransferSummary = ({
             <span>
               {transfer.amount.toFixed(2)} {transfer.currency}
             </span>
-            <span className="text-muted-foreground">Frais (1%) :</span>
+            <span className="text-muted-foreground">Frais (2%) :</span>
             <span>
               {fees.toFixed(2)} {transfer.currency}
             </span>
@@ -74,6 +72,8 @@ const TransferSummary = ({
             </span>
             <span className="text-muted-foreground">Motif :</span>
             <span>{transfer.reason}</span>
+            <span className="text-muted-foreground">Code de Transfert :</span>
+            <span className="font-mono font-medium">{transfer.code}</span>
           </div>
         </Card>
       </div>

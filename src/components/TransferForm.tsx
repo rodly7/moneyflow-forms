@@ -12,21 +12,21 @@ export type TransferData = {
     fullName: string;
     address: string;
     phone: string;
-    idType: string;
-    idNumber: string;
+    country: string;
+    paymentMethod: string;
   };
   recipient: {
     fullName: string;
     address: string;
     phone: string;
-    bankName: string;
-    accountNumber: string;
-    swiftCode: string;
+    country: string;
+    receiveMethod: string;
   };
   transfer: {
     amount: number;
     currency: string;
     reason: string;
+    code: string;
   };
 };
 
@@ -35,21 +35,21 @@ const INITIAL_DATA: TransferData = {
     fullName: "",
     address: "",
     phone: "",
-    idType: "",
-    idNumber: "",
+    country: "",
+    paymentMethod: "",
   },
   recipient: {
     fullName: "",
     address: "",
     phone: "",
-    bankName: "",
-    accountNumber: "",
-    swiftCode: "",
+    country: "",
+    receiveMethod: "",
   },
   transfer: {
     amount: 0,
-    currency: "EUR",
+    currency: "XAF",
     reason: "",
+    code: "",
   },
 };
 

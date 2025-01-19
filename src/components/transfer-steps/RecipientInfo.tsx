@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TransferData } from "../TransferForm";
 
 type RecipientInfoProps = TransferData & {
@@ -7,6 +8,9 @@ type RecipientInfoProps = TransferData & {
 };
 
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
+  const countries = ["Congo Brazzaville", "Sénégal", "Gabon"];
+  const receiveMethods = ["Wave", "Orange Money"];
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -47,7 +51,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           id="recipientPhone"
           type="tel"
           required
-          placeholder="+33612345678"
+          placeholder="+242 XX XXX XXXX"
           value={recipient.phone}
           onChange={(e) =>
             updateFields({ recipient: { ...recipient, phone: e.target.value } })
@@ -56,51 +60,49 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="bankName">Nom de la Banque</Label>
-        <Input
-          id="bankName"
-          type="text"
-          required
-          placeholder="Nom de la banque du bénéficiaire"
-          value={recipient.bankName}
-          onChange={(e) =>
+        <Label htmlFor="recipientCountry">Pays</Label>
+        <Select
+          value={recipient.country}
+          onValueChange={(value) =>
             updateFields({
-              recipient: { ...recipient, bankName: e.target.value },
+              recipient: { ...recipient, country: value },
             })
           }
-        />
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionnez le pays" />
+          </SelectTrigger>
+          <SelectContent>
+            {countries.map((country) => (
+              <SelectItem key={country} value={country}>
+                {country}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="accountNumber">Numéro de Compte / IBAN</Label>
-        <Input
-          id="accountNumber"
-          type="text"
-          required
-          placeholder="Numéro de compte ou IBAN"
-          value={recipient.accountNumber}
-          onChange={(e) =>
+        <Label htmlFor="receiveMethod">Mode de Réception</Label>
+        <Select
+          value={recipient.receiveMethod}
+          onValueChange={(value) =>
             updateFields({
-              recipient: { ...recipient, accountNumber: e.target.value },
+              recipient: { ...recipient, receiveMethod: value },
             })
           }
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="swiftCode">Code SWIFT/BIC</Label>
-        <Input
-          id="swiftCode"
-          type="text"
-          required
-          placeholder="Code SWIFT ou BIC de la banque"
-          value={recipient.swiftCode}
-          onChange={(e) =>
-            updateFields({
-              recipient: { ...recipient, swiftCode: e.target.value },
-            })
-          }
-        />
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionnez le mode de réception" />
+          </SelectTrigger>
+          <SelectContent>
+            {receiveMethods.map((method) => (
+              <SelectItem key={method} value={method}>
+                {method}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );
