@@ -17,12 +17,12 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="fullName">Full Name</Label>
+        <Label htmlFor="fullName">Nom Complet</Label>
         <Input
           id="fullName"
           type="text"
           required
-          placeholder="As shown on ID"
+          placeholder="Comme indiqué sur la pièce d'identité"
           value={sender.fullName}
           onChange={(e) =>
             updateFields({ sender: { ...sender, fullName: e.target.value } })
@@ -31,12 +31,12 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="address">Address</Label>
+        <Label htmlFor="address">Adresse</Label>
         <Input
           id="address"
           type="text"
           required
-          placeholder="Your current address"
+          placeholder="Votre adresse actuelle"
           value={sender.address}
           onChange={(e) =>
             updateFields({ sender: { ...sender, address: e.target.value } })
@@ -45,12 +45,12 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="phone">Phone Number</Label>
+        <Label htmlFor="phone">Numéro de Téléphone</Label>
         <Input
           id="phone"
           type="tel"
           required
-          placeholder="+1234567890"
+          placeholder="+33612345678"
           value={sender.phone}
           onChange={(e) =>
             updateFields({ sender: { ...sender, phone: e.target.value } })
@@ -59,7 +59,7 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="idType">ID Type</Label>
+        <Label htmlFor="idType">Type de Pièce d'Identité</Label>
         <Select
           value={sender.idType}
           onValueChange={(value) =>
@@ -67,23 +67,23 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
           }
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select ID type" />
+            <SelectValue placeholder="Sélectionnez le type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="passport">Passport</SelectItem>
-            <SelectItem value="nationalId">National ID</SelectItem>
-            <SelectItem value="drivingLicense">Driving License</SelectItem>
+            <SelectItem value="passport">Passeport</SelectItem>
+            <SelectItem value="nationalId">Carte d'Identité</SelectItem>
+            <SelectItem value="drivingLicense">Permis de Conduire</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="idNumber">ID Number</Label>
+        <Label htmlFor="idNumber">Numéro de Pièce d'Identité</Label>
         <Input
           id="idNumber"
           type="text"
           required
-          placeholder="Enter your ID number"
+          placeholder="Entrez le numéro"
           value={sender.idNumber}
           onChange={(e) =>
             updateFields({ sender: { ...sender, idNumber: e.target.value } })

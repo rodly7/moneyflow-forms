@@ -5,7 +5,7 @@ const Index = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container">
         <h1 className="text-3xl font-bold text-center mb-8">
-          International Money Transfer
+          Transfert d'Argent International
         </h1>
         <TransferForm />
       </div>

@@ -16,21 +16,21 @@ type TransferDetailsProps = TransferData & {
 
 const TransferDetails = ({ transfer, updateFields }: TransferDetailsProps) => {
   const currencies = ["EUR", "USD", "GBP", "JPY", "AUD", "CAD", "CHF"];
-  const fees = transfer.amount * 0.01; // Example: 1% fee
+  const fees = transfer.amount * 0.01;
   const total = transfer.amount + fees;
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="amount">Amount</Label>
+          <Label htmlFor="amount">Montant</Label>
           <Input
             id="amount"
             type="number"
             required
             min="0"
             step="0.01"
-            placeholder="Enter amount"
+            placeholder="Entrez le montant"
             value={transfer.amount || ""}
             onChange={(e) =>
               updateFields({
@@ -41,7 +41,7 @@ const TransferDetails = ({ transfer, updateFields }: TransferDetailsProps) => {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="currency">Currency</Label>
+          <Label htmlFor="currency">Devise</Label>
           <Select
             value={transfer.currency}
             onValueChange={(value) =>
@@ -49,7 +49,7 @@ const TransferDetails = ({ transfer, updateFields }: TransferDetailsProps) => {
             }
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select currency" />
+              <SelectValue placeholder="Sélectionnez la devise" />
             </SelectTrigger>
             <SelectContent>
               {currencies.map((currency) => (
@@ -63,11 +63,11 @@ const TransferDetails = ({ transfer, updateFields }: TransferDetailsProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="reason">Reason for Transfer</Label>
+        <Label htmlFor="reason">Motif du Transfert</Label>
         <Textarea
           id="reason"
           required
-          placeholder="Please specify the reason for this transfer"
+          placeholder="Veuillez préciser le motif de ce transfert"
           value={transfer.reason}
           onChange={(e) =>
             updateFields({ transfer: { ...transfer, reason: e.target.value } })
@@ -78,19 +78,19 @@ const TransferDetails = ({ transfer, updateFields }: TransferDetailsProps) => {
       {transfer.amount > 0 && (
         <div className="mt-6 p-4 bg-secondary rounded-lg space-y-2">
           <div className="flex justify-between text-sm">
-            <span>Transfer amount:</span>
+            <span>Montant du transfert :</span>
             <span>
               {transfer.amount.toFixed(2)} {transfer.currency}
             </span>
           </div>
           <div className="flex justify-between text-sm">
-            <span>Fees (1%):</span>
+            <span>Frais (1%) :</span>
             <span>
               {fees.toFixed(2)} {transfer.currency}
             </span>
           </div>
           <div className="flex justify-between font-semibold pt-2 border-t">
-            <span>Total:</span>
+            <span>Total :</span>
             <span>
               {total.toFixed(2)} {transfer.currency}
             </span>

@@ -10,12 +10,12 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="recipientName">Full Name</Label>
+        <Label htmlFor="recipientName">Nom Complet</Label>
         <Input
           id="recipientName"
           type="text"
           required
-          placeholder="Recipient's full name"
+          placeholder="Nom complet du bénéficiaire"
           value={recipient.fullName}
           onChange={(e) =>
             updateFields({
@@ -26,12 +26,12 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="recipientAddress">Address</Label>
+        <Label htmlFor="recipientAddress">Adresse</Label>
         <Input
           id="recipientAddress"
           type="text"
           required
-          placeholder="Recipient's address"
+          placeholder="Adresse du bénéficiaire"
           value={recipient.address}
           onChange={(e) =>
             updateFields({
@@ -42,12 +42,12 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="recipientPhone">Phone Number</Label>
+        <Label htmlFor="recipientPhone">Numéro de Téléphone</Label>
         <Input
           id="recipientPhone"
           type="tel"
           required
-          placeholder="+1234567890"
+          placeholder="+33612345678"
           value={recipient.phone}
           onChange={(e) =>
             updateFields({ recipient: { ...recipient, phone: e.target.value } })
@@ -56,12 +56,12 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="bankName">Bank Name</Label>
+        <Label htmlFor="bankName">Nom de la Banque</Label>
         <Input
           id="bankName"
           type="text"
           required
-          placeholder="Recipient's bank name"
+          placeholder="Nom de la banque du bénéficiaire"
           value={recipient.bankName}
           onChange={(e) =>
             updateFields({
@@ -72,12 +72,12 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="accountNumber">Account Number / IBAN</Label>
+        <Label htmlFor="accountNumber">Numéro de Compte / IBAN</Label>
         <Input
           id="accountNumber"
           type="text"
           required
-          placeholder="Account number or IBAN"
+          placeholder="Numéro de compte ou IBAN"
           value={recipient.accountNumber}
           onChange={(e) =>
             updateFields({
@@ -88,12 +88,12 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="swiftCode">SWIFT/BIC Code</Label>
+        <Label htmlFor="swiftCode">Code SWIFT/BIC</Label>
         <Input
           id="swiftCode"
           type="text"
           required
-          placeholder="Bank SWIFT or BIC code"
+          placeholder="Code SWIFT ou BIC de la banque"
           value={recipient.swiftCode}
           onChange={(e) =>
             updateFields({

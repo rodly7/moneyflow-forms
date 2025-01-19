@@ -59,10 +59,10 @@ const TransferForm = () => {
   const { toast } = useToast();
 
   const steps = [
-    { title: "Sender Information", component: SenderInfo },
-    { title: "Recipient Information", component: RecipientInfo },
-    { title: "Transfer Details", component: TransferDetails },
-    { title: "Summary", component: TransferSummary },
+    { title: "Informations Expéditeur", component: SenderInfo },
+    { title: "Informations Bénéficiaire", component: RecipientInfo },
+    { title: "Détails du Transfert", component: TransferDetails },
+    { title: "Résumé", component: TransferSummary },
   ];
 
   const updateFields = (fields: Partial<TransferData>) => {
@@ -87,10 +87,9 @@ const TransferForm = () => {
     e.preventDefault();
     if (currentStep === steps.length - 1) {
       toast({
-        title: "Transfer Initiated",
-        description: "Your transfer has been successfully initiated.",
+        title: "Transfert Initié",
+        description: "Votre transfert a été initié avec succès.",
       });
-      // Here you would typically send the data to your backend
       console.log("Transfer data:", data);
     } else {
       next();
@@ -145,14 +144,14 @@ const TransferForm = () => {
           <div className="mt-6 flex justify-between">
             {currentStep !== 0 && (
               <Button type="button" variant="outline" onClick={back}>
-                Back
+                Retour
               </Button>
             )}
             <Button
               type="submit"
               className={`${currentStep === 0 ? "ml-auto" : ""}`}
             >
-              {currentStep === steps.length - 1 ? "Submit Transfer" : "Continue"}
+              {currentStep === steps.length - 1 ? "Valider le Transfert" : "Continuer"}
             </Button>
           </div>
         </form>

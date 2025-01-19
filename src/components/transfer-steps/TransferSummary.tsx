@@ -16,63 +16,63 @@ const TransferSummary = ({
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold">Transfer Summary</h3>
+        <h3 className="text-lg font-semibold">Résumé du Transfert</h3>
         <p className="text-sm text-muted-foreground">
-          Please review your transfer details
+          Veuillez vérifier les détails de votre transfert
         </p>
       </div>
 
       <div className="grid gap-6">
         <Card className="p-4 space-y-3">
-          <h4 className="font-medium">Sender Information</h4>
+          <h4 className="font-medium">Informations de l'Expéditeur</h4>
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <span className="text-muted-foreground">Name:</span>
+            <span className="text-muted-foreground">Nom :</span>
             <span>{sender.fullName}</span>
-            <span className="text-muted-foreground">Address:</span>
+            <span className="text-muted-foreground">Adresse :</span>
             <span>{sender.address}</span>
-            <span className="text-muted-foreground">Phone:</span>
+            <span className="text-muted-foreground">Téléphone :</span>
             <span>{sender.phone}</span>
-            <span className="text-muted-foreground">ID Type:</span>
+            <span className="text-muted-foreground">Type de Pièce d'Identité :</span>
             <span>{sender.idType}</span>
-            <span className="text-muted-foreground">ID Number:</span>
+            <span className="text-muted-foreground">Numéro de Pièce d'Identité :</span>
             <span>{sender.idNumber}</span>
           </div>
         </Card>
 
         <Card className="p-4 space-y-3">
-          <h4 className="font-medium">Recipient Information</h4>
+          <h4 className="font-medium">Informations du Bénéficiaire</h4>
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <span className="text-muted-foreground">Name:</span>
+            <span className="text-muted-foreground">Nom :</span>
             <span>{recipient.fullName}</span>
-            <span className="text-muted-foreground">Address:</span>
+            <span className="text-muted-foreground">Adresse :</span>
             <span>{recipient.address}</span>
-            <span className="text-muted-foreground">Phone:</span>
+            <span className="text-muted-foreground">Téléphone :</span>
             <span>{recipient.phone}</span>
-            <span className="text-muted-foreground">Bank:</span>
+            <span className="text-muted-foreground">Banque :</span>
             <span>{recipient.bankName}</span>
-            <span className="text-muted-foreground">Account:</span>
+            <span className="text-muted-foreground">Compte :</span>
             <span>{recipient.accountNumber}</span>
-            <span className="text-muted-foreground">SWIFT/BIC:</span>
+            <span className="text-muted-foreground">SWIFT/BIC :</span>
             <span>{recipient.swiftCode}</span>
           </div>
         </Card>
 
         <Card className="p-4 space-y-3">
-          <h4 className="font-medium">Transfer Details</h4>
+          <h4 className="font-medium">Détails du Transfert</h4>
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <span className="text-muted-foreground">Amount:</span>
+            <span className="text-muted-foreground">Montant :</span>
             <span>
               {transfer.amount.toFixed(2)} {transfer.currency}
             </span>
-            <span className="text-muted-foreground">Fees (1%):</span>
+            <span className="text-muted-foreground">Frais (1%) :</span>
             <span>
               {fees.toFixed(2)} {transfer.currency}
             </span>
-            <span className="text-muted-foreground">Total:</span>
+            <span className="text-muted-foreground">Total :</span>
             <span className="font-medium">
               {total.toFixed(2)} {transfer.currency}
             </span>
-            <span className="text-muted-foreground">Reason:</span>
+            <span className="text-muted-foreground">Motif :</span>
             <span>{transfer.reason}</span>
           </div>
         </Card>
