@@ -1,7 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { TransferData } from "../TransferForm";
 import { useEffect } from "react";
 
@@ -10,7 +9,7 @@ type TransferDetailsProps = TransferData & {
 };
 
 const TransferDetails = ({ transfer, updateFields }: TransferDetailsProps) => {
-  const fees = transfer.amount * 0.02; // 2% de frais
+  const fees = transfer.amount * 0.08; // 8% de frais
   const total = transfer.amount + fees;
 
   useEffect(() => {
@@ -42,19 +41,6 @@ const TransferDetails = ({ transfer, updateFields }: TransferDetailsProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="reason">Motif du Transfert</Label>
-        <Textarea
-          id="reason"
-          required
-          placeholder="Veuillez préciser le motif de ce transfert"
-          value={transfer.reason}
-          onChange={(e) =>
-            updateFields({ transfer: { ...transfer, reason: e.target.value } })
-          }
-        />
-      </div>
-
-      <div className="space-y-2">
         <Label>Code de Transfert</Label>
         <Input
           value={transfer.code}
@@ -73,7 +59,7 @@ const TransferDetails = ({ transfer, updateFields }: TransferDetailsProps) => {
             <span>{transfer.amount.toFixed(2)} {transfer.currency}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span>Frais (2%) :</span>
+            <span>Frais (8%) :</span>
             <span>{fees.toFixed(2)} {transfer.currency}</span>
           </div>
           <div className="flex justify-between font-semibold pt-2 border-t">

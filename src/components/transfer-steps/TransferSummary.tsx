@@ -10,7 +10,7 @@ const TransferSummary = ({
   recipient,
   transfer,
 }: TransferSummaryProps) => {
-  const fees = transfer.amount * 0.02;
+  const fees = transfer.amount * 0.08;
   const total = transfer.amount + fees;
 
   return (
@@ -62,7 +62,7 @@ const TransferSummary = ({
             <span>
               {transfer.amount.toFixed(2)} {transfer.currency}
             </span>
-            <span className="text-muted-foreground">Frais (2%) :</span>
+            <span className="text-muted-foreground">Frais (8%) :</span>
             <span>
               {fees.toFixed(2)} {transfer.currency}
             </span>
@@ -70,8 +70,6 @@ const TransferSummary = ({
             <span className="font-medium">
               {total.toFixed(2)} {transfer.currency}
             </span>
-            <span className="text-muted-foreground">Motif :</span>
-            <span>{transfer.reason}</span>
             <span className="text-muted-foreground">Code de Transfert :</span>
             <span className="font-mono font-medium">{transfer.code}</span>
           </div>
