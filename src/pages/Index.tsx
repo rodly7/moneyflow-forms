@@ -6,7 +6,7 @@ const Index = () => {
       <div className="container max-w-3xl mx-auto">
         <div className="flex flex-col items-center mb-6 space-y-2">
           <img 
-            src="/sendflow-logo.png" 
+            src="sendflow-logo.png" 
             alt=""
             className="w-32 h-32 mb-2 object-contain"
           />
