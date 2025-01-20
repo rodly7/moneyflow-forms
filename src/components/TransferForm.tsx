@@ -97,62 +97,71 @@ const TransferForm = () => {
   const CurrentStepComponent = steps[currentStep].component;
 
   return (
-    <div className="container max-w-2xl mx-auto p-4 min-h-screen flex flex-col justify-center">
-      <Card className="p-6 shadow-lg rounded-xl bg-white/95 backdrop-blur">
-        <div className="mb-8">
-          <div className="flex flex-wrap md:flex-nowrap justify-between items-center mb-4 gap-4">
-            {steps.map((step, index) => (
-              <div
-                key={step.title}
-                className={`flex items-center ${
-                  index === steps.length - 1 ? "" : "flex-1"
+    <div className="w-full">
+      <Card className="backdrop-blur-md bg-white/80 shadow-xl rounded-xl border-0 overflow-hidden">
+        <div className="p-4 md:p-6">
+          <div className="mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              {steps.map((step, index) => (
+                <div
+                  key={step.title}
+                  className={`flex items-center ${
+                    index === steps.length - 1 ? "" : "flex-1"
+                  }`}
+                >
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                      index <= currentStep
+                        ? "bg-emerald-600 text-white"
+                        : "bg-gray-200 text-gray-600"
+                    }`}
+                  >
+                    {index + 1}
+                  </div>
+                  <div
+                    className={`text-sm ml-2 transition-colors ${
+                      index <= currentStep ? "text-emerald-600" : "text-gray-500"
+                    }`}
+                  >
+                    {step.title}
+                  </div>
+                  {index < steps.length - 1 && (
+                    <div
+                      className={`hidden md:block h-0.5 flex-1 mx-4 transition-colors ${
+                        index < currentStep ? "bg-emerald-600" : "bg-gray-200"
+                      }`}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <CurrentStepComponent {...data} updateFields={updateFields} />
+            
+            <div className="mt-6 flex flex-col md:flex-row justify-between gap-3">
+              {currentStep !== 0 && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={back}
+                  className="w-full md:w-auto order-2 md:order-1"
+                >
+                  Retour
+                </Button>
+              )}
+              <Button
+                type="submit"
+                className={`w-full md:w-auto order-1 md:order-2 bg-emerald-600 hover:bg-emerald-700 ${
+                  currentStep === 0 ? "md:ml-auto" : ""
                 }`}
               >
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                    index <= currentStep
-                      ? "bg-primary text-white"
-                      : "bg-gray-200 text-gray-600"
-                  }`}
-                >
-                  {index + 1}
-                </div>
-                <div
-                  className={`text-sm ml-2 transition-colors ${
-                    index <= currentStep ? "text-primary" : "text-gray-500"
-                  }`}
-                >
-                  {step.title}
-                </div>
-                {index < steps.length - 1 && (
-                  <div
-                    className={`hidden md:block h-0.5 flex-1 mx-4 transition-colors ${
-                      index < currentStep ? "bg-primary" : "bg-gray-200"
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <CurrentStepComponent {...data} updateFields={updateFields} />
-          
-          <div className="mt-6 flex justify-between gap-4">
-            {currentStep !== 0 && (
-              <Button type="button" variant="outline" className="w-full md:w-auto">
-                Retour
+                {currentStep === steps.length - 1 ? "Valider le Transfert" : "Continuer"}
               </Button>
-            )}
-            <Button
-              type="submit"
-              className={`w-full md:w-auto ${currentStep === 0 ? "ml-auto" : ""}`}
-            >
-              {currentStep === steps.length - 1 ? "Valider le Transfert" : "Continuer"}
-            </Button>
-          </div>
-        </form>
+            </div>
+          </form>
+        </div>
       </Card>
     </div>
   );
