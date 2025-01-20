@@ -7,8 +7,8 @@ const Index = () => {
         <div className="flex flex-col items-center mb-6 space-y-2">
           <img 
             src="/sendflow-logo.png" 
-            alt="SendFlow Logo" 
-            className="w-32 h-32 mb-2"
+            alt=""
+            className="w-32 h-32 mb-2 object-contain"
           />
           <h1 className="text-2xl md:text-3xl font-bold text-center text-emerald-600">
             Transfert d'Argent International
