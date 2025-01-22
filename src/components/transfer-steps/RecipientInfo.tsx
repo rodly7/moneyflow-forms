@@ -10,15 +10,45 @@ type RecipientInfoProps = TransferData & {
 
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const countries = [
-    { name: "Congo Brazzaville", code: "+242" },
-    { name: "Sénégal", code: "+221" },
-    { name: "Gabon", code: "+241" }
+    { name: "Congo Brazzaville", code: "+242", receiveMethods: ["Airtel Money", "Mobile Money"] },
+    { name: "Sénégal", code: "+221", receiveMethods: ["Wave", "Orange Money"] },
+    { name: "Gabon", code: "+241", receiveMethods: ["Airtel Money"] }
   ];
-  const receiveMethods = ["Wave", "Orange Money"];
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
+  const [availableReceiveMethods, setAvailableReceiveMethods] = useState<string[]>([]);
 
   return (
     <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="recipientCountry">Pays</Label>
+        <Select
+          value={recipient.country}
+          onValueChange={(value) => {
+            const country = countries.find(c => c.name === value);
+            setSelectedCountryCode(country?.code || "");
+            setAvailableReceiveMethods(country?.receiveMethods || []);
+            updateFields({
+              recipient: { 
+                ...recipient, 
+                country: value,
+                receiveMethod: "" // Reset receive method when country changes
+              }
+            });
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionnez le pays" />
+          </SelectTrigger>
+          <SelectContent>
+            {countries.map((country) => (
+              <SelectItem key={country.name} value={country.name}>
+                {country.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="recipientName">Nom Complet</Label>
         <Input
@@ -49,31 +79,6 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
             })
           }
         />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="recipientCountry">Pays</Label>
-        <Select
-          value={recipient.country}
-          onValueChange={(value) => {
-            const country = countries.find(c => c.name === value);
-            setSelectedCountryCode(country?.code || "");
-            updateFields({
-              recipient: { ...recipient, country: value },
-            });
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionnez le pays" />
-          </SelectTrigger>
-          <SelectContent>
-            {countries.map((country) => (
-              <SelectItem key={country.name} value={country.name}>
-                {country.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       <div className="space-y-2">
@@ -108,12 +113,13 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
               recipient: { ...recipient, receiveMethod: value },
             })
           }
+          disabled={!recipient.country}
         >
           <SelectTrigger>
             <SelectValue placeholder="Sélectionnez le mode de réception" />
           </SelectTrigger>
           <SelectContent>
-            {receiveMethods.map((method) => (
+            {availableReceiveMethods.map((method) => (
               <SelectItem key={method} value={method}>
                 {method}
               </SelectItem>
