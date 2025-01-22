@@ -10,15 +10,45 @@ type SenderInfoProps = TransferData & {
 
 const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
   const countries = [
-    { name: "Congo Brazzaville", code: "+242" },
-    { name: "Sénégal", code: "+221" },
-    { name: "Gabon", code: "+241" }
+    { name: "Congo Brazzaville", code: "+242", paymentMethods: ["Airtel Money", "Mobile Money"] },
+    { name: "Sénégal", code: "+221", paymentMethods: ["Wave", "Orange Money"] },
+    { name: "Gabon", code: "+241", paymentMethods: ["Airtel Money"] }
   ];
-  const paymentMethods = ["Airtel Money", "Mobile Money"];
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
+  const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>([]);
 
   return (
     <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="country">Pays</Label>
+        <Select
+          value={sender.country}
+          onValueChange={(value) => {
+            const country = countries.find(c => c.name === value);
+            setSelectedCountryCode(country?.code || "");
+            setAvailablePaymentMethods(country?.paymentMethods || []);
+            updateFields({ 
+              sender: { 
+                ...sender, 
+                country: value,
+                paymentMethod: "" // Reset payment method when country changes
+              } 
+            });
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionnez votre pays" />
+          </SelectTrigger>
+          <SelectContent>
+            {countries.map((country) => (
+              <SelectItem key={country.name} value={country.name}>
+                {country.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="fullName">Nom Complet</Label>
         <Input
@@ -45,29 +75,6 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
             updateFields({ sender: { ...sender, address: e.target.value } })
           }
         />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="country">Pays</Label>
-        <Select
-          value={sender.country}
-          onValueChange={(value) => {
-            const country = countries.find(c => c.name === value);
-            setSelectedCountryCode(country?.code || "");
-            updateFields({ sender: { ...sender, country: value } });
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionnez votre pays" />
-          </SelectTrigger>
-          <SelectContent>
-            {countries.map((country) => (
-              <SelectItem key={country.name} value={country.name}>
-                {country.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       <div className="space-y-2">
@@ -100,12 +107,13 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
           onValueChange={(value) =>
             updateFields({ sender: { ...sender, paymentMethod: value } })
           }
+          disabled={!sender.country}
         >
           <SelectTrigger>
             <SelectValue placeholder="Sélectionnez le mode de paiement" />
           </SelectTrigger>
           <SelectContent>
-            {paymentMethods.map((method) => (
+            {availablePaymentMethods.map((method) => (
               <SelectItem key={method} value={method}>
                 {method}
               </SelectItem>
