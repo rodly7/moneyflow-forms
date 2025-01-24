@@ -9,7 +9,81 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          address: string | null
+          country: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          phone: string | null
+        }
+        Insert: {
+          address?: string | null
+          country?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          phone?: string | null
+        }
+        Update: {
+          address?: string | null
+          country?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+        }
+        Relationships: []
+      }
+      transfers: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          fees: number
+          id: string
+          recipient_address: string
+          recipient_country: string
+          recipient_full_name: string
+          recipient_phone: string
+          recipient_receive_method: string
+          sender_id: string
+          status: string
+          transfer_code: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency: string
+          fees: number
+          id?: string
+          recipient_address: string
+          recipient_country: string
+          recipient_full_name: string
+          recipient_phone: string
+          recipient_receive_method: string
+          sender_id: string
+          status?: string
+          transfer_code: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          fees?: number
+          id?: string
+          recipient_address?: string
+          recipient_country?: string
+          recipient_full_name?: string
+          recipient_phone?: string
+          recipient_receive_method?: string
+          sender_id?: string
+          status?: string
+          transfer_code?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
