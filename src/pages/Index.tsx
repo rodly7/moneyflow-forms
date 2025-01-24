@@ -33,13 +33,13 @@ const Index = () => {
             Déconnexion
           </Button>
         </div>
-        <div className="flex flex-col items-center mb-6 space-y-2">
+        <div className="flex items-center mb-6 space-x-4">
           <Avatar className={`w-32 h-32 ${randomColor}`}>
             <AvatarFallback className="text-4xl font-bold text-white">
               {userInitial}
             </AvatarFallback>
           </Avatar>
-          <h1 className="text-2xl md:text-3xl font-bold text-center text-emerald-600">
+          <h1 className="text-2xl md:text-3xl font-bold text-emerald-600">
             Transfert d'Argent International
           </h1>
         </div>
