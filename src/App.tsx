@@ -7,6 +7,9 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { useAuth } from "./contexts/AuthContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Dashboard from "./pages/Dashboard";
+import Receive from "./pages/Receive";
+import Withdraw from "./pages/Withdraw";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +34,30 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Index />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/receive"
+        element={
+          <ProtectedRoute>
+            <Receive />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/withdraw"
+        element={
+          <ProtectedRoute>
+            <Withdraw />
           </ProtectedRoute>
         }
       />
