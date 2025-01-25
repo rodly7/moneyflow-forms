@@ -20,16 +20,9 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [country, setCountry] = useState("");
   const [address, setAddress] = useState("");
-  const [idPhoto, setIdPhoto] = useState<File | null>(null);
   const [email, setEmail] = useState("");
   
   const { signIn, signUp } = useAuth();
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setIdPhoto(e.target.files[0]);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,21 +40,6 @@ const Auth = () => {
         if (signUpError) throw signUpError;
 
         if (authData.user) {
-          // Upload ID photo if provided
-          let photoUrl = null;
-          if (idPhoto) {
-            const fileExt = idPhoto.name.split('.').pop();
-            const fileName = `${authData.user.id}.${fileExt}`;
-            
-            const { error: uploadError } = await supabase.storage
-              .from('id_photos')
-              .upload(fileName, idPhoto);
-
-            if (uploadError) throw uploadError;
-            
-            photoUrl = fileName;
-          }
-
           // Create profile
           const { error: profileError } = await supabase
             .from('profiles')
@@ -70,7 +48,6 @@ const Auth = () => {
               country,
               phone,
               address,
-              id_photo: photoUrl
             })
             .eq('id', authData.user.id);
 
@@ -170,19 +147,6 @@ const Auth = () => {
                     id="address"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    required
-                    className="w-full"
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="idPhoto">Photo d'identité</Label>
-                  <Input
-                    id="idPhoto"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
                     required
                     className="w-full"
                     disabled={loading}
