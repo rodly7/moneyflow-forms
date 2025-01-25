@@ -21,20 +21,28 @@ const Auth = () => {
     try {
       if (isSignUp) {
         await signUp(email, password);
-        toast.success("Compte créé avec succès! Vous pouvez maintenant vous connecter.");
+        toast.success("Compte créé avec succès! Vérifiez votre email pour confirmer votre compte.", {
+          duration: 6000,
+        });
+        // On bascule automatiquement vers le formulaire de connexion
         setIsSignUp(false);
       } else {
         await signIn(email, password);
-        toast.success("Connexion réussie!");
+        toast.success("Connexion réussie! Redirection...");
       }
     } catch (error: any) {
-      console.error("Auth error:", error);
+      console.error("Erreur d'authentification:", error);
       let errorMessage = "Une erreur est survenue";
       
+      // Messages d'erreur personnalisés selon le type d'erreur
       if (error.message.includes("Invalid login credentials")) {
         errorMessage = "Email ou mot de passe incorrect";
       } else if (error.message.includes("Email not confirmed")) {
         errorMessage = "Veuillez confirmer votre email avant de vous connecter";
+      } else if (error.message.includes("User already registered")) {
+        errorMessage = "Un compte existe déjà avec cet email";
+      } else if (error.message.includes("Password should be at least 6 characters")) {
+        errorMessage = "Le mot de passe doit contenir au moins 6 caractères";
       }
       
       toast.error(errorMessage);
@@ -68,6 +76,7 @@ const Auth = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full"
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -80,6 +89,8 @@ const Auth = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 className="w-full"
+                disabled={loading}
+                minLength={6}
               />
             </div>
             <Button
@@ -113,6 +124,7 @@ const Auth = () => {
               variant="outline"
               onClick={() => setIsSignUp(!isSignUp)}
               className="w-full"
+              disabled={loading}
             >
               {isSignUp
                 ? "Déjà un compte? Se connecter"
