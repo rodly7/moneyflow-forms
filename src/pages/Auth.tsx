@@ -6,13 +6,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Icons } from "@/components/ui/icons";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // Login fields
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  
+  // Additional signup fields
+  const [fullName, setFullName] = useState("");
+  const [country, setCountry] = useState("");
+  const [address, setAddress] = useState("");
+  const [idPhoto, setIdPhoto] = useState<File | null>(null);
+  const [email, setEmail] = useState("");
+  
   const { signIn, signUp } = useAuth();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setIdPhoto(e.target.files[0]);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,29 +37,71 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
-        await signUp(email, password);
+        // Sign up process
+        const { data: authData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          phone,
+        });
+
+        if (signUpError) throw signUpError;
+
+        if (authData.user) {
+          // Upload ID photo if provided
+          let photoUrl = null;
+          if (idPhoto) {
+            const fileExt = idPhoto.name.split('.').pop();
+            const fileName = `${authData.user.id}.${fileExt}`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from('id_photos')
+              .upload(fileName, idPhoto);
+
+            if (uploadError) throw uploadError;
+            
+            photoUrl = fileName;
+          }
+
+          // Create profile
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({
+              full_name: fullName,
+              country,
+              phone,
+              address,
+              id_photo: photoUrl
+            })
+            .eq('id', authData.user.id);
+
+          if (profileError) throw profileError;
+        }
+
         toast.success("Compte créé avec succès! Vérifiez votre email pour confirmer votre compte.", {
           duration: 6000,
         });
-        // On bascule automatiquement vers le formulaire de connexion
         setIsSignUp(false);
       } else {
-        await signIn(email, password);
+        // Login with phone number
+        const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
+          phone,
+          password,
+        });
+
+        if (signInError) throw signInError;
+
         toast.success("Connexion réussie! Redirection...");
       }
     } catch (error: any) {
       console.error("Erreur d'authentification:", error);
       let errorMessage = "Une erreur est survenue";
       
-      // Messages d'erreur personnalisés selon le type d'erreur
       if (error.message.includes("Invalid login credentials")) {
-        errorMessage = "Email ou mot de passe incorrect";
-      } else if (error.message.includes("Email not confirmed")) {
-        errorMessage = "Veuillez confirmer votre email avant de vous connecter";
+        errorMessage = "Numéro de téléphone ou mot de passe incorrect";
+      } else if (error.message.includes("Phone not confirmed")) {
+        errorMessage = "Veuillez confirmer votre numéro de téléphone avant de vous connecter";
       } else if (error.message.includes("User already registered")) {
-        errorMessage = "Un compte existe déjà avec cet email";
-      } else if (error.message.includes("Password should be at least 6 characters")) {
-        errorMessage = "Le mot de passe doit contenir au moins 6 caractères";
+        errorMessage = "Un compte existe déjà avec ce numéro";
       }
       
       toast.error(errorMessage);
@@ -66,19 +125,86 @@ const Auth = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignUp && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Nom complet</Label>
+                  <Input
+                    id="fullName"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                    className="w-full"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="country">Pays</Label>
+                  <Input
+                    id="country"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    required
+                    className="w-full"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address">Adresse</Label>
+                  <Input
+                    id="address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    required
+                    className="w-full"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="idPhoto">Photo d'identité</Label>
+                  <Input
+                    id="idPhoto"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    required
+                    className="w-full"
+                    disabled={loading}
+                  />
+                </div>
+              </>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="phone">Numéro de téléphone</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="exemple@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="phone"
+                type="tel"
+                placeholder="+33612345678"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 required
                 className="w-full"
                 disabled={loading}
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="password">Mot de passe</Label>
               <Input
@@ -93,6 +219,7 @@ const Auth = () => {
                 minLength={6}
               />
             </div>
+
             <Button
               type="submit"
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
