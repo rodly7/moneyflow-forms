@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Icons } from "@/components/ui/icons";
-import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { countries } from "@/data/countries";
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -19,9 +20,21 @@ const Auth = () => {
   // Additional signup fields
   const [fullName, setFullName] = useState("");
   const [country, setCountry] = useState("");
+  const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
+
+  const handleCountryChange = (value: string) => {
+    const selectedCountry = countries.find(c => c.name === value);
+    if (selectedCountry) {
+      setCountry(value);
+      setSelectedCountryCode(selectedCountry.code);
+      setAvailableCities(selectedCountry.cities.map(city => city.name));
+      setAddress(""); // Reset city when country changes
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,47 +128,71 @@ const Auth = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Numéro de téléphone</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+33612345678"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    required
-                    className="w-full"
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="country">Pays</Label>
-                  <Input
-                    id="country"
+                  <Select
                     value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    required
-                    className="w-full"
-                    disabled={loading}
-                  />
+                    onValueChange={handleCountryChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez votre pays" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries.map((country) => (
+                        <SelectItem key={country.name} value={country.name}>
+                          {country.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="address">Adresse</Label>
-                  <Input
-                    id="address"
+                  <Label htmlFor="address">Ville</Label>
+                  <Select
                     value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    required
-                    className="w-full"
-                    disabled={loading}
-                  />
+                    onValueChange={setAddress}
+                    disabled={!country}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez votre ville" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableCities.map((city) => (
+                        <SelectItem key={city} value={city}>
+                          {city}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="signupPassword">Mot de passe</Label>
+                  <Label htmlFor="phone">Numéro de téléphone</Label>
+                  <div className="flex gap-2">
+                    <div className="w-24">
+                      <Input
+                        value={selectedCountryCode}
+                        readOnly
+                        className="bg-gray-100"
+                      />
+                    </div>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="XX XXX XXXX"
+                      value={phone}
+                      onChange={(e) => setPhone(selectedCountryCode + e.target.value)}
+                      required
+                      className="w-full"
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Mot de passe</Label>
                   <Input
-                    id="signupPassword"
+                    id="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
