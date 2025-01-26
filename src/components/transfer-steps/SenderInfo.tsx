@@ -2,20 +2,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TransferData } from "../TransferForm";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { countries } from "@/data/countries";
 
 type SenderInfoProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
 };
 
 const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
-  const countries = [
-    { name: "Congo Brazzaville", code: "+242", paymentMethods: ["Airtel Money", "Mobile Money"] },
-    { name: "Sénégal", code: "+221", paymentMethods: ["Wave", "Orange Money"] },
-    { name: "Gabon", code: "+241", paymentMethods: ["Airtel Money"] }
-  ];
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>([]);
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (sender.country) {
+      const country = countries.find(c => c.name === sender.country);
+      if (country) {
+        setSelectedCountryCode(country.code);
+        setAvailablePaymentMethods(country.paymentMethods);
+        setAvailableCities(country.cities.map(city => city.name));
+      }
+    }
+  }, [sender.country]);
 
   return (
     <div className="space-y-4">
@@ -25,15 +33,19 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
           value={sender.country}
           onValueChange={(value) => {
             const country = countries.find(c => c.name === value);
-            setSelectedCountryCode(country?.code || "");
-            setAvailablePaymentMethods(country?.paymentMethods || []);
-            updateFields({ 
-              sender: { 
-                ...sender, 
-                country: value,
-                paymentMethod: "" // Reset payment method when country changes
-              } 
-            });
+            if (country) {
+              setSelectedCountryCode(country.code);
+              setAvailablePaymentMethods(country.paymentMethods);
+              setAvailableCities(country.cities.map(city => city.name));
+              updateFields({ 
+                sender: { 
+                  ...sender, 
+                  country: value,
+                  city: "", // Reset city when country changes
+                  paymentMethod: "" // Reset payment method when country changes
+                } 
+              });
+            }
           }}
         >
           <SelectTrigger>
@@ -43,6 +55,28 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
             {countries.map((country) => (
               <SelectItem key={country.name} value={country.name}>
                 {country.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="city">Ville</Label>
+        <Select
+          value={sender.city}
+          onValueChange={(value) =>
+            updateFields({ sender: { ...sender, city: value } })
+          }
+          disabled={!sender.country}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionnez votre ville" />
+          </SelectTrigger>
+          <SelectContent>
+            {availableCities.map((city) => (
+              <SelectItem key={city} value={city}>
+                {city}
               </SelectItem>
             ))}
           </SelectContent>
