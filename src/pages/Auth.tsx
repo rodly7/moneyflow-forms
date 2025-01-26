@@ -13,18 +13,15 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   
   // Login fields
-  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPhone, setLoginPhone] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   
   // Additional signup fields
   const [fullName, setFullName] = useState("");
   const [country, setCountry] = useState("");
   const [address, setAddress] = useState("");
-  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  
-  const { signIn, signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,9 +31,8 @@ const Auth = () => {
       if (isSignUp) {
         // Sign up process
         const { data: authData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
           phone,
+          password,
         });
 
         if (signUpError) throw signUpError;
@@ -56,14 +52,14 @@ const Auth = () => {
           if (profileError) throw profileError;
         }
 
-        toast.success("Compte créé avec succès! Vérifiez votre email pour confirmer votre compte.", {
+        toast.success("Compte créé avec succès!", {
           duration: 6000,
         });
         setIsSignUp(false);
       } else {
-        // Login with email
+        // Login with phone
         const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: loginEmail,
+          phone: loginPhone,
           password: loginPassword,
         });
 
@@ -76,11 +72,11 @@ const Auth = () => {
       let errorMessage = "Une erreur est survenue";
       
       if (error.message.includes("Invalid login credentials")) {
-        errorMessage = "Email ou mot de passe incorrect";
-      } else if (error.message.includes("Email not confirmed")) {
-        errorMessage = "Veuillez confirmer votre email avant de vous connecter";
+        errorMessage = "Numéro de téléphone ou mot de passe incorrect";
+      } else if (error.message.includes("Phone not confirmed")) {
+        errorMessage = "Veuillez confirmer votre numéro de téléphone";
       } else if (error.message.includes("User already registered")) {
-        errorMessage = "Un compte existe déjà avec cet email";
+        errorMessage = "Un compte existe déjà avec ce numéro";
       }
       
       toast.error(errorMessage);
@@ -112,19 +108,6 @@ const Auth = () => {
                     id="fullName"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    required
-                    className="w-full"
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
                     required
                     className="w-full"
                     disabled={loading}
@@ -186,12 +169,13 @@ const Auth = () => {
             ) : (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="loginEmail">Email</Label>
+                  <Label htmlFor="loginPhone">Numéro de téléphone</Label>
                   <Input
-                    id="loginEmail"
-                    type="email"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
+                    id="loginPhone"
+                    type="tel"
+                    placeholder="+33612345678"
+                    value={loginPhone}
+                    onChange={(e) => setLoginPhone(e.target.value)}
                     required
                     className="w-full"
                     disabled={loading}
