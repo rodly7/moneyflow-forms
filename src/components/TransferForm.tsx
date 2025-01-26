@@ -13,6 +13,7 @@ export type TransferData = {
     address: string;
     phone: string;
     country: string;
+    city: string;
     paymentMethod: string;
   };
   recipient: {
@@ -20,6 +21,7 @@ export type TransferData = {
     address: string;
     phone: string;
     country: string;
+    city: string;
     receiveMethod: string;
   };
   transfer: {
@@ -35,6 +37,7 @@ const INITIAL_DATA: TransferData = {
     address: "",
     phone: "",
     country: "",
+    city: "",
     paymentMethod: "",
   },
   recipient: {
@@ -42,6 +45,7 @@ const INITIAL_DATA: TransferData = {
     address: "",
     phone: "",
     country: "",
+    city: "",
     receiveMethod: "",
   },
   transfer: {
