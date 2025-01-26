@@ -13,14 +13,16 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   
   // Login fields
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
   
   // Additional signup fields
   const [fullName, setFullName] = useState("");
   const [country, setCountry] = useState("");
   const [address, setAddress] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
   
   const { signIn, signUp } = useAuth();
 
@@ -59,10 +61,10 @@ const Auth = () => {
         });
         setIsSignUp(false);
       } else {
-        // Login with phone number
-        const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
-          phone,
-          password,
+        // Login with email
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: loginEmail,
+          password: loginPassword,
         });
 
         if (signInError) throw signInError;
@@ -74,11 +76,11 @@ const Auth = () => {
       let errorMessage = "Une erreur est survenue";
       
       if (error.message.includes("Invalid login credentials")) {
-        errorMessage = "Numéro de téléphone ou mot de passe incorrect";
-      } else if (error.message.includes("Phone not confirmed")) {
-        errorMessage = "Veuillez confirmer votre numéro de téléphone avant de vous connecter";
+        errorMessage = "Email ou mot de passe incorrect";
+      } else if (error.message.includes("Email not confirmed")) {
+        errorMessage = "Veuillez confirmer votre email avant de vous connecter";
       } else if (error.message.includes("User already registered")) {
-        errorMessage = "Un compte existe déjà avec ce numéro";
+        errorMessage = "Un compte existe déjà avec cet email";
       }
       
       toast.error(errorMessage);
@@ -102,7 +104,7 @@ const Auth = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {isSignUp && (
+            {isSignUp ? (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Nom complet</Label>
@@ -123,6 +125,20 @@ const Auth = () => {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Numéro de téléphone</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+33612345678"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
                     required
                     className="w-full"
                     disabled={loading}
@@ -152,37 +168,51 @@ const Auth = () => {
                     disabled={loading}
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signupPassword">Mot de passe</Label>
+                  <Input
+                    id="signupPassword"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full"
+                    disabled={loading}
+                    minLength={6}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="loginEmail">Email</Label>
+                  <Input
+                    id="loginEmail"
+                    type="email"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    required
+                    className="w-full"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="loginPassword">Mot de passe</Label>
+                  <Input
+                    id="loginPassword"
+                    type="password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    required
+                    className="w-full"
+                    disabled={loading}
+                    minLength={6}
+                  />
+                </div>
               </>
             )}
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Numéro de téléphone</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="+33612345678"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-                className="w-full"
-                disabled={loading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full"
-                disabled={loading}
-                minLength={6}
-              />
-            </div>
 
             <Button
               type="submit"
