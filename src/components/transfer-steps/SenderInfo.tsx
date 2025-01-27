@@ -4,6 +4,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TransferData } from "../TransferForm";
 import { useState, useEffect } from "react";
 import { countries } from "@/data/countries";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 type SenderInfoProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
@@ -13,6 +16,38 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>([]);
   const [availableCities, setAvailableCities] = useState<string[]>([]);
+  const { user } = useAuth();
+
+  // Fetch user profile data
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Pre-fill sender information when profile data is loaded
+  useEffect(() => {
+    if (profile) {
+      updateFields({
+        sender: {
+          ...sender,
+          fullName: profile.full_name || '',
+          phone: profile.phone || '',
+          address: profile.address || '',
+          country: profile.country || '',
+        }
+      });
+    }
+  }, [profile]);
 
   useEffect(() => {
     if (sender.country) {
@@ -41,8 +76,8 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
                 sender: { 
                   ...sender, 
                   country: value,
-                  city: "", // Reset city when country changes
-                  paymentMethod: "" // Reset payment method when country changes
+                  city: "",
+                  paymentMethod: ""
                 } 
               });
             }
