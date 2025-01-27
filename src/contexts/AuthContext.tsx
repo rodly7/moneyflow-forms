@@ -3,11 +3,18 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
+type UserMetadata = {
+  full_name?: string;
+  country?: string;
+  address?: string;
+  phone?: string;
+};
+
 type AuthContextType = {
   session: Session | null;
   user: User | null;
   signIn: (phone: string, password: string) => Promise<void>;
-  signUp: (phone: string, password: string) => Promise<void>;
+  signUp: (phone: string, password: string, metadata?: UserMetadata) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -44,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (phone: string, password: string) => {
     const email = formatPhoneToEmail(phone);
-    console.log("Trying to sign in with email:", email); // Debug log
+    console.log("Trying to sign in with email:", email);
     
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -54,16 +61,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     navigate("/");
   };
 
-  const signUp = async (phone: string, password: string) => {
+  const signUp = async (phone: string, password: string, metadata?: UserMetadata) => {
     const email = formatPhoneToEmail(phone);
-    console.log("Trying to sign up with email:", email); // Debug log
+    console.log("Trying to sign up with email:", email);
     
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          phone: phone, // Store the original phone number in metadata
+          ...metadata,
+          phone: phone,
         }
       }
     });

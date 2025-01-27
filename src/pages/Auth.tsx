@@ -70,7 +70,13 @@ const Auth = () => {
           throw new Error("Veuillez remplir tous les champs");
         }
         
-        await signUp(phone, password);
+        // Include user metadata during signup
+        await signUp(phone, password, {
+          full_name: fullName,
+          country: country,
+          address: address,
+          phone: phone,
+        });
         
         toast.success("Compte créé avec succès!", {
           duration: 6000,
