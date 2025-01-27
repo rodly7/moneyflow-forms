@@ -37,8 +37,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (phone: string, password: string) => {
+    // Convert phone to email format for authentication
+    const email = `${phone.replace(/[^0-9]/g, '')}@sendflow.com`;
+    
     const { error } = await supabase.auth.signInWithPassword({
-      phone,
+      email,
       password,
     });
     if (error) throw error;
@@ -46,9 +49,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (phone: string, password: string) => {
+    // Convert phone to email format for authentication
+    const email = `${phone.replace(/[^0-9]/g, '')}@sendflow.com`;
+    
     const { error } = await supabase.auth.signUp({
-      phone,
+      email,
       password,
+      options: {
+        data: {
+          phone: phone,
+        }
+      }
     });
     if (error) throw error;
   };
