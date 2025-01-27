@@ -57,11 +57,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password,
       options: {
         data: {
-          phone: phone,
+          phone: phone, // Pass the phone number in the metadata
         }
       }
     });
     if (error) throw error;
+    navigate("/auth"); // Redirect to auth page after signup
   };
 
   const signOut = async () => {
