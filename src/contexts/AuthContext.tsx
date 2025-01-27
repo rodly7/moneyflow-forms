@@ -36,9 +36,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  const formatPhoneToEmail = (phone: string) => {
+    // Remove any non-digit characters and spaces
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    return `${cleanPhone}@sendflow.com`;
+  };
+
   const signIn = async (phone: string, password: string) => {
-    // Convert phone to email format for authentication
-    const email = `${phone.replace(/[^0-9]/g, '')}@sendflow.com`;
+    const email = formatPhoneToEmail(phone);
+    console.log("Trying to sign in with email:", email); // Debug log
     
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -49,20 +55,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (phone: string, password: string) => {
-    // Convert phone to email format for authentication
-    const email = `${phone.replace(/[^0-9]/g, '')}@sendflow.com`;
+    const email = formatPhoneToEmail(phone);
+    console.log("Trying to sign up with email:", email); // Debug log
     
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          phone: phone, // Pass the phone number in the metadata
+          phone: phone, // Store the original phone number in metadata
         }
       }
     });
     if (error) throw error;
-    navigate("/auth"); // Redirect to auth page after signup
+    navigate("/auth");
   };
 
   const signOut = async () => {
