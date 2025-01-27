@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { countries } from "@/data/countries";
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { signIn, signUp } = useAuth();
   
   // Login fields
   const [loginPhone, setLoginPhone] = useState("");
@@ -23,6 +24,7 @@ const Auth = () => {
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [availableCities, setAvailableCities] = useState<string[]>([]);
 
@@ -33,6 +35,28 @@ const Auth = () => {
       setSelectedCountryCode(selectedCountry.code);
       setAvailableCities(selectedCountry.cities.map(city => city.name));
       setAddress(""); // Reset city when country changes
+      // Reset phone number but keep the country code
+      setPhone(selectedCountry.code);
+      setPhoneNumber("");
+    }
+  };
+
+  // Function to format phone number with country code
+  const formatPhoneWithCountryCode = (countryCode: string, number: string) => {
+    return `${countryCode}${number.replace(/\D/g, '')}`;
+  };
+
+  const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    setPhoneNumber(value);
+    setPhone(formatPhoneWithCountryCode(selectedCountryCode, value));
+  };
+
+  const handleLoginPhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow + at the start and only digits after
+    if (/^\+?\d*$/.test(value)) {
+      setLoginPhone(value);
     }
   };
 
@@ -42,42 +66,22 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
-        // Sign up process
-        const { data: authData, error: signUpError } = await supabase.auth.signUp({
-          phone,
-          password,
-        });
-
-        if (signUpError) throw signUpError;
-
-        if (authData.user) {
-          // Create profile
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .update({
-              full_name: fullName,
-              country,
-              phone,
-              address,
-            })
-            .eq('id', authData.user.id);
-
-          if (profileError) throw profileError;
+        if (!country || !address || !phone || !password || !fullName) {
+          throw new Error("Veuillez remplir tous les champs");
         }
-
+        
+        await signUp(phone, password);
+        
         toast.success("Compte créé avec succès!", {
           duration: 6000,
         });
         setIsSignUp(false);
       } else {
-        // Login with phone
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          phone: loginPhone,
-          password: loginPassword,
-        });
+        if (!loginPhone || !loginPassword) {
+          throw new Error("Veuillez remplir tous les champs");
+        }
 
-        if (signInError) throw signInError;
-
+        await signIn(loginPhone, loginPassword);
         toast.success("Connexion réussie! Redirection...");
       }
     } catch (error: any) {
@@ -180,11 +184,11 @@ const Auth = () => {
                       id="phone"
                       type="tel"
                       placeholder="XX XXX XXXX"
-                      value={phone}
-                      onChange={(e) => setPhone(selectedCountryCode + e.target.value)}
+                      value={phoneNumber}
+                      onChange={handlePhoneNumberChange}
                       required
                       className="w-full"
-                      disabled={loading}
+                      disabled={loading || !selectedCountryCode}
                     />
                   </div>
                 </div>
@@ -210,9 +214,9 @@ const Auth = () => {
                   <Input
                     id="loginPhone"
                     type="tel"
-                    placeholder="+33612345678"
+                    placeholder="+242XXXXXXXX"
                     value={loginPhone}
-                    onChange={(e) => setLoginPhone(e.target.value)}
+                    onChange={handleLoginPhoneChange}
                     required
                     className="w-full"
                     disabled={loading}
