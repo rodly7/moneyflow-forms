@@ -7,11 +7,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { User, CreditCard, Upload, Download, ArrowRightLeft, LogOut } from "lucide-react";
 import TransferForm from "@/components/TransferForm";
 import { useState } from "react";
+import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [showTransfer, setShowTransfer] = useState(false);
+  const { toast } = useToast();
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
@@ -21,6 +23,20 @@ const Index = () => {
         .select('*')
         .eq('id', user?.id)
         .single();
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: transactions, isLoading: isLoadingTransactions } = useQuery({
+    queryKey: ['transactions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transfers')
+        .select('*')
+        .eq('sender_id', user?.id)
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data;
@@ -56,11 +72,11 @@ const Index = () => {
               </div>
               <Button 
                 variant="ghost" 
+                size="icon"
                 className="text-gray-500 hover:text-gray-700"
                 onClick={handleLogout}
               >
-                <LogOut className="w-5 h-5 mr-2" />
-                Déconnexion
+                <LogOut className="w-5 h-5" />
               </Button>
             </div>
           </CardContent>
@@ -96,35 +112,76 @@ const Index = () => {
             <TransferForm />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link to="/receive">
+          <div className="grid grid-cols-3 gap-4">
+            <Link to="/receive" className="col-span-3 md:col-span-1">
               <Button
                 variant="outline"
-                className="w-full h-24 text-lg border-2"
+                className="w-full h-24 text-lg border-2 flex flex-col gap-2"
               >
-                <Upload className="w-6 h-6 mr-2" />
-                Recharger votre compte
+                <Upload className="w-6 h-6" />
+                Recharger
               </Button>
             </Link>
-            <Link to="/withdraw">
+            <Link to="/withdraw" className="col-span-3 md:col-span-1">
               <Button
                 variant="outline"
-                className="w-full h-24 text-lg border-2"
+                className="w-full h-24 text-lg border-2 flex flex-col gap-2"
               >
-                <Download className="w-6 h-6 mr-2" />
+                <Download className="w-6 h-6" />
                 Retrait
               </Button>
             </Link>
             <Button
               variant="outline"
-              className="w-full h-24 text-lg border-2"
+              className="w-full h-24 text-lg border-2 flex flex-col gap-2 col-span-3 md:col-span-1"
               onClick={() => setShowTransfer(true)}
             >
-              <ArrowRightLeft className="w-6 h-6 mr-2" />
+              <ArrowRightLeft className="w-6 h-6" />
               Transfert
             </Button>
           </div>
         )}
+
+        {/* Transactions History */}
+        <Card className="bg-white shadow-lg">
+          <CardContent className="p-6">
+            <h3 className="text-xl font-semibold mb-4">Historique des transactions</h3>
+            <div className="space-y-4">
+              {isLoadingTransactions ? (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
+                </div>
+              ) : transactions && transactions.length > 0 ? (
+                transactions.map((transaction) => (
+                  <div 
+                    key={transaction.id} 
+                    className="flex justify-between items-center p-4 rounded-lg border"
+                  >
+                    <div>
+                      <p className="font-medium">{transaction.recipient_full_name}</p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(transaction.created_at).toLocaleDateString('fr-FR')}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-red-500">
+                        -{new Intl.NumberFormat('fr-FR', {
+                          style: 'currency',
+                          currency: transaction.currency || 'XAF'
+                        }).format(transaction.amount)}
+                      </p>
+                      <p className="text-sm text-gray-500">{transaction.status}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-gray-500 py-4">
+                  Aucune transaction effectuée
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
