@@ -1,49 +1,100 @@
-import TransferForm from "@/components/TransferForm";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Link } from "react-router-dom";
+import { User, CreditCard, Upload, Download, ArrowRightLeft } from "lucide-react";
 
 const Index = () => {
-  const { signOut, user } = useAuth();
+  const { user } = useAuth();
 
-  // Array of background colors for the avatar
-  const bgColors = [
-    'bg-purple-500', 'bg-blue-500', 'bg-green-500', 
-    'bg-yellow-500', 'bg-red-500', 'bg-pink-500',
-    'bg-indigo-500', 'bg-teal-500'
-  ];
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+  });
 
-  // Get a random color from the array
-  const randomColor = bgColors[Math.floor(Math.random() * bgColors.length)];
-
-  // Get the first letter of the email
-  const userInitial = user?.email?.[0].toUpperCase() || '?';
+  if (isLoading) {
+    return <div className="flex justify-center items-center min-h-screen">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
+    </div>;
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-2">
-      <div className="container max-w-3xl mx-auto">
-        <div className="flex justify-end mb-4">
-          <Button
-            variant="outline"
-            onClick={signOut}
-            className="text-emerald-600 border-emerald-600 hover:bg-emerald-50"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Déconnexion
-          </Button>
+    <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-8 px-4">
+      <div className="container max-w-3xl mx-auto space-y-8">
+        {/* Profile Card */}
+        <Card className="bg-white shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="bg-emerald-100 p-3 rounded-full">
+                <User className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold">{profile?.full_name}</h2>
+                <p className="text-gray-500">{profile?.phone}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Balance Card */}
+        <Card className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white">
+          <CardContent className="p-8">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm opacity-80">Solde disponible</p>
+                <h1 className="text-4xl font-bold mt-1">
+                  {new Intl.NumberFormat('fr-FR', {
+                    style: 'currency',
+                    currency: 'EUR'
+                  }).format(profile?.balance || 0)}
+                </h1>
+              </div>
+              <CreditCard className="w-12 h-12 opacity-80" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Action Buttons */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link to="/receive">
+            <Button
+              variant="outline"
+              className="w-full h-24 text-lg border-2"
+            >
+              <Upload className="w-6 h-6 mr-2" />
+              Recharger votre compte
+            </Button>
+          </Link>
+          <Link to="/withdraw">
+            <Button
+              variant="outline"
+              className="w-full h-24 text-lg border-2"
+            >
+              <Download className="w-6 h-6 mr-2" />
+              Retrait
+            </Button>
+          </Link>
+          <Link to="/dashboard">
+            <Button
+              variant="outline"
+              className="w-full h-24 text-lg border-2"
+            >
+              <ArrowRightLeft className="w-6 h-6 mr-2" />
+              Transfert
+            </Button>
+          </Link>
         </div>
-        <div className="flex items-center mb-6 space-x-4">
-          <Avatar className={`w-32 h-32 ${randomColor}`}>
-            <AvatarFallback className="text-4xl font-bold text-white">
-              {userInitial}
-            </AvatarFallback>
-          </Avatar>
-          <h1 className="text-2xl md:text-3xl font-bold text-emerald-600">
-            Transfert d'Argent International
-          </h1>
-        </div>
-        <TransferForm />
       </div>
     </div>
   );
