@@ -29,7 +29,7 @@ const Index = () => {
     },
   });
 
-  const { data: transactions, isLoading: isLoadingTransactions } = useQuery({
+  const { data: transactions, isLoadingTransactions } = useQuery({
     queryKey: ['transactions'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -112,31 +112,34 @@ const Index = () => {
             <TransferForm />
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-4">
-            <Link to="/receive" className="col-span-3 md:col-span-1">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <Link to="/receive" className="col-span-1">
               <Button
                 variant="outline"
-                className="w-full h-24 text-lg border-2 flex flex-col gap-2"
+                size="sm"
+                className="w-full h-16 text-sm border-2 flex flex-col gap-1"
               >
-                <Upload className="w-6 h-6" />
+                <Upload className="w-4 h-4" />
                 Recharger
               </Button>
             </Link>
-            <Link to="/withdraw" className="col-span-3 md:col-span-1">
+            <Link to="/withdraw" className="col-span-1">
               <Button
                 variant="outline"
-                className="w-full h-24 text-lg border-2 flex flex-col gap-2"
+                size="sm"
+                className="w-full h-16 text-sm border-2 flex flex-col gap-1"
               >
-                <Download className="w-6 h-6" />
+                <Download className="w-4 h-4" />
                 Retrait
               </Button>
             </Link>
             <Button
               variant="outline"
-              className="w-full h-24 text-lg border-2 flex flex-col gap-2 col-span-3 md:col-span-1"
+              size="sm"
+              className="w-full h-16 text-sm border-2 flex flex-col gap-1 col-span-2 md:col-span-1"
               onClick={() => setShowTransfer(true)}
             >
-              <ArrowRightLeft className="w-6 h-6" />
+              <ArrowRightLeft className="w-4 h-4" />
               Transfert
             </Button>
           </div>
