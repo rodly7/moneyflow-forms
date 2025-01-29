@@ -5,17 +5,20 @@ import { Link } from "react-router-dom";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { countries } from "@/data/countries";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 const Receive = () => {
   const [selectedCountry, setSelectedCountry] = useState("");
   const [amount, setAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
+  const { toast } = useToast();
   
   // Récupérer le profil de l'utilisateur
   const { data: profile } = useQuery({
@@ -52,6 +55,49 @@ const Receive = () => {
   const selectedCurrency = selectedCountry ? 
     exchangeRates[selectedCountry as keyof typeof exchangeRates]?.currency || "XAF" 
     : "XAF";
+
+  const handlePayment = async () => {
+    if (!user || !profile) {
+      toast({
+        title: "Erreur",
+        description: "Vous devez être connecté pour effectuer une recharge",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      const { data, error } = await supabase.functions.invoke('initiate-payment', {
+        body: {
+          amount: total,
+          phone: profile.phone,
+          country: selectedCountry,
+          userId: user.id,
+          currency: selectedCurrency
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.paymentLink) {
+        window.location.href = data.paymentLink;
+      } else {
+        throw new Error("Lien de paiement non généré");
+      }
+
+    } catch (error) {
+      console.error('Erreur lors de l\'initiation du paiement:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'initiation du paiement",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-8 px-4">
@@ -139,9 +185,10 @@ const Receive = () => {
 
               <Button 
                 className="w-full mt-6" 
-                disabled={!selectedCountry || !amount || !paymentMethod}
+                disabled={!selectedCountry || !amount || !paymentMethod || isLoading}
+                onClick={handlePayment}
               >
-                Recharger
+                {isLoading ? "Traitement en cours..." : "Recharger"}
               </Button>
             </div>
           </CardContent>
