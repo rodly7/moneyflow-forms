@@ -29,7 +29,7 @@ const Index = () => {
     },
   });
 
-  const { data: transactions, isLoadingTransactions } = useQuery({
+  const { data: transactions, isLoading: isLoadingTransactions } = useQuery({
     queryKey: ['transactions'],
     queryFn: async () => {
       const { data, error } = await supabase
