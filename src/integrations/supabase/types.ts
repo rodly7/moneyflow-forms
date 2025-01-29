@@ -39,6 +39,51 @@ export type Database = {
         }
         Relationships: []
       }
+      recharges: {
+        Row: {
+          amount: number
+          country: string
+          created_at: string
+          id: string
+          payment_method: string
+          payment_phone: string
+          payment_provider: string
+          provider_transaction_id: string | null
+          status: string
+          transaction_reference: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          country: string
+          created_at?: string
+          id?: string
+          payment_method: string
+          payment_phone: string
+          payment_provider: string
+          provider_transaction_id?: string | null
+          status?: string
+          transaction_reference: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          country?: string
+          created_at?: string
+          id?: string
+          payment_method?: string
+          payment_phone?: string
+          payment_provider?: string
+          provider_transaction_id?: string | null
+          status?: string
+          transaction_reference?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       transfers: {
         Row: {
           amount: number

@@ -1,0 +1,4 @@
+project_id = "msasycggbiwyxlczknwj"
+
+[global.env]
+PUBLIC_SITE_URL = "http://localhost:5173"
