@@ -15,33 +15,25 @@ import { useQuery } from "@tanstack/react-query";
 const Withdraw = () => {
   const [withdrawalCode, setWithdrawalCode] = useState("");
   const [amount, setAmount] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState("");
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Fetch user profile to get their country
-  const { data: profile } = useQuery({
-    queryKey: ['profile'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('country')
-        .eq('id', user?.id)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Find payment methods for user's country
-  const userCountry = countries.find(c => c.name === profile?.country);
-  const paymentMethods = userCountry?.paymentMethods || [];
+  // Find payment methods for selected country
+  const countryData = countries.find(c => c.name === selectedCountry);
+  const paymentMethods = countryData?.paymentMethods || [];
 
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
 
+  // Reset payment method when country changes
+  const handleCountryChange = (country: string) => {
+    setSelectedCountry(country);
+    setSelectedPaymentMethod("");
+  };
+
   const handleWithdraw = async () => {
-    if (!withdrawalCode || !amount || !selectedPaymentMethod) {
+    if (!withdrawalCode || !amount || !selectedPaymentMethod || !selectedCountry) {
       toast({
         title: "Erreur",
         description: "Veuillez remplir tous les champs",
@@ -61,15 +53,11 @@ const Withdraw = () => {
         return;
       }
 
-      // Here you would typically validate the withdrawal code
-      // and process the withdrawal through your payment system
-
       toast({
         title: "Retrait initié",
         description: `Votre retrait de ${amount}€ via ${selectedPaymentMethod} est en cours de traitement`,
       });
 
-      // Redirect to dashboard after successful withdrawal
       navigate('/');
     } catch (error) {
       toast({
@@ -95,6 +83,25 @@ const Withdraw = () => {
             <CardTitle>Retirer de l'argent</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div>
+              <Label>Pays de retrait</Label>
+              <Select
+                value={selectedCountry}
+                onValueChange={handleCountryChange}
+              >
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Sélectionnez un pays" />
+                </SelectTrigger>
+                <SelectContent>
+                  {countries.map((country) => (
+                    <SelectItem key={country.name} value={country.name}>
+                      {country.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div>
               <Label htmlFor="withdrawalCode">Code de retrait</Label>
               <Input
@@ -124,6 +131,7 @@ const Withdraw = () => {
               <Select
                 value={selectedPaymentMethod}
                 onValueChange={setSelectedPaymentMethod}
+                disabled={!selectedCountry}
               >
                 <SelectTrigger className="mt-2">
                   <SelectValue placeholder="Sélectionnez un mode de paiement" />
