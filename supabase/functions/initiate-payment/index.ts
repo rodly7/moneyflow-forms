@@ -62,14 +62,16 @@ Deno.serve(async (req) => {
 
       console.log('Recharge record created:', recharge)
 
-      // Map country to Flutterwave payment type
-      const getPaymentType = (country: string) => {
-        const paymentTypes: { [key: string]: string } = {
-          'Congo Brazzaville': 'mobile_money_franco',
-          'Sénégal': 'mobile_money_franco',
-          'Gabon': 'mobile_money_franco'
-        }
-        return paymentTypes[country] || 'mobile_money_franco'
+      // Map country codes and network providers
+      const countryConfig = {
+        'Congo Brazzaville': { code: 'CG', network: 'MTN' },
+        'Sénégal': { code: 'SN', network: 'ORANGE' },
+        'Gabon': { code: 'GA', network: 'AIRTEL' }
+      }
+
+      const countryInfo = countryConfig[country as keyof typeof countryConfig]
+      if (!countryInfo) {
+        throw new Error(`Unsupported country: ${country}`)
       }
 
       // Initialize Flutterwave payment
@@ -77,11 +79,14 @@ Deno.serve(async (req) => {
         tx_ref: txRef,
         amount,
         currency,
-        payment_type: getPaymentType(country),
-        country: country === 'Congo Brazzaville' ? 'CG' : 'GA', // Map full country name to code
-        phone_number: phone,
-        email: `${phone}@sendflow.com`,
+        payment_type: "mobile_money",
+        country: countryInfo.code,
+        network: countryInfo.network,
+        phone_number: phone.replace('+', ''),
+        email: `${phone.replace('+', '')}@sendflow.com`,
         redirect_url: `${Deno.env.get('PUBLIC_SITE_URL')}/dashboard`,
+        client_ip: req.headers.get('x-forwarded-for') || '127.0.0.1',
+        device_fingerprint: txRef,
         meta: {
           user_id: userId,
           recharge_id: recharge.id
