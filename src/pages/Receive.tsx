@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { countries } from "@/data/countries";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -38,7 +38,7 @@ const Receive = () => {
   });
 
   // Définir le pays par défaut basé sur le profil
-  useState(() => {
+  useEffect(() => {
     if (profile?.country) {
       setSelectedCountry(profile.country);
     }
