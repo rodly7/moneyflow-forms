@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 type UserMetadata = {
   full_name?: string;
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Initial session:", session);
       setSession(session);
       setUser(session?.user ?? null);
     });
@@ -35,16 +37,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log("Auth state changed:", _event, session);
       setSession(session);
       setUser(session?.user ?? null);
+
+      if (!session) {
+        navigate("/auth");
+      }
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   const formatPhoneToEmail = (phone: string) => {
-    // Remove any non-digit characters and spaces
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     return `${cleanPhone}@sendflow.com`;
   };
@@ -53,36 +61,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const email = formatPhoneToEmail(phone);
     console.log("Trying to sign in with email:", email);
     
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw error;
-    navigate("/");
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Connexion réussie");
+      navigate("/");
+    } catch (error: any) {
+      console.error("Sign in error:", error);
+      toast.error(error.message);
+      throw error;
+    }
   };
 
   const signUp = async (phone: string, password: string, metadata?: UserMetadata) => {
     const email = formatPhoneToEmail(phone);
     console.log("Trying to sign up with email:", email);
     
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          ...metadata,
-          phone: phone,
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            ...metadata,
+            phone: phone,
+          }
         }
-      }
-    });
-    if (error) throw error;
-    navigate("/auth");
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Compte créé avec succès");
+      navigate("/auth");
+    } catch (error: any) {
+      console.error("Sign up error:", error);
+      toast.error(error.message);
+      throw error;
+    }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    navigate("/auth");
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      toast.success("Déconnexion réussie");
+      navigate("/auth");
+    } catch (error: any) {
+      console.error("Sign out error:", error);
+      toast.error(error.message);
+      throw error;
+    }
   };
 
   return (
