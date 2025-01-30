@@ -62,17 +62,32 @@ Deno.serve(async (req) => {
 
       console.log('Recharge record created:', recharge)
 
-      // Map country codes and network providers
-      const countryConfig = {
-        'Congo Brazzaville': { code: 'CG', network: 'MTN' },
-        'Sénégal': { code: 'SN', network: 'ORANGE' },
-        'Gabon': { code: 'GA', network: 'AIRTEL' }
+      // Map country codes and providers for Flutterwave
+      const countryMapping = {
+        'Congo Brazzaville': {
+          code: 'CG',
+          provider: 'MTN',
+          voucher: false
+        },
+        'Sénégal': {
+          code: 'SN',
+          provider: 'ORANGE',
+          voucher: true
+        },
+        'Gabon': {
+          code: 'GA',
+          provider: 'AIRTEL',
+          voucher: false
+        }
       }
 
-      const countryInfo = countryConfig[country as keyof typeof countryConfig]
+      const countryInfo = countryMapping[country as keyof typeof countryMapping]
       if (!countryInfo) {
         throw new Error(`Unsupported country: ${country}`)
       }
+
+      // Format phone number (remove + and country code)
+      const formattedPhone = phone.replace(/^\+\d{1,3}/, '')
 
       // Initialize Flutterwave payment
       const flutterwavePayload = {
@@ -81,16 +96,19 @@ Deno.serve(async (req) => {
         currency,
         payment_type: "mobile_money",
         country: countryInfo.code,
-        network: countryInfo.network,
-        phone_number: phone.replace('+', ''),
-        email: `${phone.replace('+', '')}@sendflow.com`,
+        network: countryInfo.provider,
+        phone_number: formattedPhone,
+        email: `${formattedPhone}@sendflow.com`,
         redirect_url: `${Deno.env.get('PUBLIC_SITE_URL')}/dashboard`,
         client_ip: req.headers.get('x-forwarded-for') || '127.0.0.1',
         device_fingerprint: txRef,
         meta: {
           user_id: userId,
           recharge_id: recharge.id
-        }
+        },
+        is_mpesa: false,
+        is_ussd: false,
+        voucher: countryInfo.voucher
       }
       console.log('Flutterwave payload:', flutterwavePayload)
 
