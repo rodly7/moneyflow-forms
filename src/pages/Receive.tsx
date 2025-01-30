@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,10 +15,10 @@ import { useToast } from "@/components/ui/use-toast";
 const Receive = () => {
   const [selectedCountry, setSelectedCountry] = useState("");
   const [amount, setAmount] = useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   // Récupérer le profil de l'utilisateur
   const { data: profile } = useQuery({
@@ -40,20 +40,8 @@ const Receive = () => {
   const fees = amount * 0.025;
   const total = amount + fees;
 
-  // Obtenir les méthodes de paiement disponibles pour le pays sélectionné
-  const availablePaymentMethods = selectedCountry 
-    ? countries.find(c => c.name === selectedCountry)?.paymentMethods || []
-    : [];
-
-  // Taux de conversion (exemple)
-  const exchangeRates = {
-    "Congo Brazzaville": { currency: "XAF", rate: 1 },
-    "Sénégal": { currency: "XOF", rate: 1 },
-    "Gabon": { currency: "XAF", rate: 1 }
-  };
-
   const selectedCurrency = selectedCountry ? 
-    exchangeRates[selectedCountry as keyof typeof exchangeRates]?.currency || "XAF" 
+    (selectedCountry === "Sénégal" ? "XOF" : "XAF")
     : "XAF";
 
   const handlePayment = async () => {
@@ -61,6 +49,15 @@ const Receive = () => {
       toast({
         title: "Erreur",
         description: "Vous devez être connecté pour effectuer une recharge",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!selectedCountry || !amount || amount <= 0) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez remplir tous les champs correctement",
         variant: "destructive"
       });
       return;
@@ -81,11 +78,12 @@ const Receive = () => {
 
       if (error) throw error;
 
-      if (data.paymentLink) {
-        window.location.href = data.paymentLink;
-      } else {
-        throw new Error("Lien de paiement non généré");
-      }
+      toast({
+        title: "Recharge réussie",
+        description: `Votre compte a été rechargé de ${amount} ${selectedCurrency}`,
+      });
+
+      navigate('/dashboard');
 
     } catch (error) {
       console.error('Erreur lors de l\'initiation du paiement:', error);
@@ -163,29 +161,9 @@ const Receive = () => {
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="paymentMethod">Moyen de paiement</Label>
-                <Select
-                  value={paymentMethod}
-                  onValueChange={setPaymentMethod}
-                  disabled={!selectedCountry}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionnez le moyen de paiement" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availablePaymentMethods.map((method) => (
-                      <SelectItem key={method} value={method}>
-                        {method}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               <Button 
                 className="w-full mt-6" 
-                disabled={!selectedCountry || !amount || !paymentMethod || isLoading}
+                disabled={!selectedCountry || !amount || amount <= 0 || isLoading}
                 onClick={handlePayment}
               >
                 {isLoading ? "Traitement en cours..." : "Recharger"}

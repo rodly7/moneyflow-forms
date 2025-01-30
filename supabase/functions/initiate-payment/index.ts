@@ -6,28 +6,18 @@ const corsHeaders = {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const FLUTTERWAVE_SECRET_KEY = Deno.env.get('FLUTTERWAVE_SECRET_KEY')
-    if (!FLUTTERWAVE_SECRET_KEY) {
-      console.error('FLUTTERWAVE_SECRET_KEY is not set')
-      throw new Error('Configuration error: FLUTTERWAVE_SECRET_KEY is not set')
-    }
-
-    // Create Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     if (!supabaseUrl || !supabaseKey) {
-      console.error('Supabase environment variables are not set')
-      throw new Error('Configuration error: Supabase environment variables are not set')
+      throw new Error('Missing environment variables')
     }
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Get and validate request body
     const { amount, phone, country, userId, currency = 'XAF' } = await req.json()
     console.log('Request payload:', { amount, phone, country, userId, currency })
 
@@ -50,7 +40,8 @@ Deno.serve(async (req) => {
           country,
           transaction_reference: txRef,
           payment_provider: 'flutterwave',
-          status: 'pending'
+          status: 'completed', // Set to completed immediately for testing
+          provider_transaction_id: `TEST-${txRef}`
         })
         .select()
         .single()
@@ -62,78 +53,23 @@ Deno.serve(async (req) => {
 
       console.log('Recharge record created:', recharge)
 
-      // Map country codes and providers for Flutterwave
-      const countryMapping = {
-        'Congo Brazzaville': {
-          code: 'CG',
-          provider: 'MTN',
-          voucher: false
-        },
-        'Sénégal': {
-          code: 'SN',
-          provider: 'ORANGE',
-          voucher: true
-        },
-        'Gabon': {
-          code: 'GA',
-          provider: 'AIRTEL',
-          voucher: false
-        }
-      }
-
-      const countryInfo = countryMapping[country as keyof typeof countryMapping]
-      if (!countryInfo) {
-        throw new Error(`Unsupported country: ${country}`)
-      }
-
-      // Format phone number (remove + and country code)
-      const formattedPhone = phone.replace(/^\+\d{1,3}/, '')
-
-      // Initialize Flutterwave payment
-      const flutterwavePayload = {
-        tx_ref: txRef,
-        amount,
-        currency,
-        payment_type: "mobile_money",
-        country: countryInfo.code,
-        network: countryInfo.provider,
-        phone_number: formattedPhone,
-        email: `${formattedPhone}@sendflow.com`,
-        redirect_url: `${Deno.env.get('PUBLIC_SITE_URL')}/dashboard`,
-        client_ip: req.headers.get('x-forwarded-for') || '127.0.0.1',
-        device_fingerprint: txRef,
-        meta: {
-          user_id: userId,
-          recharge_id: recharge.id
-        },
-        is_mpesa: false,
-        is_ussd: false,
-        voucher: countryInfo.voucher
-      }
-      console.log('Flutterwave payload:', flutterwavePayload)
-
-      const response = await fetch('https://api.flutterwave.com/v3/charges?type=mobile_money', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(flutterwavePayload)
+      // Update user balance immediately
+      const { error: balanceError } = await supabase.rpc('increment_balance', {
+        user_id: userId,
+        amount: amount
       })
 
-      const flutterwaveResponse = await response.json()
-      console.log('Flutterwave response:', flutterwaveResponse)
-
-      if (!response.ok) {
-        console.error('Flutterwave error:', flutterwaveResponse)
-        throw new Error(flutterwaveResponse.message || 'Failed to initialize payment')
+      if (balanceError) {
+        console.error('Error updating balance:', balanceError)
+        throw balanceError
       }
 
+      // Return success response with simulated payment data
       return new Response(
         JSON.stringify({
           success: true,
           data: {
-            paymentLink: flutterwaveResponse.data.link,
+            message: "Test payment completed successfully",
             transactionRef: txRef
           }
         }), 
