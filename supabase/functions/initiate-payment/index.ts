@@ -18,10 +18,10 @@ Deno.serve(async (req) => {
     }
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    const { amount, phone, country, userId, currency = 'XAF' } = await req.json()
-    console.log('Request payload:', { amount, phone, country, userId, currency })
+    const { amount, phone, country, userId, currency = 'XAF', paymentMethod } = await req.json()
+    console.log('Request payload:', { amount, phone, country, userId, currency, paymentMethod })
 
-    if (!amount || !phone || !country || !userId) {
+    if (!amount || !phone || !country || !userId || !paymentMethod) {
       throw new Error('Missing required fields')
     }
 
@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
         .insert({
           user_id: userId,
           amount,
-          payment_method: 'mobile_money',
+          payment_method: paymentMethod,
           payment_phone: phone,
           country,
           transaction_reference: txRef,

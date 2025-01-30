@@ -14,13 +14,14 @@ import { useToast } from "@/components/ui/use-toast";
 
 const Receive = () => {
   const [selectedCountry, setSelectedCountry] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
   const [amount, setAmount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  // Récupérer le profil de l'utilisateur
+  // Récupérer le profil de l'utilisateur pour avoir son pays de résidence
   const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
@@ -36,9 +37,17 @@ const Receive = () => {
     enabled: !!user,
   });
 
-  // Calculer les frais (2.5%)
-  const fees = amount * 0.025;
-  const total = amount + fees;
+  // Définir le pays par défaut basé sur le profil
+  useState(() => {
+    if (profile?.country) {
+      setSelectedCountry(profile.country);
+    }
+  }, [profile]);
+
+  // Obtenir les méthodes de paiement disponibles pour le pays sélectionné
+  const availablePaymentMethods = selectedCountry ? 
+    countries.find(c => c.name === selectedCountry)?.paymentMethods || [] 
+    : [];
 
   const selectedCurrency = selectedCountry ? 
     (selectedCountry === "Sénégal" ? "XOF" : "XAF")
@@ -54,7 +63,7 @@ const Receive = () => {
       return;
     }
 
-    if (!selectedCountry || !amount || amount <= 0) {
+    if (!selectedCountry || !amount || amount <= 0 || !paymentMethod) {
       toast({
         title: "Erreur",
         description: "Veuillez remplir tous les champs correctement",
@@ -68,11 +77,12 @@ const Receive = () => {
 
       const { data, error } = await supabase.functions.invoke('initiate-payment', {
         body: {
-          amount: total,
+          amount: amount,
           phone: profile.phone,
           country: selectedCountry,
           userId: user.id,
-          currency: selectedCurrency
+          currency: selectedCurrency,
+          paymentMethod: paymentMethod
         }
       });
 
@@ -100,7 +110,7 @@ const Receive = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-8 px-4">
       <div className="container max-w-3xl mx-auto">
-        <Link to="/">
+        <Link to="/dashboard">
           <Button variant="ghost" className="mb-6">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
@@ -133,6 +143,26 @@ const Receive = () => {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="paymentMethod">Mode de paiement</Label>
+                <Select
+                  value={paymentMethod}
+                  onValueChange={setPaymentMethod}
+                  disabled={!selectedCountry}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionnez le mode de paiement" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availablePaymentMethods.map((method) => (
+                      <SelectItem key={method} value={method}>
+                        {method}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="amount">Montant à recharger ({selectedCurrency})</Label>
                 <Input
                   id="amount"
@@ -144,26 +174,9 @@ const Receive = () => {
                 />
               </div>
 
-              {selectedCountry && amount > 0 && (
-                <div className="p-4 bg-primary/5 rounded-lg border border-primary/10 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Montant :</span>
-                    <span>{amount.toLocaleString('fr-FR')} {selectedCurrency}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Frais (2.5%) :</span>
-                    <span>{fees.toLocaleString('fr-FR')} {selectedCurrency}</span>
-                  </div>
-                  <div className="flex justify-between font-semibold pt-2 border-t border-primary/10">
-                    <span>Total :</span>
-                    <span>{total.toLocaleString('fr-FR')} {selectedCurrency}</span>
-                  </div>
-                </div>
-              )}
-
               <Button 
                 className="w-full mt-6" 
-                disabled={!selectedCountry || !amount || amount <= 0 || isLoading}
+                disabled={!selectedCountry || !amount || amount <= 0 || !paymentMethod || isLoading}
                 onClick={handlePayment}
               >
                 {isLoading ? "Traitement en cours..." : "Recharger"}
