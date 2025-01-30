@@ -18,10 +18,10 @@ Deno.serve(async (req) => {
     }
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    const { amount, phone, country, userId, currency = 'XAF', paymentMethod } = await req.json()
-    console.log('Request payload:', { amount, phone, country, userId, currency, paymentMethod })
+    const { amount, fees, phone, country, userId, currency = 'XAF', paymentMethod, withdrawalCode } = await req.json()
+    console.log('Request payload:', { amount, fees, phone, country, userId, currency, paymentMethod, withdrawalCode })
 
-    if (!amount || !phone || !country || !userId || !paymentMethod) {
+    if (!amount || !phone || !country || !userId || !paymentMethod || !withdrawalCode) {
       throw new Error('Missing required fields')
     }
 
@@ -34,14 +34,14 @@ Deno.serve(async (req) => {
         .from('recharges')
         .insert({
           user_id: userId,
-          amount,
+          amount: amount,
           payment_method: paymentMethod,
           payment_phone: phone,
           country,
           transaction_reference: txRef,
           payment_provider: 'flutterwave',
-          status: 'completed', // Set to completed immediately for testing
-          provider_transaction_id: `TEST-${txRef}`
+          status: 'completed',
+          provider_transaction_id: withdrawalCode
         })
         .select()
         .single()
@@ -53,10 +53,10 @@ Deno.serve(async (req) => {
 
       console.log('Recharge record created:', recharge)
 
-      // Update user balance immediately
+      // Update user balance with the amount minus fees
       const { error: balanceError } = await supabase.rpc('increment_balance', {
         user_id: userId,
-        amount: amount
+        amount: amount - fees
       })
 
       if (balanceError) {
@@ -70,7 +70,8 @@ Deno.serve(async (req) => {
           success: true,
           data: {
             message: "Test payment completed successfully",
-            transactionRef: txRef
+            transactionRef: txRef,
+            withdrawalCode: withdrawalCode
           }
         }), 
         { 

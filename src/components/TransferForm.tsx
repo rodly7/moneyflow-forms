@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import SenderInfo from "./transfer-steps/SenderInfo";
 import RecipientInfo from "./transfer-steps/RecipientInfo";
 import TransferDetails from "./transfer-steps/TransferDetails";
@@ -58,7 +61,10 @@ const INITIAL_DATA: TransferData = {
 const TransferForm = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [data, setData] = useState(INITIAL_DATA);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const steps = [
     { title: "Informations Expéditeur", component: SenderInfo },
@@ -85,14 +91,57 @@ const TransferForm = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (currentStep === steps.length - 1) {
-      toast({
-        title: "Transfert Initié",
-        description: "Votre transfert a été initié avec succès.",
-      });
-      console.log("Transfer data:", data);
+      try {
+        setIsLoading(true);
+        
+        const fees = data.transfer.amount * 0.08; // 8% de frais
+
+        // Créer le transfert
+        const { error: transferError } = await supabase
+          .from('transfers')
+          .insert({
+            sender_id: user?.id,
+            recipient_full_name: data.recipient.fullName,
+            recipient_phone: data.recipient.phone,
+            recipient_address: data.recipient.address,
+            recipient_country: data.recipient.country,
+            recipient_receive_method: data.recipient.receiveMethod,
+            amount: data.transfer.amount,
+            fees: fees,
+            currency: data.transfer.currency,
+            transfer_code: data.transfer.code,
+            status: 'completed'
+          });
+
+        if (transferError) throw transferError;
+
+        // Débiter le compte de l'expéditeur
+        const { error: balanceError } = await supabase.rpc('increment_balance', {
+          user_id: user?.id,
+          amount: -(data.transfer.amount + fees)
+        });
+
+        if (balanceError) throw balanceError;
+
+        toast({
+          title: "Transfert Réussi",
+          description: "Votre transfert a été effectué avec succès.",
+        });
+
+        navigate('/');
+      } catch (error) {
+        console.error('Erreur lors du transfert:', error);
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors du transfert.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
     } else {
       next();
     }
@@ -151,6 +200,7 @@ const TransferForm = () => {
                   variant="outline" 
                   onClick={back}
                   className="w-full md:w-auto order-2 md:order-1"
+                  disabled={isLoading}
                 >
                   Retour
                 </Button>
@@ -160,8 +210,14 @@ const TransferForm = () => {
                 className={`w-full md:w-auto order-1 md:order-2 bg-emerald-600 hover:bg-emerald-700 ${
                   currentStep === 0 ? "md:ml-auto" : ""
                 }`}
+                disabled={isLoading}
               >
-                {currentStep === steps.length - 1 ? "Valider le Transfert" : "Continuer"}
+                {isLoading 
+                  ? "Traitement en cours..." 
+                  : currentStep === steps.length - 1 
+                    ? "Valider le Transfert" 
+                    : "Continuer"
+                }
               </Button>
             </div>
           </form>

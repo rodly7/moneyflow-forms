@@ -10,7 +10,7 @@ import { countries } from "@/data/countries";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const Receive = () => {
   const [selectedCountry, setSelectedCountry] = useState("");
@@ -45,13 +45,16 @@ const Receive = () => {
   }, [profile]);
 
   // Obtenir les méthodes de paiement disponibles pour le pays sélectionné
-  const availablePaymentMethods = selectedCountry ? 
-    countries.find(c => c.name === selectedCountry)?.paymentMethods || [] 
-    : [];
+  const countryData = countries.find(c => c.name === selectedCountry);
+  const paymentMethods = countryData?.paymentMethods || [];
 
   const selectedCurrency = selectedCountry ? 
     (selectedCountry === "Sénégal" ? "XOF" : "XAF")
     : "XAF";
+
+  // Calculer les frais et le montant total
+  const fees = amount * 0.03; // 3% de frais
+  const totalAmount = amount + fees;
 
   const handlePayment = async () => {
     if (!user || !profile) {
@@ -75,14 +78,19 @@ const Receive = () => {
     try {
       setIsLoading(true);
 
+      // Générer un code de retrait aléatoire
+      const withdrawalCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+
       const { data, error } = await supabase.functions.invoke('initiate-payment', {
         body: {
-          amount: amount,
+          amount: totalAmount,
+          fees: fees,
           phone: profile.phone,
           country: selectedCountry,
           userId: user.id,
           currency: selectedCurrency,
-          paymentMethod: paymentMethod
+          paymentMethod: paymentMethod,
+          withdrawalCode: withdrawalCode
         }
       });
 
@@ -93,7 +101,7 @@ const Receive = () => {
         description: `Votre compte a été rechargé de ${amount} ${selectedCurrency}`,
       });
 
-      navigate('/dashboard');
+      navigate('/');
 
     } catch (error) {
       console.error('Erreur lors de l\'initiation du paiement:', error);
@@ -110,7 +118,7 @@ const Receive = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-8 px-4">
       <div className="container max-w-3xl mx-auto">
-        <Link to="/dashboard">
+        <Link to="/">
           <Button variant="ghost" className="mb-6">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
@@ -153,7 +161,7 @@ const Receive = () => {
                     <SelectValue placeholder="Sélectionnez le mode de paiement" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availablePaymentMethods.map((method) => (
+                    {paymentMethods.map((method) => (
                       <SelectItem key={method} value={method}>
                         {method}
                       </SelectItem>
@@ -174,10 +182,27 @@ const Receive = () => {
                 />
               </div>
 
+              {amount > 0 && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Montant:</span>
+                    <span>{amount.toLocaleString('fr-FR')} {selectedCurrency}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Frais (3%):</span>
+                    <span>{fees.toLocaleString('fr-FR')} {selectedCurrency}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold pt-2 border-t">
+                    <span>Total:</span>
+                    <span>{totalAmount.toLocaleString('fr-FR')} {selectedCurrency}</span>
+                  </div>
+                </div>
+              )}
+              
               <Button 
+                onClick={handlePayment}
                 className="w-full mt-6" 
                 disabled={!selectedCountry || !amount || amount <= 0 || !paymentMethod || isLoading}
-                onClick={handlePayment}
               >
                 {isLoading ? "Traitement en cours..." : "Recharger"}
               </Button>
