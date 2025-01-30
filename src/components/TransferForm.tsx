@@ -98,6 +98,41 @@ const TransferForm = () => {
         setIsLoading(true);
         
         const fees = data.transfer.amount * 0.08; // 8% de frais
+        const totalAmount = data.transfer.amount + fees;
+
+        // Vérifier si l'utilisateur a suffisamment de solde
+        const { data: senderProfile, error: senderError } = await supabase
+          .from('profiles')
+          .select('balance')
+          .eq('id', user?.id)
+          .single();
+
+        if (senderError) throw senderError;
+
+        if (senderProfile.balance < totalAmount) {
+          toast({
+            title: "Solde insuffisant",
+            description: "Vous n'avez pas assez de fonds pour effectuer ce transfert.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        // Vérifier si le destinataire existe
+        const { data: recipientProfile, error: recipientError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('phone', data.recipient.phone)
+          .single();
+
+        if (recipientError) {
+          toast({
+            title: "Destinataire introuvable",
+            description: "Le numéro de téléphone indiqué n'est pas enregistré.",
+            variant: "destructive"
+          });
+          return;
+        }
 
         // Créer le transfert
         const { error: transferError } = await supabase
@@ -119,12 +154,20 @@ const TransferForm = () => {
         if (transferError) throw transferError;
 
         // Débiter le compte de l'expéditeur
-        const { error: balanceError } = await supabase.rpc('increment_balance', {
+        const { error: senderBalanceError } = await supabase.rpc('increment_balance', {
           user_id: user?.id,
-          amount: -(data.transfer.amount + fees)
+          amount: -totalAmount
         });
 
-        if (balanceError) throw balanceError;
+        if (senderBalanceError) throw senderBalanceError;
+
+        // Créditer le compte du destinataire
+        const { error: recipientBalanceError } = await supabase.rpc('increment_balance', {
+          user_id: recipientProfile.id,
+          amount: data.transfer.amount
+        });
+
+        if (recipientBalanceError) throw recipientBalanceError;
 
         toast({
           title: "Transfert Réussi",
