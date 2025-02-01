@@ -98,7 +98,7 @@ export type Database = {
           recipient_receive_method: string
           sender_id: string
           status: string
-          transfer_code: string
+          transfer_code: string | null
         }
         Insert: {
           amount: number
@@ -113,7 +113,7 @@ export type Database = {
           recipient_receive_method: string
           sender_id: string
           status?: string
-          transfer_code: string
+          transfer_code?: string | null
         }
         Update: {
           amount?: number
@@ -128,7 +128,7 @@ export type Database = {
           recipient_receive_method?: string
           sender_id?: string
           status?: string
-          transfer_code?: string
+          transfer_code?: string | null
         }
         Relationships: []
       }

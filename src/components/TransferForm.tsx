@@ -143,7 +143,8 @@ const TransferForm = () => {
             amount: data.transfer.amount,
             fees: fees,
             currency: data.transfer.currency,
-            status: 'completed'
+            status: 'completed',
+            transfer_code: null // Now explicitly set as null since it's optional
           });
 
         if (transferError) throw transferError;
