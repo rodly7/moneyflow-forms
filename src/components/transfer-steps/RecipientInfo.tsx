@@ -79,13 +79,14 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
 
       console.log('User found:', data);
 
+      // Update recipient information with found user data
       updateFields({
         recipient: {
           ...recipient,
           fullName: data.full_name || '',
           address: data.address || '',
           country: data.country || '',
-          phone: formattedPhone
+          phone: formattedPhone // Use the formatted phone number
         }
       });
 
