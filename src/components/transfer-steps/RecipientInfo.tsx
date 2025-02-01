@@ -40,14 +40,29 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       return;
     }
 
+    // Format phone number with country code if not already present
+    const formattedPhone = recipient.phone.startsWith('+') 
+      ? recipient.phone 
+      : `${selectedCountryCode}${recipient.phone}`;
+
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('phone', recipient.phone)
-        .single();
+        .eq('phone', formattedPhone)
+        .maybeSingle();
 
       if (error) {
+        console.error('Error searching for recipient:', error);
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors de la recherche",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!data) {
         toast({
           title: "Utilisateur non trouvé",
           description: "Aucun utilisateur trouvé avec ce numéro de téléphone",
@@ -62,6 +77,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           fullName: data.full_name || '',
           address: data.address || '',
           country: data.country || '',
+          phone: formattedPhone
         }
       });
 
