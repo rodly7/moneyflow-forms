@@ -6,7 +6,6 @@ type TransferSummaryProps = TransferData & {
 };
 
 const TransferSummary = ({
-  sender,
   recipient,
   transfer,
 }: TransferSummaryProps) => {
@@ -23,22 +22,6 @@ const TransferSummary = ({
       </div>
 
       <div className="grid gap-6">
-        <Card className="p-6 space-y-4 bg-white/50">
-          <h4 className="font-medium text-lg text-primary">Informations de l'Expéditeur</h4>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <span className="text-muted-foreground">Nom :</span>
-            <span className="font-medium">{sender.fullName}</span>
-            <span className="text-muted-foreground">Adresse :</span>
-            <span className="font-medium">{sender.address}</span>
-            <span className="text-muted-foreground">Téléphone :</span>
-            <span className="font-medium">{sender.phone}</span>
-            <span className="text-muted-foreground">Pays :</span>
-            <span className="font-medium">{sender.country}</span>
-            <span className="text-muted-foreground">Mode de Paiement :</span>
-            <span className="font-medium">{sender.paymentMethod}</span>
-          </div>
-        </Card>
-
         <Card className="p-6 space-y-4 bg-white/50">
           <h4 className="font-medium text-lg text-primary">Informations du Bénéficiaire</h4>
           <div className="grid grid-cols-2 gap-3 text-sm">
@@ -70,8 +53,6 @@ const TransferSummary = ({
             <span className="font-medium text-lg">
               {total.toLocaleString('fr-FR')} FCFA
             </span>
-            <span className="text-muted-foreground">Code de Transfert :</span>
-            <span className="font-mono font-medium text-primary">{transfer.code}</span>
           </div>
         </Card>
       </div>

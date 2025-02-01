@@ -28,14 +28,6 @@ const TransferDetails = ({ transfer, sender, updateFields }: TransferDetailsProp
     }
   }, [transfer.amount, sender.country]);
 
-  useEffect(() => {
-    // Génère un code aléatoire de 8 caractères si pas déjà généré
-    if (!transfer.code) {
-      const code = Math.random().toString(36).substring(2, 10).toUpperCase();
-      updateFields({ transfer: { ...transfer, code } });
-    }
-  }, []);
-
   const currentCurrency = exchangeRates[sender.country as keyof typeof exchangeRates]?.currency || "XAF";
 
   return (
@@ -57,18 +49,6 @@ const TransferDetails = ({ transfer, sender, updateFields }: TransferDetailsProp
           }
           className="text-lg"
         />
-      </div>
-
-      <div className="space-y-2">
-        <Label>Code de Transfert</Label>
-        <Input
-          value={transfer.code}
-          readOnly
-          className="bg-gray-100 font-mono text-center text-lg tracking-wider"
-        />
-        <p className="text-sm text-muted-foreground mt-1">
-          Ce code sera nécessaire pour le retrait. Partagez-le uniquement avec le bénéficiaire.
-        </p>
       </div>
 
       {transfer.amount > 0 && (

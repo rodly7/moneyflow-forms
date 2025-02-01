@@ -5,7 +5,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import SenderInfo from "./transfer-steps/SenderInfo";
 import RecipientInfo from "./transfer-steps/RecipientInfo";
 import TransferDetails from "./transfer-steps/TransferDetails";
 import TransferSummary from "./transfer-steps/TransferSummary";
@@ -30,7 +29,6 @@ export type TransferData = {
   transfer: {
     amount: number;
     currency: string;
-    code: string;
   };
 };
 
@@ -54,7 +52,6 @@ const INITIAL_DATA: TransferData = {
   transfer: {
     amount: 0,
     currency: "XAF",
-    code: "",
   },
 };
 
@@ -67,7 +64,6 @@ const TransferForm = () => {
   const { user } = useAuth();
 
   const steps = [
-    { title: "Informations Expéditeur", component: SenderInfo },
     { title: "Informations Bénéficiaire", component: RecipientInfo },
     { title: "Détails du Transfert", component: TransferDetails },
     { title: "Résumé", component: TransferSummary },
@@ -147,7 +143,6 @@ const TransferForm = () => {
             amount: data.transfer.amount,
             fees: fees,
             currency: data.transfer.currency,
-            transfer_code: data.transfer.code,
             status: 'completed'
           });
 
