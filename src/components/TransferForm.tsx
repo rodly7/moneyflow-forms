@@ -20,11 +20,9 @@ export type TransferData = {
   };
   recipient: {
     fullName: string;
-    address: string;
     phone: string;
     country: string;
     city: string;
-    receiveMethod: string;
   };
   transfer: {
     amount: number;
@@ -43,11 +41,9 @@ const INITIAL_DATA: TransferData = {
   },
   recipient: {
     fullName: "",
-    address: "",
     phone: "",
     country: "",
     city: "",
-    receiveMethod: "",
   },
   transfer: {
     amount: 0,
@@ -137,9 +133,8 @@ const TransferForm = () => {
             sender_id: user?.id,
             recipient_full_name: data.recipient.fullName,
             recipient_phone: data.recipient.phone,
-            recipient_address: data.recipient.address,
             recipient_country: data.recipient.country,
-            recipient_receive_method: data.recipient.receiveMethod,
+            recipient_city: data.recipient.city,
             amount: data.transfer.amount,
             fees: fees,
             currency: data.transfer.currency,

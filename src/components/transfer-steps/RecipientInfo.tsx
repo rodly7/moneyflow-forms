@@ -15,7 +15,6 @@ type RecipientInfoProps = TransferData & {
 
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
-  const [availableReceiveMethods, setAvailableReceiveMethods] = useState<string[]>([]);
   const [availableCities, setAvailableCities] = useState<string[]>([]);
   const { toast } = useToast();
 
@@ -24,7 +23,6 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       const country = countries.find(c => c.name === recipient.country);
       if (country) {
         setSelectedCountryCode(country.code);
-        setAvailableReceiveMethods(country.paymentMethods);
         setAvailableCities(country.cities.map(city => city.name));
       }
     }
@@ -40,22 +38,38 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       return;
     }
 
-    // Format phone number with country code if not already present
-    let formattedPhone = recipient.phone;
-    if (!formattedPhone.startsWith('+')) {
-      // Remove any leading zeros from the phone number
-      const cleanPhone = formattedPhone.replace(/^0+/, '');
-      formattedPhone = `${selectedCountryCode}${cleanPhone}`;
-    }
-
-    console.log('Searching for phone number:', formattedPhone);
-
     try {
-      const { data, error } = await supabase
+      // Format phone number with country code if not already present
+      let formattedPhone = recipient.phone;
+      if (!formattedPhone.startsWith('+')) {
+        // Remove any leading zeros from the phone number
+        const cleanPhone = formattedPhone.replace(/^0+/, '');
+        formattedPhone = `${selectedCountryCode}${cleanPhone}`;
+      }
+
+      console.log('Searching for phone number:', formattedPhone);
+
+      // Try first with the formatted phone number
+      let { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('phone', formattedPhone)
         .maybeSingle();
+
+      // If no result, try with the original phone number
+      if (!data && !error) {
+        const { data: data2, error: error2 } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('phone', recipient.phone)
+          .maybeSingle();
+        
+        if (!error2) {
+          data = data2;
+        } else {
+          error = error2;
+        }
+      }
 
       if (error) {
         console.error('Error searching for recipient:', error);
@@ -84,9 +98,9 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         recipient: {
           ...recipient,
           fullName: data.full_name || '',
-          address: data.address || '',
           country: data.country || '',
-          phone: formattedPhone // Use the formatted phone number
+          phone: formattedPhone, // Use the formatted phone number
+          city: data.city || ''
         }
       });
 
@@ -114,14 +128,12 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
             const country = countries.find(c => c.name === value);
             if (country) {
               setSelectedCountryCode(country.code);
-              setAvailableReceiveMethods(country.paymentMethods);
               setAvailableCities(country.cities.map(city => city.name));
               updateFields({ 
                 recipient: { 
                   ...recipient, 
                   country: value,
-                  city: "",
-                  receiveMethod: ""
+                  city: ""
                 } 
               });
             }
@@ -186,20 +198,6 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="address">Adresse</Label>
-        <Input
-          id="address"
-          type="text"
-          required
-          placeholder="Adresse du bénéficiaire"
-          value={recipient.address}
-          onChange={(e) =>
-            updateFields({ recipient: { ...recipient, address: e.target.value } })
-          }
-        />
-      </div>
-
-      <div className="space-y-2">
         <Label htmlFor="city">Ville</Label>
         <Select
           value={recipient.city}
@@ -215,28 +213,6 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
             {availableCities.map((city) => (
               <SelectItem key={city} value={city}>
                 {city}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="receiveMethod">Mode de Réception</Label>
-        <Select
-          value={recipient.receiveMethod}
-          onValueChange={(value) =>
-            updateFields({ recipient: { ...recipient, receiveMethod: value } })
-          }
-          disabled={!recipient.country}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionnez le mode de réception" />
-          </SelectTrigger>
-          <SelectContent>
-            {availableReceiveMethods.map((method) => (
-              <SelectItem key={method} value={method}>
-                {method}
               </SelectItem>
             ))}
           </SelectContent>
