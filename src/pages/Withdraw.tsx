@@ -10,10 +10,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { countries } from "@/data/countries";
-import { useQuery } from "@tanstack/react-query";
 
 const Withdraw = () => {
-  const [withdrawalCode, setWithdrawalCode] = useState("");
   const [amount, setAmount] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("");
   const { user } = useAuth();
@@ -33,7 +31,7 @@ const Withdraw = () => {
   };
 
   const handleWithdraw = async () => {
-    if (!withdrawalCode || !amount || !selectedPaymentMethod || !selectedCountry) {
+    if (!amount || !selectedPaymentMethod || !selectedCountry) {
       toast({
         title: "Erreur",
         description: "Veuillez remplir tous les champs",
@@ -100,18 +98,6 @@ const Withdraw = () => {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="withdrawalCode">Code de retrait</Label>
-              <Input
-                id="withdrawalCode"
-                type="text"
-                value={withdrawalCode}
-                onChange={(e) => setWithdrawalCode(e.target.value)}
-                placeholder="Entrez le code de retrait"
-                className="mt-2"
-              />
             </div>
 
             <div>
