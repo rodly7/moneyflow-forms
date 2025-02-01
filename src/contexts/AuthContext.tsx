@@ -30,20 +30,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log("Initial session:", session);
-      setSession(session);
-      setUser(session?.user ?? null);
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+      } else {
+        // If no session, redirect to auth page
+        navigate("/auth");
+      }
     });
 
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log("Auth state changed:", _event, session);
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (!session) {
-        navigate("/auth");
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event, session);
+      
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+        
+        // Only navigate to home if we're on the auth page and have a valid session
+        if (window.location.pathname === "/auth") {
+          navigate("/");
+        }
+      } else {
+        setSession(null);
+        setUser(null);
+        // Only redirect to auth if we're not already there
+        if (window.location.pathname !== "/auth") {
+          navigate("/auth");
+        }
       }
     });
 
@@ -70,7 +86,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
       
       toast.success("Connexion réussie");
-      navigate("/");
     } catch (error: any) {
       console.error("Sign in error:", error);
       toast.error(error.message);
@@ -111,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
       
       toast.success("Déconnexion réussie");
-      navigate("/auth");
+      // Navigation will be handled by the auth state change listener
     } catch (error: any) {
       console.error("Sign out error:", error);
       toast.error(error.message);
