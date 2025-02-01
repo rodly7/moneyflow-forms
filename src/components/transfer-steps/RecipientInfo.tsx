@@ -41,9 +41,14 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     }
 
     // Format phone number with country code if not already present
-    const formattedPhone = recipient.phone.startsWith('+') 
-      ? recipient.phone 
-      : `${selectedCountryCode}${recipient.phone}`;
+    let formattedPhone = recipient.phone;
+    if (!formattedPhone.startsWith('+')) {
+      // Remove any leading zeros from the phone number
+      const cleanPhone = formattedPhone.replace(/^0+/, '');
+      formattedPhone = `${selectedCountryCode}${cleanPhone}`;
+    }
+
+    console.log('Searching for phone number:', formattedPhone);
 
     try {
       const { data, error } = await supabase
@@ -63,6 +68,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       }
 
       if (!data) {
+        console.log('No user found with phone number:', formattedPhone);
         toast({
           title: "Utilisateur non trouvé",
           description: "Aucun utilisateur trouvé avec ce numéro de téléphone",
@@ -70,6 +76,8 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         });
         return;
       }
+
+      console.log('User found:', data);
 
       updateFields({
         recipient: {
