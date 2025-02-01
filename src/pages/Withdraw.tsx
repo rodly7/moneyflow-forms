@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { countries } from "@/data/countries";
+import { useQuery } from "@tanstack/react-query";
 
 const Withdraw = () => {
   const [amount, setAmount] = useState("");
@@ -17,6 +18,21 @@ const Withdraw = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Fetch user profile to get balance
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+  });
 
   // Find payment methods for selected country
   const countryData = countries.find(c => c.name === selectedCountry);
@@ -51,6 +67,24 @@ const Withdraw = () => {
         return;
       }
 
+      // Vérifier si l'utilisateur a suffisamment de solde
+      if (profile?.balance < amountNum) {
+        toast({
+          title: "Solde insuffisant",
+          description: "Vous n'avez pas assez de fonds pour effectuer ce retrait.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Débiter le compte de l'utilisateur
+      const { error: balanceError } = await supabase.rpc('increment_balance', {
+        user_id: user?.id,
+        amount: -amountNum
+      });
+
+      if (balanceError) throw balanceError;
+
       toast({
         title: "Retrait initié",
         description: `Votre retrait de ${amount}€ via ${selectedPaymentMethod} est en cours de traitement`,
@@ -58,6 +92,7 @@ const Withdraw = () => {
 
       navigate('/');
     } catch (error) {
+      console.error('Erreur lors du retrait:', error);
       toast({
         title: "Erreur",
         description: "Une erreur est survenue lors du retrait",
@@ -131,6 +166,13 @@ const Withdraw = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {profile && (
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">Solde disponible</p>
+                <p className="text-lg font-semibold">{profile.balance.toLocaleString('fr-FR')} FCFA</p>
+              </div>
+            )}
             
             <Button 
               onClick={handleWithdraw}

@@ -4,6 +4,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TransferData } from "../TransferForm";
 import { useState, useEffect } from "react";
 import { countries } from "@/data/countries";
+import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 type RecipientInfoProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
@@ -13,6 +17,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [availableReceiveMethods, setAvailableReceiveMethods] = useState<string[]>([]);
   const [availableCities, setAvailableCities] = useState<string[]>([]);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (recipient.country) {
@@ -25,10 +30,59 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     }
   }, [recipient.country]);
 
+  const searchRecipient = async () => {
+    if (!recipient.phone) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez entrer un numéro de téléphone",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('phone', recipient.phone)
+        .single();
+
+      if (error) {
+        toast({
+          title: "Utilisateur non trouvé",
+          description: "Aucun utilisateur trouvé avec ce numéro de téléphone",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      updateFields({
+        recipient: {
+          ...recipient,
+          fullName: data.full_name || '',
+          address: data.address || '',
+          country: data.country || '',
+        }
+      });
+
+      toast({
+        title: "Utilisateur trouvé",
+        description: "Les informations ont été remplies automatiquement",
+      });
+    } catch (error) {
+      console.error('Erreur lors de la recherche:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la recherche",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="recipientCountry">Pays</Label>
+        <Label htmlFor="country">Pays</Label>
         <Select
           value={recipient.country}
           onValueChange={(value) => {
@@ -37,13 +91,13 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
               setSelectedCountryCode(country.code);
               setAvailableReceiveMethods(country.paymentMethods);
               setAvailableCities(country.cities.map(city => city.name));
-              updateFields({
+              updateFields({ 
                 recipient: { 
                   ...recipient, 
                   country: value,
-                  city: "", // Reset city when country changes
-                  receiveMethod: "" // Reset receive method when country changes
-                }
+                  city: "",
+                  receiveMethod: ""
+                } 
               });
             }
           }}
@@ -62,7 +116,66 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="recipientCity">Ville</Label>
+        <Label htmlFor="phone">Numéro de Téléphone</Label>
+        <div className="flex gap-2">
+          <div className="w-24">
+            <Input
+              value={selectedCountryCode}
+              readOnly
+              className="bg-gray-100"
+            />
+          </div>
+          <Input
+            id="phone"
+            type="tel"
+            required
+            placeholder="XX XXX XXXX"
+            value={recipient.phone}
+            onChange={(e) =>
+              updateFields({ recipient: { ...recipient, phone: e.target.value } })
+            }
+          />
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={searchRecipient}
+            className="px-3"
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="fullName">Nom Complet</Label>
+        <Input
+          id="fullName"
+          type="text"
+          required
+          placeholder="Nom complet du bénéficiaire"
+          value={recipient.fullName}
+          onChange={(e) =>
+            updateFields({ recipient: { ...recipient, fullName: e.target.value } })
+          }
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="address">Adresse</Label>
+        <Input
+          id="address"
+          type="text"
+          required
+          placeholder="Adresse du bénéficiaire"
+          value={recipient.address}
+          onChange={(e) =>
+            updateFields({ recipient: { ...recipient, address: e.target.value } })
+          }
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="city">Ville</Label>
         <Select
           value={recipient.city}
           onValueChange={(value) =>
@@ -84,68 +197,11 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="recipientName">Nom Complet</Label>
-        <Input
-          id="recipientName"
-          type="text"
-          required
-          placeholder="Nom complet du bénéficiaire"
-          value={recipient.fullName}
-          onChange={(e) =>
-            updateFields({
-              recipient: { ...recipient, fullName: e.target.value },
-            })
-          }
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="recipientAddress">Adresse</Label>
-        <Input
-          id="recipientAddress"
-          type="text"
-          required
-          placeholder="Adresse du bénéficiaire"
-          value={recipient.address}
-          onChange={(e) =>
-            updateFields({
-              recipient: { ...recipient, address: e.target.value },
-            })
-          }
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="recipientPhone">Numéro de Téléphone</Label>
-        <div className="flex gap-2">
-          <div className="w-24">
-            <Input
-              value={selectedCountryCode}
-              readOnly
-              className="bg-gray-100"
-            />
-          </div>
-          <Input
-            id="recipientPhone"
-            type="tel"
-            required
-            placeholder="XX XXX XXXX"
-            value={recipient.phone}
-            onChange={(e) =>
-              updateFields({ recipient: { ...recipient, phone: e.target.value } })
-            }
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
         <Label htmlFor="receiveMethod">Mode de Réception</Label>
         <Select
           value={recipient.receiveMethod}
           onValueChange={(value) =>
-            updateFields({
-              recipient: { ...recipient, receiveMethod: value },
-            })
+            updateFields({ recipient: { ...recipient, receiveMethod: value } })
           }
           disabled={!recipient.country}
         >
