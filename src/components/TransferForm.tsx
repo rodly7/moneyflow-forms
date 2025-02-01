@@ -12,11 +12,9 @@ import TransferSummary from "./transfer-steps/TransferSummary";
 export type TransferData = {
   sender: {
     fullName: string;
-    address: string;
     phone: string;
     country: string;
     city: string;
-    paymentMethod: string;
   };
   recipient: {
     fullName: string;
@@ -33,11 +31,9 @@ export type TransferData = {
 const INITIAL_DATA: TransferData = {
   sender: {
     fullName: "",
-    address: "",
     phone: "",
     country: "",
     city: "",
-    paymentMethod: "",
   },
   recipient: {
     fullName: "",
@@ -115,9 +111,18 @@ const TransferForm = () => {
           .from('profiles')
           .select('id')
           .eq('phone', data.recipient.phone)
-          .single();
+          .maybeSingle();
 
         if (recipientError) {
+          toast({
+            title: "Erreur",
+            description: "Une erreur est survenue lors de la vérification du destinataire.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        if (!recipientProfile) {
           toast({
             title: "Destinataire introuvable",
             description: "Le numéro de téléphone indiqué n'est pas enregistré.",
@@ -134,12 +139,10 @@ const TransferForm = () => {
             recipient_full_name: data.recipient.fullName,
             recipient_phone: data.recipient.phone,
             recipient_country: data.recipient.country,
-            recipient_city: data.recipient.city,
             amount: data.transfer.amount,
             fees: fees,
             currency: data.transfer.currency,
-            status: 'completed',
-            transfer_code: null // Now explicitly set as null since it's optional
+            status: 'completed'
           });
 
         if (transferError) throw transferError;

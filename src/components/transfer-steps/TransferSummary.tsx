@@ -27,14 +27,12 @@ const TransferSummary = ({
           <div className="grid grid-cols-2 gap-3 text-sm">
             <span className="text-muted-foreground">Nom :</span>
             <span className="font-medium">{recipient.fullName}</span>
-            <span className="text-muted-foreground">Adresse :</span>
-            <span className="font-medium">{recipient.address}</span>
             <span className="text-muted-foreground">Téléphone :</span>
             <span className="font-medium">{recipient.phone}</span>
             <span className="text-muted-foreground">Pays :</span>
             <span className="font-medium">{recipient.country}</span>
-            <span className="text-muted-foreground">Mode de Réception :</span>
-            <span className="font-medium">{recipient.receiveMethod}</span>
+            <span className="text-muted-foreground">Ville :</span>
+            <span className="font-medium">{recipient.city}</span>
           </div>
         </Card>
 
@@ -43,15 +41,15 @@ const TransferSummary = ({
           <div className="grid grid-cols-2 gap-3 text-sm">
             <span className="text-muted-foreground">Montant :</span>
             <span className="font-medium">
-              {transfer.amount.toLocaleString('fr-FR')} FCFA
+              {transfer.amount.toLocaleString('fr-FR')} {transfer.currency}
             </span>
             <span className="text-muted-foreground">Frais (8%) :</span>
             <span className="font-medium">
-              {fees.toLocaleString('fr-FR')} FCFA
+              {fees.toLocaleString('fr-FR')} {transfer.currency}
             </span>
             <span className="text-muted-foreground">Total :</span>
             <span className="font-medium text-lg">
-              {total.toLocaleString('fr-FR')} FCFA
+              {total.toLocaleString('fr-FR')} {transfer.currency}
             </span>
           </div>
         </Card>
