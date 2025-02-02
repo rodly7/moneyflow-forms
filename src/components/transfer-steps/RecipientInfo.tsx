@@ -28,34 +28,21 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     }
 
     try {
-      // Format phone number with country code if not already present
       let formattedPhone = recipient.phone;
       if (!formattedPhone.startsWith('+')) {
-        // Remove any leading zeros from the phone number
         const cleanPhone = formattedPhone.replace(/^0+/, '');
         formattedPhone = `${selectedCountryCode}${cleanPhone}`;
       }
 
-      console.log('Searching for phone number:', formattedPhone);
-
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('full_name, country')
         .eq('phone', formattedPhone)
         .maybeSingle();
 
-      if (error) {
-        console.error('Error searching for recipient:', error);
-        toast({
-          title: "Erreur",
-          description: "Une erreur est survenue lors de la recherche",
-          variant: "destructive"
-        });
-        return;
-      }
+      if (error) throw error;
 
       if (!data) {
-        console.log('No user found with phone number:', formattedPhone);
         toast({
           title: "Utilisateur non trouvé",
           description: "Aucun utilisateur trouvé avec ce numéro de téléphone",
@@ -64,16 +51,11 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         return;
       }
 
-      console.log('User found:', data);
-
-      // Update recipient information with found user data
       updateFields({
         recipient: {
           ...recipient,
           fullName: data.full_name || '',
-          country: data.country || '',
           phone: formattedPhone,
-          city: data.city || ''
         }
       });
 
@@ -105,7 +87,6 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
                 recipient: { 
                   ...recipient, 
                   country: value,
-                  city: ""
                 } 
               });
             }

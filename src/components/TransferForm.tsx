@@ -8,14 +8,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import RecipientInfo from "./transfer-steps/RecipientInfo";
 import TransferDetails from "./transfer-steps/TransferDetails";
 import TransferSummary from "./transfer-steps/TransferSummary";
-import { countries } from "@/data/countries";
 
 export type TransferData = {
   recipient: {
     fullName: string;
     phone: string;
     country: string;
-    city: string;
   };
   transfer: {
     amount: number;
@@ -28,7 +26,6 @@ const INITIAL_DATA: TransferData = {
     fullName: "",
     phone: "",
     country: "",
-    city: "",
   },
   transfer: {
     amount: 0,
@@ -77,17 +74,6 @@ const TransferForm = () => {
         const fees = data.transfer.amount * 0.08; // 8% de frais
         const totalAmount = data.transfer.amount + fees;
 
-        // Format phone number with country code if not already present
-        let formattedPhone = data.recipient.phone;
-        if (!formattedPhone.startsWith('+')) {
-          // Remove any leading zeros from the phone number
-          const cleanPhone = formattedPhone.replace(/^0+/, '');
-          const countryCode = countries.find(c => c.name === data.recipient.country)?.code || '';
-          formattedPhone = `${countryCode}${cleanPhone}`;
-        }
-
-        console.log('Searching for recipient with phone:', formattedPhone);
-
         // Vérifier si l'utilisateur a suffisamment de solde
         const { data: senderProfile, error: senderError } = await supabase
           .from('profiles')
@@ -110,21 +96,12 @@ const TransferForm = () => {
         const { data: recipientProfile, error: recipientError } = await supabase
           .from('profiles')
           .select('id, full_name')
-          .eq('phone', formattedPhone)
+          .eq('phone', data.recipient.phone)
           .maybeSingle();
 
-        if (recipientError) {
-          console.error('Error searching for recipient:', recipientError);
-          toast({
-            title: "Erreur",
-            description: "Une erreur est survenue lors de la vérification du destinataire.",
-            variant: "destructive"
-          });
-          return;
-        }
+        if (recipientError) throw recipientError;
 
         if (!recipientProfile) {
-          console.log('No recipient found with phone:', formattedPhone);
           toast({
             title: "Destinataire introuvable",
             description: "Le numéro de téléphone indiqué n'est pas enregistré.",
@@ -133,15 +110,13 @@ const TransferForm = () => {
           return;
         }
 
-        console.log('Recipient found:', recipientProfile);
-
         // Créer le transfert
         const { error: transferError } = await supabase
           .from('transfers')
           .insert({
             sender_id: user?.id,
             recipient_full_name: recipientProfile.full_name,
-            recipient_phone: formattedPhone,
+            recipient_phone: data.recipient.phone,
             recipient_country: data.recipient.country,
             amount: data.transfer.amount,
             fees: fees,

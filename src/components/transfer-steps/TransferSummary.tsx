@@ -5,10 +5,7 @@ type TransferSummaryProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
 };
 
-const TransferSummary = ({
-  recipient,
-  transfer,
-}: TransferSummaryProps) => {
+const TransferSummary = ({ recipient, transfer }: TransferSummaryProps) => {
   const fees = transfer.amount * 0.08;
   const total = transfer.amount + fees;
 
@@ -31,8 +28,6 @@ const TransferSummary = ({
             <span className="font-medium">{recipient.phone}</span>
             <span className="text-muted-foreground">Pays :</span>
             <span className="font-medium">{recipient.country}</span>
-            <span className="text-muted-foreground">Ville :</span>
-            <span className="font-medium">{recipient.city}</span>
           </div>
         </Card>
 
