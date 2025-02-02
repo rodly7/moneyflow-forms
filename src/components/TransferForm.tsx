@@ -11,12 +11,6 @@ import TransferSummary from "./transfer-steps/TransferSummary";
 import { countries } from "@/data/countries";
 
 export type TransferData = {
-  sender: {
-    fullName: string;
-    phone: string;
-    country: string;
-    city: string;
-  };
   recipient: {
     fullName: string;
     phone: string;
@@ -30,12 +24,6 @@ export type TransferData = {
 };
 
 const INITIAL_DATA: TransferData = {
-  sender: {
-    fullName: "",
-    phone: "",
-    country: "",
-    city: "",
-  },
   recipient: {
     fullName: "",
     phone: "",

@@ -91,14 +91,11 @@ export type Database = {
           currency: string
           fees: number
           id: string
-          recipient_address: string | null
           recipient_country: string
           recipient_full_name: string
           recipient_phone: string
-          recipient_receive_method: string | null
           sender_id: string
           status: string
-          transfer_code: string | null
         }
         Insert: {
           amount: number
@@ -106,14 +103,11 @@ export type Database = {
           currency: string
           fees: number
           id?: string
-          recipient_address?: string | null
           recipient_country: string
           recipient_full_name: string
           recipient_phone: string
-          recipient_receive_method?: string | null
           sender_id: string
           status?: string
-          transfer_code?: string | null
         }
         Update: {
           amount?: number
@@ -121,14 +115,11 @@ export type Database = {
           currency?: string
           fees?: number
           id?: string
-          recipient_address?: string | null
           recipient_country?: string
           recipient_full_name?: string
           recipient_phone?: string
-          recipient_receive_method?: string | null
           sender_id?: string
           status?: string
-          transfer_code?: string | null
         }
         Relationships: []
       }

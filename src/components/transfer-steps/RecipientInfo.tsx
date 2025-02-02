@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TransferData } from "../TransferForm";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { countries } from "@/data/countries";
 import { Button } from "@/components/ui/button";
 import { Flag, Search } from "lucide-react";
@@ -15,24 +15,13 @@ type RecipientInfoProps = TransferData & {
 
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
-  const [availableCities, setAvailableCities] = useState<string[]>([]);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (recipient.country) {
-      const country = countries.find(c => c.name === recipient.country);
-      if (country) {
-        setSelectedCountryCode(country.code);
-        setAvailableCities(country.cities.map(city => city.name));
-      }
-    }
-  }, [recipient.country]);
-
   const searchRecipient = async () => {
-    if (!recipient.phone) {
+    if (!recipient.phone || !recipient.country) {
       toast({
         title: "Erreur",
-        description: "Veuillez entrer un numéro de téléphone",
+        description: "Veuillez sélectionner un pays et entrer un numéro de téléphone",
         variant: "destructive"
       });
       return;
@@ -84,7 +73,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           fullName: data.full_name || '',
           country: data.country || '',
           phone: formattedPhone,
-          city: recipient.city || ''
+          city: data.city || ''
         }
       });
 
@@ -105,14 +94,13 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="country">Pays</Label>
+        <Label htmlFor="country">Pays du bénéficiaire</Label>
         <Select
           value={recipient.country}
           onValueChange={(value) => {
             const country = countries.find(c => c.name === value);
             if (country) {
               setSelectedCountryCode(country.code);
-              setAvailableCities(country.cities.map(city => city.name));
               updateFields({ 
                 recipient: { 
                   ...recipient, 
@@ -168,42 +156,6 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
             <Search className="h-4 w-4" />
           </Button>
         </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="fullName">Nom Complet</Label>
-        <Input
-          id="fullName"
-          type="text"
-          required
-          placeholder="Nom complet du bénéficiaire"
-          value={recipient.fullName}
-          onChange={(e) =>
-            updateFields({ recipient: { ...recipient, fullName: e.target.value } })
-          }
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="city">Ville</Label>
-        <Select
-          value={recipient.city}
-          onValueChange={(value) =>
-            updateFields({ recipient: { ...recipient, city: value } })
-          }
-          disabled={!recipient.country}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionnez la ville" />
-          </SelectTrigger>
-          <SelectContent>
-            {availableCities.map((city) => (
-              <SelectItem key={city} value={city}>
-                {city}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
     </div>
   );
