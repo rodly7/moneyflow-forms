@@ -24,47 +24,25 @@ export const countries: Country[] = [
     paymentMethods: ["Airtel Money", "Mobile Money"]
   },
   {
-    name: "Côte d'Ivoire",
-    code: "+225",
+    name: "Gabon",
+    code: "+241",
     cities: [
-      { name: "Abidjan" },
-      { name: "Bouaké" },
-      { name: "Yamoussoukro" },
-      { name: "Korhogo" }
+      { name: "Libreville" },
+      { name: "Port-Gentil" },
+      { name: "Franceville" },
+      { name: "Oyem" }
     ],
-    paymentMethods: ["Orange Money", "MTN Money"]
+    paymentMethods: ["Airtel Money", "Moov Money"]
   },
   {
-    name: "République Démocratique du Congo",
-    code: "+243",
+    name: "Sénégal",
+    code: "+221",
     cities: [
-      { name: "Kinshasa" },
-      { name: "Lubumbashi" },
-      { name: "Goma" },
-      { name: "Kisangani" }
+      { name: "Dakar" },
+      { name: "Thiès" },
+      { name: "Rufisque" },
+      { name: "Saint-Louis" }
     ],
-    paymentMethods: ["Airtel Money", "Orange Money"]
-  },
-  {
-    name: "France",
-    code: "+33",
-    cities: [
-      { name: "Paris" },
-      { name: "Marseille" },
-      { name: "Lyon" },
-      { name: "Toulouse" }
-    ],
-    paymentMethods: ["Virement bancaire"]
-  },
-  {
-    name: "Canada",
-    code: "+1",
-    cities: [
-      { name: "Toronto" },
-      { name: "Montréal" },
-      { name: "Vancouver" },
-      { name: "Ottawa" }
-    ],
-    paymentMethods: ["Virement bancaire"]
+    paymentMethods: ["Orange Money", "Wave"]
   }
 ];

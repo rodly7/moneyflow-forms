@@ -5,7 +5,7 @@ import { TransferData } from "../TransferForm";
 import { useState, useEffect } from "react";
 import { countries } from "@/data/countries";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { Flag, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -129,7 +129,10 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           <SelectContent>
             {countries.map((country) => (
               <SelectItem key={country.name} value={country.name}>
-                {country.name}
+                <div className="flex items-center gap-2">
+                  <Flag className="h-4 w-4" />
+                  <span>{country.name}</span>
+                </div>
               </SelectItem>
             ))}
           </SelectContent>
