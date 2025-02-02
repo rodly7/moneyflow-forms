@@ -99,8 +99,8 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           ...recipient,
           fullName: data.full_name || '',
           country: data.country || '',
-          phone: formattedPhone, // Use the formatted phone number
-          city: data.city || ''
+          phone: formattedPhone,
+          city: recipient.city || ''
         }
       });
 

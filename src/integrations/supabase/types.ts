@@ -91,11 +91,11 @@ export type Database = {
           currency: string
           fees: number
           id: string
-          recipient_address: string
+          recipient_address: string | null
           recipient_country: string
           recipient_full_name: string
           recipient_phone: string
-          recipient_receive_method: string
+          recipient_receive_method: string | null
           sender_id: string
           status: string
           transfer_code: string | null
@@ -106,11 +106,11 @@ export type Database = {
           currency: string
           fees: number
           id?: string
-          recipient_address: string
+          recipient_address?: string | null
           recipient_country: string
           recipient_full_name: string
           recipient_phone: string
-          recipient_receive_method: string
+          recipient_receive_method?: string | null
           sender_id: string
           status?: string
           transfer_code?: string | null
@@ -121,11 +121,11 @@ export type Database = {
           currency?: string
           fees?: number
           id?: string
-          recipient_address?: string
+          recipient_address?: string | null
           recipient_country?: string
           recipient_full_name?: string
           recipient_phone?: string
-          recipient_receive_method?: string
+          recipient_receive_method?: string | null
           sender_id?: string
           status?: string
           transfer_code?: string | null
