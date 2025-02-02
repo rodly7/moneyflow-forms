@@ -15,6 +15,14 @@ export type TransferData = {
     phone: string;
     country: string;
   };
+  sender: {
+    fullName: string;
+    phone: string;
+    country: string;
+    city: string;
+    address: string;
+    paymentMethod: string;
+  };
   transfer: {
     amount: number;
     currency: string;
@@ -26,6 +34,14 @@ const INITIAL_DATA: TransferData = {
     fullName: "",
     phone: "",
     country: "",
+  },
+  sender: {
+    fullName: "",
+    phone: "",
+    country: "",
+    city: "",
+    address: "",
+    paymentMethod: "",
   },
   transfer: {
     amount: 0,

@@ -12,16 +12,6 @@ type SenderInfoProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
 };
 
-// Update the sender type in TransferData to include address and paymentMethod
-type Sender = {
-  fullName: string;
-  phone: string;
-  country: string;
-  city: string;
-  address: string;
-  paymentMethod: string;
-};
-
 const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>([]);
@@ -66,8 +56,8 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
       const country = countries.find(c => c.name === sender.country);
       if (country) {
         setSelectedCountryCode(country.code);
-        setAvailablePaymentMethods(country.paymentMethods);
-        setAvailableCities(country.cities.map(city => city.name));
+        setAvailablePaymentMethods(country.paymentMethods || []);
+        setAvailableCities(country.cities?.map(city => city.name) || []);
       }
     }
   }, [sender.country]);
@@ -82,8 +72,8 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
             const country = countries.find(c => c.name === value);
             if (country) {
               setSelectedCountryCode(country.code);
-              setAvailablePaymentMethods(country.paymentMethods);
-              setAvailableCities(country.cities.map(city => city.name));
+              setAvailablePaymentMethods(country.paymentMethods || []);
+              setAvailableCities(country.cities?.map(city => city.name) || []);
               updateFields({ 
                 sender: { 
                   ...sender, 
