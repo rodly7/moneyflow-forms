@@ -49,27 +49,11 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
 
       console.log('Searching for phone number:', formattedPhone);
 
-      // Try first with the formatted phone number
-      let { data, error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('phone', formattedPhone)
         .maybeSingle();
-
-      // If no result, try with the original phone number
-      if (!data && !error) {
-        const { data: data2, error: error2 } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('phone', recipient.phone)
-          .maybeSingle();
-        
-        if (!error2) {
-          data = data2;
-        } else {
-          error = error2;
-        }
-      }
 
       if (error) {
         console.error('Error searching for recipient:', error);
