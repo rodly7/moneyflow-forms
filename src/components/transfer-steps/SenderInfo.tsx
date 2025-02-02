@@ -12,6 +12,16 @@ type SenderInfoProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
 };
 
+// Update the sender type in TransferData to include address and paymentMethod
+type Sender = {
+  fullName: string;
+  phone: string;
+  country: string;
+  city: string;
+  address: string;
+  paymentMethod: string;
+};
+
 const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>([]);
@@ -44,6 +54,8 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
           phone: profile.phone || '',
           address: profile.address || '',
           country: profile.country || '',
+          city: sender.city || '',
+          paymentMethod: sender.paymentMethod || '',
         }
       });
     }
