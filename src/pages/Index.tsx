@@ -29,13 +29,28 @@ const Index = () => {
     },
   });
 
-  const { data: transactions, isLoading: isLoadingTransactions } = useQuery({
-    queryKey: ['transactions'],
+  // Fetch all types of transactions
+  const { data: transfers } = useQuery({
+    queryKey: ['transfers'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('transfers')
         .select('*')
         .eq('sender_id', user?.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: recharges } = useQuery({
+    queryKey: ['recharges'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('recharges')
+        .select('*')
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -54,20 +69,40 @@ const Index = () => {
     </div>;
   }
 
+  // Combine and sort all transactions
+  const allTransactions = [
+    ...(transfers?.map(t => ({
+      ...t,
+      type: 'transfer',
+      amount: -t.amount,
+      date: new Date(t.created_at),
+      description: `Transfert à ${t.recipient_full_name}`,
+      currency: t.currency
+    })) || []),
+    ...(recharges?.map(r => ({
+      ...r,
+      type: 'recharge',
+      amount: r.amount,
+      date: new Date(r.created_at),
+      description: `Recharge via ${r.payment_method}`,
+      currency: 'XAF'
+    })) || [])
+  ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-8 px-4">
-      <div className="container max-w-3xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-2 sm:py-8 sm:px-4">
+      <div className="container max-w-3xl mx-auto space-y-4 sm:space-y-8">
         {/* Profile Card */}
         <Card className="bg-white shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="bg-emerald-100 p-3 rounded-full">
                   <User className="w-6 h-6 text-emerald-600" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold">{profile?.full_name}</h2>
-                  <p className="text-gray-500">{profile?.phone}</p>
+                  <h2 className="text-lg sm:text-xl font-semibold">{profile?.full_name}</h2>
+                  <p className="text-sm text-gray-500">{profile?.phone}</p>
                 </div>
               </div>
               <Button 
@@ -84,18 +119,18 @@ const Index = () => {
 
         {/* Balance Card */}
         <Card className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white">
-          <CardContent className="p-8">
+          <CardContent className="p-6 sm:p-8">
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm opacity-80">Solde disponible</p>
-                <h1 className="text-4xl font-bold mt-1">
+                <h1 className="text-3xl sm:text-4xl font-bold mt-1">
                   {new Intl.NumberFormat('fr-FR', {
                     style: 'currency',
                     currency: 'XAF'
                   }).format(profile?.balance || 0)}
                 </h1>
               </div>
-              <CreditCard className="w-12 h-12 opacity-80" />
+              <CreditCard className="w-10 h-10 sm:w-12 sm:h-12 opacity-80" />
             </div>
           </CardContent>
         </Card>
@@ -112,12 +147,12 @@ const Index = () => {
             <TransferForm />
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
             <Link to="/receive" className="col-span-1">
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full h-16 text-sm border-2 flex flex-col gap-1"
+                className="w-full h-14 sm:h-16 text-xs sm:text-sm border-2 flex flex-col gap-1"
               >
                 <Upload className="w-4 h-4" />
                 Recharger
@@ -127,7 +162,7 @@ const Index = () => {
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full h-16 text-sm border-2 flex flex-col gap-1"
+                className="w-full h-14 sm:h-16 text-xs sm:text-sm border-2 flex flex-col gap-1"
               >
                 <Download className="w-4 h-4" />
                 Retrait
@@ -136,7 +171,7 @@ const Index = () => {
             <Button
               variant="outline"
               size="sm"
-              className="w-full h-16 text-sm border-2 flex flex-col gap-1 col-span-2 md:col-span-1"
+              className="w-full h-14 sm:h-16 text-xs sm:text-sm border-2 flex flex-col gap-1 col-span-2 sm:col-span-1"
               onClick={() => setShowTransfer(true)}
             >
               <ArrowRightLeft className="w-4 h-4" />
@@ -147,33 +182,32 @@ const Index = () => {
 
         {/* Transactions History */}
         <Card className="bg-white shadow-lg">
-          <CardContent className="p-6">
-            <h3 className="text-xl font-semibold mb-4">Historique des transactions</h3>
-            <div className="space-y-4">
-              {isLoadingTransactions ? (
-                <div className="flex justify-center py-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
-                </div>
-              ) : transactions && transactions.length > 0 ? (
-                transactions.map((transaction) => (
+          <CardContent className="p-4 sm:p-6">
+            <h3 className="text-lg sm:text-xl font-semibold mb-4">Historique des transactions</h3>
+            <div className="space-y-3">
+              {allTransactions.length > 0 ? (
+                allTransactions.map((transaction) => (
                   <div 
                     key={transaction.id} 
-                    className="flex justify-between items-center p-4 rounded-lg border"
+                    className="flex justify-between items-center p-3 rounded-lg border"
                   >
                     <div>
-                      <p className="font-medium">{transaction.recipient_full_name}</p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(transaction.created_at).toLocaleDateString('fr-FR')}
+                      <p className="font-medium text-sm sm:text-base">{transaction.description}</p>
+                      <p className="text-xs sm:text-sm text-gray-500">
+                        {transaction.date.toLocaleDateString('fr-FR')}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-red-500">
-                        -{new Intl.NumberFormat('fr-FR', {
+                      <p className={`font-semibold text-sm sm:text-base ${
+                        transaction.amount > 0 ? 'text-green-500' : 'text-red-500'
+                      }`}>
+                        {transaction.amount > 0 ? '+' : ''}
+                        {new Intl.NumberFormat('fr-FR', {
                           style: 'currency',
                           currency: transaction.currency || 'XAF'
                         }).format(transaction.amount)}
                       </p>
-                      <p className="text-sm text-gray-500">{transaction.status}</p>
+                      <p className="text-xs sm:text-sm text-gray-500">{transaction.status}</p>
                     </div>
                   </div>
                 ))

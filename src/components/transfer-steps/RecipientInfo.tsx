@@ -4,8 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TransferData } from "../TransferForm";
 import { useState } from "react";
 import { countries } from "@/data/countries";
-import { Button } from "@/components/ui/button";
-import { Flag } from "lucide-react";
+import { Flag, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,6 +14,7 @@ type RecipientInfoProps = TransferData & {
 
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
+  const [isValidNumber, setIsValidNumber] = useState(false);
   const { toast } = useToast();
 
   const handlePhoneChange = (value: string) => {
@@ -23,9 +23,11 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       updateFields({ 
         recipient: { 
           ...recipient, 
-          phone: value 
+          phone: value,
+          fullName: '', // Reset name when phone changes
         } 
       });
+      setIsValidNumber(false);
 
       // Si le numéro est complet (au moins 10 chiffres après le +), rechercher le bénéficiaire
       if (value.length > 10) {
@@ -50,6 +52,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           description: "Aucun utilisateur trouvé avec ce numéro de téléphone",
           variant: "destructive"
         });
+        setIsValidNumber(false);
         return;
       }
 
@@ -61,12 +64,14 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         }
       });
 
+      setIsValidNumber(true);
       toast({
         title: "Utilisateur trouvé",
         description: "Les informations ont été remplies automatiquement",
       });
     } catch (error) {
       console.error('Erreur lors de la recherche:', error);
+      setIsValidNumber(false);
       toast({
         title: "Erreur",
         description: "Une erreur est survenue lors de la recherche",
@@ -114,15 +119,22 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
 
       <div className="space-y-2">
         <Label htmlFor="phone">Numéro de téléphone</Label>
-        <Input
-          id="phone"
-          type="tel"
-          placeholder="+242XXXXXXXXX"
-          value={recipient.phone}
-          onChange={(e) => handlePhoneChange(e.target.value)}
-          className="w-full"
-          maxLength={13}
-        />
+        <div className="relative">
+          <Input
+            id="phone"
+            type="tel"
+            placeholder="+242XXXXXXXXX"
+            value={recipient.phone}
+            onChange={(e) => handlePhoneChange(e.target.value)}
+            className={`w-full pr-10 ${isValidNumber ? 'border-green-500' : ''}`}
+            maxLength={13}
+          />
+          {isValidNumber && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <Check className="h-5 w-5 text-green-500" />
+            </div>
+          )}
+        </div>
       </div>
 
       {recipient.fullName && (
