@@ -12,10 +12,8 @@ type SenderInfoProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
 };
 
-const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
+const SenderInfo = ({ recipient, updateFields }: SenderInfoProps) => {
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
-  const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>([]);
-  const [availableCities, setAvailableCities] = useState<string[]>([]);
   const { user } = useAuth();
 
   // Fetch user profile data
@@ -34,52 +32,41 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
     enabled: !!user,
   });
 
-  // Pre-fill sender information when profile data is loaded
+  // Pre-fill recipient information when profile data is loaded
   useEffect(() => {
     if (profile) {
       updateFields({
-        sender: {
-          ...sender,
-          fullName: profile.full_name || '',
-          phone: profile.phone || '',
-          address: profile.address || '',
+        recipient: {
+          ...recipient,
           country: profile.country || '',
-          city: sender.city || '',
-          paymentMethod: sender.paymentMethod || '',
         }
       });
     }
   }, [profile]);
 
   useEffect(() => {
-    if (sender.country) {
-      const country = countries.find(c => c.name === sender.country);
+    if (recipient.country) {
+      const country = countries.find(c => c.name === recipient.country);
       if (country) {
         setSelectedCountryCode(country.code);
-        setAvailablePaymentMethods(country.paymentMethods || []);
-        setAvailableCities(country.cities?.map(city => city.name) || []);
       }
     }
-  }, [sender.country]);
+  }, [recipient.country]);
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="country">Pays</Label>
+        <Label htmlFor="country">Pays d'envoi</Label>
         <Select
-          value={sender.country}
+          value={recipient.country}
           onValueChange={(value) => {
             const country = countries.find(c => c.name === value);
             if (country) {
               setSelectedCountryCode(country.code);
-              setAvailablePaymentMethods(country.paymentMethods || []);
-              setAvailableCities(country.cities?.map(city => city.name) || []);
               updateFields({ 
-                sender: { 
-                  ...sender, 
+                recipient: { 
+                  ...recipient, 
                   country: value,
-                  city: "",
-                  paymentMethod: ""
                 } 
               });
             }
@@ -99,52 +86,15 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="city">Ville</Label>
-        <Select
-          value={sender.city}
-          onValueChange={(value) =>
-            updateFields({ sender: { ...sender, city: value } })
-          }
-          disabled={!sender.country}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionnez votre ville" />
-          </SelectTrigger>
-          <SelectContent>
-            {availableCities.map((city) => (
-              <SelectItem key={city} value={city}>
-                {city}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
         <Label htmlFor="fullName">Nom Complet</Label>
         <Input
           id="fullName"
           type="text"
           required
           placeholder="Votre nom complet"
-          value={sender.fullName}
-          onChange={(e) =>
-            updateFields({ sender: { ...sender, fullName: e.target.value } })
-          }
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="address">Adresse</Label>
-        <Input
-          id="address"
-          type="text"
-          required
-          placeholder="Votre adresse actuelle"
-          value={sender.address}
-          onChange={(e) =>
-            updateFields({ sender: { ...sender, address: e.target.value } })
-          }
+          value={profile?.full_name || ''}
+          readOnly
+          className="bg-gray-100"
         />
       </div>
 
@@ -163,34 +113,11 @@ const SenderInfo = ({ sender, updateFields }: SenderInfoProps) => {
             type="tel"
             required
             placeholder="XX XXX XXXX"
-            value={sender.phone}
-            onChange={(e) =>
-              updateFields({ sender: { ...sender, phone: e.target.value } })
-            }
+            value={profile?.phone || ''}
+            readOnly
+            className="bg-gray-100"
           />
         </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="paymentMethod">Mode de Paiement</Label>
-        <Select
-          value={sender.paymentMethod}
-          onValueChange={(value) =>
-            updateFields({ sender: { ...sender, paymentMethod: value } })
-          }
-          disabled={!sender.country}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionnez le mode de paiement" />
-          </SelectTrigger>
-          <SelectContent>
-            {availablePaymentMethods.map((method) => (
-              <SelectItem key={method} value={method}>
-                {method}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
     </div>
   );
