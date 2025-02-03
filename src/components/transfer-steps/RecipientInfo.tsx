@@ -5,7 +5,7 @@ import { TransferData } from "../TransferForm";
 import { useState } from "react";
 import { countries } from "@/data/countries";
 import { Button } from "@/components/ui/button";
-import { Flag, Search } from "lucide-react";
+import { Flag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -18,46 +18,28 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const { toast } = useToast();
 
   const handlePhoneChange = (value: string) => {
-    // Supprimer tous les caractères non numériques
-    const cleanPhone = value.replace(/\D/g, '');
-    
-    // Si le numéro est vide, on ne fait rien
-    if (!cleanPhone) {
+    // Accepter uniquement + au début et des chiffres ensuite
+    if (/^\+?\d*$/.test(value)) {
       updateFields({ 
         recipient: { 
           ...recipient, 
-          phone: '' 
+          phone: value 
         } 
       });
-      return;
-    }
 
-    // Formater le numéro avec l'indicatif du pays
-    const formattedPhone = `${selectedCountryCode}${cleanPhone}`;
-    
-    updateFields({ 
-      recipient: { 
-        ...recipient, 
-        phone: formattedPhone 
-      } 
-    });
+      // Si le numéro est complet (au moins 10 chiffres après le +), rechercher le bénéficiaire
+      if (value.length > 10) {
+        searchRecipient(value);
+      }
+    }
   };
 
-  const searchRecipient = async () => {
-    if (!recipient.phone || !recipient.country) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez sélectionner un pays et entrer un numéro de téléphone",
-        variant: "destructive"
-      });
-      return;
-    }
-
+  const searchRecipient = async (phoneNumber: string) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('full_name, country')
-        .eq('phone', recipient.phone)
+        .eq('phone', phoneNumber)
         .maybeSingle();
 
       if (error) throw error;
@@ -75,6 +57,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         recipient: {
           ...recipient,
           fullName: data.full_name || '',
+          country: data.country || recipient.country,
         }
       });
 
@@ -106,7 +89,8 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
                 recipient: { 
                   ...recipient, 
                   country: value,
-                  phone: '' // Reset phone when country changes
+                  phone: '', // Reset phone when country changes
+                  fullName: '', // Reset name when country changes
                 } 
               });
             }
@@ -130,26 +114,15 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
 
       <div className="space-y-2">
         <Label htmlFor="phone">Numéro de téléphone</Label>
-        <div className="flex gap-2">
-          <Input
-            type="tel"
-            placeholder="XXXXXXXXXX"
-            value={recipient.phone.replace(selectedCountryCode, '')}
-            onChange={(e) => handlePhoneChange(e.target.value)}
-            className="flex-1"
-            maxLength={10}
-            disabled={!selectedCountryCode}
-          />
-          <Button 
-            type="button" 
-            variant="outline"
-            onClick={searchRecipient}
-            className="px-3"
-            disabled={!recipient.phone || !recipient.country}
-          >
-            <Search className="h-4 w-4" />
-          </Button>
-        </div>
+        <Input
+          id="phone"
+          type="tel"
+          placeholder="+242XXXXXXXXX"
+          value={recipient.phone}
+          onChange={(e) => handlePhoneChange(e.target.value)}
+          className="w-full"
+          maxLength={13}
+        />
       </div>
 
       {recipient.fullName && (
