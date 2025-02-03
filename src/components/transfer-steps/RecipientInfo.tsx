@@ -17,6 +17,20 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const { toast } = useToast();
 
+  const formatPhoneNumber = (value: string) => {
+    // Supprimer tous les caractères non numériques
+    const numbers = value.replace(/\D/g, '');
+    
+    // Format: XX XXX XXXX
+    const match = numbers.match(/^(\d{2})(\d{3})(\d{4})$/);
+    
+    if (match) {
+      return `${match[1]} ${match[2]} ${match[3]}`;
+    }
+    
+    return numbers;
+  };
+
   const searchRecipient = async () => {
     if (!recipient.phone || !recipient.country) {
       toast({
@@ -30,7 +44,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     try {
       let formattedPhone = recipient.phone;
       if (!formattedPhone.startsWith('+')) {
-        const cleanPhone = formattedPhone.replace(/^0+/, '');
+        const cleanPhone = formattedPhone.replace(/\D/g, '');
         formattedPhone = `${selectedCountryCode}${cleanPhone}`;
       }
 
@@ -124,9 +138,16 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
             required
             placeholder="XX XXX XXXX"
             value={recipient.phone}
-            onChange={(e) =>
-              updateFields({ recipient: { ...recipient, phone: e.target.value } })
-            }
+            onChange={(e) => {
+              const formatted = formatPhoneNumber(e.target.value);
+              updateFields({ 
+                recipient: { 
+                  ...recipient, 
+                  phone: formatted 
+                } 
+              });
+            }}
+            maxLength={11} // XX XXX XXXX (avec espaces)
           />
           <Button 
             type="button" 
