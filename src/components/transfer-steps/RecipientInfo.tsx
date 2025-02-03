@@ -17,18 +17,30 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const { toast } = useToast();
 
-  const formatPhoneNumber = (value: string) => {
+  const handlePhoneChange = (value: string) => {
     // Supprimer tous les caractères non numériques
-    const numbers = value.replace(/\D/g, '');
+    const cleanPhone = value.replace(/\D/g, '');
     
-    // Format: XX XXX XXXX
-    const match = numbers.match(/^(\d{2})(\d{3})(\d{4})$/);
-    
-    if (match) {
-      return `${match[1]} ${match[2]} ${match[3]}`;
+    // Si le numéro est vide, on ne fait rien
+    if (!cleanPhone) {
+      updateFields({ 
+        recipient: { 
+          ...recipient, 
+          phone: '' 
+        } 
+      });
+      return;
     }
+
+    // Formater le numéro avec l'indicatif du pays
+    const formattedPhone = `${selectedCountryCode}${cleanPhone}`;
     
-    return numbers;
+    updateFields({ 
+      recipient: { 
+        ...recipient, 
+        phone: formattedPhone 
+      } 
+    });
   };
 
   const searchRecipient = async () => {
@@ -42,16 +54,10 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     }
 
     try {
-      let formattedPhone = recipient.phone;
-      if (!formattedPhone.startsWith('+')) {
-        const cleanPhone = formattedPhone.replace(/\D/g, '');
-        formattedPhone = `${selectedCountryCode}${cleanPhone}`;
-      }
-
       const { data, error } = await supabase
         .from('profiles')
         .select('full_name, country')
-        .eq('phone', formattedPhone)
+        .eq('phone', recipient.phone)
         .maybeSingle();
 
       if (error) throw error;
@@ -69,7 +75,6 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         recipient: {
           ...recipient,
           fullName: data.full_name || '',
-          phone: formattedPhone,
         }
       });
 
@@ -101,6 +106,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
                 recipient: { 
                   ...recipient, 
                   country: value,
+                  phone: '' // Reset phone when country changes
                 } 
               });
             }
@@ -123,42 +129,40 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="phone">Numéro de Téléphone</Label>
+        <Label htmlFor="phone">Numéro de téléphone</Label>
         <div className="flex gap-2">
-          <div className="w-24">
-            <Input
-              value={selectedCountryCode}
-              readOnly
-              className="bg-gray-100"
-            />
-          </div>
           <Input
-            id="phone"
             type="tel"
-            required
-            placeholder="XX XXX XXXX"
-            value={recipient.phone}
-            onChange={(e) => {
-              const formatted = formatPhoneNumber(e.target.value);
-              updateFields({ 
-                recipient: { 
-                  ...recipient, 
-                  phone: formatted 
-                } 
-              });
-            }}
-            maxLength={11} // XX XXX XXXX (avec espaces)
+            placeholder="XXXXXXXXXX"
+            value={recipient.phone.replace(selectedCountryCode, '')}
+            onChange={(e) => handlePhoneChange(e.target.value)}
+            className="flex-1"
+            maxLength={10}
+            disabled={!selectedCountryCode}
           />
           <Button 
             type="button" 
             variant="outline"
             onClick={searchRecipient}
             className="px-3"
+            disabled={!recipient.phone || !recipient.country}
           >
             <Search className="h-4 w-4" />
           </Button>
         </div>
       </div>
+
+      {recipient.fullName && (
+        <div className="space-y-2">
+          <Label htmlFor="fullName">Nom du bénéficiaire</Label>
+          <Input
+            id="fullName"
+            value={recipient.fullName}
+            readOnly
+            className="bg-gray-100"
+          />
+        </div>
+      )}
     </div>
   );
 };
