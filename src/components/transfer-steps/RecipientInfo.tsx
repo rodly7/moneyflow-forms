@@ -30,7 +30,8 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       setIsValidNumber(false);
 
       // Si le numéro est complet (au moins 10 chiffres après le +), rechercher le bénéficiaire
-      if (value.length > 10) {
+      if (value.length >= 10) {
+        console.log("Searching for phone number:", value); // Debug log
         searchRecipient(value);
       }
     }
@@ -38,15 +39,23 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
 
   const searchRecipient = async (phoneNumber: string) => {
     try {
+      console.log("Searching for recipient with phone:", phoneNumber); // Debug log
+
       const { data, error } = await supabase
         .from('profiles')
         .select('full_name, country')
         .eq('phone', phoneNumber)
         .maybeSingle();
 
-      if (error) throw error;
+      console.log("Search result:", { data, error }); // Debug log
+
+      if (error) {
+        console.error('Database error:', error); // Debug log
+        throw error;
+      }
 
       if (!data) {
+        console.log("No user found for phone:", phoneNumber); // Debug log
         toast({
           title: "Utilisateur non trouvé",
           description: "Aucun utilisateur trouvé avec ce numéro de téléphone",
@@ -55,6 +64,8 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         setIsValidNumber(false);
         return;
       }
+
+      console.log("User found:", data); // Debug log
 
       updateFields({
         recipient: {
