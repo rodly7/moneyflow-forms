@@ -18,9 +18,13 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const { toast } = useToast();
 
   const handlePhoneChange = (value: string) => {
-    // Accepter uniquement + au début et des chiffres ensuite
-    if (/^\+?\d*$/.test(value)) {
-      const formattedValue = value.startsWith('+') ? value : `+${value}`;
+    // Ensure the phone number starts with +
+    let formattedValue = value.startsWith('+') ? value : `+${value}`;
+    
+    // Only allow + and digits
+    if (/^\+?\d*$/.test(formattedValue)) {
+      console.log("Formatting phone number:", formattedValue); // Debug log
+      
       updateFields({ 
         recipient: { 
           ...recipient, 
@@ -30,66 +34,67 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       });
       setIsValidNumber(false);
 
-      // Si le numéro est complet (au moins 10 chiffres après le +), rechercher le bénéficiaire
-      if (formattedValue.length >= 10) {
-        console.log("Searching for phone number:", formattedValue); // Debug log
+      // Search for recipient if number is complete (at least 12 chars including +)
+      if (formattedValue.length >= 12) {
         searchRecipient(formattedValue);
       }
     }
-  };
-
-  const handleNameChange = (value: string) => {
-    updateFields({
-      recipient: {
-        ...recipient,
-        fullName: value
-      }
-    });
   };
 
   const searchRecipient = async (phoneNumber: string) => {
     try {
       console.log("Searching for recipient with phone:", phoneNumber); // Debug log
 
-      const { data, error } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
-        .select('full_name, country')
+        .select('full_name, country, phone')
         .eq('phone', phoneNumber)
         .maybeSingle();
 
-      console.log("Search result:", { data, error }); // Debug log
+      console.log("Search result:", { profile, error }); // Debug log
 
       if (error) {
-        console.error('Database error:', error); // Debug log
+        console.error('Database error:', error);
         throw error;
       }
 
-      if (!data) {
-        console.log("No user found for phone:", phoneNumber); // Debug log
+      if (!profile) {
+        console.log("No user found for phone:", phoneNumber);
         toast({
           title: "Utilisateur non trouvé",
-          description: "Aucun utilisateur trouvé avec ce numéro de téléphone",
+          description: "Ce numéro n'est pas enregistré dans notre système",
           variant: "destructive"
         });
         setIsValidNumber(false);
         return;
       }
 
-      console.log("User found:", data); // Debug log
+      // Verify exact phone number match
+      if (profile.phone === phoneNumber) {
+        console.log("User found:", profile);
+        updateFields({
+          recipient: {
+            ...recipient,
+            fullName: profile.full_name || '',
+            country: profile.country || recipient.country,
+            phone: phoneNumber
+          }
+        });
 
-      updateFields({
-        recipient: {
-          ...recipient,
-          fullName: data.full_name || '',
-          country: data.country || recipient.country,
-        }
-      });
-
-      setIsValidNumber(true);
-      toast({
-        title: "Utilisateur trouvé",
-        description: "Les informations ont été remplies automatiquement",
-      });
+        setIsValidNumber(true);
+        toast({
+          title: "Utilisateur trouvé",
+          description: "Les informations ont été remplies automatiquement",
+        });
+      } else {
+        console.log("Phone number mismatch:", { stored: profile.phone, input: phoneNumber });
+        setIsValidNumber(false);
+        toast({
+          title: "Numéro invalide",
+          description: "Le format du numéro ne correspond pas",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       console.error('Erreur lors de la recherche:', error);
       setIsValidNumber(false);
@@ -163,7 +168,6 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         <Input
           id="fullName"
           value={recipient.fullName}
-          onChange={(e) => handleNameChange(e.target.value)}
           placeholder="Nom complet du bénéficiaire"
           className={isValidNumber ? 'bg-gray-100' : ''}
           readOnly={isValidNumber}
