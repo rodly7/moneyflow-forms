@@ -22,21 +22,18 @@ type UserProfile = {
 };
 
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
-  const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const { toast } = useToast();
 
-  // Fetch all users when country changes
+  // Fetch all users when component mounts
   useEffect(() => {
     const fetchUsers = async () => {
-      if (!selectedCountryCode) return;
-
       try {
         const { data, error } = await supabase
           .from('profiles')
           .select('phone, full_name')
-          .like('phone', `${selectedCountryCode}%`);
+          .not('phone', 'eq', '');
 
         if (error) throw error;
 
@@ -53,7 +50,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     };
 
     fetchUsers();
-  }, [selectedCountryCode, toast]);
+  }, [toast]);
 
   return (
     <div className="space-y-4">
@@ -62,18 +59,14 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         <Select
           value={recipient.country}
           onValueChange={(value) => {
-            const country = countries.find(c => c.name === value);
-            if (country) {
-              setSelectedCountryCode(country.code);
-              updateFields({ 
-                recipient: { 
-                  ...recipient, 
-                  country: value,
-                  phone: '', 
-                  fullName: '', 
-                } 
-              });
-            }
+            updateFields({ 
+              recipient: { 
+                ...recipient, 
+                country: value,
+                phone: '', 
+                fullName: '', 
+              } 
+            });
           }}
         >
           <SelectTrigger>
@@ -92,7 +85,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         </Select>
       </div>
 
-      {selectedCountryCode && (
+      {recipient.country && (
         <div className="space-y-2">
           <Label>Numéro de téléphone</Label>
           <Popover open={open} onOpenChange={setOpen}>
@@ -133,7 +126,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
                           recipient: {
                             ...recipient,
                             phone: user.phone,
-                            fullName: user.full_name,
+                            fullName: user.full_name || '',
                           }
                         });
                         setOpen(false);
@@ -142,8 +135,12 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 shrink-0" />
                         <span>{user.phone}</span>
-                        <span className="text-muted-foreground">-</span>
-                        <span className="text-muted-foreground">{user.full_name}</span>
+                        {user.full_name && (
+                          <>
+                            <span className="text-muted-foreground">-</span>
+                            <span className="text-muted-foreground">{user.full_name}</span>
+                          </>
+                        )}
                       </div>
                       {recipient.phone === user.phone && (
                         <Check className="ml-auto h-4 w-4" />
