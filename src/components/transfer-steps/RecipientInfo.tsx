@@ -4,113 +4,55 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TransferData } from "../TransferForm";
 import { useState, useEffect } from "react";
 import { countries } from "@/data/countries";
-import { Flag, Check } from "lucide-react";
+import { Flag, Check, Phone, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 type RecipientInfoProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
 };
 
+type UserProfile = {
+  phone: string;
+  full_name: string;
+};
+
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
-  const [isValidNumber, setIsValidNumber] = useState(false);
-  const [phoneWithoutCode, setPhoneWithoutCode] = useState("");
+  const [open, setOpen] = useState(false);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const { toast } = useToast();
 
-  // Update phone number when country changes or phone input changes
+  // Fetch all users when country changes
   useEffect(() => {
-    if (selectedCountryCode && phoneWithoutCode) {
-      const fullNumber = `${selectedCountryCode}${phoneWithoutCode}`;
-      handlePhoneChange(fullNumber);
-    }
-  }, [selectedCountryCode, phoneWithoutCode]);
+    const fetchUsers = async () => {
+      if (!selectedCountryCode) return;
 
-  const handlePhoneChange = async (fullNumber: string) => {
-    // Only allow digits for the phone part
-    if (/^\+\d*$/.test(fullNumber)) {
-      console.log("Full phone number:", fullNumber);
-      
-      updateFields({ 
-        recipient: { 
-          ...recipient, 
-          phone: fullNumber,
-          fullName: '', // Reset name when phone changes
-        } 
-      });
-      setIsValidNumber(false);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('phone, full_name')
+          .like('phone', `${selectedCountryCode}%`);
 
-      // Search for recipient if number is complete (at least 12 chars including +)
-      if (fullNumber.length >= 12) {
-        await searchRecipient(fullNumber);
-      }
-    }
-  };
+        if (error) throw error;
 
-  const searchRecipient = async (phoneNumber: string) => {
-    try {
-      console.log("Searching for recipient with phone:", phoneNumber);
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('full_name, country, phone')
-        .eq('phone', phoneNumber)
-        .maybeSingle();
-
-      console.log("Search result:", { profile, error });
-
-      if (error) {
-        console.error('Database error:', error);
-        throw error;
-      }
-
-      if (!profile) {
-        console.log("No user found for phone:", phoneNumber);
+        console.log("Found users:", data);
+        setUsers(data || []);
+      } catch (error) {
+        console.error('Error fetching users:', error);
         toast({
-          title: "Utilisateur non trouvé",
-          description: "Ce numéro n'est pas enregistré dans notre système",
-          variant: "destructive"
-        });
-        setIsValidNumber(false);
-        return;
-      }
-
-      // Verify exact phone number match
-      if (profile.phone === phoneNumber) {
-        console.log("User found:", profile);
-        updateFields({
-          recipient: {
-            ...recipient,
-            fullName: profile.full_name || '',
-            country: profile.country || recipient.country,
-            phone: phoneNumber
-          }
-        });
-
-        setIsValidNumber(true);
-        toast({
-          title: "Utilisateur trouvé",
-          description: "Les informations ont été remplies automatiquement",
-        });
-      } else {
-        console.log("Phone number mismatch:", { stored: profile.phone, input: phoneNumber });
-        setIsValidNumber(false);
-        toast({
-          title: "Numéro invalide",
-          description: "Le format du numéro ne correspond pas",
+          title: "Erreur",
+          description: "Impossible de charger la liste des utilisateurs",
           variant: "destructive"
         });
       }
-    } catch (error) {
-      console.error('Erreur lors de la recherche:', error);
-      setIsValidNumber(false);
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la recherche",
-        variant: "destructive"
-      });
-    }
-  };
+    };
+
+    fetchUsers();
+  }, [selectedCountryCode, toast]);
 
   return (
     <div className="space-y-4">
@@ -122,13 +64,12 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
             const country = countries.find(c => c.name === value);
             if (country) {
               setSelectedCountryCode(country.code);
-              setPhoneWithoutCode(""); // Reset phone input when country changes
               updateFields({ 
                 recipient: { 
                   ...recipient, 
                   country: value,
-                  phone: '', // Reset phone when country changes
-                  fullName: '', // Reset name when country changes
+                  phone: '', 
+                  fullName: '', 
                 } 
               });
             }
@@ -150,48 +91,79 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         </Select>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="phone">Numéro de téléphone</Label>
-        <div className="relative flex gap-2">
-          <div className="w-24">
-            <Input
-              value={selectedCountryCode}
-              readOnly
-              className="bg-gray-100"
-              placeholder="+XXX"
-            />
-          </div>
-          <div className="flex-1">
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="XXXXXXXXX"
-              value={phoneWithoutCode}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-                setPhoneWithoutCode(value);
-              }}
-              className={`w-full pr-10 ${isValidNumber ? 'border-green-500' : ''}`}
-              maxLength={9}
-            />
-          </div>
-          {isValidNumber && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <Check className="h-5 w-5 text-green-500" />
-            </div>
-          )}
+      {selectedCountryCode && (
+        <div className="space-y-2">
+          <Label>Numéro de téléphone</Label>
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className="w-full justify-between"
+              >
+                {recipient.phone ? (
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 shrink-0" />
+                    <span>{recipient.phone}</span>
+                    {recipient.fullName && (
+                      <>
+                        <span className="text-muted-foreground">-</span>
+                        <span className="text-muted-foreground">{recipient.fullName}</span>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground">Sélectionnez un numéro</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[400px] p-0">
+              <Command>
+                <CommandInput placeholder="Rechercher un numéro..." />
+                <CommandEmpty>Aucun utilisateur trouvé</CommandEmpty>
+                <CommandGroup>
+                  {users.map((user) => (
+                    <CommandItem
+                      key={user.phone}
+                      value={user.phone}
+                      onSelect={() => {
+                        updateFields({
+                          recipient: {
+                            ...recipient,
+                            phone: user.phone,
+                            fullName: user.full_name,
+                          }
+                        });
+                        setOpen(false);
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 shrink-0" />
+                        <span>{user.phone}</span>
+                        <span className="text-muted-foreground">-</span>
+                        <span className="text-muted-foreground">{user.full_name}</span>
+                      </div>
+                      {recipient.phone === user.phone && (
+                        <Check className="ml-auto h-4 w-4" />
+                      )}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
-      </div>
+      )}
 
-      {isValidNumber && (
+      {recipient.fullName && (
         <div className="space-y-2">
           <Label htmlFor="fullName">Nom du bénéficiaire</Label>
           <Input
             id="fullName"
             value={recipient.fullName}
-            placeholder="Nom complet du bénéficiaire"
-            className="bg-gray-100"
             readOnly
+            className="bg-gray-100"
           />
         </div>
       )}
