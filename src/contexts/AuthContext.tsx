@@ -33,23 +33,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session) {
         setSession(session);
         setUser(session.user);
+        // Only navigate to home if we're on the auth page
+        if (window.location.pathname === "/auth") {
+          navigate("/");
+        }
       } else {
-        // If no session, redirect to auth page
-        navigate("/auth");
+        // Clear session and user state
+        setSession(null);
+        setUser(null);
+        // Only redirect to auth if we're not already there
+        if (window.location.pathname !== "/auth") {
+          navigate("/auth");
+        }
       }
     });
 
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event, session);
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log("Auth state changed:", _event, session);
       
       if (session) {
         setSession(session);
         setUser(session.user);
         
-        // Only navigate to home if we're on the auth page and have a valid session
+        // Only navigate to home if we're on the auth page
         if (window.location.pathname === "/auth") {
           navigate("/");
         }
@@ -124,6 +133,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      // Clear session and user state
+      setSession(null);
+      setUser(null);
       
       toast.success("Déconnexion réussie");
       // Navigation will be handled by the auth state change listener
