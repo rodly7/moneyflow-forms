@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 type RecipientInfoProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
