@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TransferData } from "../TransferForm";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { countries } from "@/data/countries";
 import { Flag, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,35 +15,41 @@ type RecipientInfoProps = TransferData & {
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [isValidNumber, setIsValidNumber] = useState(false);
+  const [phoneWithoutCode, setPhoneWithoutCode] = useState("");
   const { toast } = useToast();
 
-  const handlePhoneChange = (value: string) => {
-    // Ensure the phone number starts with +
-    let formattedValue = value.startsWith('+') ? value : `+${value}`;
-    
-    // Only allow + and digits
-    if (/^\+?\d*$/.test(formattedValue)) {
-      console.log("Formatting phone number:", formattedValue); // Debug log
+  // Update phone number when country changes or phone input changes
+  useEffect(() => {
+    if (selectedCountryCode && phoneWithoutCode) {
+      const fullNumber = `${selectedCountryCode}${phoneWithoutCode}`;
+      handlePhoneChange(fullNumber);
+    }
+  }, [selectedCountryCode, phoneWithoutCode]);
+
+  const handlePhoneChange = async (fullNumber: string) => {
+    // Only allow digits for the phone part
+    if (/^\+\d*$/.test(fullNumber)) {
+      console.log("Full phone number:", fullNumber);
       
       updateFields({ 
         recipient: { 
           ...recipient, 
-          phone: formattedValue,
+          phone: fullNumber,
           fullName: '', // Reset name when phone changes
         } 
       });
       setIsValidNumber(false);
 
       // Search for recipient if number is complete (at least 12 chars including +)
-      if (formattedValue.length >= 12) {
-        searchRecipient(formattedValue);
+      if (fullNumber.length >= 12) {
+        await searchRecipient(fullNumber);
       }
     }
   };
 
   const searchRecipient = async (phoneNumber: string) => {
     try {
-      console.log("Searching for recipient with phone:", phoneNumber); // Debug log
+      console.log("Searching for recipient with phone:", phoneNumber);
 
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -51,7 +57,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         .eq('phone', phoneNumber)
         .maybeSingle();
 
-      console.log("Search result:", { profile, error }); // Debug log
+      console.log("Search result:", { profile, error });
 
       if (error) {
         console.error('Database error:', error);
@@ -116,6 +122,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
             const country = countries.find(c => c.name === value);
             if (country) {
               setSelectedCountryCode(country.code);
+              setPhoneWithoutCode(""); // Reset phone input when country changes
               updateFields({ 
                 recipient: { 
                   ...recipient, 
@@ -145,16 +152,29 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
 
       <div className="space-y-2">
         <Label htmlFor="phone">Numéro de téléphone</Label>
-        <div className="relative">
-          <Input
-            id="phone"
-            type="tel"
-            placeholder="+242XXXXXXXXX"
-            value={recipient.phone}
-            onChange={(e) => handlePhoneChange(e.target.value)}
-            className={`w-full pr-10 ${isValidNumber ? 'border-green-500' : ''}`}
-            maxLength={13}
-          />
+        <div className="relative flex gap-2">
+          <div className="w-24">
+            <Input
+              value={selectedCountryCode}
+              readOnly
+              className="bg-gray-100"
+              placeholder="+XXX"
+            />
+          </div>
+          <div className="flex-1">
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="XXXXXXXXX"
+              value={phoneWithoutCode}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                setPhoneWithoutCode(value);
+              }}
+              className={`w-full pr-10 ${isValidNumber ? 'border-green-500' : ''}`}
+              maxLength={9}
+            />
+          </div>
           {isValidNumber && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
               <Check className="h-5 w-5 text-green-500" />
@@ -163,16 +183,18 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="fullName">Nom du bénéficiaire</Label>
-        <Input
-          id="fullName"
-          value={recipient.fullName}
-          placeholder="Nom complet du bénéficiaire"
-          className={isValidNumber ? 'bg-gray-100' : ''}
-          readOnly={isValidNumber}
-        />
-      </div>
+      {isValidNumber && (
+        <div className="space-y-2">
+          <Label htmlFor="fullName">Nom du bénéficiaire</Label>
+          <Input
+            id="fullName"
+            value={recipient.fullName}
+            placeholder="Nom complet du bénéficiaire"
+            className="bg-gray-100"
+            readOnly
+          />
+        </div>
+      )}
     </div>
   );
 };
