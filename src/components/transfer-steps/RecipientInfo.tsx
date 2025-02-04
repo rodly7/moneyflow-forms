@@ -20,21 +20,31 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const handlePhoneChange = (value: string) => {
     // Accepter uniquement + au début et des chiffres ensuite
     if (/^\+?\d*$/.test(value)) {
+      const formattedValue = value.startsWith('+') ? value : `+${value}`;
       updateFields({ 
         recipient: { 
           ...recipient, 
-          phone: value,
+          phone: formattedValue,
           fullName: '', // Reset name when phone changes
         } 
       });
       setIsValidNumber(false);
 
       // Si le numéro est complet (au moins 10 chiffres après le +), rechercher le bénéficiaire
-      if (value.length >= 10) {
-        console.log("Searching for phone number:", value); // Debug log
-        searchRecipient(value);
+      if (formattedValue.length >= 10) {
+        console.log("Searching for phone number:", formattedValue); // Debug log
+        searchRecipient(formattedValue);
       }
     }
+  };
+
+  const handleNameChange = (value: string) => {
+    updateFields({
+      recipient: {
+        ...recipient,
+        fullName: value
+      }
+    });
   };
 
   const searchRecipient = async (phoneNumber: string) => {
@@ -148,17 +158,17 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         </div>
       </div>
 
-      {recipient.fullName && (
-        <div className="space-y-2">
-          <Label htmlFor="fullName">Nom du bénéficiaire</Label>
-          <Input
-            id="fullName"
-            value={recipient.fullName}
-            readOnly
-            className="bg-gray-100"
-          />
-        </div>
-      )}
+      <div className="space-y-2">
+        <Label htmlFor="fullName">Nom du bénéficiaire</Label>
+        <Input
+          id="fullName"
+          value={recipient.fullName}
+          onChange={(e) => handleNameChange(e.target.value)}
+          placeholder="Nom complet du bénéficiaire"
+          className={isValidNumber ? 'bg-gray-100' : ''}
+          readOnly={isValidNumber}
+        />
+      </div>
     </div>
   );
 };
