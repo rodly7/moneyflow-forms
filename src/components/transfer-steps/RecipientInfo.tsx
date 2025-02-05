@@ -25,16 +25,16 @@ type UserProfile = {
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [open, setOpen] = useState(false);
-  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { session, user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchProfiles = async () => {
       try {
         setIsLoading(true);
-        console.log("Fetching users for country:", recipient.country);
+        console.log("Fetching profiles for country:", recipient.country);
         
         if (!session?.user) {
           console.error("No authenticated session found");
@@ -46,25 +46,25 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           return;
         }
 
-        // Fetch all profiles except the current user's
+        // Fetch all profiles except the current user's for the selected country
         const { data, error } = await supabase
           .from('profiles')
           .select('phone, full_name')
           .not('id', 'eq', session.user.id)
-          .not('phone', 'eq', '')
-          .eq('country', recipient.country);
+          .eq('country', recipient.country)
+          .not('phone', 'eq', '');
 
         if (error) {
-          console.error('Error fetching users:', error);
+          console.error('Error fetching profiles:', error);
           toast({
             title: "Erreur",
-            description: "Impossible de charger la liste des utilisateurs",
+            description: "Impossible de charger la liste des bénéficiaires",
             variant: "destructive",
           });
           return;
         }
 
-        console.log("Found users:", data);
+        console.log("Found profiles:", data);
         
         if (!data || data.length === 0) {
           toast({
@@ -73,12 +73,12 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           });
         }
         
-        setUsers(data || []);
+        setProfiles(data || []);
       } catch (error) {
         console.error('Error:', error);
         toast({
           title: "Erreur",
-          description: "Une erreur s'est produite lors de la récupération des utilisateurs",
+          description: "Une erreur s'est produite lors de la récupération des bénéficiaires",
           variant: "destructive",
         });
       } finally {
@@ -87,7 +87,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     };
 
     if (recipient.country) {
-      fetchUsers();
+      fetchProfiles();
     }
   }, [session, recipient.country, toast]);
 
@@ -146,7 +146,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
                 className="w-full justify-between"
               >
                 {recipient.phone
-                  ? users.find((user) => user.phone === recipient.phone)?.phone || recipient.phone
+                  ? profiles.find((profile) => profile.phone === recipient.phone)?.phone || recipient.phone
                   : "Sélectionnez un numéro..."}
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
@@ -161,16 +161,16 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
                       Chargement...
                     </div>
                   ) : (
-                    users.map((user) => (
+                    profiles.map((profile) => (
                       <CommandItem
-                        key={user.phone}
-                        value={user.phone}
+                        key={profile.phone}
+                        value={profile.phone}
                         onSelect={(currentValue) => {
                           updateFields({
                             recipient: {
                               ...recipient,
                               phone: currentValue,
-                              fullName: user.full_name || '',
+                              fullName: profile.full_name || '',
                             }
                           });
                           setOpen(false);
@@ -179,10 +179,10 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
                         <Check
                           className={cn(
                             "mr-2 h-4 w-4",
-                            recipient.phone === user.phone ? "opacity-100" : "opacity-0"
+                            recipient.phone === profile.phone ? "opacity-100" : "opacity-0"
                           )}
                         />
-                        {user.phone} {user.full_name ? `- ${user.full_name}` : ''}
+                        {profile.phone} {profile.full_name ? `- ${profile.full_name}` : ''}
                       </CommandItem>
                     ))
                   )}
