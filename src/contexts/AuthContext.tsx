@@ -78,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [navigate]);
 
   const formatPhoneToEmail = (phone: string) => {
+    // Nettoyer le numéro de téléphone pour ne garder que les chiffres
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     return `${cleanPhone}@sendflow.com`;
   };
@@ -134,12 +135,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
-      // Clear session and user state
       setSession(null);
       setUser(null);
       
       toast.success("Déconnexion réussie");
-      // Navigation will be handled by the auth state change listener
     } catch (error: any) {
       console.error("Sign out error:", error);
       toast.error(error.message);

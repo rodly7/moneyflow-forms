@@ -70,7 +70,6 @@ const Auth = () => {
           throw new Error("Veuillez remplir tous les champs");
         }
         
-        // Include user metadata during signup
         await signUp(phone, password, {
           full_name: fullName,
           country: country,
