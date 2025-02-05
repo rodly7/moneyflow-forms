@@ -18,7 +18,7 @@ type RecipientInfoProps = TransferData & {
 
 type UserProfile = {
   phone: string;
-  full_name: string;
+  full_name: string | null;
 };
 
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
@@ -35,7 +35,10 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           .select('phone, full_name')
           .not('phone', 'eq', '');
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching users:', error);
+          throw error;
+        }
 
         console.log("Found users:", data);
         setUsers(data || []);
@@ -87,7 +90,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
 
       {recipient.country && (
         <div className="space-y-2">
-          <Label>Numéro de téléphone</Label>
+          <Label>Numéro de téléphone du bénéficiaire</Label>
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
               <Button
