@@ -1,16 +1,17 @@
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TransferData } from "../TransferForm";
-import { useState, useEffect } from "react";
 import { countries } from "@/data/countries";
-import { Flag, Check, Phone, User } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 
 type RecipientInfoProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
@@ -22,54 +23,85 @@ type UserProfile = {
 };
 
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
+  const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { session } = useAuth();
   const { toast } = useToast();
 
-  // Fetch all users when component mounts
   useEffect(() => {
     const fetchUsers = async () => {
       try {
+        setIsLoading(true);
+        if (!session) {
+          toast({
+            title: "Erreur d'authentification",
+            description: "Veuillez vous reconnecter",
+            variant: "destructive",
+          });
+          return;
+        }
+
         const { data, error } = await supabase
           .from('profiles')
           .select('phone, full_name')
-          .not('phone', 'eq', '');
+          .not('phone', 'eq', '')
+          .neq('id', session.user.id); // Exclure l'utilisateur actuel
 
         if (error) {
           console.error('Error fetching users:', error);
-          throw error;
+          toast({
+            title: "Erreur",
+            description: "Impossible de charger la liste des utilisateurs",
+            variant: "destructive",
+          });
+          return;
         }
 
         console.log("Found users:", data);
         setUsers(data || []);
       } catch (error) {
-        console.error('Error fetching users:', error);
+        console.error('Error:', error);
         toast({
           title: "Erreur",
-          description: "Impossible de charger la liste des utilisateurs",
-          variant: "destructive"
+          description: "Une erreur s'est produite",
+          variant: "destructive",
         });
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchUsers();
-  }, [toast]);
+  }, [session, toast]);
+
+  useEffect(() => {
+    if (recipient.country) {
+      const country = countries.find(c => c.name === recipient.country);
+      if (country) {
+        setSelectedCountryCode(country.code);
+      }
+    }
+  }, [recipient.country]);
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="country">Pays du bénéficiaire</Label>
+        <Label htmlFor="country">Pays du Bénéficiaire</Label>
         <Select
           value={recipient.country}
           onValueChange={(value) => {
-            updateFields({ 
-              recipient: { 
-                ...recipient, 
-                country: value,
-                phone: '', 
-                fullName: '', 
-              } 
-            });
+            const country = countries.find(c => c.name === value);
+            if (country) {
+              setSelectedCountryCode(country.code);
+              updateFields({
+                recipient: {
+                  ...recipient,
+                  country: value,
+                }
+              });
+            }
           }}
         >
           <SelectTrigger>
@@ -78,10 +110,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           <SelectContent>
             {countries.map((country) => (
               <SelectItem key={country.name} value={country.name}>
-                <div className="flex items-center gap-2">
-                  <Flag className="h-4 w-4" />
-                  <span>{country.name}</span>
-                </div>
+                {country.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -99,57 +128,47 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
                 aria-expanded={open}
                 className="w-full justify-between"
               >
-                {recipient.phone ? (
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 shrink-0" />
-                    <span>{recipient.phone}</span>
-                    {recipient.fullName && (
-                      <>
-                        <span className="text-muted-foreground">-</span>
-                        <span className="text-muted-foreground">{recipient.fullName}</span>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground">Sélectionnez un numéro</span>
-                )}
+                {recipient.phone
+                  ? users.find((user) => user.phone === recipient.phone)?.phone || recipient.phone
+                  : "Sélectionnez un numéro..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[400px] p-0">
+            <PopoverContent className="w-full p-0">
               <Command>
                 <CommandInput placeholder="Rechercher un numéro..." />
-                <CommandEmpty>Aucun utilisateur trouvé</CommandEmpty>
+                <CommandEmpty>Aucun numéro trouvé.</CommandEmpty>
                 <CommandGroup>
-                  {users.map((user) => (
-                    <CommandItem
-                      key={user.phone}
-                      value={user.phone}
-                      onSelect={() => {
-                        updateFields({
-                          recipient: {
-                            ...recipient,
-                            phone: user.phone,
-                            fullName: user.full_name || '',
-                          }
-                        });
-                        setOpen(false);
-                      }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 shrink-0" />
-                        <span>{user.phone}</span>
-                        {user.full_name && (
-                          <>
-                            <span className="text-muted-foreground">-</span>
-                            <span className="text-muted-foreground">{user.full_name}</span>
-                          </>
-                        )}
-                      </div>
-                      {recipient.phone === user.phone && (
-                        <Check className="ml-auto h-4 w-4" />
-                      )}
-                    </CommandItem>
-                  ))}
+                  {isLoading ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      Chargement...
+                    </div>
+                  ) : (
+                    users.map((user) => (
+                      <CommandItem
+                        key={user.phone}
+                        value={user.phone}
+                        onSelect={(currentValue) => {
+                          updateFields({
+                            recipient: {
+                              ...recipient,
+                              phone: currentValue,
+                              fullName: user.full_name || '',
+                            }
+                          });
+                          setOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            recipient.phone === user.phone ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {user.phone} {user.full_name ? `- ${user.full_name}` : ''}
+                      </CommandItem>
+                    ))
+                  )}
                 </CommandGroup>
               </Command>
             </PopoverContent>
@@ -157,17 +176,21 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         </div>
       )}
 
-      {recipient.fullName && (
-        <div className="space-y-2">
-          <Label htmlFor="fullName">Nom du bénéficiaire</Label>
-          <Input
-            id="fullName"
-            value={recipient.fullName}
-            readOnly
-            className="bg-gray-100"
-          />
-        </div>
-      )}
+      <div className="space-y-2">
+        <Label htmlFor="fullName">Nom Complet du Bénéficiaire</Label>
+        <Input
+          id="fullName"
+          type="text"
+          required
+          placeholder="Nom complet du bénéficiaire"
+          value={recipient.fullName}
+          onChange={(e) =>
+            updateFields({
+              recipient: { ...recipient, fullName: e.target.value },
+            })
+          }
+        />
+      </div>
     </div>
   );
 };
