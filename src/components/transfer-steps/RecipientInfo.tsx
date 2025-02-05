@@ -11,7 +11,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 type RecipientInfoProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
@@ -27,14 +27,17 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         setIsLoading(true);
-        if (!session) {
+        console.log("Fetching users for country:", recipient.country);
+        
+        if (!session?.user) {
+          console.error("No authenticated session found");
           toast({
             title: "Erreur d'authentification",
             description: "Veuillez vous reconnecter",
@@ -43,11 +46,13 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           return;
         }
 
+        // Fetch all profiles except the current user's
         const { data, error } = await supabase
           .from('profiles')
           .select('phone, full_name')
+          .not('id', 'eq', session.user.id)
           .not('phone', 'eq', '')
-          .neq('id', session.user.id); // Exclure l'utilisateur actuel
+          .eq('country', recipient.country);
 
         if (error) {
           console.error('Error fetching users:', error);
@@ -60,12 +65,20 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         }
 
         console.log("Found users:", data);
+        
+        if (!data || data.length === 0) {
+          toast({
+            title: "Aucun bénéficiaire trouvé",
+            description: `Aucun utilisateur trouvé dans ${recipient.country}`,
+          });
+        }
+        
         setUsers(data || []);
       } catch (error) {
         console.error('Error:', error);
         toast({
           title: "Erreur",
-          description: "Une erreur s'est produite",
+          description: "Une erreur s'est produite lors de la récupération des utilisateurs",
           variant: "destructive",
         });
       } finally {
@@ -73,8 +86,10 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       }
     };
 
-    fetchUsers();
-  }, [session, toast]);
+    if (recipient.country) {
+      fetchUsers();
+    }
+  }, [session, recipient.country, toast]);
 
   useEffect(() => {
     if (recipient.country) {
@@ -99,6 +114,8 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
                 recipient: {
                   ...recipient,
                   country: value,
+                  phone: '', // Reset phone when country changes
+                  fullName: '', // Reset name when country changes
                 }
               });
             }
@@ -137,7 +154,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
             <PopoverContent className="w-full p-0">
               <Command>
                 <CommandInput placeholder="Rechercher un numéro..." />
-                <CommandEmpty>Aucun numéro trouvé.</CommandEmpty>
+                <CommandEmpty>Aucun numéro trouvé dans ce pays.</CommandEmpty>
                 <CommandGroup>
                   {isLoading ? (
                     <div className="p-4 text-center text-sm text-muted-foreground">
