@@ -16,14 +16,20 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const verifyPhoneNumber = async (phone: string) => {
     if (!phone) return;
 
+    // Normaliser le numéro de téléphone
+    let normalizedPhone = phone;
+    if (!phone.startsWith('+')) {
+      normalizedPhone = `+${phone}`;
+    }
+
     try {
       setIsLoading(true);
-      console.log("Vérification du numéro:", phone);
+      console.log("Vérification du numéro:", normalizedPhone);
       
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('full_name, phone')
-        .eq('phone', phone)
+        .eq('phone', normalizedPhone)
         .maybeSingle();
 
       if (error) {
@@ -47,7 +53,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         updateFields({
           recipient: {
             ...recipient,
-            phone: '',
+            phone: normalizedPhone, // Garder le numéro normalisé
             fullName: '',
             country: recipient.country, // Keep the country for backend purposes
           }
@@ -60,6 +66,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       updateFields({
         recipient: {
           ...recipient,
+          phone: normalizedPhone, // Utiliser le numéro normalisé
           fullName: profile.full_name || '',
           country: recipient.country, // Keep the country for backend purposes
         }
@@ -88,7 +95,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         <Label>Numéro de téléphone du bénéficiaire</Label>
         <Input
           type="tel"
-          placeholder="Numéro de téléphone"
+          placeholder="Ex: +221773637752"
           value={recipient.phone}
           onChange={(e) => {
             const phone = e.target.value;
