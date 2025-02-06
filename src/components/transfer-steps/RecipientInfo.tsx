@@ -1,9 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TransferData } from "../TransferForm";
-import { countries } from "@/data/countries";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -12,7 +10,6 @@ type RecipientInfoProps = TransferData & {
 };
 
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
-  const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -52,6 +49,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
             ...recipient,
             phone: '',
             fullName: '',
+            country: recipient.country, // Keep the country for backend purposes
           }
         });
         return;
@@ -63,6 +61,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         recipient: {
           ...recipient,
           fullName: profile.full_name || '',
+          country: recipient.country, // Keep the country for backend purposes
         }
       });
 
@@ -83,79 +82,27 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     }
   };
 
-  useEffect(() => {
-    if (recipient.country) {
-      const country = countries.find(c => c.name === recipient.country);
-      if (country) {
-        setSelectedCountryCode(country.code);
-      }
-    }
-  }, [recipient.country]);
-
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="country">Pays du Bénéficiaire</Label>
-        <Select
-          value={recipient.country}
-          onValueChange={(value) => {
-            const country = countries.find(c => c.name === value);
-            if (country) {
-              setSelectedCountryCode(country.code);
-              updateFields({
-                recipient: {
-                  ...recipient,
-                  country: value,
-                  phone: '', // Réinitialiser le numéro quand le pays change
-                  fullName: '', // Réinitialiser le nom quand le pays change
-                }
-              });
-            }
+        <Label>Numéro de téléphone du bénéficiaire</Label>
+        <Input
+          type="tel"
+          placeholder="Numéro de téléphone"
+          value={recipient.phone}
+          onChange={(e) => {
+            const phone = e.target.value;
+            updateFields({
+              recipient: {
+                ...recipient,
+                phone,
+              }
+            });
           }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionnez le pays" />
-          </SelectTrigger>
-          <SelectContent>
-            {countries.map((country) => (
-              <SelectItem key={country.name} value={country.name}>
-                {country.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onBlur={() => verifyPhoneNumber(recipient.phone)}
+          disabled={isLoading}
+        />
       </div>
-
-      {recipient.country && (
-        <div className="space-y-2">
-          <Label>Numéro de téléphone du bénéficiaire</Label>
-          <div className="flex gap-2">
-            <div className="w-24">
-              <Input
-                value={selectedCountryCode}
-                readOnly
-                className="bg-gray-100"
-              />
-            </div>
-            <Input
-              type="tel"
-              placeholder="Numéro de téléphone"
-              value={recipient.phone}
-              onChange={(e) => {
-                const phone = e.target.value;
-                updateFields({
-                  recipient: {
-                    ...recipient,
-                    phone,
-                  }
-                });
-              }}
-              onBlur={() => verifyPhoneNumber(recipient.phone)}
-              disabled={isLoading}
-            />
-          </div>
-        </div>
-      )}
 
       <div className="space-y-2">
         <Label htmlFor="fullName">Nom Complet du Bénéficiaire</Label>
