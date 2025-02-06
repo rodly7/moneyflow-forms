@@ -4,92 +4,82 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TransferData } from "../TransferForm";
 import { countries } from "@/data/countries";
-import { Button } from "@/components/ui/button";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 type RecipientInfoProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
 };
 
-type UserProfile = {
-  phone: string;
-  full_name: string | null;
-};
-
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const [selectedCountryCode, setSelectedCountryCode] = useState("");
-  const [open, setOpen] = useState(false);
-  const [profiles, setProfiles] = useState<UserProfile[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { session, user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchProfiles = async () => {
-      try {
-        setIsLoading(true);
-        console.log("Fetching profiles for country:", recipient.country);
-        
-        if (!session?.user) {
-          console.error("No authenticated session found");
-          toast({
-            title: "Erreur d'authentification",
-            description: "Veuillez vous reconnecter",
-            variant: "destructive",
-          });
-          return;
-        }
+  const verifyPhoneNumber = async (phone: string) => {
+    if (!phone) return;
 
-        // Fetch all profiles except the current user's for the selected country
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('phone, full_name')
-          .not('id', 'eq', session.user.id)
-          .eq('country', recipient.country)
-          .not('phone', 'eq', '');
+    try {
+      setIsLoading(true);
+      
+      // Vérifier si l'utilisateur existe dans auth.users
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('full_name, phone')
+        .eq('phone', phone)
+        .single();
 
-        if (error) {
-          console.error('Error fetching profiles:', error);
-          toast({
-            title: "Erreur",
-            description: "Impossible de charger la liste des bénéficiaires",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        console.log("Found profiles:", data);
-        
-        if (!data || data.length === 0) {
-          toast({
-            title: "Aucun bénéficiaire trouvé",
-            description: `Aucun utilisateur trouvé dans ${recipient.country}`,
-          });
-        }
-        
-        setProfiles(data || []);
-      } catch (error) {
-        console.error('Error:', error);
+      if (error) {
+        console.error('Error verifying phone number:', error);
         toast({
           title: "Erreur",
-          description: "Une erreur s'est produite lors de la récupération des bénéficiaires",
+          description: "Impossible de vérifier le numéro de téléphone",
           variant: "destructive",
         });
-      } finally {
-        setIsLoading(false);
+        return;
       }
-    };
 
-    if (recipient.country) {
-      fetchProfiles();
+      if (!profile) {
+        toast({
+          title: "Numéro non trouvé",
+          description: "Ce numéro n'est pas enregistré dans le système",
+          variant: "destructive",
+        });
+        // Réinitialiser les champs du bénéficiaire
+        updateFields({
+          recipient: {
+            ...recipient,
+            phone: '',
+            fullName: '',
+          }
+        });
+        return;
+      }
+
+      // Mettre à jour les informations du bénéficiaire
+      updateFields({
+        recipient: {
+          ...recipient,
+          fullName: profile.full_name || '',
+        }
+      });
+
+      toast({
+        title: "Bénéficiaire trouvé",
+        description: `${profile.full_name}`,
+      });
+
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur s'est produite lors de la vérification",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-  }, [session, recipient.country, toast]);
+  };
 
   useEffect(() => {
     if (recipient.country) {
@@ -137,59 +127,31 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       {recipient.country && (
         <div className="space-y-2">
           <Label>Numéro de téléphone du bénéficiaire</Label>
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={open}
-                className="w-full justify-between"
-              >
-                {recipient.phone
-                  ? profiles.find((profile) => profile.phone === recipient.phone)?.phone || recipient.phone
-                  : "Sélectionnez un numéro..."}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full p-0">
-              <Command>
-                <CommandInput placeholder="Rechercher un numéro..." />
-                <CommandEmpty>Aucun numéro trouvé dans ce pays.</CommandEmpty>
-                <CommandGroup>
-                  {isLoading ? (
-                    <div className="p-4 text-center text-sm text-muted-foreground">
-                      Chargement...
-                    </div>
-                  ) : (
-                    profiles.map((profile) => (
-                      <CommandItem
-                        key={profile.phone}
-                        value={profile.phone}
-                        onSelect={(currentValue) => {
-                          updateFields({
-                            recipient: {
-                              ...recipient,
-                              phone: currentValue,
-                              fullName: profile.full_name || '',
-                            }
-                          });
-                          setOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            recipient.phone === profile.phone ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {profile.phone} {profile.full_name ? `- ${profile.full_name}` : ''}
-                      </CommandItem>
-                    ))
-                  )}
-                </CommandGroup>
-              </Command>
-            </PopoverContent>
-          </Popover>
+          <div className="flex gap-2">
+            <div className="w-24">
+              <Input
+                value={selectedCountryCode}
+                readOnly
+                className="bg-gray-100"
+              />
+            </div>
+            <Input
+              type="tel"
+              placeholder="Numéro de téléphone"
+              value={recipient.phone}
+              onChange={(e) => {
+                const phone = e.target.value;
+                updateFields({
+                  recipient: {
+                    ...recipient,
+                    phone,
+                  }
+                });
+              }}
+              onBlur={() => verifyPhoneNumber(recipient.phone)}
+              disabled={isLoading}
+            />
+          </div>
         </div>
       )}
 
@@ -201,11 +163,8 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           required
           placeholder="Nom complet du bénéficiaire"
           value={recipient.fullName}
-          onChange={(e) =>
-            updateFields({
-              recipient: { ...recipient, fullName: e.target.value },
-            })
-          }
+          readOnly
+          className="bg-gray-100"
         />
       </div>
     </div>
