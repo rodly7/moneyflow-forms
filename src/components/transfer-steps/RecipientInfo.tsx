@@ -27,7 +27,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         .from('profiles')
         .select('full_name, phone')
         .eq('phone', phone)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error verifying phone number:', error);
