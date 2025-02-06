@@ -21,8 +21,8 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
 
     try {
       setIsLoading(true);
+      console.log("Vérification du numéro:", phone);
       
-      // Vérifier si l'utilisateur existe dans auth.users
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('full_name, phone')
@@ -30,7 +30,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         .maybeSingle();
 
       if (error) {
-        console.error('Error verifying phone number:', error);
+        console.error('Erreur lors de la vérification:', error);
         toast({
           title: "Erreur",
           description: "Impossible de vérifier le numéro de téléphone",
@@ -40,6 +40,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       }
 
       if (!profile) {
+        console.log("Aucun utilisateur trouvé avec ce numéro");
         toast({
           title: "Numéro non trouvé",
           description: "Ce numéro n'est pas enregistré dans le système",
@@ -56,6 +57,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         return;
       }
 
+      console.log("Bénéficiaire trouvé:", profile);
       // Mettre à jour les informations du bénéficiaire
       updateFields({
         recipient: {
@@ -70,7 +72,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       });
 
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Erreur:', error);
       toast({
         title: "Erreur",
         description: "Une erreur s'est produite lors de la vérification",
@@ -104,8 +106,8 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
                 recipient: {
                   ...recipient,
                   country: value,
-                  phone: '', // Reset phone when country changes
-                  fullName: '', // Reset name when country changes
+                  phone: '', // Réinitialiser le numéro quand le pays change
+                  fullName: '', // Réinitialiser le nom quand le pays change
                 }
               });
             }
