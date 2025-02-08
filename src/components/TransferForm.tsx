@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -72,75 +73,39 @@ const TransferForm = () => {
         setIsLoading(true);
         
         const fees = data.transfer.amount * 0.08; // 8% de frais
-        const totalAmount = data.transfer.amount + fees;
 
-        // Vérifier si l'utilisateur a suffisamment de solde
-        const { data: senderProfile, error: senderError } = await supabase
-          .from('profiles')
-          .select('balance')
-          .eq('id', user?.id)
-          .single();
-
-        if (senderError) throw senderError;
-
-        if (senderProfile.balance < totalAmount) {
-          toast({
-            title: "Solde insuffisant",
-            description: "Vous n'avez pas assez de fonds pour effectuer ce transfert.",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        // Vérifier si le destinataire existe
-        const { data: recipientProfile, error: recipientError } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .eq('phone', data.recipient.phone)
-          .maybeSingle();
-
-        if (recipientError) throw recipientError;
-
-        if (!recipientProfile) {
-          toast({
-            title: "Destinataire introuvable",
-            description: "Le numéro de téléphone indiqué n'est pas enregistré.",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        // Créer le transfert
-        const { error: transferError } = await supabase
-          .from('transfers')
-          .insert({
+        // Utiliser la nouvelle fonction sécurisée pour le transfert
+        const { data: result, error } = await supabase
+          .rpc('process_money_transfer', {
             sender_id: user?.id,
-            recipient_full_name: recipientProfile.full_name,
             recipient_phone: data.recipient.phone,
-            recipient_country: data.recipient.country,
-            amount: data.transfer.amount,
-            fees: fees,
-            currency: data.transfer.currency,
-            status: 'completed'
+            transfer_amount: data.transfer.amount,
+            transfer_fees: fees
           });
 
-        if (transferError) throw transferError;
-
-        // Débiter le compte de l'expéditeur
-        const { error: senderBalanceError } = await supabase.rpc('increment_balance', {
-          user_id: user?.id,
-          amount: -totalAmount
-        });
-
-        if (senderBalanceError) throw senderBalanceError;
-
-        // Créditer le compte du destinataire
-        const { error: recipientBalanceError } = await supabase.rpc('increment_balance', {
-          user_id: recipientProfile.id,
-          amount: data.transfer.amount
-        });
-
-        if (recipientBalanceError) throw recipientBalanceError;
+        if (error) {
+          console.error('Erreur lors du transfert:', error);
+          if (error.message.includes('Insufficient funds')) {
+            toast({
+              title: "Solde insuffisant",
+              description: "Vous n'avez pas assez de fonds pour effectuer ce transfert.",
+              variant: "destructive"
+            });
+          } else if (error.message.includes('Recipient not found')) {
+            toast({
+              title: "Destinataire introuvable",
+              description: "Le numéro de téléphone indiqué n'est pas enregistré.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Erreur",
+              description: "Une erreur est survenue lors du transfert.",
+              variant: "destructive"
+            });
+          }
+          return;
+        }
 
         toast({
           title: "Transfert Réussi",

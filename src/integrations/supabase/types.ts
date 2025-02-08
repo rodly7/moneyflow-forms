@@ -135,6 +135,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      process_money_transfer: {
+        Args: {
+          sender_id: string
+          recipient_phone: string
+          transfer_amount: number
+          transfer_fees: number
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
