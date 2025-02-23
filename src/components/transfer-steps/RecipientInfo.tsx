@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,19 +14,23 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  const normalizePhoneNumber = (phone: string) => {
+    // Si le numéro ne commence pas par +, l'ajouter
+    if (!phone.startsWith('+')) {
+      return `+${phone}`;
+    }
+    return phone;
+  };
+
   const verifyPhoneNumber = async (phone: string) => {
     if (!phone) return;
 
-    // Normaliser le numéro de téléphone
-    let normalizedPhone = phone;
-    if (!phone.startsWith('+')) {
-      normalizedPhone = `+${phone}`;
-    }
-
     try {
       setIsLoading(true);
-      console.log("Vérification du numéro:", normalizedPhone);
+      const normalizedPhone = normalizePhoneNumber(phone);
+      console.log("Vérification du numéro après normalisation:", normalizedPhone);
       
+      // Vérifier dans auth.users via profiles qui est synchronisé
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('full_name, phone')
@@ -43,19 +48,19 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       }
 
       if (!profile) {
-        console.log("Aucun utilisateur trouvé avec ce numéro");
+        console.log("Aucun utilisateur trouvé avec ce numéro:", normalizedPhone);
         toast({
           title: "Numéro non trouvé",
           description: "Ce numéro n'est pas enregistré dans le système",
           variant: "destructive",
         });
-        // Réinitialiser les champs du bénéficiaire
+        // Réinitialiser les champs du bénéficiaire mais garder le numéro normalisé
         updateFields({
           recipient: {
             ...recipient,
-            phone: normalizedPhone, // Garder le numéro normalisé
+            phone: normalizedPhone,
             fullName: '',
-            country: recipient.country, // Keep the country for backend purposes
+            country: recipient.country,
           }
         });
         return;
@@ -66,15 +71,15 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       updateFields({
         recipient: {
           ...recipient,
-          phone: normalizedPhone, // Utiliser le numéro normalisé
+          phone: normalizedPhone,
           fullName: profile.full_name || '',
-          country: recipient.country, // Keep the country for backend purposes
+          country: recipient.country,
         }
       });
 
       toast({
         title: "Bénéficiaire trouvé",
-        description: `${profile.full_name}`,
+        description: profile.full_name,
       });
 
     } catch (error) {
@@ -106,7 +111,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
               }
             });
           }}
-          onBlur={() => verifyPhoneNumber(recipient.phone)}
+          onBlur={(e) => verifyPhoneNumber(e.target.value)}
           disabled={isLoading}
         />
       </div>
@@ -128,3 +133,4 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
 };
 
 export default RecipientInfo;
+
