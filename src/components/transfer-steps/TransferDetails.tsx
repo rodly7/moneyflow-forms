@@ -1,6 +1,7 @@
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TransferData } from "../TransferForm";
+import { TransferData } from "@/types/transfer";
 
 type TransferDetailsProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
@@ -58,3 +59,4 @@ const TransferDetails = ({ transfer, updateFields }: TransferDetailsProps) => {
 };
 
 export default TransferDetails;
+
