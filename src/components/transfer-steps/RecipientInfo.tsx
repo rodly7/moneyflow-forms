@@ -15,8 +15,35 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  const isValidEmail = (email: string) => {
+    // Regex basique pour la validation d'email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Vérifie si l'email commence par des chiffres uniquement
+    const startsWithNumbersOnly = /^[0-9]+@/;
+    
+    return emailRegex.test(email) && !startsWithNumbersOnly.test(email);
+  };
+
   const verifyEmail = async (email: string) => {
     if (!email) return;
+
+    if (!isValidEmail(email)) {
+      toast({
+        title: "Format d'email invalide",
+        description: "Veuillez entrer une adresse email valide",
+        variant: "destructive",
+      });
+      // Réinitialiser les champs du bénéficiaire mais garder l'email
+      updateFields({
+        recipient: {
+          ...recipient,
+          email: email,
+          fullName: '',
+          country: recipient.country,
+        }
+      });
+      return;
+    }
 
     try {
       setIsLoading(true);
@@ -127,4 +154,3 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
 };
 
 export default RecipientInfo;
-
