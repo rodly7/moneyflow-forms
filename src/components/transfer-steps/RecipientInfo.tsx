@@ -6,7 +6,8 @@ import { TransferData } from "@/types/transfer";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-type RecipientInfoProps = TransferData & {
+type RecipientInfoProps = {
+  recipient: TransferData['recipient'];
   updateFields: (fields: Partial<TransferData>) => void;
 };
 
