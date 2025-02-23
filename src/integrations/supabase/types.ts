@@ -138,7 +138,7 @@ export type Database = {
       process_money_transfer: {
         Args: {
           sender_id: string
-          recipient_phone: string
+          recipient_email: string
           transfer_amount: number
           transfer_fees: number
         }
