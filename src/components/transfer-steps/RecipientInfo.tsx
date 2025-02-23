@@ -14,51 +14,44 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const normalizePhoneNumber = (phone: string) => {
-    // Si le numéro ne commence pas par +, l'ajouter
-    if (!phone.startsWith('+')) {
-      return `+${phone}`;
-    }
-    return phone;
-  };
-
-  const verifyPhoneNumber = async (phone: string) => {
-    if (!phone) return;
+  const verifyEmail = async (email: string) => {
+    if (!email) return;
 
     try {
       setIsLoading(true);
-      const normalizedPhone = normalizePhoneNumber(phone);
-      console.log("Vérification du numéro après normalisation:", normalizedPhone);
+      console.log("Vérification de l'email:", email);
       
       // Vérifier dans auth.users via profiles qui est synchronisé
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('full_name, phone')
-        .eq('phone', normalizedPhone)
-        .maybeSingle();
+        .select('full_name')
+        .eq('id', (
+          await supabase.auth.admin.listUsers()
+        ).data.users.find(u => u.email === email)?.id)
+        .single();
 
       if (error) {
         console.error('Erreur lors de la vérification:', error);
         toast({
           title: "Erreur",
-          description: "Impossible de vérifier le numéro de téléphone",
+          description: "Impossible de vérifier l'adresse email",
           variant: "destructive",
         });
         return;
       }
 
       if (!profile) {
-        console.log("Aucun utilisateur trouvé avec ce numéro:", normalizedPhone);
+        console.log("Aucun utilisateur trouvé avec cet email:", email);
         toast({
-          title: "Numéro non trouvé",
-          description: "Ce numéro n'est pas enregistré dans le système",
+          title: "Email non trouvé",
+          description: "Cette adresse email n'est pas enregistrée dans le système",
           variant: "destructive",
         });
-        // Réinitialiser les champs du bénéficiaire mais garder le numéro normalisé
+        // Réinitialiser les champs du bénéficiaire mais garder l'email
         updateFields({
           recipient: {
             ...recipient,
-            phone: normalizedPhone,
+            email: email,
             fullName: '',
             country: recipient.country,
           }
@@ -71,7 +64,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       updateFields({
         recipient: {
           ...recipient,
-          phone: normalizedPhone,
+          email: email,
           fullName: profile.full_name || '',
           country: recipient.country,
         }
@@ -97,21 +90,21 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label>Numéro de téléphone du bénéficiaire</Label>
+        <Label>Email du bénéficiaire</Label>
         <Input
-          type="tel"
-          placeholder="Ex: +221773637752"
-          value={recipient.phone}
+          type="email"
+          placeholder="Ex: exemple@email.com"
+          value={recipient.email}
           onChange={(e) => {
-            const phone = e.target.value;
+            const email = e.target.value;
             updateFields({
               recipient: {
                 ...recipient,
-                phone,
+                email,
               }
             });
           }}
-          onBlur={(e) => verifyPhoneNumber(e.target.value)}
+          onBlur={(e) => verifyEmail(e.target.value)}
           disabled={isLoading}
         />
       </div>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,7 @@ import TransferSummary from "./transfer-steps/TransferSummary";
 export type TransferData = {
   recipient: {
     fullName: string;
-    phone: string;
+    email: string; // Changed from phone to email
     country: string;
   };
   transfer: {
@@ -25,7 +24,7 @@ export type TransferData = {
 const INITIAL_DATA: TransferData = {
   recipient: {
     fullName: "",
-    phone: "",
+    email: "", // Changed from phone to email
     country: "",
   },
   transfer: {
@@ -78,7 +77,7 @@ const TransferForm = () => {
         const { data: result, error } = await supabase
           .rpc('process_money_transfer', {
             sender_id: user?.id,
-            recipient_phone: data.recipient.phone,
+            recipient_email: data.recipient.email,
             transfer_amount: data.transfer.amount,
             transfer_fees: fees
           });
