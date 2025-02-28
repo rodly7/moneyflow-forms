@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      pending_transfers: {
+        Row: {
+          amount: number
+          claim_code: string
+          created_at: string
+          currency: string
+          expires_at: string
+          fees: number
+          id: string
+          recipient_email: string
+          recipient_phone: string | null
+          sender_id: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          claim_code: string
+          created_at?: string
+          currency?: string
+          expires_at?: string
+          fees: number
+          id?: string
+          recipient_email: string
+          recipient_phone?: string | null
+          sender_id: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          claim_code?: string
+          created_at?: string
+          currency?: string
+          expires_at?: string
+          fees?: number
+          id?: string
+          recipient_email?: string
+          recipient_phone?: string | null
+          sender_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -128,6 +170,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_pending_transfer: {
+        Args: {
+          claim_code_param: string
+          recipient_id: string
+        }
+        Returns: boolean
+      }
       find_recipient: {
         Args: {
           search_term: string

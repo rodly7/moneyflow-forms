@@ -78,11 +78,16 @@ export const useTransferForm = () => {
         }
 
         // Check if this is a pending transfer (recipient doesn't exist yet)
-        const { data: pendingTransfer } = await supabase
+        // To handle this safely with TypeScript, we use the more general from() method
+        const { data: pendingTransfer, error: pendingError } = await supabase
           .from('pending_transfers')
           .select('id, claim_code, recipient_email')
           .eq('id', transferResult)
           .maybeSingle();
+
+        if (pendingError) {
+          console.error('Erreur lors de la vérification du transfert en attente:', pendingError);
+        }
 
         if (pendingTransfer) {
           // This is a pending transfer to a non-existent recipient
