@@ -53,9 +53,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('full_name')
-        .eq('id', (
-          await supabase.auth.admin.listUsers()
-        ).data.users.find(u => u.email === email)?.id)
+        .eq('email', email)
         .single();
 
       if (error) {
