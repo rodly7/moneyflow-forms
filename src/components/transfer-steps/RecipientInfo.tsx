@@ -119,7 +119,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         <Label>Email du bénéficiaire</Label>
         <Input
           type="email"
-          placeholder="Ex: exemple@email.com"
+          placeholder="Ex: utilisateur@sendflow.com"
           value={recipient.email}
           onChange={(e) => {
             const email = e.target.value;
