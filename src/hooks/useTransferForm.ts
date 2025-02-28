@@ -10,6 +10,11 @@ export const useTransferForm = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [data, setData] = useState(INITIAL_TRANSFER_DATA);
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingTransferInfo, setPendingTransferInfo] = useState<{
+    id: string;
+    claimCode: string;
+    recipientEmail: string;
+  } | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -40,10 +45,10 @@ export const useTransferForm = () => {
         
         const fees = data.transfer.amount * 0.08;
 
-        const { error } = await supabase
+        const { data: transferResult, error } = await supabase
           .rpc('process_money_transfer', {
             sender_id: user?.id,
-            recipient_identifier: data.recipient.email, // Updated parameter name
+            recipient_identifier: data.recipient.email,
             transfer_amount: data.transfer.amount,
             transfer_fees: fees
           });
@@ -72,12 +77,33 @@ export const useTransferForm = () => {
           return;
         }
 
-        toast({
-          title: "Transfert Réussi",
-          description: "Votre transfert a été effectué avec succès.",
-        });
+        // Check if this is a pending transfer (recipient doesn't exist yet)
+        const { data: pendingTransfer } = await supabase
+          .from('pending_transfers')
+          .select('id, claim_code, recipient_email')
+          .eq('id', transferResult)
+          .maybeSingle();
 
-        navigate('/');
+        if (pendingTransfer) {
+          // This is a pending transfer to a non-existent recipient
+          setPendingTransferInfo({
+            id: pendingTransfer.id,
+            claimCode: pendingTransfer.claim_code,
+            recipientEmail: pendingTransfer.recipient_email
+          });
+          
+          toast({
+            title: "Transfert en attente",
+            description: `Un code de réclamation a été généré pour ${pendingTransfer.recipient_email}`,
+          });
+        } else {
+          // Normal transfer to an existing recipient
+          toast({
+            title: "Transfert Réussi",
+            description: "Votre transfert a été effectué avec succès.",
+          });
+          navigate('/');
+        }
       } catch (error) {
         console.error('Erreur lors du transfert:', error);
         toast({
@@ -93,12 +119,20 @@ export const useTransferForm = () => {
     }
   };
 
+  const resetForm = () => {
+    setData(INITIAL_TRANSFER_DATA);
+    setCurrentStep(0);
+    setPendingTransferInfo(null);
+  };
+
   return {
     currentStep,
     data,
     isLoading,
+    pendingTransferInfo,
     updateFields,
     back,
-    handleSubmit
+    handleSubmit,
+    resetForm
   };
 };
