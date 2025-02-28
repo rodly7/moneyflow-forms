@@ -49,15 +49,15 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       setIsLoading(true);
       console.log("Vérification de l'email:", email);
       
-      // Vérifier dans auth.users via profiles qui est synchronisé
-      const { data: profile, error } = await supabase
+      // Rechercher le profil via l'adresse email
+      const { data: userData, error: userError } = await supabase
         .from('profiles')
-        .select('full_name')
-        .eq('email', email)
-        .single();
+        .select('full_name, email')
+        .ilike('email', email)
+        .maybeSingle();
 
-      if (error) {
-        console.error('Erreur lors de la vérification:', error);
+      if (userError) {
+        console.error('Erreur lors de la vérification:', userError);
         toast({
           title: "Erreur",
           description: "Impossible de vérifier l'adresse email",
@@ -66,7 +66,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         return;
       }
 
-      if (!profile) {
+      if (!userData) {
         console.log("Aucun utilisateur trouvé avec cet email:", email);
         toast({
           title: "Email non trouvé",
@@ -85,20 +85,20 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         return;
       }
 
-      console.log("Bénéficiaire trouvé:", profile);
+      console.log("Bénéficiaire trouvé:", userData);
       // Mettre à jour les informations du bénéficiaire
       updateFields({
         recipient: {
           ...recipient,
           email: email,
-          fullName: profile.full_name || '',
+          fullName: userData.full_name || '',
           country: recipient.country,
         }
       });
 
       toast({
         title: "Bénéficiaire trouvé",
-        description: profile.full_name,
+        description: userData.full_name || 'Nom non disponible',
       });
 
     } catch (error) {
