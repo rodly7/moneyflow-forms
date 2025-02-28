@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,56 +23,41 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const { toast } = useToast();
 
   const isValidEmail = (email: string) => {
-    // Regex basique pour la validation d'email
+    // Basic email regex validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    // Vérifie si l'email commence par des chiffres uniquement
+    // Check if email starts with numbers only
     const startsWithNumbersOnly = /^[0-9]+@/;
     
     return emailRegex.test(email) && !startsWithNumbersOnly.test(email);
   };
 
-  const findSimilarEmails = async (email: string) => {
-    if (!email || !email.includes('@')) return [];
-    
-    try {
-      // Query auth.users table through a join with profiles
-      // Since we can't directly query auth schema with the client,
-      // we'll need to use a simpler approach for now
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .limit(5);
-        
-      if (error || !data) {
-        console.error('Erreur lors de la recherche d\'emails similaires:', error);
-        return [];
-      }
-      
-      // This is a simplified approach since we can't directly query auth.users
-      // In a real implementation, you'd use a server-side function or RPC
-      return [];
-    } catch (error) {
-      console.error('Erreur lors de la recherche de suggestions:', error);
-      return [];
-    }
+  const isValidPhoneNumber = (input: string) => {
+    // Remove spaces and '+' characters for validation
+    const cleanedInput = input.replace(/[\s+]/g, '');
+    // Check if the cleaned input contains only digits
+    return /^\d+$/.test(cleanedInput) && cleanedInput.length >= 8;
   };
 
-  const verifyEmail = async (email: string) => {
-    if (!email) return;
+  const verifyRecipient = async (identifier: string) => {
+    if (!identifier) return;
     setSuggestions([]);
     setShowSuggestions(false);
 
-    if (!isValidEmail(email)) {
+    // Check if input is an email or phone number
+    const isEmail = identifier.includes('@');
+    const isPhone = isValidPhoneNumber(identifier);
+
+    if (isEmail && !isValidEmail(identifier)) {
       toast({
         title: "Format d'email invalide",
         description: "Veuillez entrer une adresse email valide",
         variant: "destructive",
       });
-      // Réinitialiser les champs du bénéficiaire mais garder l'email
+      // Reset recipient fields but keep the email
       updateFields({
         recipient: {
           ...recipient,
-          email: email,
+          email: identifier,
           fullName: '',
           country: recipient.country,
         }
@@ -81,49 +65,48 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       return;
     }
 
+    if (!isEmail && !isPhone) {
+      toast({
+        title: "Format invalide",
+        description: "Veuillez entrer une adresse email ou un numéro de téléphone valide",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsLoading(true);
-      console.log("Vérification de l'email:", email);
+      console.log("Vérification de l'identifiant:", identifier);
       
-      // Instead of directly querying for email (which doesn't exist in profiles),
-      // we need to use a different approach
+      // Use supabase RPC to call the find_recipient function
+      const { data, error } = await supabase
+        .rpc('find_recipient', { search_term: identifier })
+        .single();
       
-      // For demonstration purposes, we'll use a simplified approach
-      // In a real implementation, you would use a server-side function or RPC
-      // to securely query the auth.users table alongside profiles
+      if (error) {
+        console.error('Erreur lors de la vérification:', error);
+        toast({
+          title: "Erreur",
+          description: "Une erreur s'est produite lors de la vérification",
+          variant: "destructive",
+        });
+        return;
+      }
       
-      // Mock the result for now
-      const userData = null;
-      
-      if (!userData) {
-        console.log("Aucun utilisateur trouvé avec cet email exact:", email);
+      if (!data) {
+        console.log("Aucun utilisateur trouvé avec cet identifiant:", identifier);
         
-        // Find similar emails - this is simplified now
-        const similarEmails: SuggestionType[] = [];
+        toast({
+          title: "Destinataire introuvable",
+          description: "Cet identifiant n'est pas enregistré dans le système",
+          variant: "destructive",
+        });
         
-        if (similarEmails.length > 0) {
-          console.log("Emails similaires trouvés:", similarEmails);
-          setSuggestions(similarEmails);
-          setShowSuggestions(true);
-          
-          toast({
-            title: "Email non trouvé",
-            description: "Voulez-vous dire l'un de ces destinataires ?",
-            variant: "default",
-          });
-        } else {
-          toast({
-            title: "Email non trouvé",
-            description: "Cette adresse email n'est pas enregistrée dans le système",
-            variant: "destructive",
-          });
-        }
-        
-        // Réinitialiser les champs du bénéficiaire mais garder l'email
+        // Reset recipient fields but keep the identifier
         updateFields({
           recipient: {
             ...recipient,
-            email: email,
+            email: identifier,
             fullName: '',
             country: recipient.country,
           }
@@ -131,19 +114,21 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         return;
       }
 
-      // This part would be updated with real data if we had access to the auth.users table
+      console.log("Bénéficiaire trouvé:", data);
+      
+      // Update recipient info with the data we found
       updateFields({
         recipient: {
           ...recipient,
-          email: email,
-          fullName: 'Nom non disponible', // Since we can't get it currently
-          country: recipient.country,
+          email: identifier, // Keep using what user entered for consistency
+          fullName: data.full_name || "Nom non disponible",
+          country: data.country || recipient.country,
         }
       });
 
       toast({
         title: "Bénéficiaire trouvé",
-        description: 'Nom non disponible',
+        description: data.full_name || "Nom non disponible",
       });
 
     } catch (error) {
@@ -179,21 +164,21 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label>Email du bénéficiaire</Label>
+        <Label>Email ou téléphone du bénéficiaire</Label>
         <Input
-          type="email"
-          placeholder="Ex: utilisateur@sendflow.com"
+          type="text"
+          placeholder="Ex: utilisateur@sendflow.com ou +237 6XXXXXXXX"
           value={recipient.email}
           onChange={(e) => {
-            const email = e.target.value;
+            const value = e.target.value;
             updateFields({
               recipient: {
                 ...recipient,
-                email,
+                email: value,
               }
             });
           }}
-          onBlur={(e) => verifyEmail(e.target.value)}
+          onBlur={(e) => verifyRecipient(e.target.value)}
           disabled={isLoading}
         />
         

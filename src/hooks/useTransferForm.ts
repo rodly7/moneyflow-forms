@@ -43,7 +43,7 @@ export const useTransferForm = () => {
         const { error } = await supabase
           .rpc('process_money_transfer', {
             sender_id: user?.id,
-            recipient_email: data.recipient.email,
+            recipient_identifier: data.recipient.email, // Updated parameter name
             transfer_amount: data.transfer.amount,
             transfer_fees: fees
           });
@@ -59,7 +59,7 @@ export const useTransferForm = () => {
           } else if (error.message.includes('Recipient not found')) {
             toast({
               title: "Destinataire introuvable",
-              description: "Le numéro de téléphone indiqué n'est pas enregistré.",
+              description: "L'identifiant du destinataire n'a pas été trouvé dans notre système.",
               variant: "destructive"
             });
           } else {
@@ -102,4 +102,3 @@ export const useTransferForm = () => {
     handleSubmit
   };
 };
-

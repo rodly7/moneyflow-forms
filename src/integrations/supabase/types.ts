@@ -128,6 +128,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_recipient: {
+        Args: {
+          search_term: string
+        }
+        Returns: {
+          id: string
+          full_name: string
+          email: string
+          phone: string
+          country: string
+        }[]
+      }
       increment_balance: {
         Args: {
           user_id: string
@@ -138,7 +150,7 @@ export type Database = {
       process_money_transfer: {
         Args: {
           sender_id: string
-          recipient_email: string
+          recipient_identifier: string
           transfer_amount: number
           transfer_fees: number
         }
