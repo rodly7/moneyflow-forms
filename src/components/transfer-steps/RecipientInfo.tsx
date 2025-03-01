@@ -82,9 +82,77 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       setIsLoading(true);
       console.log("Vérification de l'identifiant:", identifier);
       
-      // Utiliser la fonction RPC find_recipient au lieu d'une requête complexe
-      const { data, error } = await supabase
-        .rpc('find_recipient', { search_term: identifier });
+      // Utilisation d'une requête directe au lieu de la fonction RPC qui cause l'erreur
+      let query = supabase
+        .from('profiles')
+        .select('id, full_name, phone, country');
+      
+      // Ajuster la requête en fonction du type d'identifiant
+      if (isEmail) {
+        // Récupérer l'utilisateur via l'email en utilisant une jointure
+        const { data: userData, error: userError } = await supabase
+          .from('profiles')
+          .select('id, full_name, phone, country')
+          .eq('id', (
+            await supabase.auth.admin.listUsers({ 
+              email: identifier 
+            })
+          ).data.users[0]?.id)
+          .single();
+          
+        if (userError || !userData) {
+          console.error('Erreur lors de la vérification par email:', userError);
+          toast({
+            title: "Destinataire introuvable",
+            description: "Cet email n'est pas enregistré dans le système",
+            variant: "destructive",
+          });
+          
+          // Reset recipient fields but keep the identifier
+          updateFields({
+            recipient: {
+              ...recipient,
+              email: identifier,
+              fullName: '',
+              country: recipient.country,
+            }
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        // Format user data to match our needs
+        const formattedUser: SuggestionType = {
+          id: userData.id,
+          full_name: userData.full_name || "Utilisateur",
+          email: identifier,
+          phone: userData.phone || "",
+          country: userData.country || "",
+        };
+        
+        updateFields({
+          recipient: {
+            ...recipient,
+            email: formattedUser.phone || identifier,
+            fullName: formattedUser.full_name,
+            country: formattedUser.country || recipient.country,
+          }
+        });
+        
+        toast({
+          title: "Bénéficiaire trouvé",
+          description: formattedUser.full_name,
+        });
+        
+        setIsLoading(false);
+        return;
+      } else {
+        // Recherche par numéro de téléphone
+        query = query.ilike('phone', `%${identifier.replace(/[\s+]/g, '')}%`);
+      }
+      
+      // Exécuter la requête
+      const { data, error } = await query;
       
       if (error) {
         console.error('Erreur lors de la vérification:', error);
@@ -119,9 +187,18 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
 
       console.log("Bénéficiaire(s) trouvé(s):", data);
       
+      // Format data to SuggestionType
+      const formattedData: SuggestionType[] = data.map(item => ({
+        id: item.id,
+        full_name: item.full_name || "Nom non disponible",
+        email: "", // Nous n'avons pas accès à l'email directement
+        phone: item.phone || "",
+        country: item.country || ""
+      }));
+      
       // If only one result, update recipient info directly
-      if (data.length === 1) {
-        const user = data[0];
+      if (formattedData.length === 1) {
+        const user = formattedData[0];
         updateFields({
           recipient: {
             ...recipient,
@@ -137,7 +214,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         });
       } else {
         // Multiple matches, show suggestions
-        setSuggestions(data);
+        setSuggestions(formattedData);
         setShowSuggestions(true);
       }
 
