@@ -45,10 +45,13 @@ export const useTransferForm = () => {
         
         const fees = data.transfer.amount * 0.08;
 
+        // Utiliser l'identifiant du destinataire (téléphone ou email)
+        const recipientIdentifier = data.recipient.email;
+
         const { data: transferResult, error } = await supabase
           .rpc('process_money_transfer', {
             sender_id: user?.id,
-            recipient_identifier: data.recipient.email, // Peut être un email ou un téléphone
+            recipient_identifier: recipientIdentifier,
             transfer_amount: data.transfer.amount,
             transfer_fees: fees
           });
@@ -90,17 +93,17 @@ export const useTransferForm = () => {
 
         if (pendingTransfer) {
           // C'est un transfert en attente vers un destinataire non existant
-          const recipientIdentifier = pendingTransfer.recipient_phone || pendingTransfer.recipient_email;
+          const recipientContact = pendingTransfer.recipient_phone || pendingTransfer.recipient_email;
           
           setPendingTransferInfo({
             id: pendingTransfer.id,
             claimCode: pendingTransfer.claim_code,
-            recipientEmail: recipientIdentifier
+            recipientEmail: recipientContact
           });
           
           toast({
             title: "Transfert en attente",
-            description: `Un code de réclamation a été généré pour ${recipientIdentifier}`,
+            description: `Un code de réclamation a été généré pour ${recipientContact}`,
           });
         } else {
           // Transfert normal vers un destinataire existant

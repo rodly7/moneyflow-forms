@@ -13,9 +13,11 @@ type RecipientInfoProps = {
 };
 
 type SuggestionType = {
+  id: string;
+  full_name: string;
   email: string;
-  fullName: string;
   phone: string;
+  country: string;
 };
 
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
@@ -42,6 +44,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
 
   const verifyRecipient = async (identifier: string) => {
     if (!identifier) return;
+    
     setSuggestions([]);
     setShowSuggestions(false);
 
@@ -80,9 +83,12 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       setIsLoading(true);
       console.log("Vérification de l'identifiant:", identifier);
       
-      // Use supabase RPC to call the find_recipient function
+      // Utilisation directe de la requête SQL au lieu de RPC pour éviter les problèmes de type
       const { data, error } = await supabase
-        .rpc('find_recipient', { search_term: identifier });
+        .from('profiles')
+        .select('id, full_name, phone, country, auth.users!inner(email)')
+        .or(`phone.ilike.%${identifier}%,auth.users.email.ilike.${identifier}`)
+        .limit(10);
       
       if (error) {
         console.error('Erreur lors de la vérification:', error);
@@ -115,30 +121,36 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         return;
       }
 
-      console.log("Bénéficiaire(s) trouvé(s):", data);
+      // Format data to SuggestionType
+      const formattedData = data.map(item => ({
+        id: item.id,
+        full_name: item.full_name || "Nom non disponible",
+        email: item.auth?.users?.email || "",
+        phone: item.phone || "",
+        country: item.country || ""
+      }));
+
+      console.log("Bénéficiaire(s) trouvé(s):", formattedData);
       
       // If only one result, update recipient info directly
-      if (data.length === 1) {
+      if (formattedData.length === 1) {
+        const user = formattedData[0];
         updateFields({
           recipient: {
             ...recipient,
-            email: identifier, // Keep using what user entered for consistency
-            fullName: data[0].full_name || "Nom non disponible",
-            country: data[0].country || recipient.country,
+            email: user.phone || identifier, // Prioritize phone number
+            fullName: user.full_name,
+            country: user.country || recipient.country,
           }
         });
 
         toast({
           title: "Bénéficiaire trouvé",
-          description: data[0].full_name || "Nom non disponible",
+          description: user.full_name,
         });
       } else {
         // Multiple matches, show suggestions
-        setSuggestions(data.map(user => ({
-          email: user.email,
-          fullName: user.full_name || "Nom non disponible",
-          phone: user.phone
-        })));
+        setSuggestions(formattedData);
         setShowSuggestions(true);
       }
 
@@ -159,8 +171,8 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       recipient: {
         ...recipient,
         email: suggestion.phone || suggestion.email, // Prioritize phone if available
-        fullName: suggestion.fullName,
-        country: recipient.country,
+        fullName: suggestion.full_name,
+        country: suggestion.country || recipient.country,
       }
     });
     setSuggestions([]);
@@ -168,7 +180,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     
     toast({
       title: "Bénéficiaire sélectionné",
-      description: suggestion.fullName || suggestion.phone || suggestion.email,
+      description: suggestion.full_name || suggestion.phone || suggestion.email,
     });
   };
 
@@ -206,7 +218,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
                   onClick={() => selectSuggestion(suggestion)}
                 >
                   <div>
-                    <div className="font-medium">{suggestion.fullName}</div>
+                    <div className="font-medium">{suggestion.full_name}</div>
                     <div className="text-sm text-gray-500">
                       {suggestion.phone || suggestion.email}
                     </div>
