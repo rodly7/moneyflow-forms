@@ -82,142 +82,102 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       setIsLoading(true);
       console.log("Vérification de l'identifiant:", identifier);
       
-      // Utilisation d'une requête directe au lieu de la fonction RPC qui cause l'erreur
-      let query = supabase
-        .from('profiles')
-        .select('id, full_name, phone, country');
-      
-      // Ajuster la requête en fonction du type d'identifiant
       if (isEmail) {
-        // Récupérer l'utilisateur via l'email en utilisant une jointure
-        const { data: userData, error: userError } = await supabase
-          .from('profiles')
-          .select('id, full_name, phone, country')
-          .eq('id', (
-            await supabase.auth.admin.listUsers({ 
-              email: identifier 
-            })
-          ).data.users[0]?.id)
-          .single();
-          
-        if (userError || !userData) {
-          console.error('Erreur lors de la vérification par email:', userError);
-          toast({
-            title: "Destinataire introuvable",
-            description: "Cet email n'est pas enregistré dans le système",
-            variant: "destructive",
-          });
-          
-          // Reset recipient fields but keep the identifier
-          updateFields({
-            recipient: {
-              ...recipient,
-              email: identifier,
-              fullName: '',
-              country: recipient.country,
-            }
-          });
-          setIsLoading(false);
-          return;
-        }
-        
-        // Format user data to match our needs
-        const formattedUser: SuggestionType = {
-          id: userData.id,
-          full_name: userData.full_name || "Utilisateur",
-          email: identifier,
-          phone: userData.phone || "",
-          country: userData.country || "",
-        };
-        
+        // For email identifiers: We don't try to look them up directly anymore
+        // Instead, we'll create a pending transfer if they don't exist
+        // Store email to use for the transfer
         updateFields({
           recipient: {
             ...recipient,
-            email: formattedUser.phone || identifier,
-            fullName: formattedUser.full_name,
-            country: formattedUser.country || recipient.country,
+            email: identifier,
+            fullName: "Nouveau destinataire",
+            country: recipient.country,
           }
         });
         
         toast({
-          title: "Bénéficiaire trouvé",
-          description: formattedUser.full_name,
+          title: "Email enregistré",
+          description: "Ce destinataire recevra un code pour réclamer le transfert",
         });
         
         setIsLoading(false);
         return;
       } else {
-        // Recherche par numéro de téléphone
-        query = query.ilike('phone', `%${identifier.replace(/[\s+]/g, '')}%`);
-      }
-      
-      // Exécuter la requête
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Erreur lors de la vérification:', error);
-        toast({
-          title: "Erreur",
-          description: "Une erreur s'est produite lors de la vérification",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (!data || data.length === 0) {
-        console.log("Aucun utilisateur trouvé avec cet identifiant:", identifier);
+        // For phone number, search in the profiles table
+        const cleanedPhone = identifier.replace(/[\s]/g, '');
         
-        toast({
-          title: "Destinataire introuvable",
-          description: "Cet identifiant n'est pas enregistré dans le système",
-          variant: "destructive",
-        });
+        // Try multiple search patterns for the phone
+        const { data: phoneMatches, error: phoneError } = await supabase
+          .from('profiles')
+          .select('id, full_name, phone, country')
+          .or(`phone.ilike.%${cleanedPhone}%,phone.ilike.%${cleanedPhone.replace('+', '')}%`);
         
-        // Reset recipient fields but keep the identifier
-        updateFields({
-          recipient: {
-            ...recipient,
-            email: identifier,
-            fullName: '',
-            country: recipient.country,
-          }
-        });
-        return;
+        if (phoneError) {
+          console.error('Erreur lors de la recherche par téléphone:', phoneError);
+          toast({
+            title: "Erreur",
+            description: "Une erreur s'est produite lors de la vérification",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        if (!phoneMatches || phoneMatches.length === 0) {
+          console.log("Aucun utilisateur trouvé avec ce numéro:", identifier);
+          
+          // Allow transfer to unregistered phone numbers
+          updateFields({
+            recipient: {
+              ...recipient,
+              email: identifier,
+              fullName: "Nouveau destinataire",
+              country: recipient.country,
+            }
+          });
+          
+          toast({
+            title: "Numéro enregistré",
+            description: "Ce destinataire recevra un code pour réclamer le transfert",
+          });
+          
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log("Bénéficiaire(s) trouvé(s) par téléphone:", phoneMatches);
+        
+        // Format the results
+        const formattedMatches: SuggestionType[] = phoneMatches.map(user => ({
+          id: user.id,
+          full_name: user.full_name || "Utilisateur",
+          email: "",
+          phone: user.phone,
+          country: user.country || "",
+        }));
+        
+        // If only one recipient found, select it automatically
+        if (formattedMatches.length === 1) {
+          const user = formattedMatches[0];
+          updateFields({
+            recipient: {
+              ...recipient,
+              email: user.phone,
+              fullName: user.full_name,
+              country: user.country || recipient.country,
+            }
+          });
+          
+          toast({
+            title: "Bénéficiaire trouvé",
+            description: user.full_name,
+          });
+        } else {
+          // Multiple matches, show suggestions
+          setSuggestions(formattedMatches);
+          setShowSuggestions(true);
+        }
       }
-
-      console.log("Bénéficiaire(s) trouvé(s):", data);
-      
-      // Format data to SuggestionType
-      const formattedData: SuggestionType[] = data.map(item => ({
-        id: item.id,
-        full_name: item.full_name || "Nom non disponible",
-        email: "", // Nous n'avons pas accès à l'email directement
-        phone: item.phone || "",
-        country: item.country || ""
-      }));
-      
-      // If only one result, update recipient info directly
-      if (formattedData.length === 1) {
-        const user = formattedData[0];
-        updateFields({
-          recipient: {
-            ...recipient,
-            email: user.phone || identifier, // Prioritize phone number
-            fullName: user.full_name,
-            country: user.country || recipient.country,
-          }
-        });
-
-        toast({
-          title: "Bénéficiaire trouvé",
-          description: user.full_name,
-        });
-      } else {
-        // Multiple matches, show suggestions
-        setSuggestions(formattedData);
-        setShowSuggestions(true);
-      }
-
     } catch (error) {
       console.error('Erreur:', error);
       toast({
