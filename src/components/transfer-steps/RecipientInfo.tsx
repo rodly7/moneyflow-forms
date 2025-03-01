@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +15,7 @@ type RecipientInfoProps = {
 type SuggestionType = {
   email: string;
   fullName: string;
+  phone: string;
 };
 
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
@@ -80,8 +82,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       
       // Use supabase RPC to call the find_recipient function
       const { data, error } = await supabase
-        .rpc('find_recipient', { search_term: identifier })
-        .single();
+        .rpc('find_recipient', { search_term: identifier });
       
       if (error) {
         console.error('Erreur lors de la vérification:', error);
@@ -93,7 +94,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         return;
       }
       
-      if (!data) {
+      if (!data || data.length === 0) {
         console.log("Aucun utilisateur trouvé avec cet identifiant:", identifier);
         
         toast({
@@ -114,22 +115,32 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         return;
       }
 
-      console.log("Bénéficiaire trouvé:", data);
+      console.log("Bénéficiaire(s) trouvé(s):", data);
       
-      // Update recipient info with the data we found
-      updateFields({
-        recipient: {
-          ...recipient,
-          email: identifier, // Keep using what user entered for consistency
-          fullName: data.full_name || "Nom non disponible",
-          country: data.country || recipient.country,
-        }
-      });
+      // If only one result, update recipient info directly
+      if (data.length === 1) {
+        updateFields({
+          recipient: {
+            ...recipient,
+            email: identifier, // Keep using what user entered for consistency
+            fullName: data[0].full_name || "Nom non disponible",
+            country: data[0].country || recipient.country,
+          }
+        });
 
-      toast({
-        title: "Bénéficiaire trouvé",
-        description: data.full_name || "Nom non disponible",
-      });
+        toast({
+          title: "Bénéficiaire trouvé",
+          description: data[0].full_name || "Nom non disponible",
+        });
+      } else {
+        // Multiple matches, show suggestions
+        setSuggestions(data.map(user => ({
+          email: user.email,
+          fullName: user.full_name || "Nom non disponible",
+          phone: user.phone
+        })));
+        setShowSuggestions(true);
+      }
 
     } catch (error) {
       console.error('Erreur:', error);
@@ -147,7 +158,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     updateFields({
       recipient: {
         ...recipient,
-        email: suggestion.email,
+        email: suggestion.phone || suggestion.email, // Prioritize phone if available
         fullName: suggestion.fullName,
         country: recipient.country,
       }
@@ -157,17 +168,17 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     
     toast({
       title: "Bénéficiaire sélectionné",
-      description: suggestion.fullName || suggestion.email,
+      description: suggestion.fullName || suggestion.phone || suggestion.email,
     });
   };
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label>Email ou téléphone du bénéficiaire</Label>
+        <Label>Numéro de téléphone ou email du bénéficiaire</Label>
         <Input
           type="text"
-          placeholder="Ex: utilisateur@sendflow.com ou +237 6XXXXXXXX"
+          placeholder="Ex: +237 6XXXXXXXX ou utilisateur@sendflow.com"
           value={recipient.email}
           onChange={(e) => {
             const value = e.target.value;
@@ -196,7 +207,9 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
                 >
                   <div>
                     <div className="font-medium">{suggestion.fullName}</div>
-                    <div className="text-sm text-gray-500">{suggestion.email}</div>
+                    <div className="text-sm text-gray-500">
+                      {suggestion.phone || suggestion.email}
+                    </div>
                   </div>
                   <div className="text-emerald-500">
                     <Check className="w-4 h-4" />

@@ -48,7 +48,7 @@ export const useTransferForm = () => {
         const { data: transferResult, error } = await supabase
           .rpc('process_money_transfer', {
             sender_id: user?.id,
-            recipient_identifier: data.recipient.email,
+            recipient_identifier: data.recipient.email, // Peut être un email ou un téléphone
             transfer_amount: data.transfer.amount,
             transfer_fees: fees
           });
@@ -77,11 +77,10 @@ export const useTransferForm = () => {
           return;
         }
 
-        // Check if this is a pending transfer (recipient doesn't exist yet)
-        // To handle this safely with TypeScript, we use the more general from() method
+        // Vérifier si c'est un transfert en attente (le destinataire n'existe pas encore)
         const { data: pendingTransfer, error: pendingError } = await supabase
           .from('pending_transfers')
-          .select('id, claim_code, recipient_email')
+          .select('id, claim_code, recipient_email, recipient_phone')
           .eq('id', transferResult)
           .maybeSingle();
 
@@ -90,19 +89,21 @@ export const useTransferForm = () => {
         }
 
         if (pendingTransfer) {
-          // This is a pending transfer to a non-existent recipient
+          // C'est un transfert en attente vers un destinataire non existant
+          const recipientIdentifier = pendingTransfer.recipient_phone || pendingTransfer.recipient_email;
+          
           setPendingTransferInfo({
             id: pendingTransfer.id,
             claimCode: pendingTransfer.claim_code,
-            recipientEmail: pendingTransfer.recipient_email
+            recipientEmail: recipientIdentifier
           });
           
           toast({
             title: "Transfert en attente",
-            description: `Un code de réclamation a été généré pour ${pendingTransfer.recipient_email}`,
+            description: `Un code de réclamation a été généré pour ${recipientIdentifier}`,
           });
         } else {
-          // Normal transfer to an existing recipient
+          // Transfert normal vers un destinataire existant
           toast({
             title: "Transfert Réussi",
             description: "Votre transfert a été effectué avec succès.",
