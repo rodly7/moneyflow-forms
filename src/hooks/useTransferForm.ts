@@ -45,6 +45,24 @@ export const useTransferForm = () => {
         
         const fees = data.transfer.amount * 0.08;
 
+        // Vérifier que nous avons bien les données du bénéficiaire
+        if (!data.recipient.email || !data.recipient.fullName) {
+          toast({
+            title: "Informations incomplètes",
+            description: "Veuillez fournir toutes les informations du bénéficiaire",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        console.log("Données du transfert:", {
+          beneficiaire: data.recipient.fullName,
+          identifiant: data.recipient.email,
+          montant: data.transfer.amount,
+          frais: fees
+        });
+
         // Utiliser l'identifiant du destinataire (téléphone ou email)
         const recipientIdentifier = data.recipient.email;
 
@@ -73,7 +91,7 @@ export const useTransferForm = () => {
           } else {
             toast({
               title: "Erreur",
-              description: "Une erreur est survenue lors du transfert.",
+              description: "Une erreur est survenue lors du transfert: " + error.message,
               variant: "destructive"
             });
           }
@@ -109,7 +127,7 @@ export const useTransferForm = () => {
           // Transfert normal vers un destinataire existant
           toast({
             title: "Transfert Réussi",
-            description: "Votre transfert a été effectué avec succès.",
+            description: `Votre transfert de ${data.transfer.amount} XAF vers ${data.recipient.fullName} a été effectué avec succès.`,
           });
           navigate('/');
         }

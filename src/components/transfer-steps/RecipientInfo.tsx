@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionType[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [recipientVerified, setRecipientVerified] = useState(false);
   const { toast } = useToast();
 
   const isValidEmail = (email: string) => {
@@ -46,6 +48,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     
     setSuggestions([]);
     setShowSuggestions(false);
+    setRecipientVerified(false);
 
     // Check if input is an email or phone number
     const isEmail = identifier.includes('@');
@@ -83,9 +86,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       console.log("Vérification de l'identifiant:", identifier);
       
       if (isEmail) {
-        // For email identifiers: We don't try to look them up directly anymore
-        // Instead, we'll create a pending transfer if they don't exist
-        // Store email to use for the transfer
+        // Pour les emails : créer un transfert en attente s'ils n'existent pas
         updateFields({
           recipient: {
             ...recipient,
@@ -103,10 +104,10 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         setIsLoading(false);
         return;
       } else {
-        // For phone number, search in the profiles table
+        // Pour les numéros de téléphone, rechercher dans la table profiles
         const cleanedPhone = identifier.replace(/[\s]/g, '');
         
-        // Try multiple search patterns for the phone
+        // Essayer plusieurs patterns de recherche pour le téléphone
         const { data: phoneMatches, error: phoneError } = await supabase
           .from('profiles')
           .select('id, full_name, phone, country')
@@ -126,7 +127,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         if (!phoneMatches || phoneMatches.length === 0) {
           console.log("Aucun utilisateur trouvé avec ce numéro:", identifier);
           
-          // Allow transfer to unregistered phone numbers
+          // Permettre le transfert vers des numéros non enregistrés
           updateFields({
             recipient: {
               ...recipient,
@@ -147,7 +148,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         
         console.log("Bénéficiaire(s) trouvé(s) par téléphone:", phoneMatches);
         
-        // Format the results
+        // Formater les résultats
         const formattedMatches: SuggestionType[] = phoneMatches.map(user => ({
           id: user.id,
           full_name: user.full_name || "Utilisateur",
@@ -156,24 +157,26 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           country: user.country || "",
         }));
         
-        // If only one recipient found, select it automatically
+        // Si un seul destinataire trouvé, le sélectionner automatiquement
         if (formattedMatches.length === 1) {
           const user = formattedMatches[0];
           updateFields({
             recipient: {
               ...recipient,
-              email: user.phone,
+              email: user.phone, // Utiliser le téléphone comme identifiant
               fullName: user.full_name,
               country: user.country || recipient.country,
             }
           });
+          
+          setRecipientVerified(true);
           
           toast({
             title: "Bénéficiaire trouvé",
             description: user.full_name,
           });
         } else {
-          // Multiple matches, show suggestions
+          // Plusieurs correspondances, afficher les suggestions
           setSuggestions(formattedMatches);
           setShowSuggestions(true);
         }
@@ -194,13 +197,14 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     updateFields({
       recipient: {
         ...recipient,
-        email: suggestion.phone || suggestion.email, // Prioritize phone if available
+        email: suggestion.phone || suggestion.email, // Priorité au téléphone si disponible
         fullName: suggestion.full_name,
         country: suggestion.country || recipient.country,
       }
     });
     setSuggestions([]);
     setShowSuggestions(false);
+    setRecipientVerified(true);
     
     toast({
       title: "Bénéficiaire sélectionné",
@@ -224,9 +228,13 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
                 email: value,
               }
             });
+            if (recipientVerified) {
+              setRecipientVerified(false);
+            }
           }}
           onBlur={(e) => verifyRecipient(e.target.value)}
           disabled={isLoading}
+          className={recipientVerified ? "border-green-500 focus-visible:ring-green-500" : ""}
         />
         
         {showSuggestions && suggestions.length > 0 && (
@@ -265,9 +273,19 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           required
           placeholder="Nom complet du bénéficiaire"
           value={recipient.fullName}
-          readOnly
-          className="bg-gray-100"
+          readOnly={true}
+          className={recipientVerified ? "bg-gray-100 border-green-500" : "bg-gray-100"}
         />
+        {recipientVerified && (
+          <p className="text-xs text-green-600 mt-1">
+            Le bénéficiaire a été vérifié et recevra directement l'argent sur son compte
+          </p>
+        )}
+        {!recipientVerified && recipient.fullName === "Nouveau destinataire" && (
+          <p className="text-xs text-amber-600 mt-1">
+            Ce destinataire n'est pas encore enregistré dans le système. Il recevra un code pour réclamer le transfert.
+          </p>
+        )}
       </div>
     </div>
   );
