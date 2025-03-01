@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -83,12 +82,9 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       setIsLoading(true);
       console.log("Vérification de l'identifiant:", identifier);
       
-      // Utilisation directe de la requête SQL au lieu de RPC pour éviter les problèmes de type
+      // Utiliser la fonction RPC find_recipient au lieu d'une requête complexe
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, phone, country, auth.users!inner(email)')
-        .or(`phone.ilike.%${identifier}%,auth.users.email.ilike.${identifier}`)
-        .limit(10);
+        .rpc('find_recipient', { search_term: identifier });
       
       if (error) {
         console.error('Erreur lors de la vérification:', error);
@@ -121,20 +117,11 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         return;
       }
 
-      // Format data to SuggestionType
-      const formattedData = data.map(item => ({
-        id: item.id,
-        full_name: item.full_name || "Nom non disponible",
-        email: item.auth?.users?.email || "",
-        phone: item.phone || "",
-        country: item.country || ""
-      }));
-
-      console.log("Bénéficiaire(s) trouvé(s):", formattedData);
+      console.log("Bénéficiaire(s) trouvé(s):", data);
       
       // If only one result, update recipient info directly
-      if (formattedData.length === 1) {
-        const user = formattedData[0];
+      if (data.length === 1) {
+        const user = data[0];
         updateFields({
           recipient: {
             ...recipient,
@@ -150,7 +137,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         });
       } else {
         // Multiple matches, show suggestions
-        setSuggestions(formattedData);
+        setSuggestions(data);
         setShowSuggestions(true);
       }
 
