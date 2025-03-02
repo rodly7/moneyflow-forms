@@ -66,6 +66,7 @@ export const useTransferForm = () => {
         // Utiliser l'identifiant du destinataire (téléphone ou email)
         const recipientIdentifier = data.recipient.email;
 
+        // Corriger l'appel à la fonction process_money_transfer pour correspondre au type de retour attendu
         const { data: transferResult, error } = await supabase
           .rpc('process_money_transfer', {
             sender_id: user?.id,
@@ -98,11 +99,14 @@ export const useTransferForm = () => {
           return;
         }
 
+        // Le résultat est maintenant directement l'UUID du transfert
+        const transferId = transferResult;
+        
         // Vérifier si c'est un transfert en attente (le destinataire n'existe pas encore)
         const { data: pendingTransfer, error: pendingError } = await supabase
           .from('pending_transfers')
           .select('id, claim_code, recipient_email, recipient_phone')
-          .eq('id', transferResult)
+          .eq('id', transferId)
           .maybeSingle();
 
         if (pendingError) {
