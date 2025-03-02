@@ -1,10 +1,11 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +20,7 @@ const Withdraw = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Fetch user profile to get balance
+  // Fetch user profile to get balance and country
   const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
@@ -33,6 +34,13 @@ const Withdraw = () => {
       return data;
     },
   });
+
+  // Set the country from user profile when profile is loaded
+  useEffect(() => {
+    if (profile?.country) {
+      setSelectedCountry(profile.country);
+    }
+  }, [profile]);
 
   // Find payment methods for selected country
   const countryData = countries.find(c => c.name === selectedCountry);
@@ -102,10 +110,10 @@ const Withdraw = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-2 sm:py-8 sm:px-4">
       <div className="container max-w-3xl mx-auto">
         <Link to="/">
-          <Button variant="ghost" className="mb-6">
+          <Button variant="ghost" className="mb-4 sm:mb-6">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
           </Button>

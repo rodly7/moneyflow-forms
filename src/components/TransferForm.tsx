@@ -39,7 +39,7 @@ const TransferForm = () => {
 
   if (pendingTransferInfo) {
     return (
-      <div className="w-full">
+      <div className="w-full px-2 sm:px-0">
         <Card className="backdrop-blur-md bg-white/80 shadow-xl rounded-xl border-0 overflow-hidden">
           <div className="p-4 md:p-6">
             <div className="text-center mb-6">
@@ -92,7 +92,7 @@ const TransferForm = () => {
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full px-2 sm:px-0">
       <Card className="backdrop-blur-md bg-white/80 shadow-xl rounded-xl border-0 overflow-hidden">
         <div className="p-4 md:p-6">
           <div className="mb-6">
@@ -102,13 +102,13 @@ const TransferForm = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <CurrentStepComponent {...data} updateFields={updateFields} />
             
-            <div className="mt-6 flex flex-col md:flex-row justify-between gap-3">
+            <div className="mt-6 flex flex-col sm:flex-row justify-between gap-3">
               {currentStep !== 0 && (
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={back}
-                  className="w-full md:w-auto order-2 md:order-1"
+                  className="w-full sm:w-auto order-2 sm:order-1"
                   disabled={isLoading}
                 >
                   Retour
@@ -116,8 +116,8 @@ const TransferForm = () => {
               )}
               <Button
                 type="submit"
-                className={`w-full md:w-auto order-1 md:order-2 bg-emerald-600 hover:bg-emerald-700 ${
-                  currentStep === 0 ? "md:ml-auto" : ""
+                className={`w-full sm:w-auto order-1 sm:order-2 bg-emerald-600 hover:bg-emerald-700 ${
+                  currentStep === 0 ? "sm:ml-auto" : ""
                 }`}
                 disabled={isLoading}
               >
