@@ -66,79 +66,99 @@ export const useTransferForm = () => {
         // Utiliser l'identifiant du destinataire (téléphone ou email)
         const recipientIdentifier = data.recipient.email;
 
-        // Fix: Appel direct à la fonction RPC pour obtenir l'UUID du transfert
-        const { data: result, error } = await supabase.rpc(
-          'process_money_transfer',
-          {
-            sender_id: user?.id,
-            recipient_identifier: recipientIdentifier,
-            transfer_amount: data.transfer.amount,
-            transfer_fees: fees
-          }
-        );
-
-        if (error) {
-          console.error('Erreur lors du transfert:', error);
-          if (error.message.includes('Insufficient funds')) {
-            toast({
-              title: "Solde insuffisant",
-              description: "Vous n'avez pas assez de fonds pour effectuer ce transfert.",
-              variant: "destructive"
-            });
-          } else if (error.message.includes('Recipient not found')) {
-            toast({
-              title: "Destinataire introuvable",
-              description: "L'identifiant du destinataire n'a pas été trouvé dans notre système.",
-              variant: "destructive"
-            });
-          } else {
-            toast({
-              title: "Erreur",
-              description: "Une erreur est survenue lors du transfert: " + error.message,
-              variant: "destructive"
-            });
-          }
+        // Simplification : Juste débiter le compte de l'expéditeur
+        if (!user?.id) {
+          toast({
+            title: "Erreur d'authentification",
+            description: "Vous devez être connecté pour effectuer un transfert",
+            variant: "destructive"
+          });
           setIsLoading(false);
           return;
         }
 
-        // Le résultat est directement l'UUID du transfert
-        const transferId = result;
-        console.log('ID du transfert:', transferId);
+        // Vérifier le solde avant de faire le transfert
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('balance')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError || !profileData) {
+          toast({
+            title: "Erreur",
+            description: "Impossible de vérifier votre solde",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        const totalAmount = data.transfer.amount + fees;
         
-        // Vérifier si c'est un transfert en attente (le destinataire n'existe pas encore)
-        const { data: pendingTransfer, error: pendingError } = await supabase
-          .from('pending_transfers')
-          .select('id, claim_code, recipient_email, recipient_phone')
-          .eq('id', transferId)
-          .maybeSingle();
-
-        if (pendingError) {
-          console.error('Erreur lors de la vérification du transfert en attente:', pendingError);
+        if (profileData.balance < totalAmount) {
+          toast({
+            title: "Solde insuffisant",
+            description: "Vous n'avez pas assez de fonds pour effectuer ce transfert",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
         }
 
-        if (pendingTransfer) {
-          // C'est un transfert en attente vers un destinataire non existant
-          const recipientContact = pendingTransfer.recipient_phone || pendingTransfer.recipient_email;
-          
-          setPendingTransferInfo({
-            id: pendingTransfer.id,
-            claimCode: pendingTransfer.claim_code,
-            recipientEmail: recipientContact
-          });
-          
+        // Débiter le compte de l'expéditeur
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ balance: profileData.balance - totalAmount })
+          .eq('id', user.id);
+
+        if (updateError) {
           toast({
-            title: "Transfert en attente",
-            description: `Un code de réclamation a été généré pour ${recipientContact}`,
+            title: "Erreur",
+            description: "Impossible de débiter votre compte",
+            variant: "destructive"
           });
-        } else {
-          // Transfert normal vers un destinataire existant
-          toast({
-            title: "Transfert Réussi",
-            description: `Votre transfert de ${data.transfer.amount} XAF vers ${data.recipient.fullName} a été effectué avec succès.`,
-          });
-          navigate('/');
+          setIsLoading(false);
+          return;
         }
+
+        // Enregistrer le transfert
+        const { data: transferData, error: transferError } = await supabase
+          .from('transfers')
+          .insert({
+            sender_id: user.id,
+            amount: data.transfer.amount,
+            fees: fees,
+            currency: 'XAF',
+            status: 'completed',
+            recipient_full_name: data.recipient.fullName,
+            recipient_phone: data.recipient.email,
+            recipient_country: data.recipient.country || 'Unknown'
+          })
+          .select()
+          .single();
+
+        if (transferError) {
+          // Restaurer le solde en cas d'erreur
+          await supabase
+            .from('profiles')
+            .update({ balance: profileData.balance })
+            .eq('id', user.id);
+            
+          toast({
+            title: "Erreur",
+            description: "Une erreur est survenue lors de l'enregistrement du transfert",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        toast({
+          title: "Transfert Réussi",
+          description: `Votre transfert de ${data.transfer.amount} XAF vers ${data.recipient.fullName} a été effectué avec succès.`,
+        });
+        navigate('/');
       } catch (error) {
         console.error('Erreur lors du transfert:', error);
         toast({

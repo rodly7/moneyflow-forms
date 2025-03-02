@@ -1,13 +1,17 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
-import { User, CreditCard, Upload, Download, ArrowRightLeft, LogOut } from "lucide-react";
+import { User, CreditCard, Upload, Download, ArrowRightLeft, LogOut, ArrowUpRight, ArrowDownLeft, Wallet } from "lucide-react";
 import TransferForm from "@/components/TransferForm";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -72,22 +76,30 @@ const Index = () => {
   // Combine and sort all transactions
   const allTransactions = [
     ...(transfers?.map(t => ({
-      ...t,
+      id: t.id,
       type: 'transfer',
       amount: -t.amount,
       date: new Date(t.created_at),
       description: `Transfert à ${t.recipient_full_name}`,
-      currency: t.currency
+      currency: t.currency,
+      status: t.status
     })) || []),
     ...(recharges?.map(r => ({
-      ...r,
+      id: r.id,
       type: 'recharge',
       amount: r.amount,
       date: new Date(r.created_at),
       description: `Recharge via ${r.payment_method}`,
-      currency: 'XAF'
+      currency: 'XAF',
+      status: r.status
     })) || [])
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  const getTransactionIcon = (type, amount) => {
+    if (type === 'transfer') return <ArrowUpRight className="w-5 h-5 text-red-500" />;
+    if (type === 'recharge') return <ArrowDownLeft className="w-5 h-5 text-green-500" />;
+    return <Wallet className="w-5 h-5 text-blue-500" />;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-2 sm:py-8 sm:px-4">
@@ -180,43 +192,151 @@ const Index = () => {
           </div>
         )}
 
-        {/* Transactions History */}
+        {/* Transactions History with Tabs */}
         <Card className="bg-white shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-lg sm:text-xl font-semibold">Historique des transactions</CardTitle>
+          </CardHeader>
           <CardContent className="p-4 sm:p-6">
-            <h3 className="text-lg sm:text-xl font-semibold mb-4">Historique des transactions</h3>
-            <div className="space-y-3">
-              {allTransactions.length > 0 ? (
-                allTransactions.map((transaction) => (
-                  <div 
-                    key={transaction.id} 
-                    className="flex justify-between items-center p-3 rounded-lg border"
-                  >
-                    <div>
-                      <p className="font-medium text-sm sm:text-base">{transaction.description}</p>
-                      <p className="text-xs sm:text-sm text-gray-500">
-                        {transaction.date.toLocaleDateString('fr-FR')}
-                      </p>
+            <Tabs defaultValue="all">
+              <TabsList className="grid grid-cols-3 mb-4">
+                <TabsTrigger value="all">Toutes</TabsTrigger>
+                <TabsTrigger value="transfers">Transferts</TabsTrigger>
+                <TabsTrigger value="recharges">Recharges</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="all" className="space-y-3">
+                {allTransactions.length > 0 ? (
+                  allTransactions.map((transaction) => (
+                    <div 
+                      key={transaction.id} 
+                      className="flex justify-between items-center p-3 rounded-lg border hover:bg-gray-50 transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-full bg-gray-100">
+                          {getTransactionIcon(transaction.type, transaction.amount)}
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">{transaction.description}</p>
+                          <p className="text-xs sm:text-sm text-gray-500">
+                            {format(transaction.date, 'PPP à HH:mm', { locale: fr })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`font-semibold text-sm sm:text-base ${
+                          transaction.amount > 0 ? 'text-green-500' : 'text-red-500'
+                        }`}>
+                          {transaction.amount > 0 ? '+' : ''}
+                          {new Intl.NumberFormat('fr-FR', {
+                            style: 'currency',
+                            currency: transaction.currency || 'XAF'
+                          }).format(transaction.amount)}
+                        </p>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          transaction.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                          transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {transaction.status === 'completed' ? 'Complété' : 
+                           transaction.status === 'pending' ? 'En attente' : transaction.status}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className={`font-semibold text-sm sm:text-base ${
-                        transaction.amount > 0 ? 'text-green-500' : 'text-red-500'
-                      }`}>
-                        {transaction.amount > 0 ? '+' : ''}
-                        {new Intl.NumberFormat('fr-FR', {
-                          style: 'currency',
-                          currency: transaction.currency || 'XAF'
-                        }).format(transaction.amount)}
-                      </p>
-                      <p className="text-xs sm:text-sm text-gray-500">{transaction.status}</p>
+                  ))
+                ) : (
+                  <p className="text-center text-gray-500 py-8 bg-gray-50 rounded-lg">
+                    Aucune transaction effectuée
+                  </p>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="transfers" className="space-y-3">
+                {transfers && transfers.length > 0 ? (
+                  transfers.map((transfer) => (
+                    <div 
+                      key={transfer.id} 
+                      className="flex justify-between items-center p-3 rounded-lg border hover:bg-gray-50 transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-full bg-gray-100">
+                          <ArrowUpRight className="w-5 h-5 text-red-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">Transfert à {transfer.recipient_full_name}</p>
+                          <p className="text-xs sm:text-sm text-gray-500">
+                            {format(new Date(transfer.created_at), 'PPP à HH:mm', { locale: fr })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-sm sm:text-base text-red-500">
+                          -{new Intl.NumberFormat('fr-FR', {
+                            style: 'currency',
+                            currency: transfer.currency || 'XAF'
+                          }).format(transfer.amount)}
+                        </p>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          transfer.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                          transfer.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {transfer.status === 'completed' ? 'Complété' : 
+                           transfer.status === 'pending' ? 'En attente' : transfer.status}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-center text-gray-500 py-4">
-                  Aucune transaction effectuée
-                </p>
-              )}
-            </div>
+                  ))
+                ) : (
+                  <p className="text-center text-gray-500 py-8 bg-gray-50 rounded-lg">
+                    Aucun transfert effectué
+                  </p>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="recharges" className="space-y-3">
+                {recharges && recharges.length > 0 ? (
+                  recharges.map((recharge) => (
+                    <div 
+                      key={recharge.id} 
+                      className="flex justify-between items-center p-3 rounded-lg border hover:bg-gray-50 transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-full bg-gray-100">
+                          <ArrowDownLeft className="w-5 h-5 text-green-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">Recharge via {recharge.payment_method}</p>
+                          <p className="text-xs sm:text-sm text-gray-500">
+                            {format(new Date(recharge.created_at), 'PPP à HH:mm', { locale: fr })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-sm sm:text-base text-green-500">
+                          +{new Intl.NumberFormat('fr-FR', {
+                            style: 'currency',
+                            currency: 'XAF'
+                          }).format(recharge.amount)}
+                        </p>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          recharge.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                          recharge.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {recharge.status === 'completed' ? 'Complété' : 
+                           recharge.status === 'pending' ? 'En attente' : recharge.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-gray-500 py-8 bg-gray-50 rounded-lg">
+                    Aucune recharge effectuée
+                  </p>
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
