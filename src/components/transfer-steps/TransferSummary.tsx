@@ -25,6 +25,8 @@ const TransferSummary = ({ recipient, transfer }: TransferSummaryProps) => {
           <div className="grid grid-cols-2 gap-3 text-sm">
             <span className="text-muted-foreground">Nom :</span>
             <span className="font-medium">{recipient.fullName}</span>
+            <span className="text-muted-foreground">Téléphone :</span>
+            <span className="font-medium">{recipient.email}</span>
           </div>
         </Card>
 
