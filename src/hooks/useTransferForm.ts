@@ -66,14 +66,16 @@ export const useTransferForm = () => {
         // Utiliser l'identifiant du destinataire (téléphone ou email)
         const recipientIdentifier = data.recipient.email;
 
-        // Corriger l'appel à la fonction process_money_transfer pour correspondre au type de retour attendu
-        const { data: transferResult, error } = await supabase
-          .rpc('process_money_transfer', {
+        // Fix: Appel direct à la fonction RPC pour obtenir l'UUID du transfert
+        const { data: result, error } = await supabase.rpc(
+          'process_money_transfer',
+          {
             sender_id: user?.id,
             recipient_identifier: recipientIdentifier,
             transfer_amount: data.transfer.amount,
             transfer_fees: fees
-          });
+          }
+        );
 
         if (error) {
           console.error('Erreur lors du transfert:', error);
@@ -96,11 +98,13 @@ export const useTransferForm = () => {
               variant: "destructive"
             });
           }
+          setIsLoading(false);
           return;
         }
 
-        // Le résultat est maintenant directement l'UUID du transfert
-        const transferId = transferResult;
+        // Le résultat est directement l'UUID du transfert
+        const transferId = result;
+        console.log('ID du transfert:', transferId);
         
         // Vérifier si c'est un transfert en attente (le destinataire n'existe pas encore)
         const { data: pendingTransfer, error: pendingError } = await supabase

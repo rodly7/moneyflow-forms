@@ -91,7 +91,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           recipient: {
             ...recipient,
             email: identifier,
-            fullName: "Nouveau destinataire",
+            fullName: recipient.fullName || "Nouveau destinataire",
             country: recipient.country,
           }
         });
@@ -132,7 +132,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
             recipient: {
               ...recipient,
               email: identifier,
-              fullName: "Nouveau destinataire",
+              fullName: recipient.fullName || "Nouveau destinataire",
               country: recipient.country,
             }
           });
@@ -273,8 +273,16 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           required
           placeholder="Nom complet du bénéficiaire"
           value={recipient.fullName}
-          readOnly={true}
-          className={recipientVerified ? "bg-gray-100 border-green-500" : "bg-gray-100"}
+          onChange={(e) => {
+            updateFields({
+              recipient: {
+                ...recipient,
+                fullName: e.target.value,
+              }
+            });
+          }}
+          className={recipientVerified ? "border-green-500" : ""}
+          readOnly={recipientVerified}
         />
         {recipientVerified && (
           <p className="text-xs text-green-600 mt-1">
