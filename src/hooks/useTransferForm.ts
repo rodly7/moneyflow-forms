@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "./use-toast";
@@ -66,7 +65,7 @@ export const useTransferForm = () => {
         // Utiliser l'identifiant du destinataire (téléphone ou email)
         const recipientIdentifier = data.recipient.email;
 
-        // Simplification : Juste débiter le compte de l'expéditeur
+        // Vérifier que l'utilisateur est authentifié
         if (!user?.id) {
           toast({
             title: "Erreur d'authentification",
@@ -106,53 +105,32 @@ export const useTransferForm = () => {
           return;
         }
 
-        // Débiter le compte de l'expéditeur
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ balance: profileData.balance - totalAmount })
-          .eq('id', user.id);
-
-        if (updateError) {
-          toast({
-            title: "Erreur",
-            description: "Impossible de débiter votre compte",
-            variant: "destructive"
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        // Enregistrer le transfert
-        const { data: transferData, error: transferError } = await supabase
-          .from('transfers')
-          .insert({
+        // Utiliser la procédure stockée pour traiter le transfert d'argent
+        // Cette procédure va:
+        // 1. Débiter l'expéditeur
+        // 2. Créditer le destinataire s'il existe
+        // 3. Ou créer un transfert en attente si le destinataire n'existe pas
+        const { data: result, error: transferProcessError } = await supabase
+          .rpc('process_money_transfer', {
             sender_id: user.id,
-            amount: data.transfer.amount,
-            fees: fees,
-            currency: 'XAF',
-            status: 'completed',
-            recipient_full_name: data.recipient.fullName,
-            recipient_phone: data.recipient.email,
-            recipient_country: data.recipient.country || 'Unknown'
-          })
-          .select()
-          .single();
+            recipient_identifier: recipientIdentifier,
+            transfer_amount: data.transfer.amount,
+            transfer_fees: fees
+          });
 
-        if (transferError) {
-          // Restaurer le solde en cas d'erreur
-          await supabase
-            .from('profiles')
-            .update({ balance: profileData.balance })
-            .eq('id', user.id);
-            
+        if (transferProcessError) {
+          console.error("Erreur lors du transfert:", transferProcessError);
           toast({
             title: "Erreur",
-            description: "Une erreur est survenue lors de l'enregistrement du transfert",
+            description: "Une erreur est survenue lors du transfert: " + transferProcessError.message,
             variant: "destructive"
           });
           setIsLoading(false);
           return;
         }
+
+        // La procédure renvoie l'ID du transfert créé
+        console.log("ID du transfert créé:", result);
 
         toast({
           title: "Transfert Réussi",
