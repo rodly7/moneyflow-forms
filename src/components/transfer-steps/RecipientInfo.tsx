@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { TransferData } from "@/types/transfer";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { 
   Select,
   SelectContent,
@@ -159,12 +159,14 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           console.error('Erreur lors de la recherche du bénéficiaire:', recipientError);
           toast({
             title: "Erreur",
-            description: "Une erreur s'est produite lors de la vérification",
+            description: "Une erreur s'est produite lors de la vérification: " + recipientError.message,
             variant: "destructive",
           });
           setIsLoading(false);
           return;
         }
+        
+        console.log("Réponse de find_recipient:", recipientMatch);
         
         if (!recipientMatch || recipientMatch.length === 0) {
           console.log("Aucun utilisateur trouvé avec ce numéro:", identifier);
@@ -193,6 +195,9 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         // Si un destinataire est trouvé, l'utiliser
         if (recipientMatch.length > 0) {
           const user = recipientMatch[0];
+          
+          console.log("Utilisateur trouvé:", user);
+          
           updateFields({
             recipient: {
               ...recipient,
@@ -210,7 +215,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           });
           
           // Mettre à jour l'input du téléphone pour afficher le numéro complet
-          setPhoneInput(user.phone);
+          setPhoneInput(user.phone.replace(countryCode, ""));
         }
       }
     } catch (error) {
@@ -258,7 +263,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     setRecipientVerified(true);
     
     // Mettre à jour l'input du téléphone pour afficher le numéro sans l'indicatif
-    setPhoneInput(suggestion.phone);
+    setPhoneInput(suggestion.phone.replace(countryCode, ""));
     
     toast({
       title: "Bénéficiaire sélectionné",
@@ -298,15 +303,27 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
               className="bg-gray-100"
             />
           </div>
-          <Input
-            type="text"
-            placeholder="Ex: 6XXXXXXXX"
-            value={phoneInput}
-            onChange={(e) => handlePhoneInput(e.target.value)}
-            onBlur={() => recipient.email && verifyRecipient(recipient.email)}
-            disabled={isLoading}
-            className={recipientVerified ? "border-green-500 focus-visible:ring-green-500" : ""}
-          />
+          <div className="relative flex-1">
+            <Input
+              type="text"
+              placeholder="Ex: 6XXXXXXXX"
+              value={phoneInput}
+              onChange={(e) => handlePhoneInput(e.target.value)}
+              onBlur={() => recipient.email && verifyRecipient(recipient.email)}
+              disabled={isLoading}
+              className={recipientVerified ? "border-green-500 focus-visible:ring-green-500 pr-10" : "pr-10"}
+            />
+            {isLoading && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+              </div>
+            )}
+            {recipientVerified && !isLoading && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <Check className="w-4 h-4 text-green-500" />
+              </div>
+            )}
+          </div>
         </div>
         
         {showSuggestions && suggestions.length > 0 && (
