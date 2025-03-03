@@ -26,6 +26,7 @@ type SuggestionType = {
   email: string;
   phone: string;
   country: string;
+  display_name?: string;
 };
 
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
@@ -171,6 +172,47 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         if (!recipientMatch || recipientMatch.length === 0) {
           console.log("Aucun utilisateur trouvé avec ce numéro:", identifier);
           
+          // Cherchons dans la table auth.users pour voir si le numéro correspond à un display_name
+          const { data: authUserData, error: authUserError } = await supabase
+            .from('auth_users_view')
+            .select('id, display_name, email')
+            .eq('display_name', cleanedPhone)
+            .maybeSingle();
+          
+          if (authUserError) {
+            console.error('Erreur lors de la recherche dans auth.users:', authUserError);
+          }
+          
+          if (authUserData) {
+            console.log("Utilisateur trouvé via display_name:", authUserData);
+            
+            // Récupérer les informations du profil si disponibles
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('full_name, country, phone')
+              .eq('id', authUserData.id)
+              .maybeSingle();
+              
+            updateFields({
+              recipient: {
+                ...recipient,
+                email: identifier,
+                fullName: profileData?.full_name || `Utilisateur ${cleanedPhone}`,
+                country: profileData?.country || recipient.country,
+              }
+            });
+            
+            setRecipientVerified(true);
+            
+            toast({
+              title: "Bénéficiaire trouvé",
+              description: profileData?.full_name || `Utilisateur ${cleanedPhone}`,
+            });
+            
+            setIsLoading(false);
+            return;
+          }
+          
           // Permettre le transfert vers des numéros non enregistrés
           updateFields({
             recipient: {
@@ -198,11 +240,24 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           
           console.log("Utilisateur trouvé:", user);
           
+          // Chercher si ce numéro correspond à un display_name dans auth.users
+          const { data: authData } = await supabase
+            .from('auth_users_view')
+            .select('display_name')
+            .eq('id', user.id)
+            .maybeSingle();
+            
+          console.log("Données auth utilisateur:", authData);
+          
+          // Utiliser le display_name comme nom complet si disponible
+          const displayName = authData?.display_name;
+          const fullNameToUse = displayName || user.full_name;
+          
           updateFields({
             recipient: {
               ...recipient,
               email: user.phone, // Utiliser le téléphone comme identifiant
-              fullName: user.full_name,
+              fullName: fullNameToUse,
               country: user.country || recipient.country,
             }
           });
@@ -211,7 +266,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           
           toast({
             title: "Bénéficiaire trouvé",
-            description: user.full_name,
+            description: fullNameToUse,
           });
           
           // Mettre à jour l'input du téléphone pour afficher le numéro complet
@@ -254,7 +309,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       recipient: {
         ...recipient,
         email: suggestion.phone || suggestion.email, // Priorité au téléphone si disponible
-        fullName: suggestion.full_name,
+        fullName: suggestion.display_name || suggestion.full_name,
         country: suggestion.country || recipient.country,
       }
     });
@@ -267,7 +322,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     
     toast({
       title: "Bénéficiaire sélectionné",
-      description: suggestion.full_name || suggestion.phone || suggestion.email,
+      description: suggestion.display_name || suggestion.full_name || suggestion.phone || suggestion.email,
     });
   };
 
@@ -339,7 +394,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
                   onClick={() => selectSuggestion(suggestion)}
                 >
                   <div>
-                    <div className="font-medium">{suggestion.full_name}</div>
+                    <div className="font-medium">{suggestion.display_name || suggestion.full_name}</div>
                     <div className="text-sm text-gray-500">
                       {suggestion.phone || suggestion.email}
                     </div>
