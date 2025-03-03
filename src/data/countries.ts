@@ -1,3 +1,4 @@
+
 export type City = {
   name: string;
   paymentMethods?: string[];
@@ -11,6 +12,18 @@ export type Country = {
 };
 
 export const countries: Country[] = [
+  {
+    name: "Cameroun",
+    code: "+237",
+    cities: [
+      { name: "Douala" },
+      { name: "Yaoundé" },
+      { name: "Bafoussam" },
+      { name: "Garoua" },
+      { name: "Bamenda" }
+    ],
+    paymentMethods: ["Orange Money", "MTN Mobile Money", "Express Union"]
+  },
   {
     name: "Congo Brazzaville",
     code: "+242",

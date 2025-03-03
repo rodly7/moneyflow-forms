@@ -1,11 +1,19 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TransferData } from "@/types/transfer";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Check } from "lucide-react";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue 
+} from "@/components/ui/select";
+import { countries } from "@/data/countries";
 
 type RecipientInfoProps = {
   recipient: TransferData['recipient'];
@@ -25,7 +33,39 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   const [suggestions, setSuggestions] = useState<SuggestionType[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [recipientVerified, setRecipientVerified] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [countryCode, setCountryCode] = useState("");
   const { toast } = useToast();
+
+  // Mettre à jour l'indicatif téléphonique lorsque le pays change
+  useEffect(() => {
+    if (recipient.country) {
+      const selectedCountry = countries.find(c => c.name === recipient.country);
+      if (selectedCountry) {
+        setCountryCode(selectedCountry.code);
+      }
+    }
+  }, [recipient.country]);
+
+  // Mettre à jour le champ email complet (avec préfixe) lorsque l'input ou l'indicatif change
+  useEffect(() => {
+    if (phoneInput) {
+      // Format the phone number with country code
+      const formattedPhone = phoneInput.startsWith('+') ? phoneInput : `${countryCode}${phoneInput.startsWith('0') ? phoneInput.substring(1) : phoneInput}`;
+      
+      updateFields({
+        recipient: {
+          ...recipient,
+          email: formattedPhone,
+        }
+      });
+
+      // Reset verification status when phone number changes
+      if (recipientVerified) {
+        setRecipientVerified(false);
+      }
+    }
+  }, [phoneInput, countryCode]);
 
   const isValidEmail = (email: string) => {
     // Basic email regex validation
@@ -52,7 +92,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
 
     // Check if input is an email or phone number
     const isEmail = identifier.includes('@');
-    const isPhone = isValidPhoneNumber(identifier);
+    const isPhone = !isEmail;
 
     if (isEmail && !isValidEmail(identifier)) {
       toast({
@@ -72,10 +112,10 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       return;
     }
 
-    if (!isEmail && !isPhone) {
+    if (isPhone && !identifier.match(/^\+?[0-9\s]+$/)) {
       toast({
-        title: "Format invalide",
-        description: "Veuillez entrer une adresse email ou un numéro de téléphone valide",
+        title: "Format de téléphone invalide",
+        description: "Veuillez entrer un numéro de téléphone valide",
         variant: "destructive",
       });
       return;
@@ -107,14 +147,16 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         // Pour les numéros de téléphone, rechercher dans la table profiles
         const cleanedPhone = identifier.replace(/[\s]/g, '');
         
-        // Essayer plusieurs patterns de recherche pour le téléphone
-        const { data: phoneMatches, error: phoneError } = await supabase
-          .from('profiles')
-          .select('id, full_name, phone, country')
-          .or(`phone.ilike.%${cleanedPhone}%,phone.ilike.%${cleanedPhone.replace('+', '')}%`);
+        console.log("Recherche par téléphone:", cleanedPhone);
         
-        if (phoneError) {
-          console.error('Erreur lors de la recherche par téléphone:', phoneError);
+        // Utiliser la fonction find_recipient pour trouver un bénéficiaire
+        const { data: recipientMatch, error: recipientError } = await supabase
+          .rpc('find_recipient', {
+            search_term: cleanedPhone
+          });
+        
+        if (recipientError) {
+          console.error('Erreur lors de la recherche du bénéficiaire:', recipientError);
           toast({
             title: "Erreur",
             description: "Une erreur s'est produite lors de la vérification",
@@ -124,7 +166,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           return;
         }
         
-        if (!phoneMatches || phoneMatches.length === 0) {
+        if (!recipientMatch || recipientMatch.length === 0) {
           console.log("Aucun utilisateur trouvé avec ce numéro:", identifier);
           
           // Permettre le transfert vers des numéros non enregistrés
@@ -146,20 +188,11 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           return;
         }
         
-        console.log("Bénéficiaire(s) trouvé(s) par téléphone:", phoneMatches);
+        console.log("Bénéficiaire(s) trouvé(s):", recipientMatch);
         
-        // Formater les résultats
-        const formattedMatches: SuggestionType[] = phoneMatches.map(user => ({
-          id: user.id,
-          full_name: user.full_name || "Utilisateur",
-          email: "",
-          phone: user.phone,
-          country: user.country || "",
-        }));
-        
-        // Si un seul destinataire trouvé, le sélectionner automatiquement
-        if (formattedMatches.length === 1) {
-          const user = formattedMatches[0];
+        // Si un destinataire est trouvé, l'utiliser
+        if (recipientMatch.length > 0) {
+          const user = recipientMatch[0];
           updateFields({
             recipient: {
               ...recipient,
@@ -175,10 +208,9 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
             title: "Bénéficiaire trouvé",
             description: user.full_name,
           });
-        } else {
-          // Plusieurs correspondances, afficher les suggestions
-          setSuggestions(formattedMatches);
-          setShowSuggestions(true);
+          
+          // Mettre à jour l'input du téléphone pour afficher le numéro complet
+          setPhoneInput(user.phone);
         }
       }
     } catch (error) {
@@ -191,6 +223,25 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCountryChange = (value: string) => {
+    const selectedCountry = countries.find(c => c.name === value);
+    
+    updateFields({
+      recipient: {
+        ...recipient,
+        country: value,
+      }
+    });
+    
+    if (selectedCountry) {
+      setCountryCode(selectedCountry.code);
+    }
+  };
+
+  const handlePhoneInput = (value: string) => {
+    setPhoneInput(value);
   };
 
   const selectSuggestion = (suggestion: SuggestionType) => {
@@ -206,6 +257,9 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     setShowSuggestions(false);
     setRecipientVerified(true);
     
+    // Mettre à jour l'input du téléphone pour afficher le numéro sans l'indicatif
+    setPhoneInput(suggestion.phone);
+    
     toast({
       title: "Bénéficiaire sélectionné",
       description: suggestion.full_name || suggestion.phone || suggestion.email,
@@ -215,27 +269,45 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label>Numéro de téléphone ou email du bénéficiaire</Label>
-        <Input
-          type="text"
-          placeholder="Ex: +237 6XXXXXXXX ou utilisateur@sendflow.com"
-          value={recipient.email}
-          onChange={(e) => {
-            const value = e.target.value;
-            updateFields({
-              recipient: {
-                ...recipient,
-                email: value,
-              }
-            });
-            if (recipientVerified) {
-              setRecipientVerified(false);
-            }
-          }}
-          onBlur={(e) => verifyRecipient(e.target.value)}
-          disabled={isLoading}
-          className={recipientVerified ? "border-green-500 focus-visible:ring-green-500" : ""}
-        />
+        <Label>Pays du bénéficiaire</Label>
+        <Select 
+          value={recipient.country} 
+          onValueChange={handleCountryChange}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Sélectionnez un pays" />
+          </SelectTrigger>
+          <SelectContent>
+            {countries.map((country) => (
+              <SelectItem key={country.name} value={country.name}>
+                {country.name} ({country.code})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Numéro de téléphone du bénéficiaire</Label>
+        <div className="flex items-center space-x-2">
+          <div className="w-24 flex-shrink-0">
+            <Input
+              type="text"
+              value={countryCode}
+              readOnly
+              className="bg-gray-100"
+            />
+          </div>
+          <Input
+            type="text"
+            placeholder="Ex: 6XXXXXXXX"
+            value={phoneInput}
+            onChange={(e) => handlePhoneInput(e.target.value)}
+            onBlur={() => recipient.email && verifyRecipient(recipient.email)}
+            disabled={isLoading}
+            className={recipientVerified ? "border-green-500 focus-visible:ring-green-500" : ""}
+          />
+        </div>
         
         {showSuggestions && suggestions.length > 0 && (
           <div className="mt-2 border rounded-md overflow-hidden bg-white shadow-sm">

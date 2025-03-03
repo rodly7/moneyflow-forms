@@ -15,11 +15,10 @@ export const INITIAL_TRANSFER_DATA: TransferData = {
   recipient: {
     fullName: "",
     email: "",
-    country: "",
+    country: "Cameroun",
   },
   transfer: {
     amount: 0,
     currency: "XAF",
   },
 };
-
