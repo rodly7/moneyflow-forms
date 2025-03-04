@@ -65,6 +65,11 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       if (recipientVerified) {
         setRecipientVerified(false);
       }
+      
+      // Automatically verify the recipient when phone number is entered
+      if (formattedPhone.length >= 10) {
+        verifyRecipient(formattedPhone);
+      }
     }
   }, [phoneInput, countryCode]);
 
@@ -145,12 +150,107 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         setIsLoading(false);
         return;
       } else {
-        // Pour les numéros de téléphone, rechercher dans la table profiles
+        // Pour les numéros de téléphone, rechercher dans la table auth_users_view
         const cleanedPhone = identifier.replace(/[\s]/g, '');
         
         console.log("Recherche par téléphone:", cleanedPhone);
         
-        // Utiliser la fonction find_recipient pour trouver un bénéficiaire
+        // 1. D'abord essayer de trouver l'utilisateur via auth_users_view
+        const { data: authUserData, error: authUserError } = await supabase
+          .from('auth_users_view')
+          .select('id, email, raw_user_meta_data')
+          .order('created_at', { ascending: false });
+        
+        if (authUserError) {
+          console.error('Erreur lors de la recherche dans auth_users_view:', authUserError);
+          toast({
+            title: "Erreur",
+            description: "Une erreur s'est produite lors de la vérification: " + authUserError.message,
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log("Données des utilisateurs:", authUserData);
+        
+        // Chercher un utilisateur dont le numéro de téléphone correspond
+        let userFound = null;
+        
+        if (authUserData && authUserData.length > 0) {
+          // Parcourir tous les utilisateurs pour chercher une correspondance de téléphone dans les métadonnées
+          for (const user of authUserData) {
+            if (user.raw_user_meta_data) {
+              const metadata = user.raw_user_meta_data as any;
+              
+              // Vérifier si le phone dans les métadonnées correspond
+              if (metadata.phone === cleanedPhone) {
+                console.log("Utilisateur trouvé via metadata.phone:", user);
+                userFound = {
+                  id: user.id,
+                  email: user.email,
+                  metadata: metadata
+                };
+                break;
+              }
+              
+              // Si le user n'utilise pas la propriété phone mais a stocké le numéro ailleurs
+              // Par exemple, certains systèmes utilisent phone_number au lieu de phone
+              if (metadata.phone_number === cleanedPhone || 
+                  metadata.phoneNumber === cleanedPhone || 
+                  metadata.mobile === cleanedPhone ||
+                  metadata.tel === cleanedPhone) {
+                console.log("Utilisateur trouvé via autre champ de téléphone:", user);
+                userFound = {
+                  id: user.id,
+                  email: user.email,
+                  metadata: metadata
+                };
+                break;
+              }
+            }
+          }
+        }
+        
+        if (userFound) {
+          // Utiliser le téléphone comme nom d'affichage si spécifié
+          const userData = userFound.metadata;
+          const displayName = userData.display_name || userData.displayName || userData.full_name || userData.fullName;
+          
+          if (displayName) {
+            console.log("Nom d'affichage trouvé:", displayName);
+            
+            // 2. Récupérer les informations du profil si disponibles
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('full_name, country, phone')
+              .eq('id', userFound.id)
+              .maybeSingle();
+              
+            console.log("Données du profil:", profileData);
+            
+            updateFields({
+              recipient: {
+                ...recipient,
+                email: cleanedPhone,
+                fullName: displayName || profileData?.full_name || `Utilisateur ${cleanedPhone}`,
+                country: profileData?.country || userData.country || recipient.country,
+              }
+            });
+            
+            setRecipientVerified(true);
+            
+            toast({
+              title: "Bénéficiaire trouvé",
+              description: displayName || profileData?.full_name || `Utilisateur ${cleanedPhone}`,
+            });
+            
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        // 3. Si aucun utilisateur n'est trouvé, utiliser la fonction find_recipient
         const { data: recipientMatch, error: recipientError } = await supabase
           .rpc('find_recipient', {
             search_term: cleanedPhone
@@ -170,67 +270,14 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         console.log("Réponse de find_recipient:", recipientMatch);
         
         if (!recipientMatch || recipientMatch.length === 0) {
-          console.log("Aucun utilisateur trouvé avec ce numéro:", identifier);
-          
-          // Cherchons dans la table auth_users_view pour voir si le numéro correspond à un champ dans raw_user_meta_data
-          const { data: authUserData, error: authUserError } = await supabase
-            .from('auth_users_view')
-            .select('id, email, raw_user_meta_data')
-            .maybeSingle();
-          
-          if (authUserError) {
-            console.error('Erreur lors de la recherche dans auth_users_view:', authUserError);
-          }
-          
-          let userFound = null;
-          
-          if (authUserData && authUserData.raw_user_meta_data) {
-            // Vérifier si le phone se trouve dans les métadonnées de l'utilisateur
-            const metadata = authUserData.raw_user_meta_data as any;
-            
-            if (metadata.phone === cleanedPhone) {
-              console.log("Utilisateur trouvé via metadata.phone:", authUserData);
-              userFound = authUserData;
-            }
-          }
-          
-          if (userFound) {
-            // Récupérer les informations du profil si disponibles
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('full_name, country, phone')
-              .eq('id', userFound.id)
-              .maybeSingle();
-              
-            const metadata = userFound.raw_user_meta_data as any;
-            const userName = profileData?.full_name || metadata.full_name || `Utilisateur ${cleanedPhone}`;
-              
-            updateFields({
-              recipient: {
-                ...recipient,
-                email: identifier,
-                fullName: userName,
-                country: profileData?.country || metadata.country || recipient.country,
-              }
-            });
-            
-            setRecipientVerified(true);
-            
-            toast({
-              title: "Bénéficiaire trouvé",
-              description: userName,
-            });
-            
-            setIsLoading(false);
-            return;
-          }
+          console.log("Aucun utilisateur trouvé avec ce numéro:", cleanedPhone);
           
           // Permettre le transfert vers des numéros non enregistrés
           updateFields({
             recipient: {
               ...recipient,
-              email: identifier,
-              fullName: recipient.fullName || "Nouveau destinataire",
+              email: cleanedPhone,
+              fullName: cleanedPhone, // Utiliser le numéro de téléphone comme nom
               country: recipient.country,
             }
           });
@@ -262,17 +309,19 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           console.log("Données auth utilisateur:", authData);
           
           // Extraire les informations des métadonnées si disponibles
-          let displayName = user.full_name;
+          let displayName = user.phone; // Par défaut, utiliser le numéro comme nom
           
           if (authData && authData.raw_user_meta_data) {
             const metadata = authData.raw_user_meta_data as any;
-            if (metadata.full_name) {
+            if (metadata.display_name) {
+              displayName = metadata.display_name;
+            } else if (metadata.full_name) {
               displayName = metadata.full_name;
             }
-            console.log("Nom complet extrait des métadonnées:", displayName);
+            console.log("Nom d'affichage extrait des métadonnées:", displayName);
           }
           
-          const fullNameToUse = displayName || user.full_name;
+          const fullNameToUse = displayName || user.full_name || user.phone;
           
           updateFields({
             recipient: {
@@ -385,7 +434,6 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
               placeholder="Ex: 6XXXXXXXX"
               value={phoneInput}
               onChange={(e) => handlePhoneInput(e.target.value)}
-              onBlur={() => recipient.email && verifyRecipient(recipient.email)}
               disabled={isLoading}
               className={recipientVerified ? "border-green-500 focus-visible:ring-green-500 pr-10" : "pr-10"}
             />
@@ -454,7 +502,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
             Le bénéficiaire a été vérifié et recevra directement l'argent sur son compte
           </p>
         )}
-        {!recipientVerified && recipient.fullName === "Nouveau destinataire" && (
+        {!recipientVerified && recipient.fullName && recipient.fullName !== "Nouveau destinataire" && (
           <p className="text-xs text-amber-600 mt-1">
             Ce destinataire n'est pas encore enregistré dans le système. Il recevra un code pour réclamer le transfert.
           </p>
