@@ -172,33 +172,45 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         if (!recipientMatch || recipientMatch.length === 0) {
           console.log("Aucun utilisateur trouvé avec ce numéro:", identifier);
           
-          // Cherchons dans la table auth.users pour voir si le numéro correspond à un display_name
+          // Cherchons dans la table auth_users_view pour voir si le numéro correspond à un champ dans raw_user_meta_data
           const { data: authUserData, error: authUserError } = await supabase
             .from('auth_users_view')
-            .select('id, display_name, email')
-            .eq('display_name', cleanedPhone)
+            .select('id, email, raw_user_meta_data')
             .maybeSingle();
           
           if (authUserError) {
-            console.error('Erreur lors de la recherche dans auth.users:', authUserError);
+            console.error('Erreur lors de la recherche dans auth_users_view:', authUserError);
           }
           
-          if (authUserData) {
-            console.log("Utilisateur trouvé via display_name:", authUserData);
+          let userFound = null;
+          
+          if (authUserData && authUserData.raw_user_meta_data) {
+            // Vérifier si le phone se trouve dans les métadonnées de l'utilisateur
+            const metadata = authUserData.raw_user_meta_data as any;
             
+            if (metadata.phone === cleanedPhone) {
+              console.log("Utilisateur trouvé via metadata.phone:", authUserData);
+              userFound = authUserData;
+            }
+          }
+          
+          if (userFound) {
             // Récupérer les informations du profil si disponibles
             const { data: profileData } = await supabase
               .from('profiles')
               .select('full_name, country, phone')
-              .eq('id', authUserData.id)
+              .eq('id', userFound.id)
               .maybeSingle();
+              
+            const metadata = userFound.raw_user_meta_data as any;
+            const userName = profileData?.full_name || metadata.full_name || `Utilisateur ${cleanedPhone}`;
               
             updateFields({
               recipient: {
                 ...recipient,
                 email: identifier,
-                fullName: profileData?.full_name || `Utilisateur ${cleanedPhone}`,
-                country: profileData?.country || recipient.country,
+                fullName: userName,
+                country: profileData?.country || metadata.country || recipient.country,
               }
             });
             
@@ -206,7 +218,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
             
             toast({
               title: "Bénéficiaire trouvé",
-              description: profileData?.full_name || `Utilisateur ${cleanedPhone}`,
+              description: userName,
             });
             
             setIsLoading(false);
@@ -240,17 +252,26 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           
           console.log("Utilisateur trouvé:", user);
           
-          // Chercher si ce numéro correspond à un display_name dans auth.users
+          // Chercher si ce numéro correspond à des métadonnées dans auth_users_view
           const { data: authData } = await supabase
             .from('auth_users_view')
-            .select('display_name')
+            .select('raw_user_meta_data')
             .eq('id', user.id)
             .maybeSingle();
             
           console.log("Données auth utilisateur:", authData);
           
-          // Utiliser le display_name comme nom complet si disponible
-          const displayName = authData?.display_name;
+          // Extraire les informations des métadonnées si disponibles
+          let displayName = user.full_name;
+          
+          if (authData && authData.raw_user_meta_data) {
+            const metadata = authData.raw_user_meta_data as any;
+            if (metadata.full_name) {
+              displayName = metadata.full_name;
+            }
+            console.log("Nom complet extrait des métadonnées:", displayName);
+          }
+          
           const fullNameToUse = displayName || user.full_name;
           
           updateFields({
