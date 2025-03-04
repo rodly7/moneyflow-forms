@@ -4,8 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TransferData } from "@/types/transfer";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Check, Loader2 } from "lucide-react";
+import { Check } from "lucide-react";
 import { 
   Select,
   SelectContent,
@@ -14,6 +13,8 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { countries } from "@/data/countries";
+import PhoneInput from "./PhoneInput";
+import { useRecipientVerification } from "@/hooks/useRecipientVerification";
 
 type RecipientInfoProps = {
   recipient: TransferData['recipient'];
@@ -30,13 +31,18 @@ type SuggestionType = {
 };
 
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
-  const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionType[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [recipientVerified, setRecipientVerified] = useState(false);
   const [phoneInput, setPhoneInput] = useState("");
   const [countryCode, setCountryCode] = useState("");
   const { toast } = useToast();
+
+  const {
+    isLoading,
+    recipientVerified,
+    verifyRecipient,
+    setRecipientVerified
+  } = useRecipientVerification();
 
   // Mettre à jour l'indicatif téléphonique lorsque le pays change
   useEffect(() => {
@@ -61,297 +67,30 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         }
       });
 
-      // Reset verification status when phone number changes
-      if (recipientVerified) {
-        setRecipientVerified(false);
-      }
-      
       // Automatically verify the recipient when phone number is entered
       if (formattedPhone.length >= 10) {
-        verifyRecipient(formattedPhone);
+        handleVerifyRecipient(formattedPhone);
       }
     }
   }, [phoneInput, countryCode]);
 
-  const isValidEmail = (email: string) => {
-    // Basic email regex validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    // Check if email starts with numbers only
-    const startsWithNumbersOnly = /^[0-9]+@/;
+  const handleVerifyRecipient = async (identifier: string) => {
+    const result = await verifyRecipient(identifier, countryCode, recipient);
     
-    return emailRegex.test(email) && !startsWithNumbersOnly.test(email);
-  };
-
-  const isValidPhoneNumber = (input: string) => {
-    // Remove spaces and '+' characters for validation
-    const cleanedInput = input.replace(/[\s+]/g, '');
-    // Check if the cleaned input contains only digits
-    return /^\d+$/.test(cleanedInput) && cleanedInput.length >= 8;
-  };
-
-  const verifyRecipient = async (identifier: string) => {
-    if (!identifier) return;
-    
-    setSuggestions([]);
-    setShowSuggestions(false);
-    setRecipientVerified(false);
-
-    // Check if input is an email or phone number
-    const isEmail = identifier.includes('@');
-    const isPhone = !isEmail;
-
-    if (isEmail && !isValidEmail(identifier)) {
-      toast({
-        title: "Format d'email invalide",
-        description: "Veuillez entrer une adresse email valide",
-        variant: "destructive",
-      });
-      // Reset recipient fields but keep the email
+    if (result.verified && result.recipientData) {
       updateFields({
         recipient: {
           ...recipient,
-          email: identifier,
-          fullName: '',
-          country: recipient.country,
+          ...result.recipientData
         }
       });
-      return;
-    }
-
-    if (isPhone && !identifier.match(/^\+?[0-9\s]+$/)) {
-      toast({
-        title: "Format de téléphone invalide",
-        description: "Veuillez entrer un numéro de téléphone valide",
-        variant: "destructive",
+    } else if (result.recipientData) {
+      updateFields({
+        recipient: {
+          ...recipient,
+          ...result.recipientData
+        }
       });
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      console.log("Vérification de l'identifiant:", identifier);
-      
-      if (isEmail) {
-        // Pour les emails : créer un transfert en attente s'ils n'existent pas
-        updateFields({
-          recipient: {
-            ...recipient,
-            email: identifier,
-            fullName: recipient.fullName || "Nouveau destinataire",
-            country: recipient.country,
-          }
-        });
-        
-        toast({
-          title: "Email enregistré",
-          description: "Ce destinataire recevra un code pour réclamer le transfert",
-        });
-        
-        setIsLoading(false);
-        return;
-      } else {
-        // Pour les numéros de téléphone, rechercher dans la table auth_users_view
-        const cleanedPhone = identifier.replace(/[\s]/g, '');
-        
-        console.log("Recherche par téléphone:", cleanedPhone);
-        
-        // 1. D'abord essayer de trouver l'utilisateur via auth_users_view
-        const { data: authUserData, error: authUserError } = await supabase
-          .from('auth_users_view')
-          .select('id, email, raw_user_meta_data')
-          .order('created_at', { ascending: false });
-        
-        if (authUserError) {
-          console.error('Erreur lors de la recherche dans auth_users_view:', authUserError);
-          toast({
-            title: "Erreur",
-            description: "Une erreur s'est produite lors de la vérification: " + authUserError.message,
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log("Données des utilisateurs:", authUserData);
-        
-        // Chercher un utilisateur dont le numéro de téléphone correspond
-        let userFound = null;
-        
-        if (authUserData && authUserData.length > 0) {
-          // Parcourir tous les utilisateurs pour chercher une correspondance de téléphone dans les métadonnées
-          for (const user of authUserData) {
-            if (user.raw_user_meta_data) {
-              const metadata = user.raw_user_meta_data as any;
-              
-              // Vérifier si le phone dans les métadonnées correspond
-              if (metadata.phone === cleanedPhone) {
-                console.log("Utilisateur trouvé via metadata.phone:", user);
-                userFound = {
-                  id: user.id,
-                  email: user.email,
-                  metadata: metadata
-                };
-                break;
-              }
-              
-              // Si le user n'utilise pas la propriété phone mais a stocké le numéro ailleurs
-              // Par exemple, certains systèmes utilisent phone_number au lieu de phone
-              if (metadata.phone_number === cleanedPhone || 
-                  metadata.phoneNumber === cleanedPhone || 
-                  metadata.mobile === cleanedPhone ||
-                  metadata.tel === cleanedPhone) {
-                console.log("Utilisateur trouvé via autre champ de téléphone:", user);
-                userFound = {
-                  id: user.id,
-                  email: user.email,
-                  metadata: metadata
-                };
-                break;
-              }
-            }
-          }
-        }
-        
-        if (userFound) {
-          // Utiliser le téléphone comme nom d'affichage si spécifié
-          const userData = userFound.metadata;
-          const displayName = userData.display_name || userData.displayName || userData.full_name || userData.fullName;
-          
-          if (displayName) {
-            console.log("Nom d'affichage trouvé:", displayName);
-            
-            // 2. Récupérer les informations du profil si disponibles
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('full_name, country, phone')
-              .eq('id', userFound.id)
-              .maybeSingle();
-              
-            console.log("Données du profil:", profileData);
-            
-            updateFields({
-              recipient: {
-                ...recipient,
-                email: cleanedPhone,
-                fullName: displayName || profileData?.full_name || `Utilisateur ${cleanedPhone}`,
-                country: profileData?.country || userData.country || recipient.country,
-              }
-            });
-            
-            setRecipientVerified(true);
-            
-            toast({
-              title: "Bénéficiaire trouvé",
-              description: displayName || profileData?.full_name || `Utilisateur ${cleanedPhone}`,
-            });
-            
-            setIsLoading(false);
-            return;
-          }
-        }
-        
-        // 3. Si aucun utilisateur n'est trouvé, utiliser la fonction find_recipient
-        const { data: recipientMatch, error: recipientError } = await supabase
-          .rpc('find_recipient', {
-            search_term: cleanedPhone
-          });
-        
-        if (recipientError) {
-          console.error('Erreur lors de la recherche du bénéficiaire:', recipientError);
-          toast({
-            title: "Erreur",
-            description: "Une erreur s'est produite lors de la vérification: " + recipientError.message,
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log("Réponse de find_recipient:", recipientMatch);
-        
-        if (!recipientMatch || recipientMatch.length === 0) {
-          console.log("Aucun utilisateur trouvé avec ce numéro:", cleanedPhone);
-          
-          // Permettre le transfert vers des numéros non enregistrés
-          updateFields({
-            recipient: {
-              ...recipient,
-              email: cleanedPhone,
-              fullName: cleanedPhone, // Utiliser le numéro de téléphone comme nom
-              country: recipient.country,
-            }
-          });
-          
-          toast({
-            title: "Numéro enregistré",
-            description: "Ce destinataire recevra un code pour réclamer le transfert",
-          });
-          
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log("Bénéficiaire(s) trouvé(s):", recipientMatch);
-        
-        // Si un destinataire est trouvé, l'utiliser
-        if (recipientMatch.length > 0) {
-          const user = recipientMatch[0];
-          
-          console.log("Utilisateur trouvé:", user);
-          
-          // Chercher si ce numéro correspond à des métadonnées dans auth_users_view
-          const { data: authData } = await supabase
-            .from('auth_users_view')
-            .select('raw_user_meta_data')
-            .eq('id', user.id)
-            .maybeSingle();
-            
-          console.log("Données auth utilisateur:", authData);
-          
-          // Extraire les informations des métadonnées si disponibles
-          let displayName = user.phone; // Par défaut, utiliser le numéro comme nom
-          
-          if (authData && authData.raw_user_meta_data) {
-            const metadata = authData.raw_user_meta_data as any;
-            if (metadata.display_name) {
-              displayName = metadata.display_name;
-            } else if (metadata.full_name) {
-              displayName = metadata.full_name;
-            }
-            console.log("Nom d'affichage extrait des métadonnées:", displayName);
-          }
-          
-          const fullNameToUse = displayName || user.full_name || user.phone;
-          
-          updateFields({
-            recipient: {
-              ...recipient,
-              email: user.phone, // Utiliser le téléphone comme identifiant
-              fullName: fullNameToUse,
-              country: user.country || recipient.country,
-            }
-          });
-          
-          setRecipientVerified(true);
-          
-          toast({
-            title: "Bénéficiaire trouvé",
-            description: fullNameToUse,
-          });
-          
-          // Mettre à jour l'input du téléphone pour afficher le numéro complet
-          setPhoneInput(user.phone.replace(countryCode, ""));
-        }
-      }
-    } catch (error) {
-      console.error('Erreur:', error);
-      toast({
-        title: "Erreur",
-        description: "Une erreur s'est produite lors de la vérification",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -368,10 +107,17 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     if (selectedCountry) {
       setCountryCode(selectedCountry.code);
     }
+    
+    // Réinitialiser la vérification si le pays change
+    setRecipientVerified(false);
   };
 
   const handlePhoneInput = (value: string) => {
     setPhoneInput(value);
+    // Réinitialiser la vérification si le numéro change
+    if (recipientVerified) {
+      setRecipientVerified(false);
+    }
   };
 
   const selectSuggestion = (suggestion: SuggestionType) => {
@@ -417,66 +163,41 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         </Select>
       </div>
 
-      <div className="space-y-2">
-        <Label>Numéro de téléphone du bénéficiaire</Label>
-        <div className="flex items-center space-x-2">
-          <div className="w-24 flex-shrink-0">
-            <Input
-              type="text"
-              value={countryCode}
-              readOnly
-              className="bg-gray-100"
-            />
+      <PhoneInput 
+        phoneInput={phoneInput}
+        countryCode={countryCode}
+        onPhoneChange={handlePhoneInput}
+        isLoading={isLoading}
+        isVerified={recipientVerified}
+        label="Numéro de téléphone du bénéficiaire"
+      />
+      
+      {showSuggestions && suggestions.length > 0 && (
+        <div className="mt-2 border rounded-md overflow-hidden bg-white shadow-sm">
+          <div className="p-2 bg-gray-50 border-b text-sm font-medium">
+            Suggestions
           </div>
-          <div className="relative flex-1">
-            <Input
-              type="text"
-              placeholder="Ex: 6XXXXXXXX"
-              value={phoneInput}
-              onChange={(e) => handlePhoneInput(e.target.value)}
-              disabled={isLoading}
-              className={recipientVerified ? "border-green-500 focus-visible:ring-green-500 pr-10" : "pr-10"}
-            />
-            {isLoading && (
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-              </div>
-            )}
-            {recipientVerified && !isLoading && (
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                <Check className="w-4 h-4 text-green-500" />
-              </div>
-            )}
-          </div>
+          <ul className="max-h-60 overflow-auto">
+            {suggestions.map((suggestion, index) => (
+              <li 
+                key={index} 
+                className="p-2 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
+                onClick={() => selectSuggestion(suggestion)}
+              >
+                <div>
+                  <div className="font-medium">{suggestion.display_name || suggestion.full_name}</div>
+                  <div className="text-sm text-gray-500">
+                    {suggestion.phone || suggestion.email}
+                  </div>
+                </div>
+                <div className="text-emerald-500">
+                  <Check className="w-4 h-4" />
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
-        
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="mt-2 border rounded-md overflow-hidden bg-white shadow-sm">
-            <div className="p-2 bg-gray-50 border-b text-sm font-medium">
-              Suggestions
-            </div>
-            <ul className="max-h-60 overflow-auto">
-              {suggestions.map((suggestion, index) => (
-                <li 
-                  key={index} 
-                  className="p-2 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
-                  onClick={() => selectSuggestion(suggestion)}
-                >
-                  <div>
-                    <div className="font-medium">{suggestion.display_name || suggestion.full_name}</div>
-                    <div className="text-sm text-gray-500">
-                      {suggestion.phone || suggestion.email}
-                    </div>
-                  </div>
-                  <div className="text-emerald-500">
-                    <Check className="w-4 h-4" />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="fullName">Nom Complet du Bénéficiaire</Label>
