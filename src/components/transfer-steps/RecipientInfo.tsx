@@ -75,16 +75,11 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   }, [phoneInput, countryCode]);
 
   const handleVerifyRecipient = async (identifier: string) => {
+    console.log("Vérification du destinataire:", identifier);
     const result = await verifyRecipient(identifier, countryCode, recipient);
     
-    if (result.verified && result.recipientData) {
-      updateFields({
-        recipient: {
-          ...recipient,
-          ...result.recipientData
-        }
-      });
-    } else if (result.recipientData) {
+    if (result.recipientData) {
+      console.log("Résultat de la vérification:", result);
       updateFields({
         recipient: {
           ...recipient,
@@ -170,6 +165,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         isLoading={isLoading}
         isVerified={recipientVerified}
         label="Numéro de téléphone du bénéficiaire"
+        recipientName={recipientVerified ? recipient.fullName : undefined}
       />
       
       {showSuggestions && suggestions.length > 0 && (

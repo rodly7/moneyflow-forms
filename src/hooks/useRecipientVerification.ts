@@ -32,6 +32,80 @@ export const useRecipientVerification = () => {
     return /^\d+$/.test(cleanedInput) && cleanedInput.length >= 8;
   };
 
+  // Fonction pour extraire le nom à partir des métadonnées utilisateur
+  const extractNameFromMetadata = (metadata: any): string | null => {
+    if (!metadata) return null;
+    
+    // Liste des clés possibles pour le nom d'utilisateur dans les métadonnées
+    const possibleNameKeys = [
+      'display_name', 'displayName', 'full_name', 'fullName', 
+      'name', 'user_name', 'userName', 'first_name', 'firstName',
+      'nom', 'prenom', 'prénom', 'pseudo'
+    ];
+    
+    // Vérifier chaque clé possible
+    for (const key of possibleNameKeys) {
+      if (metadata[key] && typeof metadata[key] === 'string' && metadata[key].trim().length > 0) {
+        return metadata[key].trim();
+      }
+    }
+    
+    // Essayer de construire un nom à partir des parties (prénom + nom)
+    if (metadata.first_name && metadata.last_name) {
+      return `${metadata.first_name} ${metadata.last_name}`.trim();
+    }
+    
+    if (metadata.firstName && metadata.lastName) {
+      return `${metadata.firstName} ${metadata.lastName}`.trim();
+    }
+    
+    if (metadata.prenom && metadata.nom) {
+      return `${metadata.prenom} ${metadata.nom}`.trim();
+    }
+    
+    if (metadata.prénom && metadata.nom) {
+      return `${metadata.prénom} ${metadata.nom}`.trim();
+    }
+    
+    return null;
+  };
+
+  // Fonction pour normaliser un numéro de téléphone pour la comparaison
+  const normalizePhoneNumber = (phone: string): string => {
+    return phone.replace(/[\s+()-]/g, '');
+  };
+
+  // Fonction pour comparer deux numéros de téléphone normalisés
+  const phoneNumbersMatch = (phone1: string, phone2: string, countryCode?: string): boolean => {
+    const normalizedPhone1 = normalizePhoneNumber(phone1);
+    const normalizedPhone2 = normalizePhoneNumber(phone2);
+    
+    // Correspondance directe
+    if (normalizedPhone1 === normalizedPhone2) return true;
+    
+    // Vérifier si un numéro est une sous-chaîne de l'autre (pour gérer le cas où l'indicatif est présent dans un numéro mais pas dans l'autre)
+    if (normalizedPhone1.endsWith(normalizedPhone2) || normalizedPhone2.endsWith(normalizedPhone1)) return true;
+    
+    // Si nous avons un code pays, vérifier si un numéro contient le code pays et l'autre non
+    if (countryCode) {
+      const normalizedCountryCode = normalizePhoneNumber(countryCode);
+      
+      // Si le premier numéro commence par le code pays, vérifier si le reste correspond au deuxième numéro
+      if (normalizedPhone1.startsWith(normalizedCountryCode)) {
+        const phone1WithoutCode = normalizedPhone1.substring(normalizedCountryCode.length);
+        if (phone1WithoutCode === normalizedPhone2) return true;
+      }
+      
+      // Vérification inverse (deuxième numéro avec code pays, premier sans)
+      if (normalizedPhone2.startsWith(normalizedCountryCode)) {
+        const phone2WithoutCode = normalizedPhone2.substring(normalizedCountryCode.length);
+        if (phone2WithoutCode === normalizedPhone1) return true;
+      }
+    }
+    
+    return false;
+  };
+
   // Fonction principale pour vérifier un destinataire par téléphone ou email
   const verifyRecipient = async (identifier: string, countryCode: string, recipient: RecipientData): Promise<{
     verified: boolean;
@@ -83,12 +157,13 @@ export const useRecipientVerification = () => {
           }
         };
       } else {
-        // Pour les numéros de téléphone, rechercher dans la table auth_users_view
+        // Pour les numéros de téléphone, rechercher directement dans la table auth.users
         const cleanedPhone = identifier.replace(/[\s]/g, '');
+        const normalizedPhone = normalizePhoneNumber(cleanedPhone);
         
         console.log("Recherche par téléphone:", cleanedPhone);
         
-        // 1. D'abord essayer de trouver l'utilisateur via auth_users_view
+        // 1. Récupérer tous les utilisateurs depuis auth_users_view
         const { data: authUserData, error: authUserError } = await supabase
           .from('auth_users_view')
           .select('id, email, raw_user_meta_data')
@@ -104,174 +179,140 @@ export const useRecipientVerification = () => {
           return { verified: false };
         }
         
-        console.log("Données des utilisateurs:", authUserData);
+        console.log("Nombre d'utilisateurs trouvés:", authUserData?.length);
         
-        // Chercher un utilisateur dont le numéro de téléphone correspond
-        let userFound = null;
-        
+        // 2. Recherche approfondie à travers les métadonnées des utilisateurs
         if (authUserData && authUserData.length > 0) {
-          // Parcourir tous les utilisateurs pour chercher une correspondance de téléphone dans les métadonnées
           for (const user of authUserData) {
             if (user.raw_user_meta_data) {
               const metadata = user.raw_user_meta_data as any;
+              console.log("Vérification des métadonnées pour l'utilisateur:", user.id);
               
-              // Vérifier si le phone dans les métadonnées correspond
-              const userPhone = metadata.phone || metadata.phone_number || metadata.phoneNumber || metadata.mobile || metadata.tel;
+              // Recherche de numéro de téléphone dans différents champs des métadonnées
+              const possiblePhoneKeys = [
+                'phone', 'phone_number', 'phoneNumber', 'mobile', 'tel', 
+                'telephone', 'cellphone', 'cell', 'gsm', 'numero', 'téléphone'
+              ];
               
-              // Normaliser les numéros pour la comparaison
-              const normalizedUserPhone = userPhone ? userPhone.replace(/[\s+]/g, '') : '';
-              const normalizedCleanedPhone = cleanedPhone.replace(/[\s+]/g, '');
+              let foundPhoneMatch = false;
               
-              // Vérifier si le numéro complet correspond
-              if (normalizedUserPhone === normalizedCleanedPhone) {
-                console.log("Utilisateur trouvé avec numéro exact:", user);
-                userFound = {
-                  id: user.id,
-                  email: user.email,
-                  metadata: metadata
-                };
-                break;
+              // Vérifier chaque clé possible pour le téléphone
+              for (const key of possiblePhoneKeys) {
+                if (metadata[key]) {
+                  const userPhone = String(metadata[key]);
+                  console.log(`Comparaison: "${userPhone}" vs "${cleanedPhone}"`);
+                  
+                  if (phoneNumbersMatch(userPhone, cleanedPhone, countryCode)) {
+                    console.log(`✓ Correspondance trouvée avec la clé "${key}": ${userPhone}`);
+                    foundPhoneMatch = true;
+                    break;
+                  }
+                }
               }
               
-              // Vérifier si le numéro sans l'indicatif correspond
-              if (countryCode && normalizedCleanedPhone.startsWith(countryCode.replace(/[\s+]/g, ''))) {
-                const phoneWithoutCode = normalizedCleanedPhone.substring(countryCode.replace(/[\s+]/g, '').length);
-                if (normalizedUserPhone.endsWith(phoneWithoutCode)) {
-                  console.log("Utilisateur trouvé avec numéro sans indicatif:", user);
-                  userFound = {
-                    id: user.id,
-                    email: user.email,
-                    metadata: metadata
+              // Si un téléphone correspondant est trouvé, extraire le nom
+              if (foundPhoneMatch) {
+                console.log("Correspondance de téléphone trouvée, extraction du nom...");
+                
+                // Extraire le nom des métadonnées
+                const displayName = extractNameFromMetadata(metadata);
+                
+                if (displayName) {
+                  console.log("Nom trouvé dans les métadonnées:", displayName);
+                  
+                  // Récupérer les informations complémentaires du profil
+                  const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('full_name, country, phone')
+                    .eq('id', user.id)
+                    .maybeSingle();
+                  
+                  console.log("Données du profil:", profileData);
+                  
+                  // Créer les données du destinataire avec les informations trouvées
+                  const finalResult = {
+                    verified: true,
+                    recipientData: {
+                      email: cleanedPhone,
+                      fullName: displayName || profileData?.full_name || `Utilisateur ${cleanedPhone}`,
+                      country: profileData?.country || metadata.country || recipient.country,
+                    }
                   };
-                  break;
+                  
+                  toast({
+                    title: "Bénéficiaire trouvé",
+                    description: finalResult.recipientData.fullName,
+                  });
+                  
+                  setRecipientVerified(true);
+                  return finalResult;
                 }
               }
             }
           }
         }
         
-        if (userFound) {
-          // Utiliser le téléphone comme nom d'affichage si spécifié
-          const userData = userFound.metadata;
-          const displayName = userData.display_name || userData.displayName || userData.full_name || userData.fullName || userData.name;
+        // 3. Si aucune correspondance n'est trouvée dans les métadonnées,
+        // vérifier directement dans la table profiles
+        console.log("Recherche dans la table profiles");
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, country, phone')
+          .order('created_at', { ascending: false });
+        
+        if (profilesError) {
+          console.error('Erreur lors de la recherche dans profiles:', profilesError);
+        } else if (profilesData && profilesData.length > 0) {
+          console.log("Nombre de profils trouvés:", profilesData.length);
           
-          if (displayName) {
-            console.log("Nom d'affichage trouvé:", displayName);
-            
-            // 2. Récupérer les informations du profil si disponibles
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('full_name, country, phone')
-              .eq('id', userFound.id)
-              .maybeSingle();
+          // Parcourir les profils pour trouver une correspondance téléphonique
+          for (const profile of profilesData) {
+            if (profile.phone) {
+              console.log(`Comparaison profil: "${profile.phone}" vs "${cleanedPhone}"`);
               
-            console.log("Données du profil:", profileData);
-            
-            const finalResult = {
-              verified: true,
-              recipientData: {
-                email: cleanedPhone,
-                fullName: displayName || profileData?.full_name || `Utilisateur ${cleanedPhone}`,
-                country: profileData?.country || userData.country || recipient.country,
+              if (phoneNumbersMatch(profile.phone, cleanedPhone, countryCode)) {
+                console.log("✓ Correspondance trouvée dans profiles:", profile.phone);
+                
+                const finalResult = {
+                  verified: true,
+                  recipientData: {
+                    email: cleanedPhone,
+                    fullName: profile.full_name || `Utilisateur ${profile.phone}`,
+                    country: profile.country || recipient.country,
+                  }
+                };
+                
+                toast({
+                  title: "Bénéficiaire trouvé",
+                  description: finalResult.recipientData.fullName,
+                });
+                
+                setRecipientVerified(true);
+                return finalResult;
               }
-            };
-            
-            toast({
-              title: "Bénéficiaire trouvé",
-              description: finalResult.recipientData.fullName,
-            });
-            
-            setRecipientVerified(true);
-            return finalResult;
+            }
           }
         }
         
-        // 3. Si aucun utilisateur n'est trouvé, utiliser la fonction find_recipient
-        const { data: recipientMatch, error: recipientError } = await supabase
-          .rpc('find_recipient', {
-            search_term: cleanedPhone
-          });
+        // 4. Si aucun utilisateur n'est trouvé, permettre le transfert vers un numéro non enregistré
+        console.log("Aucun utilisateur trouvé avec ce numéro:", cleanedPhone);
         
-        if (recipientError) {
-          console.error('Erreur lors de la recherche du bénéficiaire:', recipientError);
-          toast({
-            title: "Erreur",
-            description: "Une erreur s'est produite lors de la vérification: " + recipientError.message,
-            variant: "destructive",
-          });
-          return { verified: false };
-        }
-        
-        console.log("Réponse de find_recipient:", recipientMatch);
-        
-        if (!recipientMatch || recipientMatch.length === 0) {
-          console.log("Aucun utilisateur trouvé avec ce numéro:", cleanedPhone);
-          
-          // Permettre le transfert vers des numéros non enregistrés
-          const noUserResult = {
-            verified: false,
-            recipientData: {
-              email: cleanedPhone,
-              fullName: cleanedPhone, // Utiliser le numéro de téléphone comme nom
-              country: recipient.country,
-            }
-          };
-          
-          toast({
-            title: "Numéro enregistré",
-            description: "Ce destinataire recevra un code pour réclamer le transfert",
-          });
-          
-          return noUserResult;
-        }
-        
-        console.log("Bénéficiaire(s) trouvé(s):", recipientMatch);
-        
-        // Si un destinataire est trouvé, l'utiliser
-        if (recipientMatch.length > 0) {
-          const user = recipientMatch[0];
-          
-          console.log("Utilisateur trouvé:", user);
-          
-          // Chercher si ce numéro correspond à des métadonnées dans auth_users_view
-          const { data: authData } = await supabase
-            .from('auth_users_view')
-            .select('raw_user_meta_data')
-            .eq('id', user.id)
-            .maybeSingle();
-            
-          console.log("Données auth utilisateur:", authData);
-          
-          // Extraire les informations des métadonnées si disponibles
-          let displayName = user.phone; // Par défaut, utiliser le numéro comme nom
-          
-          if (authData && authData.raw_user_meta_data) {
-            const metadata = authData.raw_user_meta_data as any;
-            displayName = metadata.display_name || metadata.displayName || metadata.full_name || metadata.fullName || metadata.name || user.full_name || user.phone;
+        const noUserResult = {
+          verified: false,
+          recipientData: {
+            email: cleanedPhone,
+            fullName: cleanedPhone, // Utiliser le numéro de téléphone comme nom
+            country: recipient.country,
           }
-          
-          const fullNameToUse = displayName || user.full_name || user.phone;
-          
-          const foundUserResult = {
-            verified: true,
-            recipientData: {
-              email: user.phone, // Utiliser le téléphone comme identifiant
-              fullName: fullNameToUse,
-              country: user.country || recipient.country,
-            }
-          };
-          
-          toast({
-            title: "Bénéficiaire trouvé",
-            description: fullNameToUse,
-          });
-          
-          setRecipientVerified(true);
-          return foundUserResult;
-        }
+        };
+        
+        toast({
+          title: "Numéro enregistré",
+          description: "Ce destinataire recevra un code pour réclamer le transfert",
+        });
+        
+        return noUserResult;
       }
-      
-      return { verified: false };
     } catch (error) {
       console.error('Erreur:', error);
       toast({

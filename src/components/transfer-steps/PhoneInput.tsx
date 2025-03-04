@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, User } from "lucide-react";
 
 type PhoneInputProps = {
   phoneInput: string;
@@ -11,6 +11,7 @@ type PhoneInputProps = {
   isLoading: boolean;
   isVerified: boolean;
   label?: string;
+  recipientName?: string;
 };
 
 const PhoneInput = ({
@@ -19,8 +20,11 @@ const PhoneInput = ({
   onPhoneChange,
   isLoading,
   isVerified,
-  label = "Numéro de téléphone"
+  label = "Numéro de téléphone",
+  recipientName
 }: PhoneInputProps) => {
+  const [isFocused, setIsFocused] = useState(false);
+  
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
@@ -39,6 +43,8 @@ const PhoneInput = ({
             placeholder="Ex: 6XXXXXXXX"
             value={phoneInput}
             onChange={(e) => onPhoneChange(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
             disabled={isLoading}
             className={isVerified ? "border-green-500 focus-visible:ring-green-500 pr-10" : "pr-10"}
           />
@@ -54,6 +60,13 @@ const PhoneInput = ({
           )}
         </div>
       </div>
+      
+      {isVerified && recipientName && (
+        <div className="flex items-center text-sm text-green-600 mt-1">
+          <User className="w-3.5 h-3.5 mr-1" />
+          <span>{recipientName}</span>
+        </div>
+      )}
     </div>
   );
 };
