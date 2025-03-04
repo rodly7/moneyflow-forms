@@ -12,6 +12,7 @@ type PhoneInputProps = {
   isVerified: boolean;
   label?: string;
   recipientName?: string;
+  onBlurComplete?: () => void;
 };
 
 const PhoneInput = ({
@@ -21,9 +22,21 @@ const PhoneInput = ({
   isLoading,
   isVerified,
   label = "Numéro de téléphone",
-  recipientName
+  recipientName,
+  onBlurComplete
 }: PhoneInputProps) => {
   const [isFocused, setIsFocused] = useState(false);
+  
+  // Check if the phone number is complete (more than 8 digits)
+  const isPhoneComplete = phoneInput.replace(/\D/g, '').length >= 8;
+  
+  // Handle blur event to trigger verification when phone number is complete
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (isPhoneComplete && onBlurComplete) {
+      onBlurComplete();
+    }
+  };
   
   return (
     <div className="space-y-2">
@@ -44,7 +57,7 @@ const PhoneInput = ({
             value={phoneInput}
             onChange={(e) => onPhoneChange(e.target.value)}
             onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
+            onBlur={handleBlur}
             disabled={isLoading}
             className={isVerified ? "border-green-500 focus-visible:ring-green-500 pr-10" : "pr-10"}
           />

@@ -66,11 +66,6 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           email: formattedPhone,
         }
       });
-
-      // Automatically verify the recipient when phone number is entered
-      if (formattedPhone.length >= 10) {
-        handleVerifyRecipient(formattedPhone);
-      }
     }
   }, [phoneInput, countryCode]);
 
@@ -112,6 +107,14 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     // Réinitialiser la vérification si le numéro change
     if (recipientVerified) {
       setRecipientVerified(false);
+    }
+  };
+
+  // Fonction pour déclencher la vérification automatique lorsque le numéro est complet
+  const handlePhoneComplete = () => {
+    if (phoneInput && phoneInput.length >= 8) {
+      const formattedPhone = phoneInput.startsWith('+') ? phoneInput : `${countryCode}${phoneInput.startsWith('0') ? phoneInput.substring(1) : phoneInput}`;
+      handleVerifyRecipient(formattedPhone);
     }
   };
 
@@ -166,6 +169,7 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
         isVerified={recipientVerified}
         label="Numéro de téléphone du bénéficiaire"
         recipientName={recipientVerified ? recipient.fullName : undefined}
+        onBlurComplete={handlePhoneComplete}
       />
       
       {showSuggestions && suggestions.length > 0 && (
