@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +11,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Receive from "./pages/Receive";
 import Withdraw from "./pages/Withdraw";
+import Transactions from "./pages/Transactions";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +60,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Withdraw />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/transactions"
+        element={
+          <ProtectedRoute>
+            <Transactions />
           </ProtectedRoute>
         }
       />

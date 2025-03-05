@@ -106,10 +106,10 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-2 sm:py-8 sm:px-4">
-      <div className="container max-w-3xl mx-auto space-y-4">
+    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-0">
+      <div className="container max-w-full mx-auto space-y-4">
         {/* Profile Card */}
-        <Card className="bg-white shadow-lg">
+        <Card className="bg-white shadow-lg mx-4">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -134,7 +134,7 @@ const Index = () => {
         </Card>
 
         {/* Balance Card */}
-        <Card className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white">
+        <Card className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white mx-4">
           <CardContent className="p-4 sm:p-6">
             <div className="flex justify-between items-start">
               <div>
@@ -153,7 +153,7 @@ const Index = () => {
         </Card>
 
         {showTransfer ? (
-          <div className="space-y-4">
+          <div className="space-y-4 mx-4">
             <Button
               variant="outline"
               onClick={() => setShowTransfer(false)}
@@ -164,7 +164,7 @@ const Index = () => {
             <TransferForm />
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2 mx-4">
             <Link to="/receive" className="col-span-1">
               <Button
                 variant="outline"
@@ -198,7 +198,7 @@ const Index = () => {
         )}
 
         {/* Transactions History with Tabs - Limited to 3 */}
-        <Card className="bg-white shadow-lg">
+        <Card className="bg-white shadow-lg mx-4">
           <CardHeader className="py-3 px-4">
             <CardTitle className="text-base font-semibold">Transactions récentes</CardTitle>
           </CardHeader>
@@ -259,7 +259,12 @@ const Index = () => {
                 {/* View All Button */}
                 {allTransactions.length > 0 && (
                   <div className="text-center">
-                    <Button variant="ghost" size="sm" className="text-primary">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-primary"
+                      onClick={() => navigate('/transactions')}
+                    >
                       Voir tout <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   </div>
@@ -312,7 +317,12 @@ const Index = () => {
                 {/* View All Button */}
                 {transfers && transfers.length > 0 && (
                   <div className="text-center">
-                    <Button variant="ghost" size="sm" className="text-primary">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-primary"
+                      onClick={() => navigate('/transactions', { state: { initialTab: 'transfers' }})}
+                    >
                       Voir tout <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   </div>
@@ -365,7 +375,12 @@ const Index = () => {
                 {/* View All Button */}
                 {recharges && recharges.length > 0 && (
                   <div className="text-center">
-                    <Button variant="ghost" size="sm" className="text-primary">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-primary"
+                      onClick={() => navigate('/transactions', { state: { initialTab: 'recharges' }})}
+                    >
                       Voir tout <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   </div>
