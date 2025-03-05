@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +11,32 @@ import { fr } from "date-fns/locale";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 
+type TransferTransaction = {
+  id: string;
+  type: 'transfer';
+  amount: number;
+  date: Date;
+  description: string;
+  recipient: string;
+  details: string;
+  currency: string;
+  status: string;
+};
+
+type RechargeTransaction = {
+  id: string;
+  type: 'recharge';
+  amount: number;
+  date: Date;
+  description: string;
+  method: string;
+  details: string;
+  currency: string;
+  status: string;
+};
+
+type Transaction = TransferTransaction | RechargeTransaction;
+
 const Transactions = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -21,7 +46,6 @@ const Transactions = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState(initialTab);
 
-  // Fetch all transfers
   const { data: transfers, isLoading: transfersLoading } = useQuery({
     queryKey: ['all-transfers'],
     queryFn: async () => {
@@ -36,7 +60,6 @@ const Transactions = () => {
     },
   });
 
-  // Fetch all recharges
   const { data: recharges, isLoading: rechargesLoading } = useQuery({
     queryKey: ['all-recharges'],
     queryFn: async () => {
@@ -51,11 +74,10 @@ const Transactions = () => {
     },
   });
 
-  // Combine all transactions for the "all" tab
-  const allTransactions = [
+  const allTransactions: Transaction[] = [
     ...(transfers?.map(t => ({
       id: t.id,
-      type: 'transfer',
+      type: 'transfer' as const,
       amount: -t.amount,
       date: new Date(t.created_at),
       description: `Transfert à ${t.recipient_full_name}`,
@@ -66,7 +88,7 @@ const Transactions = () => {
     })) || []),
     ...(recharges?.map(r => ({
       id: r.id,
-      type: 'recharge',
+      type: 'recharge' as const,
       amount: r.amount,
       date: new Date(r.created_at),
       description: `Recharge via ${r.payment_method}`,
@@ -77,13 +99,22 @@ const Transactions = () => {
     })) || [])
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
-  // Filter transactions based on search query
-  const filteredTransactions = allTransactions.filter(transaction => 
-    transaction.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (transaction.recipient && transaction.recipient.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (transaction.method && transaction.method.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (transaction.details && transaction.details.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredTransactions = allTransactions.filter(transaction => {
+    const searchLower = searchQuery.toLowerCase();
+    
+    if (transaction.description.toLowerCase().includes(searchLower)) return true;
+    if (transaction.details.toLowerCase().includes(searchLower)) return true;
+    
+    if (transaction.type === 'transfer' && transaction.recipient.toLowerCase().includes(searchLower)) {
+      return true;
+    }
+    
+    if (transaction.type === 'recharge' && transaction.method.toLowerCase().includes(searchLower)) {
+      return true;
+    }
+    
+    return false;
+  });
   
   const filteredTransfers = transfers?.filter(transfer => 
     transfer.recipient_full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -116,7 +147,7 @@ const Transactions = () => {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <h1 className="text-xl font-bold">Historique des Transactions</h1>
-          <div className="w-9"></div> {/* Empty div for spacing */}
+          <div className="w-9"></div>
         </div>
 
         <div className="px-4 mb-4">
