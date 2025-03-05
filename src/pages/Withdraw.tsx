@@ -1,193 +1,170 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
+import { ArrowLeft } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { countries } from "@/data/countries";
-import { useQuery } from "@tanstack/react-query";
 
 const Withdraw = () => {
-  const [amount, setAmount] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState("");
   const { user } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [amount, setAmount] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Fetch user profile to get balance and country
-  const { data: profile } = useQuery({
-    queryKey: ['profile'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user?.id)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Set the country from user profile when profile is loaded
-  useEffect(() => {
-    if (profile?.country) {
-      setSelectedCountry(profile.country);
-    }
-  }, [profile]);
-
-  // Find payment methods for selected country
-  const countryData = countries.find(c => c.name === selectedCountry);
-  const paymentMethods = countryData?.paymentMethods || [];
-
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
-
-  // Reset payment method when country changes
-  const handleCountryChange = (country: string) => {
-    setSelectedCountry(country);
-    setSelectedPaymentMethod("");
-  };
-
-  const handleWithdraw = async () => {
-    if (!amount || !selectedPaymentMethod || !selectedCountry) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
       toast({
-        title: "Erreur",
-        description: "Veuillez remplir tous les champs",
-        variant: "destructive",
+        title: "Montant invalide",
+        description: "Veuillez entrer un montant valide",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!phoneNumber) {
+      toast({
+        title: "Numéro de téléphone requis",
+        description: "Veuillez entrer un numéro de téléphone pour le retrait",
+        variant: "destructive"
       });
       return;
     }
 
     try {
-      const amountNum = Number(amount);
-      if (isNaN(amountNum) || amountNum <= 0) {
-        toast({
-          title: "Erreur",
-          description: "Veuillez entrer un montant valide",
-          variant: "destructive",
-        });
-        return;
+      setIsProcessing(true);
+
+      // Vérifier le solde de l'utilisateur
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('balance')
+        .eq('id', user?.id)
+        .single();
+
+      if (profileError || !profile) {
+        throw new Error("Impossible de vérifier votre solde");
       }
 
-      // Vérifier si l'utilisateur a suffisamment de solde
-      if (profile?.balance < amountNum) {
+      const withdrawAmount = Number(amount);
+      
+      if (profile.balance < withdrawAmount) {
         toast({
           title: "Solde insuffisant",
-          description: "Vous n'avez pas assez de fonds pour effectuer ce retrait.",
+          description: "Vous n'avez pas assez de fonds pour effectuer ce retrait",
           variant: "destructive"
         });
         return;
       }
 
-      // Débiter le compte de l'utilisateur
-      const { error: balanceError } = await supabase.rpc('increment_balance', {
-        user_id: user?.id,
-        amount: -amountNum
-      });
+      // Créer l'enregistrement de retrait
+      const { data: withdrawal, error: withdrawalError } = await supabase
+        .from('withdrawals')
+        .insert({
+          user_id: user?.id,
+          amount: withdrawAmount,
+          withdrawal_phone: phoneNumber,
+          status: 'pending'
+        })
+        .select()
+        .single();
 
-      if (balanceError) throw balanceError;
+      if (withdrawalError) {
+        throw new Error(withdrawalError.message);
+      }
+
+      // Mettre à jour le solde de l'utilisateur
+      const { error: balanceError } = await supabase
+        .from('profiles')
+        .update({ balance: profile.balance - withdrawAmount })
+        .eq('id', user?.id);
+
+      if (balanceError) {
+        throw new Error("Erreur lors de la mise à jour du solde");
+      }
 
       toast({
-        title: "Retrait initié",
-        description: `Votre retrait de ${amount}€ via ${selectedPaymentMethod} est en cours de traitement`,
+        title: "Demande de retrait envoyée",
+        description: `Votre demande de retrait de ${withdrawAmount} XAF a été soumise et est en cours de traitement.`,
       });
 
       navigate('/');
     } catch (error) {
-      console.error('Erreur lors du retrait:', error);
+      console.error("Erreur lors du retrait:", error);
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue lors du retrait",
-        variant: "destructive",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors du retrait",
+        variant: "destructive"
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-2 sm:py-8 sm:px-4">
-      <div className="container max-w-3xl mx-auto">
-        <Link to="/">
-          <Button variant="ghost" className="mb-4 sm:mb-6">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour
+    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0">
+      <div className="max-w-md mx-auto space-y-4">
+        <div className="flex items-center justify-between px-4 mb-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate('/')}
+            className="text-gray-700"
+          >
+            <ArrowLeft className="w-5 h-5" />
           </Button>
-        </Link>
-        
-        <Card>
+          <h1 className="text-xl font-bold">Retrait d'argent</h1>
+          <div className="w-9"></div>
+        </div>
+
+        <Card className="mx-4">
           <CardHeader>
-            <CardTitle>Retirer de l'argent</CardTitle>
+            <CardTitle className="text-lg">Demande de retrait</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <Label>Pays de retrait</Label>
-              <Select
-                value={selectedCountry}
-                onValueChange={handleCountryChange}
-              >
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Sélectionnez un pays" />
-                </SelectTrigger>
-                <SelectContent>
-                  {countries.map((country) => (
-                    <SelectItem key={country.name} value={country.name}>
-                      {country.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="amount">Montant à retirer</Label>
-              <Input
-                id="amount"
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                className="mt-2"
-              />
-            </div>
-
-            <div>
-              <Label>Mode de paiement</Label>
-              <Select
-                value={selectedPaymentMethod}
-                onValueChange={setSelectedPaymentMethod}
-                disabled={!selectedCountry}
-              >
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Sélectionnez un mode de paiement" />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentMethods.map((method) => (
-                    <SelectItem key={method} value={method}>
-                      {method}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {profile && (
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">Solde disponible</p>
-                <p className="text-lg font-semibold">{profile.balance.toLocaleString('fr-FR')} FCFA</p>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="amount">Montant (XAF)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  placeholder="Entrez le montant"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  required
+                />
               </div>
-            )}
-            
-            <Button 
-              onClick={handleWithdraw}
-              className="w-full"
-            >
-              Retirer
-            </Button>
+              
+              <div className="space-y-2">
+                <Label htmlFor="phone">Numéro de téléphone Mobile Money</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="Ex: +242690485171"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  required
+                />
+                <p className="text-xs text-gray-500">
+                  Entrez le numéro qui recevra l'argent via Mobile Money
+                </p>
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full bg-emerald-600 hover:bg-emerald-700"
+                disabled={isProcessing}
+              >
+                {isProcessing ? "Traitement en cours..." : "Confirmer le retrait"}
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </div>

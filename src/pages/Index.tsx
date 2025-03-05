@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
-import { User, CreditCard, Upload, Download, ArrowRightLeft, LogOut, ArrowUpRight, ArrowDownLeft, Wallet, ChevronRight } from "lucide-react";
+import { User, CreditCard, Upload, Download, ArrowRightLeft, LogOut, ArrowDownLeft, Wallet, ChevronRight } from "lucide-react";
 import TransferForm from "@/components/TransferForm";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
@@ -33,14 +33,14 @@ const Index = () => {
     },
   });
 
-  // Fetch all types of transactions with limit 3
-  const { data: transfers } = useQuery({
-    queryKey: ['transfers'],
+  // Fetch withdrawals and recharges with limit 3
+  const { data: withdrawals } = useQuery({
+    queryKey: ['withdrawals'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('transfers')
+        .from('withdrawals')
         .select('*')
-        .eq('sender_id', user?.id)
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
         .limit(3);
       
@@ -77,14 +77,14 @@ const Index = () => {
 
   // Combine and sort all transactions (limited to 3)
   const allTransactions = [
-    ...(transfers?.map(t => ({
-      id: t.id,
-      type: 'transfer',
-      amount: -t.amount,
-      date: new Date(t.created_at),
-      description: `Transfert à ${t.recipient_full_name}`,
-      currency: t.currency,
-      status: t.status
+    ...(withdrawals?.map(w => ({
+      id: w.id,
+      type: 'withdrawal',
+      amount: -w.amount,
+      date: new Date(w.created_at),
+      description: `Retrait vers ${w.withdrawal_phone}`,
+      currency: 'XAF',
+      status: w.status
     })) || []),
     ...(recharges?.map(r => ({
       id: r.id,
@@ -100,7 +100,7 @@ const Index = () => {
   .slice(0, 3); // Ensure we only show 3 transactions total
 
   const getTransactionIcon = (type) => {
-    if (type === 'transfer') return <ArrowUpRight className="w-5 h-5 text-red-500" />;
+    if (type === 'withdrawal') return <Download className="w-5 h-5 text-red-500" />;
     if (type === 'recharge') return <ArrowDownLeft className="w-5 h-5 text-green-500" />;
     return <Wallet className="w-5 h-5 text-blue-500" />;
   };
@@ -200,13 +200,13 @@ const Index = () => {
         {/* Transactions History with Tabs - Limited to 3 */}
         <Card className="bg-white shadow-lg mx-4">
           <CardHeader className="py-3 px-4">
-            <CardTitle className="text-base font-semibold">Transactions récentes</CardTitle>
+            <CardTitle className="text-base font-semibold">Opérations récentes</CardTitle>
           </CardHeader>
           <CardContent className="p-4">
             <Tabs defaultValue="all">
               <TabsList className="grid grid-cols-3 mb-4">
                 <TabsTrigger value="all">Toutes</TabsTrigger>
-                <TabsTrigger value="transfers">Transferts</TabsTrigger>
+                <TabsTrigger value="withdrawals">Retraits</TabsTrigger>
                 <TabsTrigger value="recharges">Recharges</TabsTrigger>
               </TabsList>
               
@@ -252,7 +252,7 @@ const Index = () => {
                   ))
                 ) : (
                   <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
-                    Aucune transaction effectuée
+                    Aucune opération effectuée
                   </p>
                 )}
                 
@@ -271,21 +271,21 @@ const Index = () => {
                 )}
               </TabsContent>
               
-              <TabsContent value="transfers" className="space-y-2">
-                {transfers && transfers.length > 0 ? (
-                  transfers.slice(0, 3).map((transfer) => (
+              <TabsContent value="withdrawals" className="space-y-2">
+                {withdrawals && withdrawals.length > 0 ? (
+                  withdrawals.slice(0, 3).map((withdrawal) => (
                     <div 
-                      key={transfer.id} 
+                      key={withdrawal.id} 
                       className="flex justify-between items-center p-2 rounded-lg border hover:bg-gray-50 transition"
                     >
                       <div className="flex items-center gap-2">
                         <div className="p-2 rounded-full bg-gray-100">
-                          <ArrowUpRight className="w-5 h-5 text-red-500" />
+                          <Download className="w-5 h-5 text-red-500" />
                         </div>
                         <div>
-                          <p className="font-medium text-sm">Transfert à {transfer.recipient_full_name}</p>
+                          <p className="font-medium text-sm">Retrait vers {withdrawal.withdrawal_phone}</p>
                           <p className="text-xs text-gray-500">
-                            {format(new Date(transfer.created_at), 'PPP', { locale: fr })}
+                            {format(new Date(withdrawal.created_at), 'PPP', { locale: fr })}
                           </p>
                         </div>
                       </div>
@@ -293,35 +293,35 @@ const Index = () => {
                         <p className="font-semibold text-sm text-red-500">
                           -{new Intl.NumberFormat('fr-FR', {
                             style: 'currency',
-                            currency: transfer.currency || 'XAF',
+                            currency: 'XAF',
                             maximumFractionDigits: 0
-                          }).format(transfer.amount)}
+                          }).format(withdrawal.amount)}
                         </p>
                         <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                          transfer.status === 'completed' ? 'bg-green-100 text-green-700' : 
-                          transfer.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                          withdrawal.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                          withdrawal.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
                           'bg-gray-100 text-gray-700'
                         }`}>
-                          {transfer.status === 'completed' ? 'Complété' : 
-                           transfer.status === 'pending' ? 'En attente' : transfer.status}
+                          {withdrawal.status === 'completed' ? 'Complété' : 
+                           withdrawal.status === 'pending' ? 'En attente' : withdrawal.status}
                         </span>
                       </div>
                     </div>
                   ))
                 ) : (
                   <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
-                    Aucun transfert effectué
+                    Aucun retrait effectué
                   </p>
                 )}
                 
                 {/* View All Button */}
-                {transfers && transfers.length > 0 && (
+                {withdrawals && withdrawals.length > 0 && (
                   <div className="text-center">
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       className="text-primary"
-                      onClick={() => navigate('/transactions', { state: { initialTab: 'transfers' }})}
+                      onClick={() => navigate('/transactions', { state: { initialTab: 'withdrawals' }})}
                     >
                       Voir tout <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>

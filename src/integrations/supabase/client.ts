@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
@@ -17,3 +18,53 @@ export const supabase = createClient<Database>(
     }
   }
 );
+
+// Function to handle withdrawal operations
+export const processWithdrawal = async (userId: string, amount: number, phoneNumber: string) => {
+  try {
+    // Check user balance
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('balance')
+      .eq('id', userId)
+      .single();
+    
+    if (profileError || !profile) {
+      throw new Error("Impossible de vérifier votre solde");
+    }
+    
+    if (profile.balance < amount) {
+      throw new Error("Solde insuffisant pour effectuer ce retrait");
+    }
+    
+    // Create withdrawal record
+    const { data: withdrawal, error: withdrawalError } = await supabase
+      .from('withdrawals')
+      .insert({
+        user_id: userId,
+        amount: amount,
+        withdrawal_phone: phoneNumber,
+        status: 'pending'
+      })
+      .select()
+      .single();
+    
+    if (withdrawalError) {
+      throw withdrawalError;
+    }
+    
+    // Update user balance
+    const { error: balanceError } = await supabase
+      .from('profiles')
+      .update({ balance: profile.balance - amount })
+      .eq('id', userId);
+      
+    if (balanceError) {
+      throw new Error("Erreur lors de la mise à jour du solde");
+    }
+    
+    return withdrawal;
+  } catch (error) {
+    throw error;
+  }
+};

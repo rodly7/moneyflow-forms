@@ -1,23 +1,24 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Search, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Search, Wallet, Download } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 
-type TransferTransaction = {
+type WithdrawalTransaction = {
   id: string;
-  type: 'transfer';
+  type: 'withdrawal';
   amount: number;
   date: Date;
   description: string;
-  recipient: string;
+  phone: string;
   details: string;
   currency: string;
   status: string;
@@ -35,7 +36,7 @@ type RechargeTransaction = {
   status: string;
 };
 
-type Transaction = TransferTransaction | RechargeTransaction;
+type Transaction = WithdrawalTransaction | RechargeTransaction;
 
 const Transactions = () => {
   const { user } = useAuth();
@@ -46,13 +47,13 @@ const Transactions = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState(initialTab);
 
-  const { data: transfers, isLoading: transfersLoading } = useQuery({
-    queryKey: ['all-transfers'],
+  const { data: withdrawals, isLoading: withdrawalsLoading } = useQuery({
+    queryKey: ['all-withdrawals'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('transfers')
+        .from('withdrawals')
         .select('*')
-        .eq('sender_id', user?.id)
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -75,16 +76,16 @@ const Transactions = () => {
   });
 
   const allTransactions: Transaction[] = [
-    ...(transfers?.map(t => ({
-      id: t.id,
-      type: 'transfer' as const,
-      amount: -t.amount,
-      date: new Date(t.created_at),
-      description: `Transfert à ${t.recipient_full_name}`,
-      recipient: t.recipient_full_name,
-      details: t.recipient_phone,
-      currency: t.currency,
-      status: t.status
+    ...(withdrawals?.map(w => ({
+      id: w.id,
+      type: 'withdrawal' as const,
+      amount: -w.amount,
+      date: new Date(w.created_at),
+      description: `Retrait vers ${w.withdrawal_phone}`,
+      phone: w.withdrawal_phone,
+      details: w.withdrawal_phone,
+      currency: 'XAF',
+      status: w.status
     })) || []),
     ...(recharges?.map(r => ({
       id: r.id,
@@ -105,7 +106,7 @@ const Transactions = () => {
     if (transaction.description.toLowerCase().includes(searchLower)) return true;
     if (transaction.details.toLowerCase().includes(searchLower)) return true;
     
-    if (transaction.type === 'transfer' && transaction.recipient.toLowerCase().includes(searchLower)) {
+    if (transaction.type === 'withdrawal' && transaction.phone.toLowerCase().includes(searchLower)) {
       return true;
     }
     
@@ -116,9 +117,8 @@ const Transactions = () => {
     return false;
   });
   
-  const filteredTransfers = transfers?.filter(transfer => 
-    transfer.recipient_full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    transfer.recipient_phone.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredWithdrawals = withdrawals?.filter(withdrawal => 
+    withdrawal.withdrawal_phone.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
   
   const filteredRecharges = recharges?.filter(recharge => 
@@ -127,12 +127,12 @@ const Transactions = () => {
   ) || [];
 
   const getTransactionIcon = (type) => {
-    if (type === 'transfer') return <ArrowUpRight className="w-5 h-5 text-red-500" />;
+    if (type === 'withdrawal') return <Download className="w-5 h-5 text-red-500" />;
     if (type === 'recharge') return <ArrowDownLeft className="w-5 h-5 text-green-500" />;
     return <Wallet className="w-5 h-5 text-blue-500" />;
   };
 
-  const isLoading = transfersLoading || rechargesLoading;
+  const isLoading = withdrawalsLoading || rechargesLoading;
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0">
@@ -146,7 +146,7 @@ const Transactions = () => {
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-xl font-bold">Historique des Transactions</h1>
+          <h1 className="text-xl font-bold">Historique des opérations</h1>
           <div className="w-9"></div>
         </div>
 
@@ -155,7 +155,7 @@ const Transactions = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
             <Input
               type="text"
-              placeholder="Rechercher une transaction..."
+              placeholder="Rechercher une opération..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 pr-3 py-2 w-full"
@@ -168,7 +168,7 @@ const Transactions = () => {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid grid-cols-3 mb-4">
                 <TabsTrigger value="all">Toutes</TabsTrigger>
-                <TabsTrigger value="transfers">Transferts</TabsTrigger>
+                <TabsTrigger value="withdrawals">Retraits</TabsTrigger>
                 <TabsTrigger value="recharges">Recharges</TabsTrigger>
               </TabsList>
               
@@ -222,51 +222,51 @@ const Transactions = () => {
                 ) : (
                   <p className="text-center text-gray-500 py-12 bg-gray-50 rounded-lg">
                     {searchQuery 
-                      ? "Aucune transaction ne correspond à votre recherche" 
-                      : "Aucune transaction effectuée"}
+                      ? "Aucune opération ne correspond à votre recherche" 
+                      : "Aucune opération effectuée"}
                   </p>
                 )}
               </TabsContent>
               
-              <TabsContent value="transfers" className="space-y-2">
-                {transfersLoading ? (
+              <TabsContent value="withdrawals" className="space-y-2">
+                {withdrawalsLoading ? (
                   <div className="flex justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
                   </div>
-                ) : filteredTransfers.length > 0 ? (
-                  filteredTransfers.map((transfer) => (
+                ) : filteredWithdrawals.length > 0 ? (
+                  filteredWithdrawals.map((withdrawal) => (
                     <div 
-                      key={transfer.id} 
+                      key={withdrawal.id} 
                       className="flex justify-between items-center p-3 rounded-lg border hover:bg-gray-50 transition"
                     >
                       <div className="flex items-center gap-3 flex-1">
                         <div className="p-2 rounded-full bg-gray-100">
-                          <ArrowUpRight className="w-5 h-5 text-red-500" />
+                          <Download className="w-5 h-5 text-red-500" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">Transfert à {transfer.recipient_full_name}</p>
+                          <p className="font-medium text-sm truncate">Retrait vers {withdrawal.withdrawal_phone}</p>
                           <p className="text-xs text-gray-500 truncate">
-                            {transfer.recipient_phone}
+                            Mobile Money
                           </p>
                           <p className="text-xs text-gray-500">
-                            {format(new Date(transfer.created_at), 'PPP à HH:mm', { locale: fr })}
+                            {format(new Date(withdrawal.created_at), 'PPP à HH:mm', { locale: fr })}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="font-semibold text-sm text-red-500">
                             -{new Intl.NumberFormat('fr-FR', {
                               style: 'currency',
-                              currency: transfer.currency || 'XAF',
+                              currency: 'XAF',
                               maximumFractionDigits: 0
-                            }).format(transfer.amount)}
+                            }).format(withdrawal.amount)}
                           </p>
                           <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                            transfer.status === 'completed' ? 'bg-green-100 text-green-700' : 
-                            transfer.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                            withdrawal.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                            withdrawal.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
                             'bg-gray-100 text-gray-700'
                           }`}>
-                            {transfer.status === 'completed' ? 'Complété' : 
-                            transfer.status === 'pending' ? 'En attente' : transfer.status}
+                            {withdrawal.status === 'completed' ? 'Complété' : 
+                            withdrawal.status === 'pending' ? 'En attente' : withdrawal.status}
                           </span>
                         </div>
                       </div>
@@ -275,8 +275,8 @@ const Transactions = () => {
                 ) : (
                   <p className="text-center text-gray-500 py-12 bg-gray-50 rounded-lg">
                     {searchQuery 
-                      ? "Aucun transfert ne correspond à votre recherche" 
-                      : "Aucun transfert effectué"}
+                      ? "Aucun retrait ne correspond à votre recherche" 
+                      : "Aucun retrait effectué"}
                   </p>
                 )}
               </TabsContent>
