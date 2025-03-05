@@ -37,6 +37,13 @@ const PhoneInput = ({
       onBlurComplete();
     }
   };
+
+  // Handle input change to only allow numeric values
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only allow digits
+    const value = e.target.value.replace(/\D/g, '');
+    onPhoneChange(value);
+  };
   
   return (
     <div className="space-y-2">
@@ -55,7 +62,7 @@ const PhoneInput = ({
             type="text"
             placeholder="Ex: 6XXXXXXXX"
             value={phoneInput}
-            onChange={(e) => onPhoneChange(e.target.value)}
+            onChange={handleInputChange}
             onFocus={() => setIsFocused(true)}
             onBlur={handleBlur}
             disabled={isLoading}

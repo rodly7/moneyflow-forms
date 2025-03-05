@@ -50,6 +50,12 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       const selectedCountry = countries.find(c => c.name === recipient.country);
       if (selectedCountry) {
         setCountryCode(selectedCountry.code);
+        
+        // Si on change pour Congo Brazzaville, réinitialiser la vérification
+        if (selectedCountry.name === "Congo Brazzaville") {
+          setRecipientVerified(false);
+          console.log("Pays changé pour Congo Brazzaville");
+        }
       }
     }
   }, [recipient.country]);
@@ -58,7 +64,9 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   useEffect(() => {
     if (phoneInput) {
       // Format the phone number with country code
-      const formattedPhone = phoneInput.startsWith('+') ? phoneInput : `${countryCode}${phoneInput.startsWith('0') ? phoneInput.substring(1) : phoneInput}`;
+      const formattedPhone = phoneInput.startsWith('+') 
+        ? phoneInput 
+        : `${countryCode}${phoneInput.startsWith('0') ? phoneInput.substring(1) : phoneInput}`;
       
       updateFields({
         recipient: {
@@ -71,6 +79,8 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
 
   const handleVerifyRecipient = async (identifier: string) => {
     console.log("Vérification du destinataire:", identifier);
+    console.log("Code pays utilisé:", countryCode);
+    
     const result = await verifyRecipient(identifier, countryCode, recipient);
     
     if (result.recipientData) {
@@ -113,7 +123,11 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   // Fonction pour déclencher la vérification automatique lorsque le numéro est complet
   const handlePhoneComplete = () => {
     if (phoneInput && phoneInput.length >= 8) {
-      const formattedPhone = phoneInput.startsWith('+') ? phoneInput : `${countryCode}${phoneInput.startsWith('0') ? phoneInput.substring(1) : phoneInput}`;
+      const formattedPhone = phoneInput.startsWith('+') 
+        ? phoneInput 
+        : `${countryCode}${phoneInput.startsWith('0') ? phoneInput.substring(1) : phoneInput}`;
+      
+      console.log("Vérification automatique déclenchée pour:", formattedPhone);
       handleVerifyRecipient(formattedPhone);
     }
   };
