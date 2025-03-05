@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { processWithdrawal } from "@/integrations/supabase/client";
 
 const Withdraw = () => {
   const { user } = useAuth();
@@ -42,57 +42,15 @@ const Withdraw = () => {
     try {
       setIsProcessing(true);
 
-      // Vérifier le solde de l'utilisateur
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('balance')
-        .eq('id', user?.id)
-        .single();
-
-      if (profileError || !profile) {
-        throw new Error("Impossible de vérifier votre solde");
+      if (!user?.id) {
+        throw new Error("Utilisateur non connecté");
       }
 
-      const withdrawAmount = Number(amount);
-      
-      if (profile.balance < withdrawAmount) {
-        toast({
-          title: "Solde insuffisant",
-          description: "Vous n'avez pas assez de fonds pour effectuer ce retrait",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Créer l'enregistrement de retrait
-      const { data: withdrawal, error: withdrawalError } = await supabase
-        .from('withdrawals')
-        .insert({
-          user_id: user?.id,
-          amount: withdrawAmount,
-          withdrawal_phone: phoneNumber,
-          status: 'pending'
-        })
-        .select()
-        .single();
-
-      if (withdrawalError) {
-        throw new Error(withdrawalError.message);
-      }
-
-      // Mettre à jour le solde de l'utilisateur
-      const { error: balanceError } = await supabase
-        .from('profiles')
-        .update({ balance: profile.balance - withdrawAmount })
-        .eq('id', user?.id);
-
-      if (balanceError) {
-        throw new Error("Erreur lors de la mise à jour du solde");
-      }
+      await processWithdrawal(user.id, Number(amount), phoneNumber);
 
       toast({
         title: "Demande de retrait envoyée",
-        description: `Votre demande de retrait de ${withdrawAmount} XAF a été soumise et est en cours de traitement.`,
+        description: `Votre demande de retrait de ${amount} XAF a été soumise et est en cours de traitement.`,
       });
 
       navigate('/');

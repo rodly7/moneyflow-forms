@@ -107,10 +107,6 @@ export const useTransferForm = () => {
         }
 
         // Utiliser la procédure stockée pour traiter le transfert d'argent
-        // Cette procédure va:
-        // 1. Débiter l'expéditeur
-        // 2. Créditer le destinataire s'il existe
-        // 3. Ou créer un transfert en attente si le destinataire n'existe pas
         const { data: result, error: transferProcessError } = await supabase
           .rpc('process_money_transfer', {
             sender_id: user.id,
