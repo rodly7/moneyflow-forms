@@ -72,7 +72,14 @@ export const useRecipientVerification = () => {
 
   // Fonction pour normaliser un numéro de téléphone pour la comparaison
   const normalizePhoneNumber = (phone: string): string => {
-    return phone.replace(/[\s+()-]/g, '');
+    // Remove all non-digit characters
+    return phone.replace(/\D/g, '');
+  };
+  
+  // Fonction pour extraire les derniers X chiffres d'un numéro de téléphone
+  const getLastDigits = (phone: string, count: number): string => {
+    const normalized = normalizePhoneNumber(phone);
+    return normalized.slice(-count);
   };
 
   // Fonction pour formater un numéro avec l'indicatif pays
@@ -107,27 +114,59 @@ export const useRecipientVerification = () => {
       return true;
     }
     
-    // Spécial pour les numéros du Congo Brazzaville (+242)
-    if (countryCode && countryCode.includes('242')) {
-      // Format sans code pays (les 9 derniers chiffres pour un numéro congolais)
-      const congolaisPhone1 = normalizedPhone1.replace(/^242/, '').slice(-9);
-      const congolaisPhone2 = normalizedPhone2.replace(/^242/, '').slice(-9);
+    // Comparer les derniers 9 chiffres (efficace pour les numéros avec indicatifs différents)
+    const last9digits1 = getLastDigits(normalizedPhone1, 9);
+    const last9digits2 = getLastDigits(normalizedPhone2, 9);
+    
+    if (last9digits1.length === 9 && last9digits2.length === 9 && last9digits1 === last9digits2) {
+      console.log(`✓ Last 9 digits match: ${last9digits1} vs ${last9digits2}`);
+      return true;
+    }
+    
+    // Comparer les derniers 8 chiffres
+    const last8digits1 = getLastDigits(normalizedPhone1, 8);
+    const last8digits2 = getLastDigits(normalizedPhone2, 8);
+    
+    if (last8digits1.length === 8 && last8digits2.length === 8 && last8digits1 === last8digits2) {
+      console.log(`✓ Last 8 digits match: ${last8digits1} vs ${last8digits2}`);
+      return true;
+    }
+    
+    // Vérification spécifique pour Congo Brazzaville (+242)
+    if (countryCode?.includes('242')) {
+      // Pour le Congo, nous comparons les numéros sans les préfixes variables (0 ou 242)
+      const congoFormat = (num: string): string => {
+        // Enlever le code pays s'il existe
+        let formatted = num.replace(/^242/, '').replace(/^\+242/, '');
+        // Enlever le 0 initial s'il existe
+        formatted = formatted.replace(/^0/, '');
+        return formatted;
+      };
       
-      console.log(`Congo format: "${congolaisPhone1}" vs "${congolaisPhone2}"`);
+      const congoPhone1 = congoFormat(normalizedPhone1);
+      const congoPhone2 = congoFormat(normalizedPhone2);
       
-      if (congolaisPhone1 === congolaisPhone2 && congolaisPhone1.length === 9) {
-        console.log("✓ Congo number match");
+      console.log(`Congo special format: "${congoPhone1}" vs "${congoPhone2}"`);
+      
+      if (congoPhone1 === congoPhone2) {
+        console.log("✓ Congo format match");
+        return true;
+      }
+      
+      // Vérifier si un des numéros est inclus dans l'autre
+      if (congoPhone1.includes(congoPhone2) || congoPhone2.includes(congoPhone1)) {
+        console.log("✓ Congo number is substring of the other");
         return true;
       }
     }
     
     // Vérifier si un numéro est une sous-chaîne de l'autre
     if (normalizedPhone1.endsWith(normalizedPhone2) || normalizedPhone2.endsWith(normalizedPhone1)) {
-      console.log("✓ Substring match");
+      console.log("✓ Substring match (one ends with the other)");
       return true;
     }
     
-    // Si nous avons un code pays, vérifier si un numéro contient le code pays et l'autre non
+    // Si nous avons un code pays, vérifier les cas où un numéro contient le code pays et l'autre non
     if (countryCode) {
       const normalizedCountryCode = normalizePhoneNumber(countryCode);
       
@@ -135,9 +174,23 @@ export const useRecipientVerification = () => {
       if (normalizedPhone1.startsWith(normalizedCountryCode)) {
         const phone1WithoutCode = normalizedPhone1.substring(normalizedCountryCode.length);
         console.log(`Without code comparison: "${phone1WithoutCode}" vs "${normalizedPhone2}"`);
-        if (phone1WithoutCode === normalizedPhone2 || 
-            (normalizedPhone2.startsWith('0') && phone1WithoutCode === normalizedPhone2.substring(1))) {
+        
+        if (phone1WithoutCode === normalizedPhone2) {
           console.log("✓ Match after removing country code from phone1");
+          return true;
+        }
+        
+        // Gérer le cas où le deuxième numéro commence par 0 et le premier sans 0
+        if (normalizedPhone2.startsWith('0') && 
+            phone1WithoutCode === normalizedPhone2.substring(1)) {
+          console.log("✓ Match after removing country code from phone1 and leading 0 from phone2");
+          return true;
+        }
+        
+        // Vérifier si les derniers chiffres correspondent
+        if (phone1WithoutCode.endsWith(normalizedPhone2) || 
+            normalizedPhone2.endsWith(phone1WithoutCode)) {
+          console.log("✓ Partial match after removing country code");
           return true;
         }
       }
@@ -146,9 +199,23 @@ export const useRecipientVerification = () => {
       if (normalizedPhone2.startsWith(normalizedCountryCode)) {
         const phone2WithoutCode = normalizedPhone2.substring(normalizedCountryCode.length);
         console.log(`Without code comparison (reverse): "${normalizedPhone1}" vs "${phone2WithoutCode}"`);
-        if (phone2WithoutCode === normalizedPhone1 || 
-            (normalizedPhone1.startsWith('0') && phone2WithoutCode === normalizedPhone1.substring(1))) {
+        
+        if (phone2WithoutCode === normalizedPhone1) {
           console.log("✓ Match after removing country code from phone2");
+          return true;
+        }
+        
+        // Gérer le cas où le premier numéro commence par 0 et le deuxième sans 0
+        if (normalizedPhone1.startsWith('0') && 
+            phone2WithoutCode === normalizedPhone1.substring(1)) {
+          console.log("✓ Match after removing country code from phone2 and leading 0 from phone1");
+          return true;
+        }
+        
+        // Vérifier si les derniers chiffres correspondent
+        if (phone2WithoutCode.endsWith(normalizedPhone1) || 
+            normalizedPhone1.endsWith(phone2WithoutCode)) {
+          console.log("✓ Partial match after removing country code (reverse)");
           return true;
         }
       }
@@ -214,6 +281,7 @@ export const useRecipientVerification = () => {
         
         console.log("Recherche par téléphone:", cleanedPhone);
         console.log("Téléphone formaté avec indicatif:", formattedPhone);
+        console.log("Indicatif pays utilisé:", countryCode);
         
         // 1. Récupérer tous les utilisateurs depuis auth_users_view
         const { data: authUserData, error: authUserError } = await supabase
@@ -232,101 +300,36 @@ export const useRecipientVerification = () => {
         }
         
         console.log("Nombre d'utilisateurs trouvés:", authUserData?.length);
+        console.log("Recherche pour le numéro:", formattedPhone);
         
         // 2. Recherche approfondie à travers les métadonnées des utilisateurs
         if (authUserData && authUserData.length > 0) {
           for (const user of authUserData) {
             if (user.raw_user_meta_data) {
               const metadata = user.raw_user_meta_data as any;
-              console.log("Vérification des métadonnées pour l'utilisateur:", user.id);
+              console.log(`Vérification de l'utilisateur: ${user.id}`);
               
-              // Vérification spécifique pour Congo Brazzaville (+242)
-              if (countryCode.includes('242')) {
-                console.log("Vérification spécifique pour le Congo Brazzaville");
-                
-                // Obtenir le téléphone du métadata
-                const userPhone = metadata.phone || '';
-                console.log("Téléphone dans les métadonnées:", userPhone);
-                
-                // Comparaison spécifique pour les numéros du Congo
-                if (phoneNumbersMatch(userPhone, cleanedPhone, countryCode)) {
-                  console.log("✓ Correspondance trouvée pour un numéro congolais!");
-                  
-                  // Extraire le nom des métadonnées
-                  const displayName = extractNameFromMetadata(metadata);
-                  
-                  if (displayName) {
-                    console.log("Nom trouvé dans les métadonnées:", displayName);
-                    
-                    // Créer les données du destinataire avec les informations trouvées
-                    const finalResult = {
-                      verified: true,
-                      recipientData: {
-                        email: formattedPhone,
-                        fullName: displayName,
-                        country: "Congo Brazzaville",
-                      }
-                    };
-                    
-                    toast({
-                      title: "Bénéficiaire trouvé",
-                      description: finalResult.recipientData.fullName,
-                    });
-                    
-                    setRecipientVerified(true);
-                    return finalResult;
-                  }
-                }
-              }
+              // Récupérer le numéro de téléphone des métadonnées
+              const userPhone = metadata.phone || '';
+              console.log(`Téléphone dans les métadonnées: ${userPhone}`);
               
-              // Recherche de numéro de téléphone dans différents champs des métadonnées
-              const possiblePhoneKeys = [
-                'phone', 'phone_number', 'phoneNumber', 'mobile', 'tel', 
-                'telephone', 'cellphone', 'cell', 'gsm', 'numero', 'téléphone'
-              ];
-              
-              let foundPhoneMatch = false;
-              
-              // Vérifier chaque clé possible pour le téléphone
-              for (const key of possiblePhoneKeys) {
-                if (metadata[key]) {
-                  const userPhone = String(metadata[key]);
-                  console.log(`Comparaison: "${userPhone}" vs "${cleanedPhone}"`);
-                  
-                  if (phoneNumbersMatch(userPhone, cleanedPhone, countryCode)) {
-                    console.log(`✓ Correspondance trouvée avec la clé "${key}": ${userPhone}`);
-                    foundPhoneMatch = true;
-                    break;
-                  }
-                }
-              }
-              
-              // Si un téléphone correspondant est trouvé, extraire le nom
-              if (foundPhoneMatch) {
-                console.log("Correspondance de téléphone trouvée, extraction du nom...");
+              // Utiliser notre fonction avancée de comparaison de numéros
+              if (phoneNumbersMatch(userPhone, cleanedPhone, countryCode)) {
+                console.log("✓ Correspondance trouvée!");
                 
                 // Extraire le nom des métadonnées
-                const displayName = extractNameFromMetadata(metadata);
+                const displayName = extractNameFromMetadata(metadata) || metadata.full_name || metadata.fullName;
                 
                 if (displayName) {
                   console.log("Nom trouvé dans les métadonnées:", displayName);
-                  
-                  // Récupérer les informations complémentaires du profil
-                  const { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('full_name, country, phone')
-                    .eq('id', user.id)
-                    .maybeSingle();
-                  
-                  console.log("Données du profil:", profileData);
                   
                   // Créer les données du destinataire avec les informations trouvées
                   const finalResult = {
                     verified: true,
                     recipientData: {
-                      email: formattedPhone,
-                      fullName: displayName || profileData?.full_name || `Utilisateur ${cleanedPhone}`,
-                      country: profileData?.country || metadata.country || recipient.country,
+                      email: userPhone,
+                      fullName: displayName,
+                      country: metadata.country || recipient.country,
                     }
                   };
                   
@@ -356,37 +359,6 @@ export const useRecipientVerification = () => {
         } else if (profilesData && profilesData.length > 0) {
           console.log("Nombre de profils trouvés:", profilesData.length);
           
-          // Vérification spéciale pour les numéros du Congo Brazzaville
-          if (countryCode.includes('242')) {
-            for (const profile of profilesData) {
-              if (profile.phone) {
-                console.log(`Comparaison profil Congo: "${profile.phone}" vs "${cleanedPhone}"`);
-                
-                // Utiliser notre fonction spéciale de comparaison pour les numéros congolais
-                if (phoneNumbersMatch(profile.phone, cleanedPhone, countryCode)) {
-                  console.log("✓ Correspondance trouvée dans profiles pour un numéro congolais:", profile.phone);
-                  
-                  const finalResult = {
-                    verified: true,
-                    recipientData: {
-                      email: formattedPhone,
-                      fullName: profile.full_name || `Utilisateur ${profile.phone}`,
-                      country: "Congo Brazzaville",
-                    }
-                  };
-                  
-                  toast({
-                    title: "Bénéficiaire congolais trouvé",
-                    description: finalResult.recipientData.fullName,
-                  });
-                  
-                  setRecipientVerified(true);
-                  return finalResult;
-                }
-              }
-            }
-          }
-          
           // Parcourir les profils pour trouver une correspondance téléphonique
           for (const profile of profilesData) {
             if (profile.phone) {
@@ -398,7 +370,7 @@ export const useRecipientVerification = () => {
                 const finalResult = {
                   verified: true,
                   recipientData: {
-                    email: formattedPhone,
+                    email: profile.phone,
                     fullName: profile.full_name || `Utilisateur ${profile.phone}`,
                     country: profile.country || recipient.country,
                   }

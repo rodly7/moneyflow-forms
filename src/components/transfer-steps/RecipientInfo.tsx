@@ -51,10 +51,11 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       if (selectedCountry) {
         setCountryCode(selectedCountry.code);
         
-        // Si on change pour Congo Brazzaville, réinitialiser la vérification
-        if (selectedCountry.name === "Congo Brazzaville") {
+        // Si on change pour Congo Brazzaville ou un autre pays, réinitialiser
+        if (selectedCountry.name !== recipient.country || 
+            (phoneInput && recipient.country === "Congo Brazzaville")) {
           setRecipientVerified(false);
-          console.log("Pays changé pour Congo Brazzaville");
+          console.log(`Pays changé pour ${selectedCountry.name}`);
         }
       }
     }
@@ -74,12 +75,23 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           email: formattedPhone,
         }
       });
+      
+      console.log("Phone input updated:", phoneInput);
+      console.log("Formatted phone:", formattedPhone);
     }
   }, [phoneInput, countryCode]);
 
   const handleVerifyRecipient = async (identifier: string) => {
     console.log("Vérification du destinataire:", identifier);
     console.log("Code pays utilisé:", countryCode);
+    
+    // Si c'est un numéro du Congo, s'assurer qu'il a le bon format
+    if (countryCode.includes('242') && !identifier.includes('242')) {
+      identifier = identifier.startsWith('+') 
+        ? identifier 
+        : `${countryCode}${identifier.startsWith('0') ? identifier.substring(1) : identifier}`;
+      console.log("Numéro formaté pour Congo Brazzaville:", identifier);
+    }
     
     const result = await verifyRecipient(identifier, countryCode, recipient);
     
@@ -106,10 +118,13 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     
     if (selectedCountry) {
       setCountryCode(selectedCountry.code);
+      
+      // Réinitialiser la vérification automatiquement lors du changement de pays
+      if (recipientVerified) {
+        setRecipientVerified(false);
+        console.log("Vérification réinitialisée suite au changement de pays");
+      }
     }
-    
-    // Réinitialiser la vérification si le pays change
-    setRecipientVerified(false);
   };
 
   const handlePhoneInput = (value: string) => {
@@ -117,18 +132,26 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     // Réinitialiser la vérification si le numéro change
     if (recipientVerified) {
       setRecipientVerified(false);
+      console.log("Vérification réinitialisée suite au changement de numéro");
     }
   };
 
   // Fonction pour déclencher la vérification automatique lorsque le numéro est complet
   const handlePhoneComplete = () => {
-    if (phoneInput && phoneInput.length >= 8) {
+    console.log("Tentative de vérification automatique");
+    if (phoneInput && (
+        (countryCode.includes('242') && phoneInput.length >= 9) || // Pour Congo
+        phoneInput.length >= 8)) {                                  // Pour autres pays
+      
+      // Pour le Congo, formater correctement le numéro avec le code pays
       const formattedPhone = phoneInput.startsWith('+') 
         ? phoneInput 
         : `${countryCode}${phoneInput.startsWith('0') ? phoneInput.substring(1) : phoneInput}`;
       
       console.log("Vérification automatique déclenchée pour:", formattedPhone);
       handleVerifyRecipient(formattedPhone);
+    } else {
+      console.log("Numéro pas assez long pour vérification:", phoneInput.length);
     }
   };
 
@@ -146,7 +169,10 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
     setRecipientVerified(true);
     
     // Mettre à jour l'input du téléphone pour afficher le numéro sans l'indicatif
-    setPhoneInput(suggestion.phone.replace(countryCode, ""));
+    const phoneWithoutCode = suggestion.phone
+      .replace(countryCode, "")
+      .replace(/^\+/, "");
+    setPhoneInput(phoneWithoutCode);
     
     toast({
       title: "Bénéficiaire sélectionné",
