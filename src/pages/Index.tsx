@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,7 +32,6 @@ const Index = () => {
     },
   });
 
-  // Fetch withdrawals and recharges with limit 3
   const { data: withdrawals } = useQuery({
     queryKey: ['withdrawals'],
     queryFn: async () => {
@@ -64,6 +62,21 @@ const Index = () => {
     },
   });
 
+  const { data: transfers } = useQuery({
+    queryKey: ['transfers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transfers')
+        .select('*')
+        .eq('sender_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(3);
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const handleLogout = async () => {
     await signOut();
     navigate('/auth');
@@ -75,7 +88,6 @@ const Index = () => {
     </div>;
   }
 
-  // Combine and sort all transactions (limited to 3)
   const allTransactions = [
     ...(withdrawals?.map(w => ({
       id: w.id,
@@ -94,21 +106,30 @@ const Index = () => {
       description: `Recharge via ${r.payment_method}`,
       currency: 'XAF',
       status: r.status
+    })) || []),
+    ...(transfers?.map(t => ({
+      id: t.id,
+      type: 'transfer',
+      amount: -t.amount,
+      date: new Date(t.created_at),
+      description: `Transfert à ${t.recipient_full_name}`,
+      currency: 'XAF',
+      status: t.status
     })) || [])
   ]
   .sort((a, b) => b.date.getTime() - a.date.getTime())
-  .slice(0, 3); // Ensure we only show 3 transactions total
+  .slice(0, 3);
 
   const getTransactionIcon = (type) => {
     if (type === 'withdrawal') return <Download className="w-5 h-5 text-red-500" />;
     if (type === 'recharge') return <ArrowDownLeft className="w-5 h-5 text-green-500" />;
+    if (type === 'transfer') return <ArrowRightLeft className="w-5 h-5 text-blue-500" />;
     return <Wallet className="w-5 h-5 text-blue-500" />;
   };
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-0">
       <div className="container max-w-full mx-auto space-y-4">
-        {/* Profile Card */}
         <Card className="bg-white shadow-lg mx-4">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -133,7 +154,6 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        {/* Balance Card */}
         <Card className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white mx-4">
           <CardContent className="p-4 sm:p-6">
             <div className="flex justify-between items-start">
@@ -197,7 +217,6 @@ const Index = () => {
           </div>
         )}
 
-        {/* Transactions History with Tabs - Limited to 3 */}
         <Card className="bg-white shadow-lg mx-4">
           <CardHeader className="py-3 px-4">
             <CardTitle className="text-base font-semibold">Opérations récentes</CardTitle>
@@ -256,7 +275,6 @@ const Index = () => {
                   </p>
                 )}
                 
-                {/* View All Button */}
                 {allTransactions.length > 0 && (
                   <div className="text-center">
                     <Button 
@@ -314,7 +332,6 @@ const Index = () => {
                   </p>
                 )}
                 
-                {/* View All Button */}
                 {withdrawals && withdrawals.length > 0 && (
                   <div className="text-center">
                     <Button 
@@ -372,7 +389,6 @@ const Index = () => {
                   </p>
                 )}
                 
-                {/* View All Button */}
                 {recharges && recharges.length > 0 && (
                   <div className="text-center">
                     <Button 

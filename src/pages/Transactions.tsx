@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Search, Wallet, Download } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Search, Wallet, Download, ArrowRightLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -36,7 +36,19 @@ type RechargeTransaction = {
   status: string;
 };
 
-type Transaction = WithdrawalTransaction | RechargeTransaction;
+type TransferTransaction = {
+  id: string;
+  type: 'transfer';
+  amount: number;
+  date: Date;
+  description: string;
+  recipient: string;
+  details: string;
+  currency: string;
+  status: string;
+};
+
+type Transaction = WithdrawalTransaction | RechargeTransaction | TransferTransaction;
 
 const Transactions = () => {
   const { user } = useAuth();
@@ -75,6 +87,20 @@ const Transactions = () => {
     },
   });
 
+  const { data: transfers, isLoading: transfersLoading } = useQuery({
+    queryKey: ['all-transfers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transfers')
+        .select('*')
+        .eq('sender_id', user?.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const allTransactions: Transaction[] = [
     ...(withdrawals?.map(w => ({
       id: w.id,
@@ -97,6 +123,17 @@ const Transactions = () => {
       details: r.payment_phone,
       currency: 'XAF',
       status: r.status
+    })) || []),
+    ...(transfers?.map(t => ({
+      id: t.id,
+      type: 'transfer' as const,
+      amount: -t.amount,
+      date: new Date(t.created_at),
+      description: `Transfert à ${t.recipient_full_name}`,
+      recipient: t.recipient_full_name,
+      details: t.recipient_phone,
+      currency: 'XAF',
+      status: t.status
     })) || [])
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
@@ -113,6 +150,10 @@ const Transactions = () => {
     if (transaction.type === 'recharge' && transaction.method.toLowerCase().includes(searchLower)) {
       return true;
     }
+
+    if (transaction.type === 'transfer' && transaction.recipient.toLowerCase().includes(searchLower)) {
+      return true;
+    }
     
     return false;
   });
@@ -126,13 +167,19 @@ const Transactions = () => {
     recharge.payment_phone.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
+  const filteredTransfers = transfers?.filter(transfer => 
+    transfer.recipient_full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    transfer.recipient_phone.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
+
   const getTransactionIcon = (type) => {
     if (type === 'withdrawal') return <Download className="w-5 h-5 text-red-500" />;
     if (type === 'recharge') return <ArrowDownLeft className="w-5 h-5 text-green-500" />;
+    if (type === 'transfer') return <ArrowRightLeft className="w-5 h-5 text-blue-500" />;
     return <Wallet className="w-5 h-5 text-blue-500" />;
   };
 
-  const isLoading = withdrawalsLoading || rechargesLoading;
+  const isLoading = withdrawalsLoading || rechargesLoading || transfersLoading;
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0">
@@ -166,10 +213,11 @@ const Transactions = () => {
         <Card className="bg-white shadow-md mx-4">
           <CardContent className="p-4">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid grid-cols-3 mb-4">
+              <TabsList className="grid grid-cols-4 mb-4">
                 <TabsTrigger value="all">Toutes</TabsTrigger>
                 <TabsTrigger value="withdrawals">Retraits</TabsTrigger>
                 <TabsTrigger value="recharges">Recharges</TabsTrigger>
+                <TabsTrigger value="transfers">Transferts</TabsTrigger>
               </TabsList>
               
               <TabsContent value="all" className="space-y-2">
@@ -330,6 +378,59 @@ const Transactions = () => {
                     {searchQuery 
                       ? "Aucune recharge ne correspond à votre recherche" 
                       : "Aucune recharge effectuée"}
+                  </p>
+                )}
+              </TabsContent>
+
+              <TabsContent value="transfers" className="space-y-2">
+                {transfersLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
+                  </div>
+                ) : filteredTransfers.length > 0 ? (
+                  filteredTransfers.map((transfer) => (
+                    <div 
+                      key={transfer.id} 
+                      className="flex justify-between items-center p-3 rounded-lg border hover:bg-gray-50 transition"
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="p-2 rounded-full bg-gray-100">
+                          <ArrowRightLeft className="w-5 h-5 text-blue-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">Transfert à {transfer.recipient_full_name}</p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {transfer.recipient_phone}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {format(new Date(transfer.created_at), 'PPP à HH:mm', { locale: fr })}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-sm text-red-500">
+                            -{new Intl.NumberFormat('fr-FR', {
+                              style: 'currency',
+                              currency: 'XAF',
+                              maximumFractionDigits: 0
+                            }).format(transfer.amount)}
+                          </p>
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                            transfer.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                            transfer.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {transfer.status === 'completed' ? 'Complété' : 
+                            transfer.status === 'pending' ? 'En attente' : transfer.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-gray-500 py-12 bg-gray-50 rounded-lg">
+                    {searchQuery 
+                      ? "Aucun transfert ne correspond à votre recherche" 
+                      : "Aucun transfert effectué"}
                   </p>
                 )}
               </TabsContent>
