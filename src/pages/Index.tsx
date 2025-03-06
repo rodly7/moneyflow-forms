@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
-import { User, CreditCard, Upload, Download, ArrowRightLeft, LogOut, ArrowDownLeft, Wallet, ChevronRight } from "lucide-react";
+import { User, Download, ArrowRightLeft, LogOut, ArrowDownLeft, Wallet, ChevronRight, QrCode } from "lucide-react";
 import TransferForm from "@/components/TransferForm";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
@@ -98,15 +98,6 @@ const Index = () => {
       currency: 'XAF',
       status: w.status
     })) || []),
-    ...(recharges?.map(r => ({
-      id: r.id,
-      type: 'recharge',
-      amount: r.amount,
-      date: new Date(r.created_at),
-      description: `Recharge via ${r.payment_method}`,
-      currency: 'XAF',
-      status: r.status
-    })) || []),
     ...(transfers?.map(t => ({
       id: t.id,
       type: 'transfer',
@@ -122,7 +113,6 @@ const Index = () => {
 
   const getTransactionIcon = (type) => {
     if (type === 'withdrawal') return <Download className="w-5 h-5 text-red-500" />;
-    if (type === 'recharge') return <ArrowDownLeft className="w-5 h-5 text-green-500" />;
     if (type === 'transfer') return <ArrowRightLeft className="w-5 h-5 text-blue-500" />;
     return <Wallet className="w-5 h-5 text-blue-500" />;
   };
@@ -167,7 +157,7 @@ const Index = () => {
                   }).format(profile?.balance || 0)}
                 </h1>
               </div>
-              <CreditCard className="w-10 h-10 opacity-80" />
+              <Wallet className="w-10 h-10 opacity-80" />
             </div>
           </CardContent>
         </Card>
@@ -185,14 +175,14 @@ const Index = () => {
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-2 mx-4">
-            <Link to="/receive" className="col-span-1">
+            <Link to="/qrcode" className="col-span-1">
               <Button
                 variant="outline"
                 size="sm"
                 className="w-full h-14 text-xs border-2 flex flex-col gap-1"
               >
-                <Upload className="w-4 h-4" />
-                Recharger
+                <QrCode className="w-4 h-4" />
+                QR Code
               </Button>
             </Link>
             <Link to="/withdraw" className="col-span-1">
@@ -223,10 +213,9 @@ const Index = () => {
           </CardHeader>
           <CardContent className="p-4">
             <Tabs defaultValue="all">
-              <TabsList className="grid grid-cols-3 mb-4">
+              <TabsList className="grid grid-cols-2 mb-4">
                 <TabsTrigger value="all">Toutes</TabsTrigger>
                 <TabsTrigger value="withdrawals">Retraits</TabsTrigger>
-                <TabsTrigger value="recharges">Recharges</TabsTrigger>
               </TabsList>
               
               <TabsContent value="all" className="space-y-2">
@@ -339,63 +328,6 @@ const Index = () => {
                       size="sm" 
                       className="text-primary"
                       onClick={() => navigate('/transactions', { state: { initialTab: 'withdrawals' }})}
-                    >
-                      Voir tout <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="recharges" className="space-y-2">
-                {recharges && recharges.length > 0 ? (
-                  recharges.slice(0, 3).map((recharge) => (
-                    <div 
-                      key={recharge.id} 
-                      className="flex justify-between items-center p-2 rounded-lg border hover:bg-gray-50 transition"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-full bg-gray-100">
-                          <ArrowDownLeft className="w-5 h-5 text-green-500" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">Recharge via {recharge.payment_method}</p>
-                          <p className="text-xs text-gray-500">
-                            {format(new Date(recharge.created_at), 'PPP', { locale: fr })}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-sm text-green-500">
-                          +{new Intl.NumberFormat('fr-FR', {
-                            style: 'currency',
-                            currency: 'XAF',
-                            maximumFractionDigits: 0
-                          }).format(recharge.amount)}
-                        </p>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                          recharge.status === 'completed' ? 'bg-green-100 text-green-700' : 
-                          recharge.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {recharge.status === 'completed' ? 'Complété' : 
-                           recharge.status === 'pending' ? 'En attente' : recharge.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
-                    Aucune recharge effectuée
-                  </p>
-                )}
-                
-                {recharges && recharges.length > 0 && (
-                  <div className="text-center">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-primary"
-                      onClick={() => navigate('/transactions', { state: { initialTab: 'recharges' }})}
                     >
                       Voir tout <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
