@@ -25,28 +25,33 @@ const Withdraw = () => {
   const { toast } = useToast();
   const [amount, setAmount] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [fullName, setFullName] = useState("");
   const [country, setCountry] = useState("");
   const [countryCode, setCountryCode] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [paymentMethods, setPaymentMethods] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch user's profile to get their country
+  // Fetch user's profile information
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user?.id) {
+        setIsLoading(true);
         const { data, error } = await supabase
           .from('profiles')
-          .select('country')
+          .select('country, phone, full_name')
           .eq('id', user.id)
           .single();
         
         if (!error && data) {
-          // Set the user's country and find the related country code
+          // Set the user's profile information
           const userCountry = data.country || "Congo Brazzaville"; // Default to Congo if not set
           setCountry(userCountry);
+          setPhoneNumber(data.phone || "");
+          setFullName(data.full_name || "");
           
-          // Find country code based on selected country
+          // Find country code based on country
           const selectedCountry = countries.find(c => c.name === userCountry);
           if (selectedCountry) {
             setCountryCode(selectedCountry.code);
@@ -56,13 +61,14 @@ const Withdraw = () => {
             }
           }
         }
+        setIsLoading(false);
       }
     };
 
     fetchUserProfile();
   }, [user]);
 
-  // Update country code and payment methods when country changes
+  // Update payment methods when country changes
   const handleCountryChange = (value: string) => {
     setCountry(value);
     
@@ -164,86 +170,102 @@ const Withdraw = () => {
             <CardTitle className="text-lg">Demande de retrait</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="amount">Montant (XAF)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  placeholder="Entrez le montant"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  required
-                />
+            {isLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="country">Pays</Label>
-                <Select 
-                  value={country} 
-                  onValueChange={handleCountryChange}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sélectionnez un pays" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {countries.map((c) => (
-                      <SelectItem key={c.name} value={c.name}>
-                        {c.name} ({c.code})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="paymentMethod">Méthode de paiement</Label>
-                <Select 
-                  value={paymentMethod} 
-                  onValueChange={setPaymentMethod}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sélectionnez une méthode de paiement" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {paymentMethods.map((method) => (
-                      <SelectItem key={method} value={method}>
-                        {method}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="phone">Numéro de téléphone Mobile Money</Label>
-                <div className="flex items-center space-x-2">
-                  <div className="bg-gray-100 px-3 py-2 rounded-md border border-input text-sm">
-                    {countryCode}
-                  </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Nom complet</Label>
                   <Input
-                    id="phone"
-                    type="tel"
-                    className="flex-1"
-                    placeholder="Ex: 690485171"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    id="fullName"
+                    type="text"
+                    value={fullName}
+                    readOnly
+                    className="bg-gray-100"
+                  />
+                </div>
+              
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Montant (XAF)</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    placeholder="Entrez le montant"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
                     required
                   />
                 </div>
-                <p className="text-xs text-gray-500">
-                  Entrez le numéro qui recevra l'argent via {paymentMethod || "Mobile Money"}
-                </p>
-              </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="country">Pays</Label>
+                  <Select 
+                    value={country} 
+                    onValueChange={handleCountryChange}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Sélectionnez un pays" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries.map((c) => (
+                        <SelectItem key={c.name} value={c.name}>
+                          {c.name} ({c.code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <Button 
-                type="submit" 
-                className="w-full bg-emerald-600 hover:bg-emerald-700"
-                disabled={isProcessing}
-              >
-                {isProcessing ? "Traitement en cours..." : "Confirmer le retrait"}
-              </Button>
-            </form>
+                <div className="space-y-2">
+                  <Label htmlFor="paymentMethod">Méthode de paiement</Label>
+                  <Select 
+                    value={paymentMethod} 
+                    onValueChange={setPaymentMethod}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Sélectionnez une méthode de paiement" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentMethods.map((method) => (
+                        <SelectItem key={method} value={method}>
+                          {method}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Numéro de téléphone Mobile Money</Label>
+                  <div className="flex items-center space-x-2">
+                    <div className="bg-gray-100 px-3 py-2 rounded-md border border-input text-sm">
+                      {countryCode}
+                    </div>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      className="flex-1"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Entrez le numéro qui recevra l'argent via {paymentMethod || "Mobile Money"}
+                  </p>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? "Traitement en cours..." : "Confirmer le retrait"}
+                </Button>
+              </form>
+            )}
           </CardContent>
         </Card>
       </div>
