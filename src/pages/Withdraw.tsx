@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -33,7 +32,6 @@ const Withdraw = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch user's profile information
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user?.id) {
@@ -45,13 +43,11 @@ const Withdraw = () => {
           .single();
         
         if (!error && data) {
-          // Set the user's profile information
-          const userCountry = data.country || "Congo Brazzaville"; // Default to Congo if not set
+          const userCountry = data.country || "Congo Brazzaville";
           setCountry(userCountry);
           setPhoneNumber(data.phone || "");
           setFullName(data.full_name || "");
           
-          // Find country code based on country
           const selectedCountry = countries.find(c => c.name === userCountry);
           if (selectedCountry) {
             setCountryCode(selectedCountry.code);
@@ -68,17 +64,14 @@ const Withdraw = () => {
     fetchUserProfile();
   }, [user]);
 
-  // Update payment methods when country changes
   const handleCountryChange = (value: string) => {
     setCountry(value);
     
-    // Find country code based on selected country
     const selectedCountry = countries.find(c => c.name === value);
     if (selectedCountry) {
       setCountryCode(selectedCountry.code);
       setPaymentMethods(selectedCountry.paymentMethods);
       
-      // Reset payment method and select the first available one
       if (selectedCountry.paymentMethods.length > 0) {
         setPaymentMethod(selectedCountry.paymentMethods[0]);
       } else {
@@ -124,7 +117,6 @@ const Withdraw = () => {
         throw new Error("Utilisateur non connecté");
       }
 
-      // Format phone number with country code if not already included
       const formattedPhone = phoneNumber.startsWith('+') 
         ? phoneNumber 
         : `${countryCode}${phoneNumber.startsWith('0') ? phoneNumber.substring(1) : phoneNumber}`;
@@ -201,21 +193,13 @@ const Withdraw = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="country">Pays</Label>
-                  <Select 
-                    value={country} 
-                    onValueChange={handleCountryChange}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Sélectionnez un pays" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {countries.map((c) => (
-                        <SelectItem key={c.name} value={c.name}>
-                          {c.name} ({c.code})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id="country"
+                    type="text"
+                    value={country}
+                    readOnly
+                    className="bg-gray-100"
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -246,14 +230,13 @@ const Withdraw = () => {
                     <Input
                       id="phone"
                       type="tel"
-                      className="flex-1"
+                      className="flex-1 bg-gray-100"
                       value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      required
+                      readOnly
                     />
                   </div>
                   <p className="text-xs text-gray-500">
-                    Entrez le numéro qui recevra l'argent via {paymentMethod || "Mobile Money"}
+                    Le numéro qui recevra l'argent via {paymentMethod || "Mobile Money"}
                   </p>
                 </div>
 
