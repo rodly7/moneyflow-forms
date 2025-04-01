@@ -7,8 +7,11 @@ type TransferDetailsProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
 };
 
-const TransferDetails = ({ transfer, updateFields }: TransferDetailsProps) => {
-  const fees = transfer.amount * 0.08; // 8% de frais
+const TransferDetails = ({ transfer, recipient, updateFields }: TransferDetailsProps) => {
+  // Apply different fee rates based on whether the transfer is national or international
+  const isInternational = recipient.country !== "Cameroun";
+  const feeRate = isInternational ? 0.09 : 0.025; // 9% for international, 2.5% for national
+  const fees = transfer.amount * feeRate;
   const total = transfer.amount + fees;
 
   return (
@@ -41,7 +44,9 @@ const TransferDetails = ({ transfer, updateFields }: TransferDetailsProps) => {
             </span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Frais (8%) :</span>
+            <span className="text-gray-600">
+              Frais ({isInternational ? "9%" : "2.5%"}) :
+            </span>
             <span className="font-medium">
               {fees.toLocaleString('fr-FR')} {transfer.currency}
             </span>
@@ -59,4 +64,3 @@ const TransferDetails = ({ transfer, updateFields }: TransferDetailsProps) => {
 };
 
 export default TransferDetails;
-

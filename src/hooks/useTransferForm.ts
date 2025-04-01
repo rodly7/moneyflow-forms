@@ -43,7 +43,10 @@ export const useTransferForm = () => {
       try {
         setIsLoading(true);
         
-        const fees = data.transfer.amount * 0.08;
+        // Apply different fee rates based on whether the transfer is national or international
+        const isInternational = data.recipient.country !== "Cameroun";
+        const feeRate = isInternational ? 0.09 : 0.025; // 9% for international, 2.5% for national
+        const fees = data.transfer.amount * feeRate;
 
         // Vérifier que nous avons bien les données du bénéficiaire
         if (!data.recipient.email || !data.recipient.fullName) {

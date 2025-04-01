@@ -7,7 +7,9 @@ type TransferSummaryProps = TransferData & {
 };
 
 const TransferSummary = ({ recipient, transfer }: TransferSummaryProps) => {
-  const fees = transfer.amount * 0.08;
+  const isInternational = recipient.country !== "Cameroun";
+  const feeRate = isInternational ? 0.09 : 0.025; // 9% for international, 2.5% for national
+  const fees = transfer.amount * feeRate;
   const total = transfer.amount + fees;
 
   return (
@@ -25,8 +27,10 @@ const TransferSummary = ({ recipient, transfer }: TransferSummaryProps) => {
           <div className="grid grid-cols-2 gap-3 text-sm">
             <span className="text-muted-foreground">Nom :</span>
             <span className="font-medium">{recipient.fullName}</span>
-            <span className="text-muted-foreground">Téléphone :</span>
+            <span className="text-muted-foreground">Email :</span>
             <span className="font-medium">{recipient.email}</span>
+            <span className="text-muted-foreground">Pays :</span>
+            <span className="font-medium">{recipient.country}</span>
           </div>
         </Card>
 
@@ -37,7 +41,9 @@ const TransferSummary = ({ recipient, transfer }: TransferSummaryProps) => {
             <span className="font-medium">
               {transfer.amount.toLocaleString('fr-FR')} {transfer.currency}
             </span>
-            <span className="text-muted-foreground">Frais (8%) :</span>
+            <span className="text-muted-foreground">
+              Frais ({isInternational ? "9%" : "2.5%"}) :
+            </span>
             <span className="font-medium">
               {fees.toLocaleString('fr-FR')} {transfer.currency}
             </span>
