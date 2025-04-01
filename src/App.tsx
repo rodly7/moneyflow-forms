@@ -10,6 +10,7 @@ import Withdraw from './pages/Withdraw';
 import QRCode from './pages/QRCode';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
+import Receive from './pages/Receive';
 
 import './App.css';
 
@@ -75,6 +76,12 @@ function App() {
             <Route path="/transactions" element={
               <ProtectedRoute>
                 <Transactions />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/receive" element={
+              <ProtectedRoute>
+                <Receive />
               </ProtectedRoute>
             } />
           </Routes>

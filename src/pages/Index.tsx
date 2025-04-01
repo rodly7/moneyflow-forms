@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Download, ArrowRightLeft, LogOut, ArrowDownLeft, Wallet, ChevronRight, QrCode } from "lucide-react";
+import { User, Download, ArrowRightLeft, LogOut, ArrowDownLeft, Wallet, ChevronRight, QrCode, PlusCircle } from "lucide-react";
 import TransferForm from "@/components/TransferForm";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
@@ -174,7 +174,7 @@ const Index = () => {
             <TransferForm />
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-2 mx-4">
+          <div className="grid grid-cols-4 gap-2 mx-4">
             <Link to="/qrcode" className="col-span-1">
               <Button
                 variant="outline"
@@ -193,6 +193,16 @@ const Index = () => {
               >
                 <Download className="w-4 h-4" />
                 Retrait
+              </Button>
+            </Link>
+            <Link to="/receive" className="col-span-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-14 text-xs border-2 flex flex-col gap-1"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Recharger
               </Button>
             </Link>
             <Button
