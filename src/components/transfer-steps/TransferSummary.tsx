@@ -1,13 +1,40 @@
 
 import { Card } from "@/components/ui/card";
 import { TransferData } from "@/types/transfer";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 type TransferSummaryProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
 };
 
 const TransferSummary = ({ recipient, transfer }: TransferSummaryProps) => {
-  const isInternational = recipient.country !== "Cameroun";
+  // Get current user's country from profile
+  const { user } = useAuth();
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('country')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching user profile:", error);
+        return null;
+      }
+      return data;
+    },
+  });
+
+  const userCountry = profile?.country || "Cameroun"; // Default to Cameroun if profile not found
+  
+  // Apply different fee rates based on whether the transfer is national or international
+  const isInternational = recipient.country && recipient.country !== userCountry;
   const feeRate = isInternational ? 0.09 : 0.025; // 9% for international, 2.5% for national
   const fees = transfer.amount * feeRate;
   const total = transfer.amount + fees;

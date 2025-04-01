@@ -43,11 +43,6 @@ export const useTransferForm = () => {
       try {
         setIsLoading(true);
         
-        // Apply different fee rates based on whether the transfer is national or international
-        const isInternational = data.recipient.country !== "Cameroun";
-        const feeRate = isInternational ? 0.09 : 0.025; // 9% for international, 2.5% for national
-        const fees = data.transfer.amount * feeRate;
-
         // Vérifier que nous avons bien les données du bénéficiaire
         if (!data.recipient.email || !data.recipient.fullName) {
           toast({
@@ -58,16 +53,6 @@ export const useTransferForm = () => {
           setIsLoading(false);
           return;
         }
-
-        console.log("Données du transfert:", {
-          beneficiaire: data.recipient.fullName,
-          identifiant: data.recipient.email,
-          montant: data.transfer.amount,
-          frais: fees
-        });
-
-        // Utiliser l'identifiant du destinataire (téléphone ou email)
-        const recipientIdentifier = data.recipient.email;
 
         // Vérifier que l'utilisateur est authentifié
         if (!user?.id) {
@@ -80,23 +65,29 @@ export const useTransferForm = () => {
           return;
         }
 
-        // Vérifier le solde avant de faire le transfert
+        // Get user's country from profile
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('balance')
+          .select('balance, country')
           .eq('id', user.id)
           .single();
 
         if (profileError || !profileData) {
           toast({
             title: "Erreur",
-            description: "Impossible de vérifier votre solde",
+            description: "Impossible de vérifier votre solde ou pays",
             variant: "destructive"
           });
           setIsLoading(false);
           return;
         }
 
+        // Apply different fee rates based on whether the transfer is national or international
+        const userCountry = profileData.country || "Cameroun";
+        const isInternational = data.recipient.country && data.recipient.country !== userCountry;
+        const feeRate = isInternational ? 0.09 : 0.025; // 9% for international, 2.5% for national
+        const fees = data.transfer.amount * feeRate;
+        
         const totalAmount = data.transfer.amount + fees;
         
         if (profileData.balance < totalAmount) {
@@ -108,6 +99,19 @@ export const useTransferForm = () => {
           setIsLoading(false);
           return;
         }
+
+        console.log("Données du transfert:", {
+          beneficiaire: data.recipient.fullName,
+          identifiant: data.recipient.email,
+          montant: data.transfer.amount,
+          frais: fees,
+          isInternational: isInternational,
+          userCountry: userCountry,
+          recipientCountry: data.recipient.country
+        });
+
+        // Utiliser l'identifiant du destinataire (téléphone ou email)
+        const recipientIdentifier = data.recipient.email;
 
         // Utiliser la procédure stockée pour traiter le transfert d'argent
         const { data: result, error: transferProcessError } = await supabase
