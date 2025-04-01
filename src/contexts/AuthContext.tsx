@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +15,7 @@ type UserMetadata = {
 type AuthContextType = {
   session: Session | null;
   user: User | null;
+  loading: boolean; // Add loading property to the interface
   signIn: (phone: string, password: string) => Promise<void>;
   signUp: (phone: string, password: string, metadata?: UserMetadata) => Promise<void>;
   signOut: () => Promise<void>;
@@ -24,6 +26,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true); // Add loading state
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           navigate("/auth");
         }
       }
+      setLoading(false); // Set loading to false once we've checked the session
     });
 
     // Listen for auth changes
@@ -70,6 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           navigate("/auth");
         }
       }
+      setLoading(false); // Ensure loading is set to false after auth state changes
     });
 
     return () => {
@@ -147,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ session, user, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
