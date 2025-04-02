@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { QRCodeSVG } from 'qrcode.react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface QRDataType {
   userId: string;
@@ -17,9 +18,18 @@ interface QRCodeGeneratorProps {
   withdrawalId?: string;
   amount?: string;
   showCard?: boolean;
+  userAvatar?: string;
+  userName?: string;
 }
 
-const QRCodeGenerator = ({ action = 'transfer', withdrawalId, amount, showCard = true }: QRCodeGeneratorProps) => {
+const QRCodeGenerator = ({ 
+  action = 'transfer', 
+  withdrawalId, 
+  amount, 
+  showCard = true,
+  userAvatar,
+  userName
+}: QRCodeGeneratorProps) => {
   const { user } = useAuth();
 
   // Generate QR code data for the specified action
@@ -28,7 +38,7 @@ const QRCodeGenerator = ({ action = 'transfer', withdrawalId, amount, showCard =
     
     const qrData: QRDataType = {
       userId: user.id,
-      fullName: user.user_metadata?.full_name || 'Unknown User',
+      fullName: user.user_metadata?.full_name || userName || 'Unknown User',
       action: action,
     };
 
@@ -39,6 +49,11 @@ const QRCodeGenerator = ({ action = 'transfer', withdrawalId, amount, showCard =
     }
     
     return JSON.stringify(qrData);
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return "?";
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
   const qrCodeContent = (
@@ -52,8 +67,17 @@ const QRCodeGenerator = ({ action = 'transfer', withdrawalId, amount, showCard =
           level={"H"}
           includeMargin={false}
         />
-        <div className="absolute bg-white rounded-full p-2">
-          <img src="/sendflow-logo.png" alt="Logo" className="w-10 h-10" />
+        <div className="absolute bg-white rounded-full p-1">
+          {userAvatar ? (
+            <Avatar className="w-12 h-12">
+              <AvatarImage src={userAvatar} alt={userName} />
+              <AvatarFallback className="bg-emerald-100 text-emerald-600">
+                {getInitials(userName)}
+              </AvatarFallback>
+            </Avatar>
+          ) : (
+            <img src="/sendflow-logo.png" alt="Logo" className="w-10 h-10" />
+          )}
         </div>
       </div>
     </div>

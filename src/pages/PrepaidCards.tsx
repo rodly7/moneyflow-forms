@@ -30,6 +30,29 @@ const PrepaidCards = () => {
     },
   });
 
+  // Store virtual card details in local storage for persistence
+  const getStoredCardDetails = () => {
+    const storedCard = localStorage.getItem(`virtual_card_${user?.id}`);
+    return storedCard ? JSON.parse(storedCard) : null;
+  };
+
+  // Generate virtual card details or load from storage
+  const getCardDetails = () => {
+    const storedCard = getStoredCardDetails();
+    
+    if (storedCard) {
+      return storedCard;
+    }
+    
+    // Generate new card details if none exist
+    const newCardDetails = generateCardDetails();
+    
+    // Store the card details
+    localStorage.setItem(`virtual_card_${user?.id}`, JSON.stringify(newCardDetails));
+    
+    return newCardDetails;
+  };
+
   // Generate virtual card details
   const generateCardDetails = () => {
     // Random card number that starts with 4 (Visa-like)
@@ -47,7 +70,8 @@ const PrepaidCards = () => {
     return { cardNumber, expiryDate, cvv };
   };
 
-  const cardDetails = generateCardDetails();
+  // Get or generate card details
+  const cardDetails = getCardDetails();
 
   const handleRequestVirtualCard = () => {
     setShowVirtualCard(true);
@@ -188,7 +212,7 @@ const PrepaidCards = () => {
             </CardFooter>
           </Card>
           
-          <Card>
+          <Card className="opacity-70">
             <CardHeader>
               <CardTitle>Carte Physique</CardTitle>
               <CardDescription>
@@ -200,9 +224,14 @@ const PrepaidCards = () => {
                 Recevez une carte physique à votre adresse pour accéder à votre 
                 solde Money Flow dans les commerces et aux distributeurs automatiques.
               </p>
+              <p className="text-xs text-amber-600 mt-2">
+                Ce service sera bientôt disponible.
+              </p>
             </CardContent>
             <CardFooter>
-              <Button className="w-full">Commander une carte physique</Button>
+              <Button className="w-full" disabled>
+                Service indisponible
+              </Button>
             </CardFooter>
           </Card>
 

@@ -11,24 +11,29 @@ import {
   LogOut, 
   Wallet, 
   ChevronRight, 
-  QrCode, 
   CreditCard, 
   Receipt, 
-  Phone
+  Phone,
+  EyeOff,
+  Eye,
+  Trash2
 } from "lucide-react";
 import TransferForm from "@/components/TransferForm";
 import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import QRCodeGenerator from "@/components/QRCodeGenerator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const Index = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [showTransfer, setShowTransfer] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [hideBalance, setHideBalance] = useState(false);
   const { toast } = useToast();
 
   const { data: profile, isLoading } = useQuery({
@@ -95,6 +100,28 @@ const Index = () => {
     navigate('/auth');
   };
 
+  const handleDeleteTransaction = async (transactionId, type) => {
+    try {
+      const { error } = await supabase
+        .from(type === 'withdrawal' ? 'withdrawals' : 'transfers')
+        .update({ status: 'deleted' })
+        .eq('id', transactionId);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Transaction supprimée",
+        description: "La transaction a été supprimée avec succès"
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer la transaction",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (isLoading) {
     return <div className="flex justify-center items-center min-h-screen">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
@@ -121,6 +148,7 @@ const Index = () => {
       status: t.status
     })) || [])
   ]
+  .filter(t => t.status !== 'deleted')
   .sort((a, b) => b.date.getTime() - a.date.getTime())
   .slice(0, 3);
 
@@ -130,17 +158,36 @@ const Index = () => {
     return <Wallet className="w-5 h-5 text-blue-500" />;
   };
 
+  const getInitials = (name) => {
+    if (!name) return "?";
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-0">
       <div className="container max-w-full mx-auto space-y-4">
-        {/* User Profile Card */}
         <Card className="bg-white shadow-lg mx-4">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="bg-emerald-100 p-3 rounded-full">
-                  <User className="w-5 h-5 text-emerald-600" />
-                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <div className="cursor-pointer">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={profile?.avatar_url} alt={profile?.full_name} />
+                        <AvatarFallback className="bg-emerald-100 text-emerald-600">
+                          {getInitials(profile?.full_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Modifier votre profil</DialogTitle>
+                    </DialogHeader>
+                    <ProfileEditForm profile={profile} />
+                  </DialogContent>
+                </Dialog>
                 <div>
                   <h2 className="text-lg font-semibold">{profile?.full_name}</h2>
                   <p className="text-xs text-gray-500">{profile?.phone}</p>
@@ -158,18 +205,29 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        {/* Balance Card with QR Code */}
         <Card className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white mx-4">
           <CardContent className="p-4 sm:p-6">
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm opacity-80">Solde disponible</p>
-                <h1 className="text-2xl sm:text-3xl font-bold mt-1">
-                  {new Intl.NumberFormat('fr-FR', {
-                    style: 'currency',
-                    currency: 'XAF',
-                    maximumFractionDigits: 0
-                  }).format(profile?.balance || 0)}
+                <h1 className="text-2xl sm:text-3xl font-bold mt-1 flex items-center">
+                  {hideBalance ? (
+                    "••••••"
+                  ) : (
+                    new Intl.NumberFormat('fr-FR', {
+                      style: 'currency',
+                      currency: 'XAF',
+                      maximumFractionDigits: 0
+                    }).format(profile?.balance || 0)
+                  )}
+                  <Button
+                    onClick={() => setHideBalance(!hideBalance)}
+                    variant="ghost"
+                    size="icon"
+                    className="ml-2 text-white/80 hover:text-white hover:bg-white/10"
+                  >
+                    {hideBalance ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  </Button>
                 </h1>
                 <Button 
                   onClick={() => setShowQR(!showQR)} 
@@ -177,7 +235,6 @@ const Index = () => {
                   className="mt-3 bg-white/20 hover:bg-white/30 text-white"
                   size="sm"
                 >
-                  <QrCode className="w-4 h-4 mr-2" />
                   {showQR ? "Masquer le QR Code" : "Afficher le QR Code"}
                 </Button>
               </div>
@@ -187,7 +244,12 @@ const Index = () => {
             {showQR && (
               <div className="mt-4 flex justify-center">
                 <div className="scale-75 transform origin-top">
-                  <QRCodeGenerator action="transfer" showCard={false} />
+                  <QRCodeGenerator 
+                    action="transfer" 
+                    showCard={false} 
+                    userAvatar={profile?.avatar_url} 
+                    userName={profile?.full_name}
+                  />
                 </div>
               </div>
             )}
@@ -207,18 +269,7 @@ const Index = () => {
           </div>
         ) : (
           <>
-            {/* Primary Services */}
-            <div className="grid grid-cols-3 gap-2 mx-4">
-              <Link to="/qrcode" className="col-span-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full h-14 text-xs border-2 flex flex-col gap-1"
-                >
-                  <QrCode className="w-4 h-4" />
-                  QR Code
-                </Button>
-              </Link>
+            <div className="grid grid-cols-2 gap-2 mx-4">
               <Link to="/withdraw" className="col-span-1">
                 <Button
                   variant="outline"
@@ -240,20 +291,9 @@ const Index = () => {
               </Button>
             </div>
             
-            {/* Additional Services */}
             <div className="mx-4 mt-4">
               <h3 className="text-sm font-medium text-gray-600 mb-2">Services additionnels</h3>
               <div className="grid grid-cols-3 gap-2">
-                <Link to="/prepaid-cards" className="col-span-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full h-20 text-xs border-2 flex flex-col gap-1 bg-gradient-to-r from-blue-50 to-purple-50"
-                  >
-                    <CreditCard className="w-6 h-6 text-purple-500" />
-                    <span className="font-medium">Cartes prépayées</span>
-                  </Button>
-                </Link>
                 <Link to="/bill-payments" className="col-span-1">
                   <Button
                     variant="outline"
@@ -274,12 +314,21 @@ const Index = () => {
                     Recharges
                   </Button>
                 </Link>
+                <Link to="/prepaid-cards" className="col-span-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-20 text-xs border-2 flex flex-col gap-1 bg-gradient-to-r from-blue-50 to-purple-50"
+                  >
+                    <CreditCard className="w-6 h-6 text-purple-500" />
+                    <span className="font-medium">Cartes prépayées</span>
+                  </Button>
+                </Link>
               </div>
             </div>
           </>
         )}
 
-        {/* Recent Transactions */}
         <Card className="bg-white shadow-lg mx-4">
           <CardHeader className="py-3 px-4">
             <CardTitle className="text-base font-semibold">Opérations récentes</CardTitle>
@@ -309,25 +358,35 @@ const Index = () => {
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className={`font-semibold text-sm ${
-                          transaction.amount > 0 ? 'text-green-500' : 'text-red-500'
-                        }`}>
-                          {transaction.amount > 0 ? '+' : ''}
-                          {new Intl.NumberFormat('fr-FR', {
-                            style: 'currency',
-                            currency: transaction.currency || 'XAF',
-                            maximumFractionDigits: 0
-                          }).format(transaction.amount)}
-                        </p>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                          transaction.status === 'completed' ? 'bg-green-100 text-green-700' : 
-                          transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {transaction.status === 'completed' ? 'Complété' : 
-                           transaction.status === 'pending' ? 'En attente' : transaction.status}
-                        </span>
+                      <div className="flex items-center">
+                        <div className="text-right mr-2">
+                          <p className={`font-semibold text-sm ${
+                            transaction.amount > 0 ? 'text-green-500' : 'text-red-500'
+                          }`}>
+                            {transaction.amount > 0 ? '+' : ''}
+                            {new Intl.NumberFormat('fr-FR', {
+                              style: 'currency',
+                              currency: transaction.currency || 'XAF',
+                              maximumFractionDigits: 0
+                            }).format(transaction.amount)}
+                          </p>
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                            transaction.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                            transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {transaction.status === 'completed' ? 'Complété' : 
+                            transaction.status === 'pending' ? 'En attente' : transaction.status}
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-gray-400 hover:text-red-500"
+                          onClick={() => handleDeleteTransaction(transaction.id, transaction.type)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
                   ))
