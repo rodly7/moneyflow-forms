@@ -1,10 +1,22 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Download, ArrowRightLeft, LogOut, ArrowDownLeft, Wallet, ChevronRight, QrCode } from "lucide-react";
+import { 
+  User, 
+  Download, 
+  ArrowRightLeft, 
+  LogOut, 
+  Wallet, 
+  ChevronRight, 
+  QrCode, 
+  CreditCard, 
+  Receipt, 
+  Phone
+} from "lucide-react";
 import TransferForm from "@/components/TransferForm";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
@@ -120,6 +132,7 @@ const Index = () => {
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-0">
       <div className="container max-w-full mx-auto space-y-4">
+        {/* User Profile Card */}
         <Card className="bg-white shadow-lg mx-4">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -144,6 +157,7 @@ const Index = () => {
           </CardContent>
         </Card>
 
+        {/* Balance Card */}
         <Card className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white mx-4">
           <CardContent className="p-4 sm:p-6">
             <div className="flex justify-between items-start">
@@ -174,39 +188,80 @@ const Index = () => {
             <TransferForm />
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-2 mx-4">
-            <Link to="/qrcode" className="col-span-1">
+          <>
+            {/* Primary Services */}
+            <div className="grid grid-cols-3 gap-2 mx-4">
+              <Link to="/qrcode" className="col-span-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-14 text-xs border-2 flex flex-col gap-1"
+                >
+                  <QrCode className="w-4 h-4" />
+                  QR Code
+                </Button>
+              </Link>
+              <Link to="/withdraw" className="col-span-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-14 text-xs border-2 flex flex-col gap-1"
+                >
+                  <Download className="w-4 h-4" />
+                  Retrait
+                </Button>
+              </Link>
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full h-14 text-xs border-2 flex flex-col gap-1"
+                className="w-full h-14 text-xs border-2 flex flex-col gap-1 col-span-1"
+                onClick={() => setShowTransfer(true)}
               >
-                <QrCode className="w-4 h-4" />
-                QR Code
+                <ArrowRightLeft className="w-4 h-4" />
+                Transfert
               </Button>
-            </Link>
-            <Link to="/withdraw" className="col-span-1">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full h-14 text-xs border-2 flex flex-col gap-1"
-              >
-                <Download className="w-4 h-4" />
-                Retrait
-              </Button>
-            </Link>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full h-14 text-xs border-2 flex flex-col gap-1 col-span-1"
-              onClick={() => setShowTransfer(true)}
-            >
-              <ArrowRightLeft className="w-4 h-4" />
-              Transfert
-            </Button>
-          </div>
+            </div>
+            
+            {/* Additional Services */}
+            <div className="mx-4 mt-4">
+              <h3 className="text-sm font-medium text-gray-600 mb-2">Services additionnels</h3>
+              <div className="grid grid-cols-3 gap-2">
+                <Link to="/prepaid-cards" className="col-span-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-14 text-xs border-2 flex flex-col gap-1"
+                  >
+                    <CreditCard className="w-4 h-4 text-purple-500" />
+                    Cartes prépayées
+                  </Button>
+                </Link>
+                <Link to="/bill-payments" className="col-span-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-14 text-xs border-2 flex flex-col gap-1"
+                  >
+                    <Receipt className="w-4 h-4 text-blue-500" />
+                    Factures
+                  </Button>
+                </Link>
+                <Link to="/mobile-recharge" className="col-span-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-14 text-xs border-2 flex flex-col gap-1"
+                  >
+                    <Phone className="w-4 h-4 text-green-500" />
+                    Recharges
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </>
         )}
 
+        {/* Recent Transactions */}
         <Card className="bg-white shadow-lg mx-4">
           <CardHeader className="py-3 px-4">
             <CardTitle className="text-base font-semibold">Opérations récentes</CardTitle>

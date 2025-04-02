@@ -11,6 +11,9 @@ import QRCode from './pages/QRCode';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Receive from './pages/Receive';
+import PrepaidCards from './pages/PrepaidCards';
+import BillPayments from './pages/BillPayments';
+import MobileRecharge from './pages/MobileRecharge';
 
 import './App.css';
 
@@ -82,6 +85,24 @@ function App() {
             <Route path="/receive" element={
               <ProtectedRoute>
                 <Receive />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/prepaid-cards" element={
+              <ProtectedRoute>
+                <PrepaidCards />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/bill-payments" element={
+              <ProtectedRoute>
+                <BillPayments />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/mobile-recharge" element={
+              <ProtectedRoute>
+                <MobileRecharge />
               </ProtectedRoute>
             } />
           </Routes>
