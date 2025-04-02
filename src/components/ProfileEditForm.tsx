@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -106,7 +106,7 @@ const ProfileEditForm = ({ profile }: ProfileEditFormProps) => {
       });
 
       // Invalidate profile query to refresh data
-      queryClient.invalidateQueries(['profile']);
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({

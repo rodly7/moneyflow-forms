@@ -62,6 +62,7 @@ export type Database = {
       profiles: {
         Row: {
           address: string | null
+          avatar_url: string | null
           balance: number
           country: string | null
           created_at: string
@@ -71,6 +72,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          avatar_url?: string | null
           balance?: number
           country?: string | null
           created_at?: string
@@ -80,6 +82,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          avatar_url?: string | null
           balance?: number
           country?: string | null
           created_at?: string
@@ -157,6 +160,7 @@ export type Database = {
           currency: string
           fees: number
           id: string
+          is_deleted: boolean | null
           recipient_country: string
           recipient_full_name: string
           recipient_phone: string
@@ -169,6 +173,7 @@ export type Database = {
           currency: string
           fees: number
           id?: string
+          is_deleted?: boolean | null
           recipient_country: string
           recipient_full_name: string
           recipient_phone: string
@@ -181,6 +186,7 @@ export type Database = {
           currency?: string
           fees?: number
           id?: string
+          is_deleted?: boolean | null
           recipient_country?: string
           recipient_full_name?: string
           recipient_phone?: string
@@ -202,6 +208,7 @@ export type Database = {
           amount: number
           created_at: string
           id: string
+          is_deleted: boolean | null
           status: string
           updated_at: string
           user_id: string
@@ -211,6 +218,7 @@ export type Database = {
           amount: number
           created_at?: string
           id?: string
+          is_deleted?: boolean | null
           status?: string
           updated_at?: string
           user_id: string
@@ -220,6 +228,7 @@ export type Database = {
           amount?: number
           created_at?: string
           id?: string
+          is_deleted?: boolean | null
           status?: string
           updated_at?: string
           user_id?: string

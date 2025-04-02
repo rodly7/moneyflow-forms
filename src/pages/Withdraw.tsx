@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -142,21 +141,6 @@ const Withdraw = () => {
     }
   };
 
-  // QR code data for withdrawal
-  const generateWithdrawalQRData = () => {
-    if (!withdrawalId || !user) return '';
-    
-    const qrData = {
-      action: 'withdraw',
-      withdrawalId: withdrawalId,
-      amount: amount,
-      userId: user.id,
-      phone: phoneNumber
-    };
-    
-    return JSON.stringify(qrData);
-  };
-
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0">
       <div className="max-w-md mx-auto space-y-4">
@@ -261,11 +245,11 @@ const Withdraw = () => {
             
             <div className="bg-white p-5 rounded-lg shadow-md">
               {withdrawalId && (
-                <QRCodeSVG 
-                  value={generateWithdrawalQRData()} 
-                  size={200}
-                  level="H"
-                  includeMargin={true}
+                <QRCodeGenerator 
+                  action="withdraw"
+                  withdrawalId={withdrawalId}
+                  amount={amount}
+                  showCard={false}
                 />
               )}
             </div>
@@ -288,6 +272,4 @@ const Withdraw = () => {
 
 export default Withdraw;
 
-// Import countries from data and QR code
 import { countries } from "@/data/countries";
-import { QRCodeSVG } from "qrcode.react";

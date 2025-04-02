@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,13 +21,14 @@ import {
 } from "lucide-react";
 import TransferForm from "@/components/TransferForm";
 import { useState } from "react";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import QRCodeGenerator from "@/components/QRCodeGenerator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import ProfileEditForm from "@/components/ProfileEditForm";
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -100,7 +102,7 @@ const Index = () => {
     navigate('/auth');
   };
 
-  const handleDeleteTransaction = async (transactionId, type) => {
+  const handleDeleteTransaction = async (transactionId: string, type: string) => {
     try {
       const { error } = await supabase
         .from(type === 'withdrawal' ? 'withdrawals' : 'transfers')
@@ -152,13 +154,13 @@ const Index = () => {
   .sort((a, b) => b.date.getTime() - a.date.getTime())
   .slice(0, 3);
 
-  const getTransactionIcon = (type) => {
+  const getTransactionIcon = (type: string) => {
     if (type === 'withdrawal') return <Download className="w-5 h-5 text-red-500" />;
     if (type === 'transfer') return <ArrowRightLeft className="w-5 h-5 text-blue-500" />;
     return <Wallet className="w-5 h-5 text-blue-500" />;
   };
 
-  const getInitials = (name) => {
+  const getInitials = (name: string) => {
     if (!name) return "?";
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
@@ -176,7 +178,7 @@ const Index = () => {
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={profile?.avatar_url} alt={profile?.full_name} />
                         <AvatarFallback className="bg-emerald-100 text-emerald-600">
-                          {getInitials(profile?.full_name)}
+                          {getInitials(profile?.full_name || '')}
                         </AvatarFallback>
                       </Avatar>
                     </div>
@@ -229,14 +231,6 @@ const Index = () => {
                     {hideBalance ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                   </Button>
                 </h1>
-                <Button 
-                  onClick={() => setShowQR(!showQR)} 
-                  variant="secondary" 
-                  className="mt-3 bg-white/20 hover:bg-white/30 text-white"
-                  size="sm"
-                >
-                  {showQR ? "Masquer le QR Code" : "Afficher le QR Code"}
-                </Button>
               </div>
               <Wallet className="w-10 h-10 opacity-80" />
             </div>
@@ -318,9 +312,9 @@ const Index = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full h-20 text-xs border-2 flex flex-col gap-1 bg-gradient-to-r from-blue-50 to-purple-50"
+                    className="w-full h-24 text-xs border-2 flex flex-col gap-1 bg-gradient-to-r from-blue-50 to-purple-50"
                   >
-                    <CreditCard className="w-6 h-6 text-purple-500" />
+                    <CreditCard className="w-8 h-8 text-purple-500" />
                     <span className="font-medium">Cartes prépayées</span>
                   </Button>
                 </Link>
