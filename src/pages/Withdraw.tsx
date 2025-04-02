@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -7,16 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { processWithdrawal } from "@/integrations/supabase/client";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue 
-} from "@/components/ui/select";
-import { countries } from "@/data/countries";
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import QRCodeGenerator from "@/components/QRCodeGenerator";
 
 const Withdraw = () => {
   const { user } = useAuth();
@@ -27,10 +26,10 @@ const Withdraw = () => {
   const [fullName, setFullName] = useState("");
   const [country, setCountry] = useState("");
   const [countryCode, setCountryCode] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("");
-  const [paymentMethods, setPaymentMethods] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [withdrawalId, setWithdrawalId] = useState<string | null>(null);
+  const [showQRCode, setShowQRCode] = useState(false);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -51,10 +50,6 @@ const Withdraw = () => {
           const selectedCountry = countries.find(c => c.name === userCountry);
           if (selectedCountry) {
             setCountryCode(selectedCountry.code);
-            setPaymentMethods(selectedCountry.paymentMethods);
-            if (selectedCountry.paymentMethods.length > 0) {
-              setPaymentMethod(selectedCountry.paymentMethods[0]);
-            }
           }
         }
         setIsLoading(false);
@@ -63,22 +58,6 @@ const Withdraw = () => {
 
     fetchUserProfile();
   }, [user]);
-
-  const handleCountryChange = (value: string) => {
-    setCountry(value);
-    
-    const selectedCountry = countries.find(c => c.name === value);
-    if (selectedCountry) {
-      setCountryCode(selectedCountry.code);
-      setPaymentMethods(selectedCountry.paymentMethods);
-      
-      if (selectedCountry.paymentMethods.length > 0) {
-        setPaymentMethod(selectedCountry.paymentMethods[0]);
-      } else {
-        setPaymentMethod("");
-      }
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,15 +80,6 @@ const Withdraw = () => {
       return;
     }
 
-    if (!paymentMethod) {
-      toast({
-        title: "Méthode de paiement requise",
-        description: "Veuillez sélectionner une méthode de paiement",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
       setIsProcessing(true);
 
@@ -121,14 +91,46 @@ const Withdraw = () => {
         ? phoneNumber 
         : `${countryCode}${phoneNumber.startsWith('0') ? phoneNumber.substring(1) : phoneNumber}`;
 
-      await processWithdrawal(user.id, Number(amount), formattedPhone);
+      // Process the withdrawal in Supabase
+      const { data: withdrawal, error } = await supabase
+        .from('withdrawals')
+        .insert({
+          user_id: user.id,
+          amount: Number(amount),
+          withdrawal_phone: formattedPhone,
+          status: 'pending'
+        })
+        .select('id')
+        .single();
 
-      toast({
-        title: "Demande de retrait envoyée",
-        description: `Votre demande de retrait de ${amount} XAF via ${paymentMethod} a été soumise et est en cours de traitement.`,
-      });
+      if (error) {
+        throw error;
+      }
 
-      navigate('/');
+      // Update user balance
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('balance')
+        .eq('id', user.id)
+        .single();
+      
+      if (profileError || !profile) {
+        throw new Error("Impossible de vérifier votre solde");
+      }
+      
+      const { error: balanceError } = await supabase
+        .from('profiles')
+        .update({ balance: profile.balance - Number(amount) })
+        .eq('id', user.id);
+      
+      if (balanceError) {
+        throw new Error("Erreur lors de la mise à jour du solde");
+      }
+
+      // Set withdrawal ID for QR code generation
+      setWithdrawalId(withdrawal.id);
+      setShowQRCode(true);
+
     } catch (error) {
       console.error("Erreur lors du retrait:", error);
       toast({
@@ -136,9 +138,23 @@ const Withdraw = () => {
         description: error instanceof Error ? error.message : "Une erreur est survenue lors du retrait",
         variant: "destructive"
       });
-    } finally {
       setIsProcessing(false);
     }
+  };
+
+  // QR code data for withdrawal
+  const generateWithdrawalQRData = () => {
+    if (!withdrawalId || !user) return '';
+    
+    const qrData = {
+      action: 'withdraw',
+      withdrawalId: withdrawalId,
+      amount: amount,
+      userId: user.id,
+      phone: phoneNumber
+    };
+    
+    return JSON.stringify(qrData);
   };
 
   return (
@@ -201,28 +217,9 @@ const Withdraw = () => {
                     className="bg-gray-100"
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="paymentMethod">Méthode de paiement</Label>
-                  <Select 
-                    value={paymentMethod} 
-                    onValueChange={setPaymentMethod}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Sélectionnez une méthode de paiement" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {paymentMethods.map((method) => (
-                        <SelectItem key={method} value={method}>
-                          {method}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Numéro de téléphone Mobile Money</Label>
+                  <Label htmlFor="phone">Numéro de téléphone</Label>
                   <div className="flex items-center space-x-2">
                     <div className="bg-gray-100 px-3 py-2 rounded-md border border-input text-sm">
                       {countryCode}
@@ -235,9 +232,6 @@ const Withdraw = () => {
                       readOnly
                     />
                   </div>
-                  <p className="text-xs text-gray-500">
-                    Le numéro qui recevra l'argent via {paymentMethod || "Mobile Money"}
-                  </p>
                 </div>
 
                 <Button 
@@ -252,8 +246,48 @@ const Withdraw = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* QR Code Dialog */}
+      <Dialog open={showQRCode} onOpenChange={setShowQRCode}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Retrait par QR Code</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center p-4 space-y-4">
+            <p className="text-center text-sm text-gray-600">
+              Montrez ce QR code pour retirer vos {amount} XAF.
+              Le retrait sera confirmé après scan du code.
+            </p>
+            
+            <div className="bg-white p-5 rounded-lg shadow-md">
+              {withdrawalId && (
+                <QRCodeSVG 
+                  value={generateWithdrawalQRData()} 
+                  size={200}
+                  level="H"
+                  includeMargin={true}
+                />
+              )}
+            </div>
+            
+            <Button 
+              onClick={() => {
+                setShowQRCode(false);
+                navigate('/');
+              }}
+              className="w-full mt-4"
+            >
+              Terminer
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default Withdraw;
+
+// Import countries from data and QR code
+import { countries } from "@/data/countries";
+import { QRCodeSVG } from "qrcode.react";

@@ -21,7 +21,7 @@ const QRCode = () => {
             <CardTitle>Mon QR Code</CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <QRCodeGenerator />
+            <QRCodeGenerator action="transfer" showCard={false} />
           </CardContent>
         </Card>
       </div>
