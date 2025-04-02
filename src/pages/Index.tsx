@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,11 +22,13 @@ import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import QRCodeGenerator from "@/components/QRCodeGenerator";
 
 const Index = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [showTransfer, setShowTransfer] = useState(false);
+  const [showQR, setShowQR] = useState(false);
   const { toast } = useToast();
 
   const { data: profile, isLoading } = useQuery({
@@ -157,7 +158,7 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        {/* Balance Card */}
+        {/* Balance Card with QR Code */}
         <Card className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white mx-4">
           <CardContent className="p-4 sm:p-6">
             <div className="flex justify-between items-start">
@@ -170,9 +171,26 @@ const Index = () => {
                     maximumFractionDigits: 0
                   }).format(profile?.balance || 0)}
                 </h1>
+                <Button 
+                  onClick={() => setShowQR(!showQR)} 
+                  variant="secondary" 
+                  className="mt-3 bg-white/20 hover:bg-white/30 text-white"
+                  size="sm"
+                >
+                  <QrCode className="w-4 h-4 mr-2" />
+                  {showQR ? "Masquer le QR Code" : "Afficher le QR Code"}
+                </Button>
               </div>
               <Wallet className="w-10 h-10 opacity-80" />
             </div>
+            
+            {showQR && (
+              <div className="mt-4 flex justify-center">
+                <div className="scale-75 transform origin-top">
+                  <QRCodeGenerator action="transfer" showCard={false} />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -230,10 +248,10 @@ const Index = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full h-14 text-xs border-2 flex flex-col gap-1"
+                    className="w-full h-20 text-xs border-2 flex flex-col gap-1 bg-gradient-to-r from-blue-50 to-purple-50"
                   >
-                    <CreditCard className="w-4 h-4 text-purple-500" />
-                    Cartes prépayées
+                    <CreditCard className="w-6 h-6 text-purple-500" />
+                    <span className="font-medium">Cartes prépayées</span>
                   </Button>
                 </Link>
                 <Link to="/bill-payments" className="col-span-1">
