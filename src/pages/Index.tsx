@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +29,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import ProfileEditForm from "@/components/ProfileEditForm";
 
+interface Profile {
+  id: string;
+  full_name: string | null;
+  phone: string;
+  balance: number;
+  avatar_url?: string | null;
+  country?: string | null;
+  address?: string | null;
+  created_at: string;
+}
+
 const Index = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -48,7 +58,7 @@ const Index = () => {
         .single();
       
       if (error) throw error;
-      return data;
+      return data as Profile;
     },
   });
 
@@ -176,7 +186,7 @@ const Index = () => {
                   <DialogTrigger asChild>
                     <div className="cursor-pointer">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={profile?.avatar_url} alt={profile?.full_name} />
+                        <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || ''} />
                         <AvatarFallback className="bg-emerald-100 text-emerald-600">
                           {getInitials(profile?.full_name || '')}
                         </AvatarFallback>
@@ -187,7 +197,7 @@ const Index = () => {
                     <DialogHeader>
                       <DialogTitle>Modifier votre profil</DialogTitle>
                     </DialogHeader>
-                    <ProfileEditForm profile={profile} />
+                    {profile && <ProfileEditForm profile={profile} />}
                   </DialogContent>
                 </Dialog>
                 <div>
@@ -230,8 +240,7 @@ const Index = () => {
                   >
                     {hideBalance ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                   </Button>
-                </h1>
-              </div>
+                </div>
               <Wallet className="w-10 h-10 opacity-80" />
             </div>
             
@@ -241,8 +250,8 @@ const Index = () => {
                   <QRCodeGenerator 
                     action="transfer" 
                     showCard={false} 
-                    userAvatar={profile?.avatar_url} 
-                    userName={profile?.full_name}
+                    userAvatar={profile?.avatar_url || undefined} 
+                    userName={profile?.full_name || ''}
                   />
                 </div>
               </div>
