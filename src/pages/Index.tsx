@@ -17,7 +17,8 @@ import {
   Phone,
   EyeOff,
   Eye,
-  Trash2
+  Trash2,
+  QrCode
 } from "lucide-react";
 import TransferForm from "@/components/TransferForm";
 import { useState } from "react";
@@ -46,7 +47,7 @@ const Index = () => {
   const navigate = useNavigate();
   const [showTransfer, setShowTransfer] = useState(false);
   const [showQR, setShowQR] = useState(false);
-  const [hideBalance, setHideBalance] = useState(false);
+  const [hideBalance, setHideBalance] = useState(true); // Set to true by default
   const { toast } = useToast();
 
   const { data: profile, isLoading } = useQuery({
@@ -243,19 +244,27 @@ const Index = () => {
                   </Button>
                 </h1>
               </div>
-              <Wallet className="w-10 h-10 opacity-80" />
+              <div className="flex items-center gap-2">
+                <Wallet className="w-10 h-10 opacity-80" />
+                <Button
+                  onClick={() => setShowQR(!showQR)}
+                  variant="ghost" 
+                  size="sm"
+                  className="text-white/90 hover:text-white hover:bg-white/10 rounded-full p-2 h-auto"
+                >
+                  <QrCode className="w-6 h-6" />
+                </Button>
+              </div>
             </div>
             
             {showQR && (
               <div className="mt-4 flex justify-center">
-                <div className="scale-75 transform origin-top">
-                  <QRCodeGenerator 
-                    action="transfer" 
-                    showCard={false} 
-                    userAvatar={profile?.avatar_url || undefined} 
-                    userName={profile?.full_name || ''}
-                  />
-                </div>
+                <QRCodeGenerator 
+                  action="transfer" 
+                  showCard={false} 
+                  userAvatar={profile?.avatar_url || undefined} 
+                  userName={profile?.full_name || ''}
+                />
               </div>
             )}
           </CardContent>
@@ -298,7 +307,7 @@ const Index = () => {
             
             <div className="mx-4 mt-4">
               <h3 className="text-sm font-medium text-gray-600 mb-2">Services additionnels</h3>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Link to="/bill-payments" className="col-span-1">
                   <Button
                     variant="outline"
@@ -319,13 +328,13 @@ const Index = () => {
                     Recharges
                   </Button>
                 </Link>
-                <Link to="/prepaid-cards" className="col-span-3">
+                <Link to="/prepaid-cards" className="col-span-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full h-24 text-xs border-2 flex flex-col gap-1 bg-gradient-to-r from-blue-50 to-purple-50"
+                    className="w-full h-14 text-xs border-2 flex flex-col gap-1 bg-gradient-to-r from-blue-50 to-purple-50"
                   >
-                    <CreditCard className="w-8 h-8 text-purple-500" />
+                    <CreditCard className="w-4 h-4 text-purple-500" />
                     <span className="font-medium">Cartes prépayées</span>
                   </Button>
                 </Link>

@@ -57,11 +57,11 @@ const QRCodeGenerator = ({
   };
 
   const qrCodeContent = (
-    <div className="bg-white p-4 rounded-lg border shadow-md">
-      <div className="relative flex items-center justify-center w-56 h-56 bg-gray-100 rounded-lg">
+    <div className="bg-white p-2 rounded-lg border shadow-md">
+      <div className="relative flex items-center justify-center w-32 h-32 sm:w-44 sm:h-44 bg-gray-100 rounded-lg">
         <QRCodeSVG 
           value={generateQRData()} 
-          size={200}
+          size={showCard ? 200 : 120}
           bgColor={"#ffffff"}
           fgColor={"#000000"}
           level={"H"}
@@ -69,14 +69,14 @@ const QRCodeGenerator = ({
         />
         <div className="absolute bg-white rounded-full p-1">
           {userAvatar ? (
-            <Avatar className="w-12 h-12">
+            <Avatar className="w-8 h-8">
               <AvatarImage src={userAvatar} alt={userName} />
               <AvatarFallback className="bg-emerald-100 text-emerald-600">
                 {getInitials(userName)}
               </AvatarFallback>
             </Avatar>
           ) : (
-            <img src="/sendflow-logo.png" alt="Logo" className="w-10 h-10" />
+            <img src="/sendflow-logo.png" alt="Logo" className="w-6 h-6" />
           )}
         </div>
       </div>
