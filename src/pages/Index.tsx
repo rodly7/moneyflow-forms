@@ -47,7 +47,7 @@ const Index = () => {
   const navigate = useNavigate();
   const [showTransfer, setShowTransfer] = useState(false);
   const [showQR, setShowQR] = useState(false);
-  const [hideBalance, setHideBalance] = useState(true); // Set to true by default
+  const [hideBalance, setHideBalance] = useState(true);
   const { toast } = useToast();
 
   const { data: profile, isLoading } = useQuery({
@@ -396,7 +396,7 @@ const Index = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-gray-400 hover:text-red-500"
+                          className="text-gray-400 hover:text-red-500 h-8 w-8"
                           onClick={() => handleDeleteTransaction(transaction.id, transaction.type)}
                         >
                           <Trash2 className="w-4 h-4" />

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Copy, Eye, EyeOff } from "lucide-react";
@@ -29,6 +29,14 @@ const PrepaidCards = () => {
       return data;
     },
   });
+
+  // Check if user already has a virtual card stored
+  useEffect(() => {
+    const storedCard = getStoredCardDetails();
+    if (storedCard) {
+      setShowVirtualCard(true);
+    }
+  }, [user?.id]);
 
   // Store virtual card details in local storage for persistence
   const getStoredCardDetails = () => {
@@ -109,10 +117,10 @@ const PrepaidCards = () => {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="text-white hover:bg-white/10"
+                  className="text-white hover:bg-white/10 h-8 w-8"
                   onClick={() => setHideCardDetails(!hideCardDetails)}
                 >
-                  {hideCardDetails ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                  {hideCardDetails ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                 </Button>
               </div>
               <CardDescription className="text-blue-100">
@@ -136,10 +144,10 @@ const PrepaidCards = () => {
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-6 w-6 text-white hover:bg-white/10"
+                    className="h-6 w-6 text-white hover:bg-white/10 p-1"
                     onClick={() => copyToClipboard(cardDetails.cardNumber.replace(/\s/g, ''), "Numéro de carte")}
                   >
-                    <Copy className="w-4 h-4" />
+                    <Copy className="w-3 h-3" />
                   </Button>
                 </div>
               </div>
@@ -154,10 +162,10 @@ const PrepaidCards = () => {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-6 w-6 text-white hover:bg-white/10"
+                      className="h-6 w-6 text-white hover:bg-white/10 p-1"
                       onClick={() => copyToClipboard(cardDetails.expiryDate, "Date d'expiration")}
                     >
-                      <Copy className="w-4 h-4" />
+                      <Copy className="w-3 h-3" />
                     </Button>
                   </div>
                 </div>
@@ -171,10 +179,10 @@ const PrepaidCards = () => {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-6 w-6 text-white hover:bg-white/10"
+                      className="h-6 w-6 text-white hover:bg-white/10 p-1"
                       onClick={() => copyToClipboard(cardDetails.cvv, "CVV")}
                     >
-                      <Copy className="w-4 h-4" />
+                      <Copy className="w-3 h-3" />
                     </Button>
                   </div>
                 </div>
