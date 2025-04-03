@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -240,7 +241,8 @@ const Index = () => {
                   >
                     {hideBalance ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                   </Button>
-                </div>
+                </h1>
+              </div>
               <Wallet className="w-10 h-10 opacity-80" />
             </div>
             
