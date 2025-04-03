@@ -68,3 +68,48 @@ export const processWithdrawal = async (userId: string, amount: number, phoneNum
     throw error;
   }
 };
+
+// Function to process withdrawal verification and fund transfer
+export const processWithdrawalVerification = async (withdrawalId: string, processorId: string) => {
+  try {
+    // Fetch the withdrawal details
+    const { data: withdrawal, error: fetchError } = await supabase
+      .from('withdrawals')
+      .select('*')
+      .eq('id', withdrawalId)
+      .eq('status', 'pending')
+      .single();
+    
+    if (fetchError || !withdrawal) {
+      throw new Error("Ce retrait n'existe pas ou a déjà été traité");
+    }
+    
+    // Ensure the processor is different from the requester
+    if (withdrawal.user_id === processorId) {
+      throw new Error("Vous ne pouvez pas confirmer votre propre retrait");
+    }
+    
+    // Update withdrawal status to 'completed'
+    const { error: updateError } = await supabase
+      .from('withdrawals')
+      .update({ status: 'completed', updated_at: new Date().toISOString() })
+      .eq('id', withdrawal.id);
+    
+    if (updateError) throw updateError;
+    
+    // Add funds to the processor's account
+    const { error: balanceError } = await supabase
+      .rpc('increment_balance', { 
+        user_id: processorId, 
+        amount: withdrawal.amount 
+      });
+    
+    if (balanceError) {
+      throw new Error("Erreur lors du transfert des fonds");
+    }
+    
+    return withdrawal;
+  } catch (error) {
+    throw error;
+  }
+};
