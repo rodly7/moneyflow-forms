@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -7,14 +8,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, processWithdrawal, formatCurrency, getCurrencyForCountry } from "@/integrations/supabase/client";
 import { 
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import QRCodeGenerator from "@/components/QRCodeGenerator";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
 const Withdraw = () => {
   const { user } = useAuth();
@@ -27,8 +32,9 @@ const Withdraw = () => {
   const [countryCode, setCountryCode] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [withdrawalId, setWithdrawalId] = useState<string | null>(null);
-  const [showQRCode, setShowQRCode] = useState(false);
+  const [showVerificationCode, setShowVerificationCode] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [currency, setCurrency] = useState("XAF");
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -45,6 +51,7 @@ const Withdraw = () => {
           setCountry(userCountry);
           setPhoneNumber(data.phone || "");
           setFullName(data.full_name || "");
+          setCurrency(getCurrencyForCountry(userCountry));
           
           const selectedCountry = countries.find(c => c.name === userCountry);
           if (selectedCountry) {
@@ -90,45 +97,12 @@ const Withdraw = () => {
         ? phoneNumber 
         : `${countryCode}${phoneNumber.startsWith('0') ? phoneNumber.substring(1) : phoneNumber}`;
 
-      // Process the withdrawal in Supabase
-      const { data: withdrawal, error } = await supabase
-        .from('withdrawals')
-        .insert({
-          user_id: user.id,
-          amount: Number(amount),
-          withdrawal_phone: formattedPhone,
-          status: 'pending'
-        })
-        .select('id')
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      // Update user balance
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('balance')
-        .eq('id', user.id)
-        .single();
+      // Process the withdrawal in Supabase and get back the verification code
+      const withdrawalResult = await processWithdrawal(user.id, Number(amount), formattedPhone);
       
-      if (profileError || !profile) {
-        throw new Error("Impossible de vérifier votre solde");
-      }
-      
-      const { error: balanceError } = await supabase
-        .from('profiles')
-        .update({ balance: profile.balance - Number(amount) })
-        .eq('id', user.id);
-      
-      if (balanceError) {
-        throw new Error("Erreur lors de la mise à jour du solde");
-      }
-
-      // Set withdrawal ID for QR code generation
-      setWithdrawalId(withdrawal.id);
-      setShowQRCode(true);
+      // Set verification code for display
+      setVerificationCode(withdrawalResult.verificationCode);
+      setShowVerificationCode(true);
 
     } catch (error) {
       console.error("Erreur lors du retrait:", error);
@@ -180,11 +154,11 @@ const Withdraw = () => {
                 </div>
               
                 <div className="space-y-2">
-                  <Label htmlFor="amount">Montant (XAF)</Label>
+                  <Label htmlFor="amount">Montant ({currency})</Label>
                   <Input
                     id="amount"
                     type="number"
-                    placeholder="Entrez le montant"
+                    placeholder={`Entrez le montant en ${currency}`}
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     required
@@ -231,32 +205,41 @@ const Withdraw = () => {
         </Card>
       </div>
 
-      {/* QR Code Dialog */}
-      <Dialog open={showQRCode} onOpenChange={setShowQRCode}>
+      {/* Verification Code Dialog */}
+      <Dialog open={showVerificationCode} onOpenChange={setShowVerificationCode}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Retrait par QR Code</DialogTitle>
+            <DialogTitle>Code de vérification pour votre retrait</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center justify-center p-4 space-y-4">
             <p className="text-center text-sm text-gray-600">
-              Montrez ce QR code pour retirer vos {amount} XAF.
-              Le retrait sera confirmé après scan du code.
+              Partagez ce code avec la personne qui va confirmer votre retrait de {formatCurrency(Number(amount), currency)}.
             </p>
             
-            <div className="bg-white p-5 rounded-lg shadow-md">
-              {withdrawalId && (
-                <QRCodeGenerator 
-                  action="withdraw"
-                  withdrawalId={withdrawalId}
-                  amount={amount}
-                  showCard={false}
-                />
-              )}
+            <div className="bg-gray-100 p-5 rounded-lg shadow-sm w-full">
+              <InputOTP maxLength={6} value={verificationCode} disabled>
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
             </div>
+            
+            <div className="text-center font-bold text-2xl tracking-widest my-2">
+              {verificationCode}
+            </div>
+            
+            <p className="text-center text-xs text-gray-500">
+              Ce code est valide jusqu'à ce que le retrait soit confirmé.
+            </p>
             
             <Button 
               onClick={() => {
-                setShowQRCode(false);
+                setShowVerificationCode(false);
                 navigate('/');
               }}
               className="w-full mt-4"

@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -133,6 +132,7 @@ const Index = () => {
             balance={profile.balance} 
             avatar={profile.avatar_url || undefined} 
             userName={profile.full_name || ''}
+            userCountry={profile.country || 'Cameroun'}
           />
         )}
 

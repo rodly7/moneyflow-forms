@@ -2,21 +2,66 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, QrCode, Wallet, Scan } from "lucide-react";
-import QRCodeGenerator from "@/components/QRCodeGenerator";
-import QrScanner from "@/components/QrScanner";
+import { Eye, EyeOff, Wallet, KeyRound } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase, processWithdrawalVerification, getCurrencyForCountry, formatCurrency } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface BalanceCardProps {
   balance: number;
   avatar?: string;
   userName: string;
+  userCountry?: string;
 }
 
-const BalanceCard = ({ balance, avatar, userName }: BalanceCardProps) => {
+const BalanceCard = ({ balance, avatar, userName, userCountry = "Cameroun" }: BalanceCardProps) => {
   const [hideBalance, setHideBalance] = useState(true);
-  const [showQR, setShowQR] = useState(false);
-  const [showScanner, setShowScanner] = useState(false);
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [processing, setProcessing] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  
+  // Determine user's currency based on country
+  const userCurrency = getCurrencyForCountry(userCountry);
+
+  const handleVerifyWithdrawal = async () => {
+    if (!verificationCode || verificationCode.length !== 6 || !user?.id) return;
+    
+    setProcessing(true);
+    
+    try {
+      const withdrawal = await processWithdrawalVerification(verificationCode, user.id);
+      
+      toast({
+        title: "Retrait confirmé",
+        description: `Vous avez reçu ${formatCurrency(withdrawal.amount, userCurrency)}`,
+      });
+      
+      // Refresh user data to show updated balance
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      
+      // Close dialog
+      setTimeout(() => {
+        setShowVerificationDialog(false);
+        setVerificationCode("");
+      }, 1500);
+    } catch (error) {
+      console.error("Error processing withdrawal:", error);
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Une erreur est survenue",
+        variant: "destructive"
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   return (
     <Card className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white mx-4">
@@ -28,11 +73,7 @@ const BalanceCard = ({ balance, avatar, userName }: BalanceCardProps) => {
               {hideBalance ? (
                 "••••••"
               ) : (
-                new Intl.NumberFormat('fr-FR', {
-                  style: 'currency',
-                  currency: 'XAF',
-                  maximumFractionDigits: 0
-                }).format(balance || 0)
+                formatCurrency(balance || 0, userCurrency)
               )}
               <Button
                 onClick={() => setHideBalance(!hideBalance)}
@@ -46,50 +87,60 @@ const BalanceCard = ({ balance, avatar, userName }: BalanceCardProps) => {
           </div>
           <div className="flex items-center gap-2">
             <Wallet className="w-10 h-10 opacity-80" />
-            <div className="flex flex-col gap-1">
-              <Button
-                onClick={() => setShowQR(!showQR)}
-                variant="ghost" 
-                size="sm"
-                className="text-white/90 hover:text-white hover:bg-white/10 rounded-full p-2 h-auto"
-              >
-                <QrCode className="w-6 h-6" />
-              </Button>
-              <Button
-                onClick={() => setShowScanner(true)}
-                variant="ghost" 
-                size="sm"
-                className="text-white/90 hover:text-white hover:bg-white/10 rounded-full p-2 h-auto"
-              >
-                <Scan className="w-6 h-6" />
-              </Button>
-            </div>
+            <Button
+              onClick={() => setShowVerificationDialog(true)}
+              variant="ghost" 
+              size="sm"
+              className="text-white/90 hover:text-white hover:bg-white/10 rounded-full p-2 h-auto"
+            >
+              <KeyRound className="w-6 h-6" />
+            </Button>
           </div>
         </div>
-        
-        {showQR && (
-          <div className="mt-4 flex justify-center">
-            <QRCodeGenerator 
-              action="transfer" 
-              showCard={false} 
-              userAvatar={avatar} 
-              userName={userName}
-            />
-          </div>
-        )}
       </CardContent>
 
-      {/* QR Code Scanner Dialog */}
-      <Dialog open={showScanner} onOpenChange={setShowScanner}>
+      {/* Verification Code Input Dialog */}
+      <Dialog open={showVerificationDialog} onOpenChange={setShowVerificationDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Scanner un code QR de retrait</DialogTitle>
+            <DialogTitle>Confirmer un retrait</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col items-center justify-center p-4">
-            <p className="text-center text-sm text-gray-600 mb-4">
-              Scannez un code QR de retrait pour confirmer la transaction
+          <div className="flex flex-col items-center justify-center p-4 space-y-4">
+            <p className="text-center text-sm text-gray-600 mb-2">
+              Entrez le code de vérification à 6 chiffres fourni par la personne qui effectue le retrait
             </p>
-            <QrScanner onClose={() => setShowScanner(false)} />
+            
+            <div className="w-full space-y-2">
+              <Label htmlFor="verification-code">Code de vérification</Label>
+              <Input
+                id="verification-code"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value)}
+                placeholder="Entrez le code à 6 chiffres"
+                maxLength={6}
+                className="text-center text-lg tracking-widest"
+              />
+            </div>
+            
+            <Button
+              onClick={handleVerifyWithdrawal}
+              className="w-full bg-emerald-600 hover:bg-emerald-700"
+              disabled={processing || verificationCode.length !== 6}
+            >
+              {processing ? "Traitement..." : "Confirmer le retrait"}
+            </Button>
+            
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowVerificationDialog(false);
+                setVerificationCode("");
+              }}
+              className="w-full"
+              disabled={processing}
+            >
+              Annuler
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
