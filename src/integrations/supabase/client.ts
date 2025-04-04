@@ -38,8 +38,8 @@ export const currencyRates = {
 export const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string): number => {
   if (fromCurrency === toCurrency) return amount;
   
-  const fromRate = currencyRates[fromCurrency] || 1;
-  const toRate = currencyRates[toCurrency] || 1;
+  const fromRate = currencyRates[fromCurrency as keyof typeof currencyRates] || 1;
+  const toRate = currencyRates[toCurrency as keyof typeof currencyRates] || 1;
   
   // Convert to XAF first (base currency), then to target currency
   const amountInXAF = fromCurrency === "XAF" ? amount : amount / fromRate;
@@ -48,7 +48,7 @@ export const convertCurrency = (amount: number, fromCurrency: string, toCurrency
 
 // Get currency for a country
 export const getCurrencyForCountry = (country: string): string => {
-  const countryToCurrency = {
+  const countryToCurrency: Record<string, string> = {
     "Cameroun": "XAF",
     "Cameroon": "XAF",
     "Congo Brazzaville": "XAF",
@@ -73,7 +73,7 @@ export const getCurrencyForCountry = (country: string): string => {
 
 // Format currency with appropriate symbol
 export const formatCurrency = (amount: number, currencyCode: string): string => {
-  const currencySymbols = {
+  const currencySymbols: Record<string, string> = {
     "XAF": "FCFA",
     "USD": "$",
     "EUR": "€",

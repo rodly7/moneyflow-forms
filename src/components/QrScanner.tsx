@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, processWithdrawalVerification } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface QrScannerProps {
   onClose: () => void;
@@ -125,25 +125,17 @@ const QrScanner = ({ onClose }: QrScannerProps) => {
       
       if (updateError) throw updateError;
       
-      // 2. Get the requester's profile to check balance
-      const { data: requesterProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('balance')
-        .eq('id', withdrawal.user_id)
-        .single();
+      // 2. Transfer the amount from requester to the current user
+      // Add funds to the processor's account
+      const { error: balanceError } = await supabase
+        .rpc('increment_balance', { 
+          user_id: user.id, 
+          amount: withdrawal.amount 
+        });
       
-      if (profileError || !requesterProfile) {
-        throw new Error("Impossible de vérifier le solde de l'utilisateur");
+      if (balanceError) {
+        throw new Error("Erreur lors du transfert des fonds");
       }
-      
-      // 3. Transfer the amount from requester to the current user
-      // Update the processor's balance (increment)
-      const { error: incrementError } = await supabase
-        .from('profiles')
-        .update({ balance: supabase.rpc('increment_balance', { amount: withdrawal.amount }) })
-        .eq('id', user.id);
-      
-      if (incrementError) throw incrementError;
       
       toast({
         title: "Retrait confirmé",
