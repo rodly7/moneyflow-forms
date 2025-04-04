@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, processWithdrawalVerification } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
@@ -208,14 +208,24 @@ const QrScanner = ({ onClose }: QrScannerProps) => {
       const feeRate = 0.025; // Standard 2.5% fee
       const feeAmount = result.amount * feeRate;
       
-      // Deduct fees from processor amount
-      const { error: updateProcessorError } = await supabase
-        .from('profiles')
-        .update({ balance: supabase.rpc('decrement_balance', { amount: feeAmount }) })
-        .eq('id', user.id);
+      // Call the decrement_balance edge function to deduct fees
+      const { data: deductResponse, error: deductError } = await fetch(
+        "https://msasycggbiwyxlczknwj.supabase.co/functions/v1/decrement-balance",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${supabase.auth.getSession().then(res => res.data.session?.access_token)}`
+          },
+          body: JSON.stringify({
+            user_id: user.id,
+            amount: feeAmount
+          })
+        }
+      ).then(res => res.json());
       
-      if (updateProcessorError) {
-        console.error("Erreur lors de la déduction des frais");
+      if (deductError) {
+        console.error("Erreur lors de la déduction des frais:", deductError);
       }
       
       // Credit fees to admin account

@@ -12,6 +12,19 @@ import { fr } from "date-fns/locale";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
+interface Transaction {
+  id: string;
+  type: string;
+  amount: number;
+  date: Date;
+  description: string;
+  currency: string;
+  status: string;
+  verification_code?: string;
+  created_at?: string;
+  showCode?: boolean;
+}
+
 const Transactions = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -109,7 +122,7 @@ const Transactions = () => {
     return null;
   }
 
-  const allTransactions = [
+  const allTransactions: Transaction[] = [
     ...(withdrawals?.map(w => ({
       id: w.id,
       type: 'withdrawal',
@@ -135,7 +148,7 @@ const Transactions = () => {
   // Process transaction to determine which codes should be visible
   const processedTransactions = allTransactions.map(transaction => {
     if (transaction.type === 'withdrawal' && transaction.verification_code) {
-      const createdAt = new Date(transaction.created_at);
+      const createdAt = transaction.created_at ? new Date(transaction.created_at) : new Date();
       const now = new Date();
       const timeDiffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60);
       const showCode = timeDiffMinutes <= 5 && transaction.verification_code && transaction.status === 'pending';
@@ -233,7 +246,7 @@ const Transactions = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => copyToClipboard(transaction.verification_code, transaction.id)}
+                              onClick={() => copyToClipboard(transaction.verification_code!, transaction.id)}
                               className="h-8 w-8 p-0"
                             >
                               {copiedCodes[transaction.id] ? (
