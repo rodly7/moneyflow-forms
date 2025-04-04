@@ -1,212 +1,155 @@
-
-import { useEffect, useState } from 'react';
+import { useState, useRef, useEffect } from "react";
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getAdminUserId } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Check, Copy, QrCode, X } from "lucide-react";
 
-interface QrScannerProps {
-  onClose: () => void;
-}
-
-interface WithdrawalData {
-  withdrawalId: string;
-  amount?: string;
-  userId?: string;
-}
-
-const QrScanner = ({ onClose }: QrScannerProps) => {
-  const [scanning, setScanning] = useState(false);
-  const [message, setMessage] = useState('');
-  const [processing, setProcessing] = useState(false);
-  const [scannedData, setScannedData] = useState<WithdrawalData | null>(null);
-  const [verificationCode, setVerificationCode] = useState('');
+const QrScanner = () => {
+  const [isScanning, setIsScanning] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isCodeCopied, setIsCodeCopied] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
-  useEffect(() => {
-    let html5QrCode: Html5Qrcode;
+  const qrRef = useRef(null);
 
-    const startScanner = async () => {
-      html5QrCode = new Html5Qrcode("qr-reader");
-      
-      try {
-        await html5QrCode.start(
+  useEffect(() => {
+    let html5Qrcode: Html5Qrcode | null = null;
+
+    if (isScanning && qrRef.current) {
+      html5Qrcode = new Html5Qrcode("qr-reader");
+      html5Qrcode
+        .start(
           { facingMode: "environment" },
           {
             fps: 10,
             qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0,
           },
-          handleScanSuccess,
-          (errorMessage) => {
-            // Just log errors but don't show to user unless it's a permission issue
-            if (errorMessage.includes("permission")) {
-              setMessage("Veuillez autoriser l'accès à la caméra");
+          (decodedText) => {
+            setVerificationCode(decodedText);
+            setIsScanning(false);
+            if (html5Qrcode) {
+              html5Qrcode.stop();
             }
-            console.log(errorMessage);
+          },
+          (errorMessage) => {
+            console.warn(errorMessage);
           }
-        );
-      } catch (err) {
-        console.error("Error starting scanner:", err);
-        setMessage("Impossible d'accéder à la caméra");
-      }
-    };
-
-    if (scanning) {
-      startScanner();
+        )
+        .catch((error) => {
+          console.error("QR Code scanning failed:", error);
+          toast({
+            title: "Erreur de caméra",
+            description: "Impossible d'accéder à la caméra. Veuillez vérifier les permissions.",
+            variant: "destructive"
+          });
+          setIsScanning(false);
+          if (html5Qrcode) {
+            html5Qrcode.stop();
+          }
+        });
     }
 
     return () => {
-      if (html5QrCode?.isScanning) {
-        html5QrCode.stop().catch(console.error);
+      if (html5Qrcode) {
+        html5Qrcode.stop();
       }
     };
-  }, [scanning]);
+  }, [isScanning, toast]);
 
-  const handleScanSuccess = async (decodedText: string) => {
-    try {
-      // Stop scanning after successful scan
-      setScanning(false);
-      setMessage("Code QR détecté, analyse en cours...");
-      
-      // Parse QR code data
-      const qrData = JSON.parse(decodedText);
-      
-      if (qrData.action !== 'withdraw' || !qrData.withdrawalId) {
-        setMessage("Ce QR code n'est pas valide pour un retrait");
-        return;
-      }
-
-      setScannedData({
-        withdrawalId: qrData.withdrawalId,
-        amount: qrData.amount,
-        userId: qrData.userId
-      });
-      
-      setMessage(`Retrait de ${qrData.amount || '?'} XAF détecté. Prêt à confirmer.`);
-    } catch (error) {
-      console.error("Error processing QR code:", error);
-      setMessage("Format de QR code non valide");
+  const handleScanToggle = () => {
+    setIsScanning((prev) => !prev);
+    if (!isScanning) {
+      setVerificationCode("");
     }
   };
 
-  const processWithdrawal = async () => {
-    if (!scannedData?.withdrawalId || !user?.id) return;
-    
-    setProcessing(true);
+  const handleVerificationCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setVerificationCode(e.target.value);
+  };
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(verificationCode);
+    setIsCodeCopied(true);
+    setTimeout(() => setIsCodeCopied(false), 2000);
+  };
+
+  // Process verification code
+  const processCode = async (code: string) => {
+    setIsProcessing(true);
     
     try {
-      // First, fetch the withdrawal details to verify it
-      const { data: withdrawal, error: fetchError } = await supabase
+      if (!user) {
+        toast({
+          title: "Erreur d'authentification",
+          description: "Vous devez être connecté pour traiter un code.",
+          variant: "destructive"
+        });
+        setIsProcessing(false);
+        return;
+      }
+      
+      console.log("Processing verification code:", code);
+      
+      // Check if the code exists and is valid
+      const { data: withdrawalData, error: withdrawalError } = await supabase
         .from('withdrawals')
         .select('*')
-        .eq('id', scannedData.withdrawalId)
+        .eq('verification_code', code)
         .eq('status', 'pending')
         .single();
       
-      if (fetchError || !withdrawal) {
-        throw new Error("Ce retrait n'existe pas ou a déjà été traité");
+      if (withdrawalError || !withdrawalData) {
+        console.error("Error fetching withdrawal:", withdrawalError);
+        toast({
+          title: "Code invalide",
+          description: "Ce code de vérification n'existe pas ou a déjà été utilisé.",
+          variant: "destructive"
+        });
+        setIsProcessing(false);
+        return;
       }
       
-      // Ensure the user processing is different from the withdrawal requester
-      if (withdrawal.user_id === user.id) {
-        throw new Error("Vous ne pouvez pas confirmer votre propre retrait");
+      // Ensure the processor is different from the requester
+      if (withdrawalData.user_id === user.id) {
+        toast({
+          title: "Action non autorisée",
+          description: "Vous ne pouvez pas confirmer votre propre retrait.",
+          variant: "destructive"
+        });
+        setIsProcessing(false);
+        return;
       }
       
-      const adminAccount = "+221773637752";
-      const adminUserId = await getAdminUserId(adminAccount);
-      
-      // Execute the withdrawal process
-      // 1. Update withdrawal status to 'completed'
+      // Update withdrawal status to 'completed'
       const { error: updateError } = await supabase
         .from('withdrawals')
         .update({ 
           status: 'completed', 
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString() 
         })
-        .eq('id', withdrawal.id);
+        .eq('id', withdrawalData.id);
       
-      if (updateError) throw updateError;
-      
-      // 2. Calculate fee amount based on transaction type
-      const feeRate = 0.025; // Standard 2.5% fee
-      const feeAmount = withdrawal.amount * feeRate;
-      
-      // 3. Transfer the amount from requester to the current user
-      // Add funds to the processor's account
-      const { error: processorBalanceError } = await supabase
-        .rpc('increment_balance', { 
-          user_id: user.id, 
-          amount: withdrawal.amount - feeAmount
+      if (updateError) {
+        console.error("Error updating withdrawal status:", updateError);
+        toast({
+          title: "Erreur de traitement",
+          description: "Une erreur est survenue lors de la mise à jour du statut.",
+          variant: "destructive"
         });
-      
-      if (processorBalanceError) {
-        throw new Error("Erreur lors du transfert des fonds au processeur");
+        setIsProcessing(false);
+        return;
       }
-      
-      // 4. Credit fees to the admin account
-      if (adminUserId) {
-        const { error: adminBalanceError } = await supabase
-          .rpc('increment_balance', { 
-            user_id: adminUserId, 
-            amount: feeAmount
-          });
-        
-        if (adminBalanceError) {
-          console.error("Erreur lors du crédit des frais à l'admin", adminBalanceError);
-          // Continue the process even if fee transfer fails
-        }
-      }
-      
-      toast({
-        title: "Retrait confirmé",
-        description: `Vous avez reçu ${withdrawal.amount - feeAmount} XAF`,
-      });
-      
-      // Refresh user data to show updated balance
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-      
-      // Close scanner
-      setTimeout(() => {
-        onClose();
-      }, 1500);
-    } catch (error) {
-      console.error("Error processing withdrawal:", error);
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Une erreur est survenue",
-        variant: "destructive"
-      });
-    } finally {
-      setProcessing(false);
-    }
-  };
 
-  const verifyWithCode = async () => {
-    if (!verificationCode || !user?.id) return;
-    
-    setProcessing(true);
-    
-    try {
-      // Process the withdrawal using the verification code
-      const result = await processWithdrawalVerification(verificationCode, user.id);
-      
-      if (!result) {
-        throw new Error("Code de vérification invalide ou déjà utilisé");
-      }
-      
-      const adminAccount = "+221773637752";
-      const adminUserId = await getAdminUserId(adminAccount);
-      
-      // Calculate fees
+      // Calculate fee
       const feeRate = 0.025; // Standard 2.5% fee
-      const feeAmount = result.amount * feeRate;
+      const feeAmount = withdrawalData.amount * feeRate;
       
       // Call the decrement_balance edge function to deduct fees
       const { data: deductResponse, error: deductError } = await fetch(
@@ -215,7 +158,7 @@ const QrScanner = ({ onClose }: QrScannerProps) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${supabase.auth.getSession().then(res => res.data.session?.access_token)}`
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
           },
           body: JSON.stringify({
             user_id: user.id,
@@ -229,146 +172,125 @@ const QrScanner = ({ onClose }: QrScannerProps) => {
       }
       
       // Credit fees to admin account
-      if (adminUserId) {
-        const { error: adminBalanceError } = await supabase
-          .rpc('increment_balance', { 
-            user_id: adminUserId, 
-            amount: feeAmount
-          });
+      const adminId = await getAdminUserId();
+      if (adminId) {
+        const { error: adminFeeError } = await supabase.rpc('increment_balance', {
+          user_id: adminId,
+          amount: feeAmount
+        });
         
-        if (adminBalanceError) {
-          console.error("Erreur lors du crédit des frais à l'admin", adminBalanceError);
+        if (adminFeeError) {
+          console.error("Erreur lors du crédit des frais à l'admin:", adminFeeError);
         }
       }
       
-      toast({
-        title: "Retrait confirmé",
-        description: `Vous avez reçu ${result.amount - feeAmount} XAF`,
+      // Add funds (minus fees) to the processor's account
+      const { error: balanceError } = await supabase.rpc('increment_balance', { 
+        user_id: user.id, 
+        amount: withdrawalData.amount - feeAmount
       });
       
-      // Refresh user data to show updated balance
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      if (balanceError) {
+        console.error("Error updating processor balance:", balanceError);
+        toast({
+          title: "Erreur de traitement",
+          description: "Une erreur est survenue lors du crédit des fonds.",
+          variant: "destructive"
+        });
+        setIsProcessing(false);
+        return;
+      }
+
+      // Success message and refresh data
+      toast({
+        title: "Retrait confirmé",
+        description: `Vous avez traité un retrait de ${withdrawalData.amount} FCFA. Après les frais, vous avez reçu ${withdrawalData.amount - feeAmount} FCFA.`,
+      });
       
-      // Close scanner
-      setTimeout(() => {
-        onClose();
-      }, 1500);
+      // Refresh cache
+      queryClient.invalidateQueries({
+        queryKey: ['withdrawals']
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['profile']
+      });
+      
+      // Reset form
+      setVerificationCode("");
+      
     } catch (error) {
-      console.error("Error processing withdrawal with code:", error);
+      console.error("Error processing withdrawal:", error);
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Une erreur est survenue",
+        description: "Une erreur s'est produite lors du traitement du retrait.",
         variant: "destructive"
       });
     } finally {
-      setProcessing(false);
+      setIsProcessing(false);
     }
-  };
-
-  // Helper function to get admin user ID by phone number
-  const getAdminUserId = async (phoneNumber: string): Promise<string | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('phone', phoneNumber)
-        .single();
-      
-      if (error || !data) {
-        console.error("Error fetching admin user:", error);
-        return null;
-      }
-      
-      return data.id;
-    } catch (error) {
-      console.error("Error in getAdminUserId:", error);
-      return null;
-    }
-  };
-
-  const restartScanner = () => {
-    setScanning(true);
-    setMessage('');
-    setScannedData(null);
-    setVerificationCode('');
   };
 
   return (
-    <div className="w-full flex flex-col items-center">
-      {scanning ? (
-        <div id="qr-reader" className="w-full max-w-xs" />
-      ) : (
-        <div className="w-full max-w-xs">
-          <div className="space-y-4">
-            <h2 className="text-lg font-medium text-center">
-              Vérification du retrait
-            </h2>
-            
-            <div className="space-y-2">
-              <Label htmlFor="verification-code">Code de vérification</Label>
-              <Input
-                id="verification-code"
-                placeholder="Entrez le code à 6 chiffres"
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value)}
-                className="text-center text-lg tracking-widest"
-                maxLength={6}
-              />
-            </div>
-            
-            <Button
-              onClick={verifyWithCode}
-              className="w-full bg-emerald-600 hover:bg-emerald-700"
-              disabled={processing || verificationCode.length < 6}
-            >
-              {processing ? "Traitement..." : "Vérifier le code"}
-            </Button>
-            
-            <div className="relative flex items-center py-2">
-              <div className="flex-grow border-t border-gray-300"></div>
-              <span className="flex-shrink mx-2 text-gray-500 text-sm">ou</span>
-              <div className="flex-grow border-t border-gray-300"></div>
-            </div>
-            
-            <Button
-              variant="outline"
-              onClick={() => setScanning(true)}
-              className="w-full"
-            >
-              Scanner un QR code
-            </Button>
-          </div>
-        </div>
-      )}
-      
-      {message && (
-        <div className="mt-4 text-center">
-          <p className={scannedData ? "text-green-600 font-medium" : "text-gray-600"}>
-            {message}
-          </p>
-        </div>
-      )}
-      
-      <div className="mt-6 space-y-2 w-full">
-        {scannedData ? (
-          <Button
-            onClick={processWithdrawal}
-            className="w-full bg-emerald-600 hover:bg-emerald-700"
-            disabled={processing}
-          >
-            {processing ? "Traitement..." : "Confirmer le retrait"}
-          </Button>
-        ) : null}
-        
+    <div className="container mx-auto p-4">
+      <h2 className="text-2xl font-semibold mb-4">Scanner QR Code</h2>
+
+      <div className="mb-4">
         <Button
-          variant="outline"
-          onClick={scannedData ? restartScanner : onClose}
-          className="w-full"
-          disabled={processing}
+          variant={isScanning ? "destructive" : "outline"}
+          onClick={handleScanToggle}
+          disabled={isProcessing}
         >
-          {scannedData ? "Scanner un autre code" : "Annuler"}
+          {isScanning ? (
+            <>
+              <X className="mr-2 h-4 w-4" />
+              Arrêter le Scan
+            </>
+          ) : (
+            <>
+              <QrCode className="mr-2 h-4 w-4" />
+              {isProcessing ? "Traitement..." : "Démarrer le Scan"}
+            </>
+          )}
         </Button>
       </div>
+
+      {isScanning && (
+        <div ref={qrRef} id="qr-reader" className="w-full max-w-md mx-auto" />
+      )}
+
+      <div className="mb-4">
+        <Label htmlFor="verificationCode">Code de vérification</Label>
+        <div className="relative">
+          <Input
+            type="text"
+            id="verificationCode"
+            placeholder="Entrez le code de vérification"
+            value={verificationCode}
+            onChange={handleVerificationCodeChange}
+            disabled={isScanning || isProcessing}
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute right-1 top-1/2 -translate-y-1/2"
+            onClick={handleCopyCode}
+            disabled={!verificationCode || isCodeCopied}
+          >
+            {isCodeCopied ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              <Copy className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      <Button
+        onClick={() => processCode(verificationCode)}
+        disabled={!verificationCode || isProcessing}
+      >
+        {isProcessing ? "Traitement..." : "Valider le Code"}
+      </Button>
     </div>
   );
 };

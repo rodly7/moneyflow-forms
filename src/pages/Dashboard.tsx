@@ -1,6 +1,7 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, formatCurrency, getCurrencyForCountry } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -29,20 +30,22 @@ const Dashboard = () => {
     </div>;
   }
 
+  const userCurrency = profile?.country ? getCurrencyForCountry(profile.country) : "XAF";
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-8 px-4">
       <div className="container max-w-3xl mx-auto space-y-8">
-        <Card className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white">
+        <Card className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white overflow-hidden">
           <CardContent className="p-8">
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm opacity-80">Solde disponible</p>
-                <h1 className="text-4xl font-bold mt-1">
-                  {new Intl.NumberFormat('fr-FR', {
-                    style: 'currency',
-                    currency: 'EUR'
-                  }).format(profile?.balance || 0)}
+                <h1 className="text-4xl font-bold mt-1 truncate">
+                  {formatCurrency(profile?.balance || 0, userCurrency)}
                 </h1>
+                <p className="text-sm mt-2 opacity-80">
+                  {profile?.full_name} • {profile?.country || "Non spécifié"}
+                </p>
               </div>
               <CreditCard className="w-12 h-12 opacity-80" />
             </div>
