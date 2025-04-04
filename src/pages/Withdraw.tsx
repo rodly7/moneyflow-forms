@@ -239,7 +239,7 @@ const Withdraw = () => {
             
             <Button 
               onClick={() => {
-                setShowVerificationCode(false);
+                setShowVerificationDialog(false);
                 navigate('/');
               }}
               className="w-full mt-4"

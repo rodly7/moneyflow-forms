@@ -212,6 +212,7 @@ export type Database = {
           status: string
           updated_at: string
           user_id: string
+          verification_code: string | null
           withdrawal_phone: string
         }
         Insert: {
@@ -222,6 +223,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id: string
+          verification_code?: string | null
           withdrawal_phone: string
         }
         Update: {
@@ -232,6 +234,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+          verification_code?: string | null
           withdrawal_phone?: string
         }
         Relationships: [
