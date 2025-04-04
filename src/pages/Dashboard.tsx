@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { CreditCard, Wallet } from "lucide-react";
+import BalanceCard from "@/components/dashboard/BalanceCard";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -35,22 +36,11 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-8 px-4">
       <div className="container max-w-3xl mx-auto space-y-8">
-        <Card className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white overflow-hidden">
-          <CardContent className="p-8">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm opacity-80">Solde disponible</p>
-                <h1 className="text-4xl font-bold mt-1 truncate">
-                  {formatCurrency(profile?.balance || 0, userCurrency)}
-                </h1>
-                <p className="text-sm mt-2 opacity-80">
-                  {profile?.full_name} • {profile?.country || "Non spécifié"}
-                </p>
-              </div>
-              <CreditCard className="w-12 h-12 opacity-80" />
-            </div>
-          </CardContent>
-        </Card>
+        <BalanceCard 
+          balance={profile?.balance || 0}
+          userCountry={profile?.country || "Cameroun"}
+          currency={userCurrency}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link to="/receive">
