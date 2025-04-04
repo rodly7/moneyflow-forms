@@ -1,6 +1,7 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getCurrencyForCountry, convertCurrency, formatCurrency } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import TransferForm from "@/components/TransferForm";
@@ -48,7 +49,7 @@ const Index = () => {
         .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
-        .limit(3);
+        .limit(5);
       
       if (error) throw error;
       return data;
@@ -63,7 +64,7 @@ const Index = () => {
         .select('*')
         .eq('sender_id', user?.id)
         .order('created_at', { ascending: false })
-        .limit(3);
+        .limit(5);
       
       if (error) throw error;
       return data;
@@ -97,30 +98,40 @@ const Index = () => {
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
     </div>;
   }
-
+  
+  // Get local currency
+  const userCurrency = profile?.country ? getCurrencyForCountry(profile.country) : "XAF";
+  
   const allTransactions = [
     ...(withdrawals?.map(w => ({
       id: w.id,
       type: 'withdrawal',
-      amount: -w.amount,
+      amount: -convertCurrency(w.amount, "XAF", userCurrency),
       date: new Date(w.created_at),
       description: `Retrait vers ${w.withdrawal_phone}`,
-      currency: 'XAF',
-      status: w.status
+      currency: userCurrency,
+      status: w.status,
+      verification_code: w.verification_code
     })) || []),
     ...(transfers?.map(t => ({
       id: t.id,
       type: 'transfer',
-      amount: -t.amount,
+      amount: -convertCurrency(t.amount, "XAF", userCurrency),
       date: new Date(t.created_at),
       description: `Transfert à ${t.recipient_full_name}`,
-      currency: 'XAF',
+      currency: userCurrency,
       status: t.status
     })) || [])
   ]
   .filter(t => t.status !== 'deleted')
   .sort((a, b) => b.date.getTime() - a.date.getTime())
   .slice(0, 3);
+
+  const processedWithdrawals = withdrawals?.map(w => ({
+    ...w,
+    amount: convertCurrency(w.amount, "XAF", userCurrency),
+    currency: userCurrency
+  })) || [];
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-0">
@@ -133,6 +144,7 @@ const Index = () => {
             avatar={profile.avatar_url || undefined} 
             userName={profile.full_name || ''}
             userCountry={profile.country || 'Cameroun'}
+            currency={userCurrency}
           />
         )}
 
@@ -153,7 +165,7 @@ const Index = () => {
 
         <TransactionsCard 
           transactions={allTransactions}
-          withdrawals={withdrawals}
+          withdrawals={processedWithdrawals}
           onDeleteTransaction={handleDeleteTransaction}
         />
       </div>

@@ -1,3 +1,4 @@
+
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,15 +6,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Download, ArrowRightLeft } from "lucide-react";
+import { ArrowLeft, Download, ArrowRightLeft, Copy, Check } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const Transactions = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
   const initialTab = location.state?.initialTab || "all";
+  const { toast } = useToast();
+  const [copiedCodes, setCopiedCodes] = useState<{[key: string]: boolean}>({});
 
   const { data: withdrawals } = useQuery({
     queryKey: ['withdrawals'],
@@ -44,6 +49,61 @@ const Transactions = () => {
     },
     enabled: !!user,
   });
+  
+  const [processedWithdrawals, setProcessedWithdrawals] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (withdrawals) {
+      // Process withdrawals to determine which codes should be visible based on creation time
+      const processed = withdrawals.map(withdrawal => {
+        const createdAt = new Date(withdrawal.created_at);
+        const now = new Date();
+        const timeDiffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60);
+        const showCode = timeDiffMinutes <= 5 && withdrawal.verification_code && withdrawal.status === 'pending';
+        
+        return {
+          ...withdrawal,
+          showCode
+        };
+      });
+      
+      setProcessedWithdrawals(processed);
+    }
+    
+    // Set up a timer to update the visibility every minute
+    const timer = setInterval(() => {
+      setProcessedWithdrawals(current => 
+        current.map(withdrawal => {
+          const createdAt = new Date(withdrawal.created_at);
+          const now = new Date();
+          const timeDiffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60);
+          const showCode = timeDiffMinutes <= 5 && withdrawal.verification_code && withdrawal.status === 'pending';
+          
+          return {
+            ...withdrawal,
+            showCode
+          };
+        })
+      );
+    }, 60000); // Check every minute
+    
+    return () => clearInterval(timer);
+  }, [withdrawals]);
+
+  const copyToClipboard = (code: string, id: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCodes({...copiedCodes, [id]: true});
+    
+    toast({
+      title: "Code copié",
+      description: "Le code de vérification a été copié dans le presse-papiers"
+    });
+    
+    // Reset copy indicator after 2 seconds
+    setTimeout(() => {
+      setCopiedCodes(current => ({...current, [id]: false}));
+    }, 2000);
+  };
 
   if (!user) {
     return null;
@@ -57,7 +117,9 @@ const Transactions = () => {
       date: parseISO(w.created_at),
       description: `Retrait vers ${w.withdrawal_phone}`,
       currency: 'XAF',
-      status: w.status
+      status: w.status,
+      verification_code: w.verification_code,
+      created_at: w.created_at
     })) || []),
     ...(transfers?.map(t => ({
       id: t.id,
@@ -70,7 +132,23 @@ const Transactions = () => {
     })) || [])
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
-  const getIcon = (type) => {
+  // Process transaction to determine which codes should be visible
+  const processedTransactions = allTransactions.map(transaction => {
+    if (transaction.type === 'withdrawal' && transaction.verification_code) {
+      const createdAt = new Date(transaction.created_at);
+      const now = new Date();
+      const timeDiffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60);
+      const showCode = timeDiffMinutes <= 5 && transaction.verification_code && transaction.status === 'pending';
+      
+      return {
+        ...transaction,
+        showCode
+      };
+    }
+    return transaction;
+  });
+
+  const getIcon = (type: string) => {
     switch (type) {
       case 'withdrawal':
         return <Download className="h-5 w-5 text-red-500" />;
@@ -105,43 +183,68 @@ const Transactions = () => {
               </TabsList>
               
               <TabsContent value="all">
-                {allTransactions.length > 0 ? (
-                  allTransactions.map((transaction) => (
+                {processedTransactions.length > 0 ? (
+                  processedTransactions.map((transaction) => (
                     <div 
                       key={transaction.id} 
-                      className="flex justify-between items-center p-2 rounded-lg border hover:bg-gray-50 transition"
+                      className="flex flex-col p-2 rounded-lg border hover:bg-gray-50 transition mb-2"
                     >
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-full bg-gray-100">
-                          {getIcon(transaction.type)}
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 rounded-full bg-gray-100">
+                            {getIcon(transaction.type)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{transaction.description}</p>
+                            <p className="text-xs text-gray-500">
+                              {format(transaction.date, 'PPP', { locale: fr })}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-sm">{transaction.description}</p>
-                          <p className="text-xs text-gray-500">
-                            {format(transaction.date, 'PPP', { locale: fr })}
+                        <div className="text-right">
+                          <p className={`font-semibold text-sm ${
+                            transaction.amount > 0 ? 'text-green-500' : 'text-red-500'
+                          }`}>
+                            {transaction.amount > 0 ? '+' : ''}
+                            {new Intl.NumberFormat('fr-FR', {
+                              style: 'currency',
+                              currency: transaction.currency || 'XAF',
+                              maximumFractionDigits: 0
+                            }).format(transaction.amount)}
                           </p>
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                            transaction.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                            transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {transaction.status === 'completed' ? 'Complété' : 
+                             transaction.status === 'pending' ? 'En attente' : transaction.status}
+                          </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className={`font-semibold text-sm ${
-                          transaction.amount > 0 ? 'text-green-500' : 'text-red-500'
-                        }`}>
-                          {transaction.amount > 0 ? '+' : ''}
-                          {new Intl.NumberFormat('fr-FR', {
-                            style: 'currency',
-                            currency: transaction.currency || 'XAF',
-                            maximumFractionDigits: 0
-                          }).format(transaction.amount)}
-                        </p>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                          transaction.status === 'completed' ? 'bg-green-100 text-green-700' : 
-                          transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {transaction.status === 'completed' ? 'Complété' : 
-                           transaction.status === 'pending' ? 'En attente' : transaction.status}
-                        </span>
-                      </div>
+                      
+                      {transaction.showCode && transaction.verification_code && (
+                        <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">Code de vérification (valide 5 min):</p>
+                              <p className="font-mono font-medium tracking-wider text-sm">{transaction.verification_code}</p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(transaction.verification_code, transaction.id)}
+                              className="h-8 w-8 p-0"
+                            >
+                              {copiedCodes[transaction.id] ? (
+                                <Check className="h-4 w-4 text-green-500" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (
@@ -152,40 +255,65 @@ const Transactions = () => {
               </TabsContent>
               
               <TabsContent value="withdrawals">
-                {withdrawals && withdrawals.length > 0 ? (
-                  withdrawals.map((withdrawal) => (
+                {processedWithdrawals && processedWithdrawals.length > 0 ? (
+                  processedWithdrawals.map((withdrawal) => (
                     <div 
                       key={withdrawal.id} 
-                      className="flex justify-between items-center p-2 rounded-lg border hover:bg-gray-50 transition"
+                      className="flex flex-col p-2 rounded-lg border hover:bg-gray-50 transition mb-2"
                     >
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-full bg-gray-100">
-                          <Download className="w-5 h-5 text-red-500" />
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 rounded-full bg-gray-100">
+                            <Download className="w-5 h-5 text-red-500" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">Retrait vers {withdrawal.withdrawal_phone}</p>
+                            <p className="text-xs text-gray-500">
+                              {format(parseISO(withdrawal.created_at), 'PPP', { locale: fr })}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-sm">Retrait vers {withdrawal.withdrawal_phone}</p>
-                          <p className="text-xs text-gray-500">
-                            {format(parseISO(withdrawal.created_at), 'PPP', { locale: fr })}
+                        <div className="text-right">
+                          <p className="font-semibold text-sm text-red-500">
+                            -{new Intl.NumberFormat('fr-FR', {
+                              style: 'currency',
+                              currency: 'XAF',
+                              maximumFractionDigits: 0
+                            }).format(withdrawal.amount)}
                           </p>
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                            withdrawal.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                            withdrawal.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {withdrawal.status === 'completed' ? 'Complété' : 
+                             withdrawal.status === 'pending' ? 'En attente' : withdrawal.status}
+                          </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-sm text-red-500">
-                          -{new Intl.NumberFormat('fr-FR', {
-                            style: 'currency',
-                            currency: 'XAF',
-                            maximumFractionDigits: 0
-                          }).format(withdrawal.amount)}
-                        </p>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                          withdrawal.status === 'completed' ? 'bg-green-100 text-green-700' : 
-                          withdrawal.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {withdrawal.status === 'completed' ? 'Complété' : 
-                           withdrawal.status === 'pending' ? 'En attente' : withdrawal.status}
-                        </span>
-                      </div>
+                      
+                      {withdrawal.showCode && withdrawal.verification_code && (
+                        <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">Code de vérification (valide 5 min):</p>
+                              <p className="font-mono font-medium tracking-wider text-sm">{withdrawal.verification_code}</p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(withdrawal.verification_code, withdrawal.id)}
+                              className="h-8 w-8 p-0"
+                            >
+                              {copiedCodes[withdrawal.id] ? (
+                                <Check className="h-4 w-4 text-green-500" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (

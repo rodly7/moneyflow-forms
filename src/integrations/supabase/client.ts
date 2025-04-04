@@ -19,13 +19,37 @@ export const supabase = createClient<Database>(
   }
 );
 
+// Admin account for fee collection
+export const ADMIN_ACCOUNT = "+221773637752";
+
+// Function to get admin user ID
+export const getAdminUserId = async (): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('phone', ADMIN_ACCOUNT)
+      .single();
+    
+    if (error || !data) {
+      console.error("Error fetching admin user:", error);
+      return null;
+    }
+    
+    return data.id;
+  } catch (error) {
+    console.error("Error in getAdminUserId:", error);
+    return null;
+  }
+};
+
 // Function to generate a random 6-digit verification code
 export const generateVerificationCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 // Currency conversion rates (simplified for demo)
-export const currencyRates = {
+export const currencyRates: Record<string, number> = {
   "XAF": 1,       // Base currency (Central African CFA franc)
   "USD": 0.0016,  // 1 XAF = 0.0016 USD
   "EUR": 0.0015,  // 1 XAF = 0.0015 EUR
@@ -65,6 +89,7 @@ export const getCurrencyForCountry = (country: string): string => {
     "USA": "USD",
     "United States": "USD",
     "France": "EUR",
+    "Sénégal": "XOF",
     // Default to XAF for other countries
   };
   
@@ -75,6 +100,7 @@ export const getCurrencyForCountry = (country: string): string => {
 export const formatCurrency = (amount: number, currencyCode: string): string => {
   const currencySymbols: Record<string, string> = {
     "XAF": "FCFA",
+    "XOF": "FCFA",
     "USD": "$",
     "EUR": "€",
     "NGN": "₦",
@@ -92,13 +118,33 @@ export const formatCurrency = (amount: number, currencyCode: string): string => 
   }).format(amount).replace(currencyCode, symbol);
 };
 
+// Function to calculate fee based on transaction type and countries
+export const calculateFee = (amount: number, senderCountry?: string, recipientCountry?: string): { fee: number, rate: number } => {
+  // Default fee rate is 2.5%
+  let feeRate = 0.025;
+  
+  // If it's an international transfer
+  if (senderCountry && recipientCountry && senderCountry !== recipientCountry) {
+    feeRate = 0.09; // 9% for international transfers
+  }
+  
+  // For smaller transfers, use 1.5%
+  if (amount < 10000) {
+    feeRate = 0.015;
+  }
+  
+  const fee = amount * feeRate;
+  
+  return { fee, rate: feeRate };
+};
+
 // Function to handle withdrawal operations - now with verification code
 export const processWithdrawal = async (userId: string, amount: number, phoneNumber: string) => {
   try {
     // Check user balance
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('balance')
+      .select('balance, country')
       .eq('id', userId)
       .single();
     
@@ -129,6 +175,9 @@ export const processWithdrawal = async (userId: string, amount: number, phoneNum
     if (withdrawalError) {
       throw withdrawalError;
     }
+    
+    // Calculate fee
+    const { fee } = calculateFee(amount);
     
     // Update user balance
     const { error: balanceError } = await supabase
@@ -169,6 +218,9 @@ export const processWithdrawalVerification = async (verificationCode: string, pr
       throw new Error("Vous ne pouvez pas confirmer votre propre retrait");
     }
     
+    // Calculate fees
+    const { fee } = calculateFee(withdrawal.amount);
+    
     // Update withdrawal status to 'completed'
     const { error: updateError } = await supabase
       .from('withdrawals')
@@ -177,15 +229,30 @@ export const processWithdrawalVerification = async (verificationCode: string, pr
     
     if (updateError) throw updateError;
     
-    // Add funds to the processor's account
+    // Add funds (minus fees) to the processor's account
     const { error: balanceError } = await supabase
       .rpc('increment_balance', { 
         user_id: processorId, 
-        amount: withdrawal.amount 
+        amount: withdrawal.amount - fee
       });
     
     if (balanceError) {
       throw new Error("Erreur lors du transfert des fonds");
+    }
+    
+    // Credit fees to admin account
+    const adminId = await getAdminUserId();
+    if (adminId) {
+      const { error: adminFeeError } = await supabase
+        .rpc('increment_balance', {
+          user_id: adminId,
+          amount: fee
+        });
+      
+      if (adminFeeError) {
+        console.error("Erreur lors du crédit des frais à l'admin:", adminFeeError);
+        // We continue even if this fails
+      }
     }
     
     return withdrawal;
