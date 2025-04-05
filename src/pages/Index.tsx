@@ -26,7 +26,7 @@ interface ReceivedTransfer {
   amount: number;
   created_at: string;
   sender_id: string;
-  sender_name?: string;
+  sender_name?: string | null;
   status: string;
 }
 
