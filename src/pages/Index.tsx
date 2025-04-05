@@ -119,6 +119,15 @@ const Index = () => {
       description: `Transfert à ${t.recipient_full_name}`,
       currency: userCurrency,
       status: t.status
+    })) || []),
+    ...(profile?.received_transfers?.map(rt => ({
+      id: rt.id,
+      type: 'received',
+      amount: convertCurrency(rt.amount, "XAF", userCurrency),
+      date: new Date(rt.created_at),
+      description: `Réception de ${rt.sender_name || 'quelqu\'un'}`,
+      currency: userCurrency,
+      status: rt.status || 'completed'
     })) || [])
   ]
   .filter(t => t.status !== 'deleted')

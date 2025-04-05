@@ -1,7 +1,7 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import { supabase, formatCurrency, getCurrencyForCountry } from "@/integrations/supabase/client";
+import { supabase, formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -32,12 +32,13 @@ const Dashboard = () => {
   }
 
   const userCurrency = profile?.country ? getCurrencyForCountry(profile.country) : "XAF";
+  const convertedBalance = profile?.balance ? profile.balance : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-8 px-4">
       <div className="container max-w-3xl mx-auto space-y-8">
         <BalanceCard 
-          balance={profile?.balance || 0}
+          balance={convertedBalance}
           userCountry={profile?.country || "Cameroun"}
           currency={userCurrency}
         />
