@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency, getCurrencyForCountry } from "@/integrations/supabase/client";
 import { Eye, EyeOff, Wallet, Key } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface BalanceCardProps {
   balance: number;
@@ -16,6 +17,7 @@ const BalanceCard = ({
   currency
 }: BalanceCardProps) => {
   const [showBalance, setShowBalance] = useState(false);
+  const navigate = useNavigate();
   
   // If currency is not provided, determine it from the user's country
   const userCurrency = currency || getCurrencyForCountry(userCountry);
@@ -24,6 +26,10 @@ const BalanceCard = ({
   const displayBalance = showBalance 
     ? formatCurrency(balance, userCurrency)
     : "••••••";
+    
+  const handleQrKeyClick = () => {
+    navigate('/qrcode');
+  };
 
   return (
     <Card className="mx-4 overflow-hidden border-0 shadow-lg relative bg-gradient-to-r from-emerald-500 to-teal-600">
@@ -40,6 +46,7 @@ const BalanceCard = ({
             <button 
               className="text-white/80 hover:text-white transition-colors"
               aria-label="Clé de retrait"
+              onClick={handleQrKeyClick}
             >
               <Key size={16} className="text-white/80" />
             </button>

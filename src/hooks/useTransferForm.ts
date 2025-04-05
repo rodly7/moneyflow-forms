@@ -140,6 +140,8 @@ export const useTransferForm = () => {
           title: "Transfert Réussi",
           description: `Votre transfert de ${data.transfer.amount} XAF vers ${data.recipient.fullName} a été effectué avec succès.`,
         });
+        
+        // Naviguer vers la page d'accueil après un transfert réussi
         navigate('/');
       } catch (error) {
         console.error('Erreur lors du transfert:', error);
@@ -160,6 +162,8 @@ export const useTransferForm = () => {
     setData(INITIAL_TRANSFER_DATA);
     setCurrentStep(0);
     setPendingTransferInfo(null);
+    // Naviguer vers la page d'accueil après avoir réinitialisé le formulaire
+    navigate('/');
   };
 
   return {
