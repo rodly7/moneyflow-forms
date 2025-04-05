@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Check, Copy, QrCode, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const QrScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
@@ -18,6 +20,7 @@ const QrScanner = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const qrRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let html5Qrcode: Html5Qrcode | null = null;
@@ -215,8 +218,9 @@ const QrScanner = () => {
         queryKey: ['profile']
       });
       
-      // Reset form
+      // Reset form and navigate to home
       setVerificationCode("");
+      navigate('/');
       
     } catch (error) {
       console.error("Error processing withdrawal:", error);

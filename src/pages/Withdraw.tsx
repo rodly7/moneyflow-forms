@@ -115,6 +115,11 @@ const Withdraw = () => {
     }
   };
 
+  const handleFinish = () => {
+    setShowVerificationCode(false);
+    navigate('/');
+  };
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0">
       <div className="max-w-md mx-auto space-y-4">
@@ -238,10 +243,7 @@ const Withdraw = () => {
             </p>
             
             <Button 
-              onClick={() => {
-                setShowVerificationCode(false);
-                navigate('/');
-              }}
+              onClick={handleFinish}
               className="w-full mt-4"
             >
               Terminer

@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, getCurrencyForCountry, convertCurrency, formatCurrency } from "@/integrations/supabase/client";
@@ -82,10 +83,12 @@ const Index = () => {
   const { data: receivedTransfers } = useQuery({
     queryKey: ['receivedTransfers'],
     queryFn: async () => {
+      if (!profile?.phone) return [] as ReceivedTransfer[];
+      
       const { data, error } = await supabase
         .from('transfers')
         .select('id, amount, created_at, sender_id, status')
-        .eq('recipient_phone', profile?.phone)
+        .eq('recipient_phone', profile.phone)
         .order('created_at', { ascending: false })
         .limit(5);
       
@@ -99,16 +102,17 @@ const Index = () => {
           .in('id', senderIds);
           
         if (senders) {
-          return data.map(transfer => {
+          const result = data.map(transfer => {
             const sender = senders.find(s => s.id === transfer.sender_id);
             return {
               ...transfer,
               sender_name: sender?.full_name || null
             };
-          }) as ReceivedTransfer[];
+          });
+          return result as ReceivedTransfer[];
         }
       }
-      return data || [] as ReceivedTransfer[];
+      return (data || []) as ReceivedTransfer[];
     },
     enabled: !!profile?.phone,
   });
