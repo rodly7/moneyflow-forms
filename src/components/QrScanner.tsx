@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, getAdminUserId } from "@/integrations/supabase/client";
+import { supabase, processWithdrawalVerification } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
@@ -100,114 +100,13 @@ const QrScanner = () => {
       
       console.log("Processing verification code:", code);
       
-      // Check if the code exists and is valid
-      const { data: withdrawalData, error: withdrawalError } = await supabase
-        .from('withdrawals')
-        .select('*')
-        .eq('verification_code', code)
-        .eq('status', 'pending')
-        .single();
+      // Utiliser la fonction processWithdrawalVerification
+      const result = await processWithdrawalVerification(code, user.id);
       
-      if (withdrawalError || !withdrawalData) {
-        console.error("Error fetching withdrawal:", withdrawalError);
-        toast({
-          title: "Code invalide",
-          description: "Ce code de vérification n'existe pas ou a déjà été utilisé.",
-          variant: "destructive"
-        });
-        setIsProcessing(false);
-        return;
-      }
-      
-      // Ensure the processor is different from the requester
-      if (withdrawalData.user_id === user.id) {
-        toast({
-          title: "Action non autorisée",
-          description: "Vous ne pouvez pas confirmer votre propre retrait.",
-          variant: "destructive"
-        });
-        setIsProcessing(false);
-        return;
-      }
-      
-      // Update withdrawal status to 'completed'
-      const { error: updateError } = await supabase
-        .from('withdrawals')
-        .update({ 
-          status: 'completed', 
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', withdrawalData.id);
-      
-      if (updateError) {
-        console.error("Error updating withdrawal status:", updateError);
-        toast({
-          title: "Erreur de traitement",
-          description: "Une erreur est survenue lors de la mise à jour du statut.",
-          variant: "destructive"
-        });
-        setIsProcessing(false);
-        return;
-      }
-
-      // Calculate fee
-      const feeRate = 0.025; // Standard 2.5% fee
-      const feeAmount = withdrawalData.amount * feeRate;
-      
-      // Call the decrement_balance edge function to deduct fees
-      const { data: deductResponse, error: deductError } = await fetch(
-        "https://msasycggbiwyxlczknwj.supabase.co/functions/v1/decrement-balance",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-          },
-          body: JSON.stringify({
-            user_id: user.id,
-            amount: feeAmount
-          })
-        }
-      ).then(res => res.json());
-      
-      if (deductError) {
-        console.error("Erreur lors de la déduction des frais:", deductError);
-      }
-      
-      // Credit fees to admin account
-      const adminId = await getAdminUserId();
-      if (adminId) {
-        const { error: adminFeeError } = await supabase.rpc('increment_balance', {
-          user_id: adminId,
-          amount: feeAmount
-        });
-        
-        if (adminFeeError) {
-          console.error("Erreur lors du crédit des frais à l'admin:", adminFeeError);
-        }
-      }
-      
-      // Add funds (minus fees) to the processor's account
-      const { error: balanceError } = await supabase.rpc('increment_balance', { 
-        user_id: user.id, 
-        amount: withdrawalData.amount - feeAmount
-      });
-      
-      if (balanceError) {
-        console.error("Error updating processor balance:", balanceError);
-        toast({
-          title: "Erreur de traitement",
-          description: "Une erreur est survenue lors du crédit des fonds.",
-          variant: "destructive"
-        });
-        setIsProcessing(false);
-        return;
-      }
-
       // Success message and refresh data
       toast({
         title: "Retrait confirmé",
-        description: `Vous avez traité un retrait de ${withdrawalData.amount} FCFA. Après les frais, vous avez reçu ${withdrawalData.amount - feeAmount} FCFA.`,
+        description: `Vous avez traité un retrait de ${result.amount} FCFA. Après les frais, vous avez reçu ${result.amount - (result.amount * 0.025)} FCFA.`,
       });
       
       // Refresh cache
@@ -226,7 +125,7 @@ const QrScanner = () => {
       console.error("Error processing withdrawal:", error);
       toast({
         title: "Erreur",
-        description: "Une erreur s'est produite lors du traitement du retrait.",
+        description: error instanceof Error ? error.message : "Une erreur s'est produite lors du traitement du retrait.",
         variant: "destructive"
       });
     } finally {
@@ -235,66 +134,89 @@ const QrScanner = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h2 className="text-2xl font-semibold mb-4">Scanner QR Code</h2>
-
-      <div className="mb-4">
-        <Button
-          variant={isScanning ? "destructive" : "outline"}
-          onClick={handleScanToggle}
-          disabled={isProcessing}
-        >
-          {isScanning ? (
-            <>
-              <X className="mr-2 h-4 w-4" />
-              Arrêter le Scan
-            </>
-          ) : (
-            <>
-              <QrCode className="mr-2 h-4 w-4" />
-              {isProcessing ? "Traitement..." : "Démarrer le Scan"}
-            </>
-          )}
-        </Button>
-      </div>
-
-      {isScanning && (
-        <div ref={qrRef} id="qr-reader" className="w-full max-w-md mx-auto" />
-      )}
-
-      <div className="mb-4">
-        <Label htmlFor="verificationCode">Code de vérification</Label>
-        <div className="relative">
-          <Input
-            type="text"
-            id="verificationCode"
-            placeholder="Entrez le code de vérification"
-            value={verificationCode}
-            onChange={handleVerificationCodeChange}
-            disabled={isScanning || isProcessing}
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute right-1 top-1/2 -translate-y-1/2"
-            onClick={handleCopyCode}
-            disabled={!verificationCode || isCodeCopied}
+    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0">
+      <div className="max-w-md mx-auto p-4">
+        <div className="flex items-center justify-between mb-4">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate('/')}
+            className="text-gray-700"
           >
-            {isCodeCopied ? (
-              <Check className="h-4 w-4" />
-            ) : (
-              <Copy className="h-4 w-4" />
-            )}
+            <X className="w-5 h-5" />
           </Button>
+          <h2 className="text-xl font-semibold">Scanner QR Code</h2>
+          <div className="w-9"></div>
+        </div>
+      
+        <div className="space-y-6">
+          <div className="card border rounded-lg shadow-md p-4 bg-white">
+            <Button
+              variant={isScanning ? "destructive" : "default"}
+              onClick={handleScanToggle}
+              disabled={isProcessing}
+              className="w-full mb-4"
+            >
+              {isScanning ? (
+                <>
+                  <X className="mr-2 h-4 w-4" />
+                  Arrêter le Scan
+                </>
+              ) : (
+                <>
+                  <QrCode className="mr-2 h-4 w-4" />
+                  {isProcessing ? "Traitement..." : "Démarrer le Scan"}
+                </>
+              )}
+            </Button>
+
+            {isScanning && (
+              <div ref={qrRef} id="qr-reader" className="w-full max-w-md mx-auto mb-4" />
+            )}
+
+            <div className="mb-4">
+              <Label htmlFor="verificationCode" className="mb-1 block">Code de vérification</Label>
+              <div className="relative">
+                <Input
+                  type="text"
+                  id="verificationCode"
+                  placeholder="Entrez le code de vérification"
+                  value={verificationCode}
+                  onChange={handleVerificationCodeChange}
+                  disabled={isScanning || isProcessing}
+                  className="pr-10"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 -translate-y-1/2"
+                  onClick={handleCopyCode}
+                  disabled={!verificationCode || isCodeCopied}
+                >
+                  {isCodeCopied ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => processCode(verificationCode)}
+              disabled={!verificationCode || isProcessing}
+              className="w-full bg-emerald-600 hover:bg-emerald-700"
+            >
+              {isProcessing ? "Traitement..." : "Valider le Code"}
+            </Button>
+          </div>
+          
+          <div className="text-center text-sm text-gray-600">
+            <p>Scannez ou entrez le code de vérification fourni par la personne qui souhaite retirer de l'argent.</p>
+            <p className="mt-1">Une fois le code validé, le montant sera crédité sur votre compte.</p>
+          </div>
         </div>
       </div>
-
-      <Button
-        onClick={() => processCode(verificationCode)}
-        disabled={!verificationCode || isProcessing}
-      >
-        {isProcessing ? "Traitement..." : "Valider le Code"}
-      </Button>
     </div>
   );
 };

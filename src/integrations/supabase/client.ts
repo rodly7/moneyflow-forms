@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
@@ -260,4 +259,3 @@ export const processWithdrawalVerification = async (verificationCode: string, pr
     throw error;
   }
 };
-
