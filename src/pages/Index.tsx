@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, getCurrencyForCountry, convertCurrency, formatCurrency } from "@/integrations/supabase/client";
@@ -19,6 +20,15 @@ interface Profile {
   country?: string | null;
   address?: string | null;
   created_at: string;
+}
+
+interface ReceivedTransfer {
+  id: string;
+  amount: number;
+  created_at: string;
+  sender_id: string;
+  sender_name?: string;
+  status: string;
 }
 
 const Index = () => {
@@ -68,6 +78,42 @@ const Index = () => {
       if (error) throw error;
       return data;
     },
+  });
+
+  const { data: receivedTransfers } = useQuery({
+    queryKey: ['receivedTransfers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transfers')
+        .select('id, amount, created_at, sender_id, status')
+        .eq('recipient_phone', profile?.phone)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (error) throw error;
+      
+      // Get sender names for received transfers
+      if (data && data.length > 0) {
+        const senderIds = data.map(transfer => transfer.sender_id);
+        const { data: senders } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', senderIds);
+          
+        // Add sender names to transfers
+        if (senders) {
+          return data.map(transfer => {
+            const sender = senders.find(s => s.id === transfer.sender_id);
+            return {
+              ...transfer,
+              sender_name: sender?.full_name || null
+            };
+          });
+        }
+      }
+      return data || [];
+    },
+    enabled: !!profile?.phone, // Only run this query if we have the user's phone number
   });
 
   const handleDeleteTransaction = async (transactionId: string, type: string) => {
@@ -120,7 +166,7 @@ const Index = () => {
       currency: userCurrency,
       status: t.status
     })) || []),
-    ...(profile?.received_transfers?.map(rt => ({
+    ...(receivedTransfers?.map(rt => ({
       id: rt.id,
       type: 'received',
       amount: convertCurrency(rt.amount, "XAF", userCurrency),
