@@ -3,13 +3,19 @@ import { useState, useRef, useEffect } from "react";
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, processWithdrawalVerification } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Check, Copy, QrCode, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTransferForm } from "@/hooks/useTransferForm";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
 const QrScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
@@ -21,6 +27,7 @@ const QrScanner = () => {
   const queryClient = useQueryClient();
   const qrRef = useRef(null);
   const navigate = useNavigate();
+  const { confirmWithdrawal } = useTransferForm();
 
   useEffect(() => {
     let html5Qrcode: Html5Qrcode | null = null;
@@ -73,8 +80,8 @@ const QrScanner = () => {
     }
   };
 
-  const handleVerificationCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setVerificationCode(e.target.value);
+  const handleVerificationCodeChange = (value: string) => {
+    setVerificationCode(value);
   };
 
   const handleCopyCode = () => {
@@ -100,26 +107,21 @@ const QrScanner = () => {
       
       console.log("Processing verification code:", code);
       
-      // Utiliser la fonction processWithdrawalVerification
-      const result = await processWithdrawalVerification(code, user.id);
+      // Use the confirmWithdrawal function from useTransferForm
+      const success = await confirmWithdrawal(code);
       
-      // Success message and refresh data
-      toast({
-        title: "Retrait confirmé",
-        description: `Vous avez traité un retrait de ${result.amount} FCFA. Après les frais, vous avez reçu ${result.amount - (result.amount * 0.025)} FCFA.`,
-      });
-      
-      // Refresh cache
-      queryClient.invalidateQueries({
-        queryKey: ['withdrawals']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['profile']
-      });
-      
-      // Reset form and navigate to home
-      setVerificationCode("");
-      navigate('/');
+      if (success) {
+        // Refresh cache
+        queryClient.invalidateQueries({
+          queryKey: ['withdrawals']
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['profile']
+        });
+        
+        // Reset form and navigate is handled inside confirmWithdrawal
+        setVerificationCode("");
+      }
       
     } catch (error) {
       console.error("Error processing withdrawal:", error);
@@ -145,12 +147,21 @@ const QrScanner = () => {
           >
             <X className="w-5 h-5" />
           </Button>
-          <h2 className="text-xl font-semibold">Scanner QR Code</h2>
+          <h2 className="text-xl font-semibold">Code de Retrait</h2>
           <div className="w-9"></div>
         </div>
       
         <div className="space-y-6">
           <div className="card border rounded-lg shadow-md p-4 bg-white">
+            <div className="text-center mb-6">
+              <p className="text-sm text-gray-600 mb-2">
+                Saisissez le code à 6 chiffres fourni par la personne qui souhaite retirer de l'argent
+              </p>
+              <p className="text-xs text-gray-500">
+                Une fois le code validé, le montant sera crédité sur votre compte
+              </p>
+            </div>
+
             <Button
               variant={isScanning ? "destructive" : "default"}
               onClick={handleScanToggle}
@@ -165,7 +176,7 @@ const QrScanner = () => {
               ) : (
                 <>
                   <QrCode className="mr-2 h-4 w-4" />
-                  {isProcessing ? "Traitement..." : "Démarrer le Scan"}
+                  Scanner un QR Code
                 </>
               )}
             </Button>
@@ -174,46 +185,34 @@ const QrScanner = () => {
               <div ref={qrRef} id="qr-reader" className="w-full max-w-md mx-auto mb-4" />
             )}
 
-            <div className="mb-4">
-              <Label htmlFor="verificationCode" className="mb-1 block">Code de vérification</Label>
-              <div className="relative">
-                <Input
-                  type="text"
-                  id="verificationCode"
-                  placeholder="Entrez le code de vérification"
-                  value={verificationCode}
+            <div className="mb-6">
+              <Label htmlFor="verificationCode" className="mb-2 block text-center">Code de vérification (6 chiffres)</Label>
+              <div className="flex justify-center mb-3">
+                <InputOTP 
+                  maxLength={6} 
+                  value={verificationCode} 
                   onChange={handleVerificationCodeChange}
                   disabled={isScanning || isProcessing}
-                  className="pr-10"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-1 top-1/2 -translate-y-1/2"
-                  onClick={handleCopyCode}
-                  disabled={!verificationCode || isCodeCopied}
                 >
-                  {isCodeCopied ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
               </div>
             </div>
 
             <Button
               onClick={() => processCode(verificationCode)}
-              disabled={!verificationCode || isProcessing}
+              disabled={verificationCode.length !== 6 || isProcessing}
               className="w-full bg-emerald-600 hover:bg-emerald-700"
             >
               {isProcessing ? "Traitement..." : "Valider le Code"}
             </Button>
-          </div>
-          
-          <div className="text-center text-sm text-gray-600">
-            <p>Scannez ou entrez le code de vérification fourni par la personne qui souhaite retirer de l'argent.</p>
-            <p className="mt-1">Une fois le code validé, le montant sera crédité sur votre compte.</p>
           </div>
         </div>
       </div>

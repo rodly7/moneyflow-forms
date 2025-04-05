@@ -37,6 +37,50 @@ export const useTransferForm = () => {
     });
   };
 
+  const confirmWithdrawal = async (verificationCode: string) => {
+    if (!user?.id) {
+      toast({
+        title: "Erreur d'authentification",
+        description: "Vous devez être connecté pour confirmer un retrait",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      // Call the function to process the withdrawal verification
+      const withdrawalResult = await supabase.rpc('process_withdrawal_verification', {
+        verification_code_param: verificationCode,
+        processor_id: user.id
+      });
+
+      if (withdrawalResult.error) {
+        throw new Error(withdrawalResult.error.message);
+      }
+
+      toast({
+        title: "Retrait confirmé",
+        description: "Le retrait a été confirmé avec succès et votre compte a été crédité."
+      });
+
+      // Navigate back to home after successful confirmation
+      navigate('/');
+      return true;
+    } catch (error) {
+      console.error("Erreur lors de la confirmation du retrait:", error);
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Une erreur s'est produite lors de la confirmation du retrait",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (currentStep === 2) {
@@ -174,6 +218,7 @@ export const useTransferForm = () => {
     updateFields,
     back,
     handleSubmit,
-    resetForm
+    resetForm,
+    confirmWithdrawal
   };
 };
