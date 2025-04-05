@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, getCurrencyForCountry, convertCurrency, formatCurrency } from "@/integrations/supabase/client";
@@ -92,7 +91,6 @@ const Index = () => {
       
       if (error) throw error;
       
-      // Get sender names for received transfers
       if (data && data.length > 0) {
         const senderIds = data.map(transfer => transfer.sender_id);
         const { data: senders } = await supabase
@@ -100,7 +98,6 @@ const Index = () => {
           .select('id, full_name')
           .in('id', senderIds);
           
-        // Add sender names to transfers
         if (senders) {
           return data.map(transfer => {
             const sender = senders.find(s => s.id === transfer.sender_id);
@@ -108,12 +105,12 @@ const Index = () => {
               ...transfer,
               sender_name: sender?.full_name || null
             };
-          });
+          }) as ReceivedTransfer[];
         }
       }
-      return data || [];
+      return data || [] as ReceivedTransfer[];
     },
-    enabled: !!profile?.phone, // Only run this query if we have the user's phone number
+    enabled: !!profile?.phone,
   });
 
   const handleDeleteTransaction = async (transactionId: string, type: string) => {
