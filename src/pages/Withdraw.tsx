@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, processWithdrawal, formatCurrency, getCurrencyForCountry } from "@/integrations/supabase/client";
+import { supabase, processWithdrawal, formatCurrency, getCurrencyForCountry, calculateFee } from "@/integrations/supabase/client";
 import { 
   Dialog,
   DialogContent,
@@ -35,6 +35,8 @@ const Withdraw = () => {
   const [showVerificationCode, setShowVerificationCode] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const [currency, setCurrency] = useState("XAF");
+  const [feeAmount, setFeeAmount] = useState(0);
+  const [totalAmount, setTotalAmount] = useState(0);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -42,7 +44,7 @@ const Withdraw = () => {
         setIsLoading(true);
         const { data, error } = await supabase
           .from('profiles')
-          .select('country, phone, full_name')
+          .select('country, phone, full_name, is_verified')
           .eq('id', user.id)
           .single();
         
@@ -57,13 +59,31 @@ const Withdraw = () => {
           if (selectedCountry) {
             setCountryCode(selectedCountry.code);
           }
+          
+          // If user is not verified, redirect to verification page
+          if (!data.is_verified) {
+            navigate('/verify-identity');
+          }
         }
         setIsLoading(false);
       }
     };
 
     fetchUserProfile();
-  }, [user]);
+  }, [user, navigate]);
+
+  // Calculate fee when amount changes
+  useEffect(() => {
+    if (amount && !isNaN(Number(amount))) {
+      const amountValue = Number(amount);
+      const { fee } = calculateFee(amountValue);
+      setFeeAmount(fee);
+      setTotalAmount(amountValue);
+    } else {
+      setFeeAmount(0);
+      setTotalAmount(0);
+    }
+  }, [amount]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,6 +190,23 @@ const Withdraw = () => {
                   />
                 </div>
                 
+                {amount && Number(amount) > 0 && (
+                  <div className="px-3 py-2 bg-gray-50 rounded-md text-sm">
+                    <div className="flex justify-between">
+                      <span>Montant:</span>
+                      <span>{formatCurrency(Number(amount), currency)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-500">
+                      <span>Frais (2%):</span>
+                      <span>{formatCurrency(feeAmount, currency)}</span>
+                    </div>
+                    <div className="border-t mt-2 pt-2 flex justify-between font-medium">
+                      <span>Total:</span>
+                      <span>{formatCurrency(Number(amount), currency)}</span>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="space-y-2">
                   <Label htmlFor="country">Pays</Label>
                   <Input
@@ -258,3 +295,4 @@ const Withdraw = () => {
 export default Withdraw;
 
 import { countries } from "@/data/countries";
+
