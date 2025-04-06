@@ -68,7 +68,11 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          id_card_url: string | null
+          is_verified: boolean | null
           phone: string
+          selfie_url: string | null
+          verified_at: string | null
         }
         Insert: {
           address?: string | null
@@ -78,7 +82,11 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          id_card_url?: string | null
+          is_verified?: boolean | null
           phone: string
+          selfie_url?: string | null
+          verified_at?: string | null
         }
         Update: {
           address?: string | null
@@ -88,7 +96,11 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          id_card_url?: string | null
+          is_verified?: boolean | null
           phone?: string
+          selfie_url?: string | null
+          verified_at?: string | null
         }
         Relationships: [
           {
