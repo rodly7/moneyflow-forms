@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "./use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, calculateFee } from "@/integrations/supabase/client";
 import { TransferData, INITIAL_TRANSFER_DATA } from "@/types/transfer";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -68,9 +67,8 @@ export const useTransferForm = () => {
         throw new Error("Vous ne pouvez pas confirmer votre propre retrait");
       }
 
-      // Calculate fees (2.5% default)
-      const feeRate = 0.025;
-      const fee = withdrawalData.amount * feeRate;
+      // Calculate fees (2% for withdrawals)
+      const { fee } = calculateFee(withdrawalData.amount);
 
       // Update withdrawal status to 'completed'
       const { error: updateError } = await supabase
@@ -174,11 +172,9 @@ export const useTransferForm = () => {
           return;
         }
 
-        // Apply different fee rates based on whether the transfer is national or international
+        // Apply new fee rates based on whether the transfer is national or international
         const userCountry = profileData.country || "Cameroun";
-        const isInternational = data.recipient.country && data.recipient.country !== userCountry;
-        const feeRate = isInternational ? 0.09 : 0.025; // 9% for international, 2.5% for national
-        const fees = data.transfer.amount * feeRate;
+        const { fee: fees } = calculateFee(data.transfer.amount, userCountry, data.recipient.country);
         
         const totalAmount = data.transfer.amount + fees;
         

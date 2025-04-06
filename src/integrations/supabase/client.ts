@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
@@ -120,17 +119,17 @@ export const formatCurrency = (amount: number, currencyCode: string): string => 
 
 // Function to calculate fee based on transaction type and countries
 export const calculateFee = (amount: number, senderCountry?: string, recipientCountry?: string): { fee: number, rate: number } => {
-  // Default fee rate is 2.5%
-  let feeRate = 0.025;
+  // Default fee rate for other operations (like withdrawals) is 2%
+  let feeRate = 0.02;
   
-  // If it's an international transfer
-  if (senderCountry && recipientCountry && senderCountry !== recipientCountry) {
-    feeRate = 0.09; // 9% for international transfers
+  // For national transfers, use 1%
+  if (senderCountry && recipientCountry && senderCountry === recipientCountry) {
+    feeRate = 0.01; // 1% for national transfers
   }
   
-  // For smaller transfers, use 1.5%
-  if (amount < 10000) {
-    feeRate = 0.015;
+  // For international transfers, use 6%
+  else if (senderCountry && recipientCountry && senderCountry !== recipientCountry) {
+    feeRate = 0.06; // 6% for international transfers
   }
   
   const fee = amount * feeRate;
@@ -176,7 +175,7 @@ export const processWithdrawal = async (userId: string, amount: number, phoneNum
       throw withdrawalError;
     }
     
-    // Calculate fee
+    // Calculate fee using updated rate (2% for withdrawals)
     const { fee } = calculateFee(amount);
     
     // Update user balance

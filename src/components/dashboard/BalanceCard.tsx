@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency, getCurrencyForCountry } from "@/integrations/supabase/client";
-import { Eye, EyeOff, Wallet, Key } from "lucide-react";
+import { Eye, EyeOff, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface BalanceCardProps {
@@ -26,10 +26,6 @@ const BalanceCard = ({
   const displayBalance = showBalance 
     ? formatCurrency(balance, userCurrency)
     : "••••••";
-    
-  const handleQrKeyClick = () => {
-    navigate('/qrcode');
-  };
 
   return (
     <Card className="mx-4 overflow-hidden border-0 shadow-lg relative bg-gradient-to-r from-emerald-500 to-teal-600">
@@ -42,23 +38,13 @@ const BalanceCard = ({
             </h3>
           </div>
           
-          <div className="flex items-center gap-3">
-            <button 
-              className="text-white/80 hover:text-white transition-colors"
-              aria-label="Clé de retrait"
-              onClick={handleQrKeyClick}
-            >
-              <Key size={16} className="text-white/80" />
-            </button>
-            
-            <button 
-              onClick={() => setShowBalance(!showBalance)}
-              className="text-white/80 hover:text-white transition-colors"
-              aria-label={showBalance ? "Masquer le solde" : "Afficher le solde"}
-            >
-              {showBalance ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          </div>
+          <button 
+            onClick={() => setShowBalance(!showBalance)}
+            className="text-white/80 hover:text-white transition-colors"
+            aria-label={showBalance ? "Masquer le solde" : "Afficher le solde"}
+          >
+            {showBalance ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
         </div>
         
         <p className="text-2xl font-bold text-white">

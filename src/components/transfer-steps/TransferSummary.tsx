@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { TransferData } from "@/types/transfer";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, calculateFee } from "@/integrations/supabase/client";
 
 type TransferSummaryProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
@@ -33,10 +33,9 @@ const TransferSummary = ({ recipient, transfer }: TransferSummaryProps) => {
 
   const userCountry = profile?.country || "Cameroun"; // Default to Cameroun if profile not found
   
-  // Apply different fee rates based on whether the transfer is national or international
+  // Calculate fees using the new function
   const isInternational = recipient.country && recipient.country !== userCountry;
-  const feeRate = isInternational ? 0.09 : 0.025; // 9% for international, 2.5% for national
-  const fees = transfer.amount * feeRate;
+  const { fee: fees, rate: feeRate } = calculateFee(transfer.amount, userCountry, recipient.country);
   const total = transfer.amount + fees;
 
   return (
@@ -69,7 +68,7 @@ const TransferSummary = ({ recipient, transfer }: TransferSummaryProps) => {
               {transfer.amount.toLocaleString('fr-FR')} {transfer.currency}
             </span>
             <span className="text-muted-foreground">
-              Frais ({isInternational ? "9%" : "2.5%"}) :
+              Frais ({isInternational ? "6%" : "1%"}) :
             </span>
             <span className="font-medium">
               {fees.toLocaleString('fr-FR')} {transfer.currency}
