@@ -50,14 +50,62 @@ export const useTransferForm = () => {
     try {
       setIsLoading(true);
       
-      // Call the function to process the withdrawal verification
-      const withdrawalResult = await supabase.rpc('process_withdrawal_verification', {
-        verification_code_param: verificationCode,
-        processor_id: user.id
-      });
+      // Use a direct query to the withdrawals table instead of RPC
+      // First, find the withdrawal with this verification code
+      const { data: withdrawalData, error: withdrawalError } = await supabase
+        .from('withdrawals')
+        .select('*')
+        .eq('verification_code', verificationCode)
+        .eq('status', 'pending')
+        .single();
 
-      if (withdrawalResult.error) {
-        throw new Error(withdrawalResult.error.message);
+      if (withdrawalError || !withdrawalData) {
+        throw new Error("Ce code de vérification n'existe pas ou a déjà été utilisé");
+      }
+
+      // Ensure the processor is different from the requester
+      if (withdrawalData.user_id === user.id) {
+        throw new Error("Vous ne pouvez pas confirmer votre propre retrait");
+      }
+
+      // Calculate fees (2.5% default)
+      const feeRate = 0.025;
+      const fee = withdrawalData.amount * feeRate;
+
+      // Update withdrawal status to 'completed'
+      const { error: updateError } = await supabase
+        .from('withdrawals')
+        .update({ 
+          status: 'completed', 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', withdrawalData.id);
+
+      if (updateError) throw updateError;
+
+      // Add funds (minus fees) to the processor's account
+      const { error: balanceError } = await supabase
+        .rpc('increment_balance', { 
+          user_id: user.id, 
+          amount: withdrawalData.amount - fee
+        });
+
+      if (balanceError) {
+        throw new Error("Erreur lors du transfert des fonds");
+      }
+
+      // Credit fees to admin account
+      const { data: adminData } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('phone', '+221773637752')
+        .single();
+
+      if (adminData) {
+        await supabase.rpc('increment_balance', {
+          user_id: adminData.id,
+          amount: fee
+        });
       }
 
       toast({
