@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "./use-toast";
@@ -193,7 +194,6 @@ export const useTransferForm = () => {
           identifiant: data.recipient.email,
           montant: data.transfer.amount,
           frais: fees,
-          isInternational: isInternational,
           userCountry: userCountry,
           recipientCountry: data.recipient.country
         });
