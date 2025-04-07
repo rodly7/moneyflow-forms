@@ -48,7 +48,13 @@ const Withdraw = () => {
           .eq('id', user.id)
           .single();
         
-        if (!error && data) {
+        if (error) {
+          console.error("Error fetching user profile:", error);
+          setIsLoading(false);
+          return;
+        }
+        
+        if (data) {
           const userCountry = data.country || "Congo Brazzaville";
           setCountry(userCountry);
           setPhoneNumber(data.phone || "");
@@ -295,4 +301,3 @@ const Withdraw = () => {
 export default Withdraw;
 
 import { countries } from "@/data/countries";
-

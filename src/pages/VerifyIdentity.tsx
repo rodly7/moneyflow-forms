@@ -36,7 +36,12 @@ const VerifyIdentity = () => {
           .eq('id', user.id)
           .single();
 
-        if (!error && data) {
+        if (error) {
+          console.error('Error fetching profile:', error);
+          return;
+        }
+
+        if (data) {
           // If user is already verified, redirect to home
           if (data.is_verified) {
             navigate('/');
