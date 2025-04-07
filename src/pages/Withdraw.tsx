@@ -21,6 +21,18 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 
+// Define Profile type to ensure we have the right properties
+interface Profile {
+  id: string;
+  full_name: string | null;
+  phone: string;
+  country: string | null;
+  address: string | null;
+  balance: number;
+  is_verified: boolean | null;
+  avatar_url: string | null;
+}
+
 const Withdraw = () => {
   const { user } = useAuth();
   const navigate = useNavigate();

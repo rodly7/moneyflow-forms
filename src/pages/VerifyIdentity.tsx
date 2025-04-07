@@ -11,6 +11,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera, Upload, Check } from "lucide-react";
 
+// Define Profile type to ensure we have the right properties
+interface Profile {
+  id: string;
+  full_name: string | null;
+  phone: string;
+  country: string | null;
+  address: string | null;
+  balance: number;
+  is_verified: boolean | null;
+  selfie_url: string | null;
+  id_card_url: string | null;
+  verified_at: string | null;
+  avatar_url: string | null;
+}
+
 const VerifyIdentity = () => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
