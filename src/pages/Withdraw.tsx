@@ -54,34 +54,40 @@ const Withdraw = () => {
     const fetchUserProfile = async () => {
       if (user?.id) {
         setIsLoading(true);
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('country, phone, full_name, is_verified')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) {
-          console.error("Error fetching user profile:", error);
-          setIsLoading(false);
-          return;
-        }
-        
-        if (data) {
-          const userCountry = data.country || "Congo Brazzaville";
-          setCountry(userCountry);
-          setPhoneNumber(data.phone || "");
-          setFullName(data.full_name || "");
-          setCurrency(getCurrencyForCountry(userCountry));
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('country, phone, full_name, is_verified')
+            .eq('id', user.id)
+            .single();
           
-          const selectedCountry = countries.find(c => c.name === userCountry);
-          if (selectedCountry) {
-            setCountryCode(selectedCountry.code);
+          if (error) {
+            console.error("Error fetching user profile:", error);
+            setIsLoading(false);
+            return;
           }
           
-          // If user is not verified, redirect to verification page
-          if (!data.is_verified) {
-            navigate('/verify-identity');
+          if (data) {
+            const userCountry = data.country || "Congo Brazzaville";
+            setCountry(userCountry);
+            setPhoneNumber(data.phone || "");
+            setFullName(data.full_name || "");
+            setCurrency(getCurrencyForCountry(userCountry));
+            
+            const selectedCountry = countries.find(c => c.name === userCountry);
+            if (selectedCountry) {
+              setCountryCode(selectedCountry.code);
+            }
+            
+            // If user is not verified, redirect to verification page
+            // Handle the potential absence of is_verified field
+            const isVerified = data.is_verified === undefined ? false : data.is_verified;
+            if (!isVerified) {
+              navigate('/verify-identity');
+            }
           }
+        } catch (error) {
+          console.error("Error in fetchUserProfile:", error);
         }
         setIsLoading(false);
       }

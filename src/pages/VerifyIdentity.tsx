@@ -57,8 +57,11 @@ const VerifyIdentity = () => {
         }
 
         if (data) {
+          // Handle potential missing fields if the columns don't exist yet
+          const is_verified = data.is_verified === undefined ? false : data.is_verified;
+          
           // If user is already verified, redirect to home
-          if (data.is_verified) {
+          if (is_verified) {
             navigate('/');
             return;
           }
@@ -187,15 +190,20 @@ const VerifyIdentity = () => {
       const selfieUrl = await uploadFile(selfieFile, 'identity-verification', selfieFileName);
       const idCardUrl = await uploadFile(idCardFile, 'identity-verification', idCardFileName);
       
+      // Update user profile with the new fields
+      const updateData: any = {
+        is_verified: true, // Auto-approve for demo, in production this would be reviewed
+        verified_at: new Date().toISOString()
+      };
+      
+      // Only add these fields if they're not undefined
+      if (selfieUrl) updateData.selfie_url = selfieUrl;
+      if (idCardUrl) updateData.id_card_url = idCardUrl;
+      
       // Update user profile
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({
-          selfie_url: selfieUrl,
-          id_card_url: idCardUrl,
-          is_verified: true, // Auto-approve for demo, in production this would be reviewed
-          verified_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', user.id);
         
       if (updateError) throw updateError;
