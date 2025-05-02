@@ -33,23 +33,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Function to fetch and set user role from profiles table
+  // Function to fetch and set user role from user metadata
   const fetchUserRole = async (userId: string) => {
     try {
+      // Get user data from auth.users
+      const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
+      
+      // If we can't access admin methods, try getting the current user's metadata
+      if (userError) {
+        const { data: currentUser } = await supabase.auth.getUser();
+        if (currentUser?.user) {
+          const role = currentUser.user.user_metadata?.role || "user";
+          setUserRole(role);
+          return;
+        }
+      } else if (userData?.user) {
+        const role = userData.user.user_metadata?.role || "user";
+        setUserRole(role);
+        return;
+      }
+      
+      // Fallback to checking if the user is in the profiles table and use 'user' as default role
       const { data, error } = await supabase
         .from('profiles')
-        .select('role')
+        .select('*')
         .eq('id', userId)
         .single();
       
       if (error) {
-        console.error("Error fetching user role:", error);
+        console.error("Error fetching user profile:", error);
+        setUserRole("user"); // Default to user role
         return;
       }
       
-      setUserRole(data?.role || "user");
+      // Try to get role from user's raw metadata if it exists
+      const rawUserMetadata = data?.raw_user_meta_data as { role?: string } | null;
+      setUserRole(rawUserMetadata?.role || "user");
     } catch (error) {
       console.error("Error in fetchUserRole:", error);
+      setUserRole("user"); // Default to user role
     }
   };
 
@@ -61,8 +83,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session.user);
         
-        // Fetch user role
-        fetchUserRole(session.user.id);
+        // Get role from user metadata
+        const role = session.user.user_metadata?.role || "user";
+        setUserRole(role);
         
         // Only navigate to home if we're on the auth page
         if (window.location.pathname === "/auth") {
@@ -92,8 +115,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session.user);
         
-        // Fetch user role
-        fetchUserRole(session.user.id);
+        // Get role from user metadata
+        const role = session.user.user_metadata?.role || "user";
+        setUserRole(role);
         
         // Only navigate to home if we're on the auth page
         if (window.location.pathname === "/auth") {
