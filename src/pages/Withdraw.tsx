@@ -57,7 +57,7 @@ const Withdraw = () => {
         try {
           const { data, error } = await supabase
             .from('profiles')
-            .select('country, phone, full_name, is_verified')
+            .select('country, phone, full_name')
             .eq('id', user.id)
             .single();
           
@@ -77,13 +77,6 @@ const Withdraw = () => {
             const selectedCountry = countries.find(c => c.name === userCountry);
             if (selectedCountry) {
               setCountryCode(selectedCountry.code);
-            }
-            
-            // If user is not verified, redirect to verification page
-            // Handle the potential absence of is_verified field
-            const isVerified = data.is_verified === undefined ? false : data.is_verified;
-            if (!isVerified) {
-              navigate('/verify-identity');
             }
           }
         } catch (error) {
