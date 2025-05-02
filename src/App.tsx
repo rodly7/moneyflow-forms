@@ -19,6 +19,7 @@ import { Toaster } from "@/components/ui/toaster"
 import Withdraw from "@/pages/Withdraw";
 import Dashboard from "@/pages/Dashboard";
 import VerifyIdentity from "@/pages/VerifyIdentity";
+import AgentDashboard from "@/pages/AgentDashboard";
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
           <Route path="/bill-payments" element={<Layout><BillPayments /></Layout>} />
           <Route path="/prepaid-cards" element={<Layout><PrepaidCards /></Layout>} />
           <Route path="/transactions" element={<Layout><Transactions /></Layout>} />
+          <Route path="/agent" element={<Layout><AgentDashboard /></Layout>} />
           <Route path="*" element={<Auth />} />
         </Routes>
         <Toaster />
