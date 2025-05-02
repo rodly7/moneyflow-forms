@@ -10,8 +10,8 @@ type TransferSummaryProps = TransferData & {
 };
 
 const TransferSummary = ({ recipient, transfer }: TransferSummaryProps) => {
-  // Get current user's country from profile
-  const { user } = useAuth();
+  // Get current user's country and role from profile/context
+  const { user, userRole } = useAuth();
   const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
@@ -33,10 +33,17 @@ const TransferSummary = ({ recipient, transfer }: TransferSummaryProps) => {
 
   const userCountry = profile?.country || "Cameroun"; // Default to Cameroun if profile not found
   
-  // Calculate fees using the new function
+  // Apply different fee rates based on whether the transfer is national or international
   const isInternational = recipient.country && recipient.country !== userCountry;
-  const { fee: fees, rate: feeRate } = calculateFee(transfer.amount, userCountry, recipient.country);
+  
+  // Calculate fees using the new function with user role
+  const { fee: fees } = calculateFee(transfer.amount, userCountry, recipient.country, userRole || 'user');
   const total = transfer.amount + fees;
+
+  // Format fee percentage for display
+  const feePercentageDisplay = userRole === 'agent' 
+    ? (isInternational ? '2%' : '0.5%') 
+    : (isInternational ? '4%' : '1.5%');
 
   return (
     <div className="space-y-6">
@@ -68,7 +75,7 @@ const TransferSummary = ({ recipient, transfer }: TransferSummaryProps) => {
               {transfer.amount.toLocaleString('fr-FR')} {transfer.currency}
             </span>
             <span className="text-muted-foreground">
-              Frais ({isInternational ? "6%" : "1%"}) :
+              Frais ({feePercentageDisplay}) :
             </span>
             <span className="font-medium">
               {fees.toLocaleString('fr-FR')} {transfer.currency}

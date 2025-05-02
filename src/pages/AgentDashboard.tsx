@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Wallet, CreditCard } from "lucide-react";
+import { ArrowLeft, Wallet, CreditCard, ArrowUpRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   InputOTP,
@@ -193,8 +193,20 @@ const AgentDashboard = () => {
         throw new Error("Vous ne pouvez pas confirmer votre propre retrait");
       }
 
-      // Calculer les frais (2% pour les retraits)
-      const fee = data.amount * 0.02;
+      // Calculer les frais (pour les agents: 0.5% national, 2% international)
+      const { data: senderProfile } = await supabase
+        .from('profiles')
+        .select('country')
+        .eq('id', data.user_id)
+        .single();
+        
+      const senderCountry = senderProfile?.country || 'Cameroun';
+      const agentCountry = profile?.country || 'Cameroun';
+      const isInternational = senderCountry !== agentCountry;
+      
+      // Calculer la commission de l'agent
+      const commissionRate = isInternational ? 0.02 : 0.005;
+      const commission = data.amount * commissionRate;
       
       // Mettre à jour le statut du retrait
       await supabase
@@ -208,7 +220,7 @@ const AgentDashboard = () => {
       // Ajouter le montant (moins les frais) au compte de l'agent
       await supabase.rpc('increment_balance', {
         user_id: user?.id,
-        amount: data.amount - fee
+        amount: data.amount - commission
       });
       
       // Créditer les frais au compte administrateur
@@ -221,13 +233,13 @@ const AgentDashboard = () => {
       if (adminData) {
         await supabase.rpc('increment_balance', {
           user_id: adminData.id,
-          amount: fee
+          amount: commission
         });
       }
       
       toast({
         title: "Retrait confirmé",
-        description: `Le retrait de ${formatCurrency(data.amount, userCurrency)} a été effectué avec succès`,
+        description: `Le retrait de ${formatCurrency(data.amount, userCurrency)} a été effectué avec succès. Votre commission: ${formatCurrency(commission, userCurrency)}`,
       });
       
       // Réinitialiser le code de vérification
@@ -243,6 +255,11 @@ const AgentDashboard = () => {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Fonction pour ouvrir la page de transfert
+  const handleTransferClick = () => {
+    navigate('/');
   };
 
   if (!user || !isAgent()) {
@@ -290,6 +307,37 @@ const AgentDashboard = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Quick Actions for Agent */}
+        <div className="grid grid-cols-3 gap-4">
+          <Button 
+            onClick={handleTransferClick} 
+            variant="outline" 
+            className="flex flex-col items-center justify-center h-20 bg-white"
+          >
+            <ArrowUpRight className="h-5 w-5 mb-1" />
+            <span className="text-xs font-medium">Transfert</span>
+          </Button>
+          
+          <Link to="/receive" className="w-full">
+            <Button 
+              variant="outline" 
+              className="flex flex-col items-center justify-center h-20 bg-white w-full"
+            >
+              <Wallet className="h-5 w-5 mb-1" />
+              <span className="text-xs font-medium">Dépôt</span>
+            </Button>
+          </Link>
+          
+          <Button 
+            onClick={() => setVerificationCode("")} 
+            variant="outline" 
+            className="flex flex-col items-center justify-center h-20 bg-white"
+          >
+            <CreditCard className="h-5 w-5 mb-1" />
+            <span className="text-xs font-medium">Commissions</span>
+          </Button>
+        </div>
 
         {/* Tabs pour les différentes opérations */}
         <Tabs defaultValue="recharge" className="w-full">
@@ -387,6 +435,7 @@ const AgentDashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle>Historique des opérations</CardTitle>
+            <CardDescription>Vos dernières opérations et commissions</CardDescription>
           </CardHeader>
           <CardContent>
             {isTransactionsLoading ? (
@@ -395,7 +444,7 @@ const AgentDashboard = () => {
               </div>
             ) : recentTransactions && recentTransactions.length > 0 ? (
               <div className="space-y-2">
-                {recentTransactions.map((transaction, index) => (
+                {recentTransactions.map((transaction) => (
                   <div key={transaction.id} className="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
                     <div>
                       <p className="font-medium">
@@ -405,8 +454,13 @@ const AgentDashboard = () => {
                         {new Date(transaction.updated_at || transaction.created_at).toLocaleString()}
                       </p>
                     </div>
-                    <div className={`font-bold ${transaction.type === 'recharge' ? 'text-red-600' : 'text-emerald-600'}`}>
-                      {transaction.type === 'recharge' ? '-' : '+'} {formatCurrency(transaction.amount, userCurrency)}
+                    <div>
+                      <div className={`font-bold ${transaction.type === 'recharge' ? 'text-red-600' : 'text-emerald-600'}`}>
+                        {transaction.type === 'recharge' ? '-' : '+'} {formatCurrency(transaction.amount, userCurrency)}
+                      </div>
+                      <div className="text-xs text-emerald-700 text-right">
+                        Commission: {formatCurrency(transaction.amount * (transaction.type === 'recharge' ? 0.005 : 0.02), userCurrency)}
+                      </div>
                     </div>
                   </div>
                 ))}

@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,18 +36,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Function to fetch and set user role from user metadata
   const fetchUserRole = async (userId: string) => {
     try {
-      // Get user data from auth.users
-      const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
+      // Get user data from current session if available
+      if (session?.user) {
+        const role = session.user.user_metadata?.role || "user";
+        setUserRole(role);
+        return;
+      }
+
+      // Try to get user data directly from auth
+      const { data: userData, error: userError } = await supabase.auth.getUser();
       
-      // If we can't access admin methods, try getting the current user's metadata
-      if (userError) {
-        const { data: currentUser } = await supabase.auth.getUser();
-        if (currentUser?.user) {
-          const role = currentUser.user.user_metadata?.role || "user";
-          setUserRole(role);
-          return;
-        }
-      } else if (userData?.user) {
+      if (!userError && userData?.user) {
         const role = userData.user.user_metadata?.role || "user";
         setUserRole(role);
         return;

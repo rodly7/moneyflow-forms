@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
@@ -117,23 +118,28 @@ export const formatCurrency = (amount: number, currencyCode: string): string => 
   }).format(amount).replace(currencyCode, symbol);
 };
 
-// Function to calculate fee based on transaction type and countries
-export const calculateFee = (amount: number, senderCountry?: string, recipientCountry?: string): { fee: number, rate: number } => {
-  // Default fee rate for other operations (like withdrawals) is 2%
-  let feeRate = 0.02;
-  
-  // For national transfers, use 1%
-  if (senderCountry && recipientCountry && senderCountry === recipientCountry) {
-    feeRate = 0.01; // 1% for national transfers
+// Updated function to calculate fee based on transaction type, countries and user role
+export const calculateFee = (amount: number, senderCountry?: string, recipientCountry?: string, userRole?: string): { fee: number, rate: number } => {
+  // If countries are not provided, use default withdrawal fee rate (2%)
+  if (!senderCountry || !recipientCountry) {
+    return { fee: amount * 0.02, rate: 0.02 };
   }
   
-  // For international transfers, use 6%
-  else if (senderCountry && recipientCountry && senderCountry !== recipientCountry) {
-    feeRate = 0.06; // 6% for international transfers
+  // Check if it's a national or international transfer
+  const isNational = senderCountry === recipientCountry;
+  
+  // Determine fee rate based on user role and transfer type
+  let feeRate: number;
+  
+  if (userRole === 'agent') {
+    // Agent commission rates
+    feeRate = isNational ? 0.005 : 0.02; // 0.5% for national, 2% for international
+  } else {
+    // Money Flow (regular user) rates
+    feeRate = isNational ? 0.015 : 0.04; // 1.5% for national, 4% for international
   }
   
   const fee = amount * feeRate;
-  
   return { fee, rate: feeRate };
 };
 
