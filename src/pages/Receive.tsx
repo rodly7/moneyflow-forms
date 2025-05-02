@@ -80,8 +80,12 @@ const Receive = () => {
       const { error } = await supabase.from('recharges').insert({
         user_id: user?.id,
         amount: Number(amount),
+        country: profile?.country || "Congo Brazzaville",
+        payment_method: "wallet",
+        payment_phone: profile?.phone || "",
+        payment_provider: "agent",
         status: 'pending',
-        verification_code: code
+        transaction_reference: code
       });
       
       if (error) throw error;
@@ -120,7 +124,7 @@ const Receive = () => {
       const { data, error } = await supabase
         .from('recharges')
         .select('*')
-        .eq('verification_code', verificationCode)
+        .eq('transaction_reference', verificationCode)
         .eq('status', 'pending')
         .single();
         
@@ -138,7 +142,6 @@ const Receive = () => {
         .from('recharges')
         .update({ 
           status: 'completed',
-          processed_by: user?.id,
           updated_at: new Date().toISOString()
         })
         .eq('id', data.id);
@@ -150,9 +153,11 @@ const Receive = () => {
       });
       
       // Déduire le montant du compte de l'agent
-      await supabase.rpc('decrement_balance', {
+      // Nous devons utiliser increment_balance avec une valeur négative
+      // puisque decrement_balance n'existe pas
+      await supabase.rpc('increment_balance', {
         user_id: user?.id,
-        amount: data.amount
+        amount: -data.amount
       });
       
       toast({
