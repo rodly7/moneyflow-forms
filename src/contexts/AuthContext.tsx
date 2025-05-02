@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,22 +52,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       
-      // Fallback to checking if the user is in the profiles table and use 'user' as default role
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (error) {
-        console.error("Error fetching user profile:", error);
-        setUserRole("user"); // Default to user role
-        return;
-      }
-      
-      // Try to get role from user's raw metadata if it exists
-      const rawUserMetadata = data?.raw_user_meta_data as { role?: string } | null;
-      setUserRole(rawUserMetadata?.role || "user");
+      // Fallback to checking if the user is in the profiles table
+      // Since the profiles table doesn't have role or raw_user_meta_data fields directly,
+      // we'll just use the default "user" role if we reach this point
+      setUserRole("user");
     } catch (error) {
       console.error("Error in fetchUserRole:", error);
       setUserRole("user"); // Default to user role
