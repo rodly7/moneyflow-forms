@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Icons } from "@/components/ui/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { countries } from "@/data/countries";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -27,6 +29,7 @@ const Auth = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [availableCities, setAvailableCities] = useState<string[]>([]);
+  const [isAgentAccount, setIsAgentAccount] = useState(false);
 
   const handleCountryChange = (value: string) => {
     const selectedCountry = countries.find(c => c.name === value);
@@ -75,6 +78,7 @@ const Auth = () => {
           country: country,
           address: address,
           phone: phone,
+          role: isAgentAccount ? "agent" : "user",
         });
         
         toast.success("Compte créé avec succès!", {
@@ -210,6 +214,19 @@ const Auth = () => {
                     disabled={loading}
                     minLength={6}
                   />
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="isAgent" 
+                    checked={isAgentAccount}
+                    onCheckedChange={(checked) => 
+                      setIsAgentAccount(checked === true)
+                    }
+                  />
+                  <Label htmlFor="isAgent" className="font-normal text-sm">
+                    Créer un compte agent
+                  </Label>
                 </div>
               </>
             ) : (

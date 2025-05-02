@@ -10,15 +10,18 @@ type UserMetadata = {
   country?: string;
   address?: string;
   phone?: string;
+  role?: "user" | "agent" | "admin";
 };
 
 type AuthContextType = {
   session: Session | null;
   user: User | null;
-  loading: boolean; // Add loading property to the interface
+  userRole: string | null;
+  loading: boolean;
   signIn: (phone: string, password: string) => Promise<void>;
   signUp: (phone: string, password: string, metadata?: UserMetadata) => Promise<void>;
   signOut: () => Promise<void>;
+  isAgent: () => boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,8 +29,29 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // Add loading state
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  // Function to fetch and set user role from profiles table
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching user role:", error);
+        return;
+      }
+      
+      setUserRole(data?.role || "user");
+    } catch (error) {
+      console.error("Error in fetchUserRole:", error);
+    }
+  };
 
   useEffect(() => {
     // Get initial session
@@ -36,6 +60,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session) {
         setSession(session);
         setUser(session.user);
+        
+        // Fetch user role
+        fetchUserRole(session.user.id);
+        
         // Only navigate to home if we're on the auth page
         if (window.location.pathname === "/auth") {
           navigate("/");
@@ -44,12 +72,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Clear session and user state
         setSession(null);
         setUser(null);
+        setUserRole(null);
+        
         // Only redirect to auth if we're not already there
         if (window.location.pathname !== "/auth") {
           navigate("/auth");
         }
       }
-      setLoading(false); // Set loading to false once we've checked the session
+      setLoading(false);
     });
 
     // Listen for auth changes
@@ -62,6 +92,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session.user);
         
+        // Fetch user role
+        fetchUserRole(session.user.id);
+        
         // Only navigate to home if we're on the auth page
         if (window.location.pathname === "/auth") {
           navigate("/");
@@ -69,12 +102,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setSession(null);
         setUser(null);
+        setUserRole(null);
+        
         // Only redirect to auth if we're not already there
         if (window.location.pathname !== "/auth") {
           navigate("/auth");
         }
       }
-      setLoading(false); // Ensure loading is set to false after auth state changes
+      setLoading(false);
     });
 
     return () => {
@@ -120,6 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: {
             ...metadata,
             phone: phone,
+            role: metadata?.role || "user", // Default to user role if not provided
           }
         }
       });
@@ -142,6 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       setSession(null);
       setUser(null);
+      setUserRole(null);
       
       toast.success("Déconnexion réussie");
     } catch (error: any) {
@@ -151,8 +188,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Helper function to check if the user is an agent
+  const isAgent = () => {
+    return userRole === "agent" || userRole === "admin";
+  };
+
   return (
-    <AuthContext.Provider value={{ session, user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ 
+      session, 
+      user, 
+      userRole, 
+      loading, 
+      signIn, 
+      signUp, 
+      signOut,
+      isAgent
+    }}>
       {children}
     </AuthContext.Provider>
   );

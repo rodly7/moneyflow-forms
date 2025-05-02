@@ -1,12 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, formatCurrency, getCurrencyForCountry } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Wallet, CreditCard } from "lucide-react";
@@ -18,11 +17,23 @@ import {
 } from "@/components/ui/input-otp";
 
 const AgentDashboard = () => {
-  const { user } = useAuth();
+  const { user, isAgent } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [verificationCode, setVerificationCode] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Redirect non-agent users to the dashboard
+  useEffect(() => {
+    if (user && !isAgent()) {
+      toast({
+        title: "Accès refusé",
+        description: "Vous n'avez pas les autorisations nécessaires pour accéder à cette page",
+        variant: "destructive"
+      });
+      navigate("/dashboard");
+    }
+  }, [user, isAgent, navigate, toast]);
 
   // Récupérer le profil de l'agent
   const { data: profile, isLoading: isProfileLoading } = useQuery({
@@ -233,6 +244,10 @@ const AgentDashboard = () => {
       setIsProcessing(false);
     }
   };
+
+  if (!user || !isAgent()) {
+    return null; // Don't render anything if not an agent
+  }
 
   if (isProfileLoading) {
     return (
