@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -56,7 +55,7 @@ const AgentDeposit = () => {
       // Check if recipient exists
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('first_name, last_name')
+        .select('full_name')
         .eq('phone', fullPhone)
         .single();
 
@@ -70,7 +69,7 @@ const AgentDeposit = () => {
         setRecipientName("");
       } else {
         setIsVerified(true);
-        setRecipientName(`${profile.first_name || ''} ${profile.last_name || ''}`.trim());
+        setRecipientName(profile.full_name || '');
       }
     } catch (err) {
       console.error("Error checking recipient:", err);
