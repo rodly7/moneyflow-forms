@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const AgentDeposit = () => {
   const { user } = useAuth();
@@ -25,14 +24,6 @@ const AgentDeposit = () => {
   // Handle form input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  // Handle select changes
-  const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -94,13 +85,16 @@ const AgentDeposit = () => {
       // Vérifier si le bénéficiaire existe
       const { data: recipientProfile, error: recipientProfileError } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, country')
         .eq('phone', formData.recipientPhone)
         .single();
 
       if (recipientProfileError) {
         throw new Error("Le numéro de téléphone du bénéficiaire n'existe pas");
       }
+
+      // Generate a unique transaction reference
+      const transactionReference = `DEP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
       // Procéder au dépôt sans frais (dépôt local)
       // 1. Déduire le montant du compte de l'agent
@@ -123,17 +117,20 @@ const AgentDeposit = () => {
         throw creditError;
       }
 
-      // 3. Enregistrer la transaction
+      // 3. Enregistrer la transaction dans la table recharges
+      // Conformément à la structure attendue de la table
       const { error: transactionError } = await supabase
         .from('recharges')
         .insert({
           user_id: recipientProfile.id,
-          agent_id: user.id,
           amount: amount,
+          country: recipientProfile.country || "Cameroun", // Utiliser le pays du destinataire ou valeur par défaut
           payment_method: 'agent_deposit',
           payment_phone: formData.recipientPhone,
-          description: formData.description || 'Dépôt par agent',
-          status: 'completed'
+          payment_provider: 'agent',
+          transaction_reference: transactionReference,
+          status: 'completed',
+          provider_transaction_id: user.id  // Store the agent ID in the provider_transaction_id field
         });
 
       if (transactionError) {
