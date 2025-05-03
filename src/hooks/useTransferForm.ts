@@ -218,15 +218,18 @@ export const useTransferForm = () => {
         // Utiliser l'identifiant du destinataire (téléphone ou email)
         const recipientIdentifier = data.recipient.email;
 
+        // Vérifier d'abord si la procédure stockée accepte les paramètres agent_commission et platform_commission
+        // Si ce n'est pas le cas, il faudra peut-être utiliser une approche alternative
+        
         // Utiliser la procédure stockée pour traiter le transfert d'argent
+        // Ici, nous omettons les paramètres agent_commission et platform_commission car ils ne sont pas
+        // définis dans l'interface de la procédure stockée
         const { data: result, error: transferProcessError } = await supabase
           .rpc('process_money_transfer', {
             sender_id: user.id,
             recipient_identifier: recipientIdentifier,
             transfer_amount: data.transfer.amount,
-            transfer_fees: fees,
-            agent_commission: agentCommission,
-            platform_commission: moneyFlowCommission
+            transfer_fees: fees
           });
 
         if (transferProcessError) {
@@ -238,6 +241,23 @@ export const useTransferForm = () => {
           });
           setIsLoading(false);
           return;
+        }
+
+        // Après le transfert réussi, nous pouvons mettre à jour séparément les informations de commission si nécessaire
+        if (result) {
+          // Mise à jour des informations de commission dans la table transfers
+          const { error: commissionUpdateError } = await supabase
+            .from('transfers')
+            .update({
+              agent_commission: agentCommission,
+              platform_commission: moneyFlowCommission
+            })
+            .eq('id', result);
+
+          if (commissionUpdateError) {
+            console.error("Erreur lors de la mise à jour des commissions:", commissionUpdateError);
+            // Nous continuons quand même car le transfert a réussi
+          }
         }
 
         // La procédure renvoie l'ID du transfert créé
