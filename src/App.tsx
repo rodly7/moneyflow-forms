@@ -20,6 +20,7 @@ import Withdraw from "@/pages/Withdraw";
 import Dashboard from "@/pages/Dashboard";
 import VerifyIdentity from "@/pages/VerifyIdentity";
 import AgentDashboard from "@/pages/AgentDashboard";
+import AgentDeposit from "@/pages/AgentDeposit";
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
           <Route path="/prepaid-cards" element={<Layout><PrepaidCards /></Layout>} />
           <Route path="/transactions" element={<Layout><Transactions /></Layout>} />
           <Route path="/agent" element={<Layout><AgentDashboard /></Layout>} />
+          <Route path="/agent-deposit" element={<Layout><AgentDeposit /></Layout>} />
           <Route path="*" element={<Auth />} />
         </Routes>
         <Toaster />

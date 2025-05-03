@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Wallet, CreditCard, ArrowUpRight } from "lucide-react";
+import { ArrowLeft, CreditCard, Receipt } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   InputOTP,
@@ -89,78 +89,6 @@ const AgentDashboard = () => {
 
   // Obtenir la devise de l'utilisateur
   const userCurrency = profile?.country ? getCurrencyForCountry(profile.country) : "XAF";
-
-  // Fonction pour gérer la vérification d'un code de recharge
-  const handleVerifyRecharge = async () => {
-    if (verificationCode.length !== 6) {
-      toast({
-        title: "Code invalide",
-        description: "Veuillez entrer un code à 6 chiffres",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-    
-    try {
-      // Vérifier si le code existe et est valide
-      const { data, error } = await supabase
-        .from('recharges')
-        .select('*')
-        .eq('transaction_reference', verificationCode)
-        .eq('status', 'pending')
-        .single();
-        
-      if (error || !data) {
-        throw new Error("Code de recharge invalide ou déjà utilisé");
-      }
-      
-      // S'assurer que l'agent n'est pas l'utilisateur qui a fait la demande
-      if (data.user_id === user?.id) {
-        throw new Error("Vous ne pouvez pas confirmer votre propre recharge");
-      }
-
-      // Mettre à jour le statut de la recharge
-      await supabase
-        .from('recharges')
-        .update({ 
-          status: 'completed',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', data.id);
-        
-      // Ajouter le montant au solde de l'utilisateur
-      await supabase.rpc('increment_balance', {
-        user_id: data.user_id,
-        amount: data.amount
-      });
-      
-      // Déduire le montant du compte de l'agent
-      await supabase.rpc('increment_balance', {
-        user_id: user?.id,
-        amount: -data.amount
-      });
-      
-      toast({
-        title: "Recharge confirmée",
-        description: `La recharge de ${formatCurrency(data.amount, userCurrency)} a été effectuée avec succès`,
-      });
-      
-      // Réinitialiser le code de vérification
-      setVerificationCode("");
-      
-    } catch (error) {
-      console.error('Erreur lors de la vérification du code:', error);
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la vérification du code",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   // Fonction pour traiter un retrait
   const handleVerifyWithdrawal = async () => {
@@ -257,11 +185,6 @@ const AgentDashboard = () => {
     }
   };
 
-  // Fonction pour ouvrir la page de transfert
-  const handleTransferClick = () => {
-    navigate('/');
-  };
-
   if (!user || !isAgent()) {
     return null; // Don't render anything if not an agent
   }
@@ -308,128 +231,64 @@ const AgentDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Quick Actions for Agent */}
-        <div className="grid grid-cols-3 gap-4">
-          <Button 
-            onClick={handleTransferClick} 
-            variant="outline" 
-            className="flex flex-col items-center justify-center h-20 bg-white"
-          >
-            <ArrowUpRight className="h-5 w-5 mb-1" />
-            <span className="text-xs font-medium">Transfert</span>
-          </Button>
-          
-          <Link to="/receive" className="w-full">
-            <Button 
-              variant="outline" 
-              className="flex flex-col items-center justify-center h-20 bg-white w-full"
-            >
-              <Wallet className="h-5 w-5 mb-1" />
-              <span className="text-xs font-medium">Dépôt</span>
-            </Button>
-          </Link>
-          
+        {/* Quick Actions for Agent - Seulement Retrait et Commission */}
+        <div className="grid grid-cols-2 gap-4">
           <Button 
             onClick={() => setVerificationCode("")} 
             variant="outline" 
-            className="flex flex-col items-center justify-center h-20 bg-white"
+            className="flex flex-col items-center justify-center h-24 bg-white"
           >
-            <CreditCard className="h-5 w-5 mb-1" />
-            <span className="text-xs font-medium">Commissions</span>
+            <CreditCard className="h-8 w-8 mb-2" />
+            <span className="text-sm font-medium">Retrait</span>
+          </Button>
+          
+          <Button 
+            onClick={() => navigate("/transactions")} 
+            variant="outline" 
+            className="flex flex-col items-center justify-center h-24 bg-white"
+          >
+            <Receipt className="h-8 w-8 mb-2" />
+            <span className="text-sm font-medium">Commissions</span>
           </Button>
         </div>
 
-        {/* Tabs pour les différentes opérations */}
-        <Tabs defaultValue="recharge" className="w-full">
-          <TabsList className="grid grid-cols-2">
-            <TabsTrigger value="recharge" className="flex items-center gap-2">
-              <Wallet className="w-4 h-4" /> Recharge
-            </TabsTrigger>
-            <TabsTrigger value="withdrawal" className="flex items-center gap-2">
-              <CreditCard className="w-4 h-4" /> Retrait
-            </TabsTrigger>
-          </TabsList>
-          
-          {/* Onglet pour les recharges */}
-          <TabsContent value="recharge" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Confirmer une recharge</CardTitle>
-                <CardDescription>
-                  Entrez le code fourni par l'utilisateur pour confirmer sa recharge
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="rechargeCode">Code de recharge</Label>
-                  <InputOTP 
-                    maxLength={6}
-                    value={verificationCode}
-                    onChange={setVerificationCode}
-                    disabled={isProcessing}
-                  >
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} />
-                      <InputOTPSlot index={1} />
-                      <InputOTPSlot index={2} />
-                      <InputOTPSlot index={3} />
-                      <InputOTPSlot index={4} />
-                      <InputOTPSlot index={5} />
-                    </InputOTPGroup>
-                  </InputOTP>
-                </div>
-                
-                <Button
-                  className="w-full bg-emerald-600 hover:bg-emerald-700"
-                  onClick={handleVerifyRecharge}
-                  disabled={verificationCode.length !== 6 || isProcessing}
-                >
-                  {isProcessing ? "Traitement en cours..." : "Confirmer la recharge"}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          {/* Onglet pour les retraits */}
-          <TabsContent value="withdrawal" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Confirmer un retrait</CardTitle>
-                <CardDescription>
-                  Entrez le code fourni par l'utilisateur pour confirmer son retrait
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="withdrawalCode">Code de retrait</Label>
-                  <InputOTP 
-                    maxLength={6}
-                    value={verificationCode}
-                    onChange={setVerificationCode}
-                    disabled={isProcessing}
-                  >
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} />
-                      <InputOTPSlot index={1} />
-                      <InputOTPSlot index={2} />
-                      <InputOTPSlot index={3} />
-                      <InputOTPSlot index={4} />
-                      <InputOTPSlot index={5} />
-                    </InputOTPGroup>
-                  </InputOTP>
-                </div>
-                
-                <Button
-                  className="w-full bg-emerald-600 hover:bg-emerald-700"
-                  onClick={handleVerifyWithdrawal}
-                  disabled={verificationCode.length !== 6 || isProcessing}
-                >
-                  {isProcessing ? "Traitement en cours..." : "Confirmer le retrait"}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        {/* Onglet pour les retraits */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Confirmer un retrait</CardTitle>
+            <CardDescription>
+              Entrez le code fourni par l'utilisateur pour confirmer son retrait
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="withdrawalCode">Code de retrait</Label>
+              <InputOTP 
+                maxLength={6}
+                value={verificationCode}
+                onChange={setVerificationCode}
+                disabled={isProcessing}
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+            
+            <Button
+              className="w-full bg-emerald-600 hover:bg-emerald-700"
+              onClick={handleVerifyWithdrawal}
+              disabled={verificationCode.length !== 6 || isProcessing}
+            >
+              {isProcessing ? "Traitement en cours..." : "Confirmer le retrait"}
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Historique des transactions */}
         <Card>

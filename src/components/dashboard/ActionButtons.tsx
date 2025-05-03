@@ -1,5 +1,5 @@
 
-import { ArrowUpRight, Banknote, CreditCard, Wallet, UserMinus } from "lucide-react";
+import { ArrowUpRight, Banknote, CreditCard, Wallet, UserMinus, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,9 +49,9 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
         </Link>
       )}
       
-      {/* Recharge/Deposit - For agents only */}
+      {/* Dépôt - For agents only */}
       {isAgent() && (
-        <Link to="/receive" className="w-full">
+        <Link to="/agent-deposit" className="w-full">
           <Button variant="outline" className="flex flex-col items-center justify-center h-20 bg-white w-full">
             <Banknote className="h-5 w-5 mb-1" />
             <span className="text-xs font-medium">Dépôt</span>
@@ -59,12 +59,12 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
         </Link>
       )}
       
-      {/* Agent dashboard access */}
+      {/* Agent dashboard access - Enlarged and simplified */}
       {isAgent() && (
-        <Link to="/agent" className="w-full">
-          <Button variant="outline" className="flex flex-col items-center justify-center h-20 bg-white w-full border-emerald-200 bg-emerald-50">
-            <Wallet className="h-5 w-5 mb-1 text-emerald-600" />
-            <span className="text-xs font-medium text-emerald-600">Agent</span>
+        <Link to="/agent" className="w-full col-span-2">
+          <Button variant="outline" className="flex flex-col items-center justify-center h-20 w-full border-emerald-200 bg-emerald-50">
+            <Wallet className="h-6 w-6 mb-1 text-emerald-600" />
+            <span className="text-sm font-medium text-emerald-600">Agent</span>
           </Button>
         </Link>
       )}
