@@ -44,14 +44,13 @@ export const useTransferForm = () => {
         description: "Vous devez être connecté pour confirmer un retrait",
         variant: "destructive"
       });
-      return false;
+      return { success: false, message: "Erreur d'authentification" };
     }
 
     try {
       setIsLoading(true);
       
-      // Use a direct query to the withdrawals table instead of RPC
-      // First, find the withdrawal with this verification code
+      // Trouver le retrait avec ce code de vérification
       const { data: withdrawalData, error: withdrawalError } = await supabase
         .from('withdrawals')
         .select('*')
@@ -63,37 +62,40 @@ export const useTransferForm = () => {
         throw new Error("Ce code de vérification n'existe pas ou a déjà été utilisé");
       }
 
-      // Ensure the processor is different from the requester
+      // S'assurer que l'agent n'est pas l'utilisateur qui a fait la demande
       if (withdrawalData.user_id === user.id) {
         throw new Error("Vous ne pouvez pas confirmer votre propre retrait");
       }
 
-      // Calculate fees (2% for withdrawals)
-      const { fee } = calculateFee(withdrawalData.amount);
+      // Calculer les frais (2% pour les retraits - 0,5% pour l'agent, 1,5% pour MoneyFlow)
+      const { fee, agentCommission, moneyFlowCommission } = calculateFee(withdrawalData.amount);
 
-      // Update withdrawal status to 'completed'
+      // Mettre à jour le statut du retrait à 'completed'
       const { error: updateError } = await supabase
         .from('withdrawals')
         .update({ 
           status: 'completed', 
-          updated_at: new Date().toISOString() 
+          updated_at: new Date().toISOString(),
+          fee: fee,
+          agent_commission: agentCommission,
+          platform_commission: moneyFlowCommission
         })
         .eq('id', withdrawalData.id);
 
       if (updateError) throw updateError;
 
-      // Add funds (minus fees) to the processor's account
+      // Ajouter les fonds (montant moins les frais plus la commission de l'agent) au compte de l'agent
       const { error: balanceError } = await supabase
         .rpc('increment_balance', { 
           user_id: user.id, 
-          amount: withdrawalData.amount - fee
+          amount: withdrawalData.amount - fee + agentCommission
         });
 
       if (balanceError) {
         throw new Error("Erreur lors du transfert des fonds");
       }
 
-      // Credit fees to admin account
+      // Créditer les frais au compte admin (partie MoneyFlow)
       const { data: adminData } = await supabase
         .from('profiles')
         .select('id')
@@ -103,7 +105,7 @@ export const useTransferForm = () => {
       if (adminData) {
         await supabase.rpc('increment_balance', {
           user_id: adminData.id,
-          amount: fee
+          amount: moneyFlowCommission
         });
       }
 
@@ -112,9 +114,14 @@ export const useTransferForm = () => {
         description: "Le retrait a été confirmé avec succès et votre compte a été crédité."
       });
 
-      // Navigate back to home after successful confirmation
-      navigate('/');
-      return true;
+      // Retourner les informations sur le retrait et les commissions
+      return {
+        success: true,
+        amount: withdrawalData.amount,
+        agentCommission: agentCommission,
+        moneyFlowCommission: moneyFlowCommission,
+        totalFee: fee
+      };
     } catch (error) {
       console.error("Erreur lors de la confirmation du retrait:", error);
       toast({
@@ -122,7 +129,10 @@ export const useTransferForm = () => {
         description: error instanceof Error ? error.message : "Une erreur s'est produite lors de la confirmation du retrait",
         variant: "destructive"
       });
-      return false;
+      return { 
+        success: false, 
+        message: error instanceof Error ? error.message : "Une erreur s'est produite lors de la confirmation du retrait" 
+      };
     } finally {
       setIsLoading(false);
     }
@@ -173,9 +183,13 @@ export const useTransferForm = () => {
           return;
         }
 
-        // Apply new fee rates based on whether the transfer is national or international
+        // Appliquer les nouveaux taux de frais selon si le transfert est national ou international
         const userCountry = profileData.country || "Cameroun";
-        const { fee: fees } = calculateFee(data.transfer.amount, userCountry, data.recipient.country);
+        const { fee: fees, rate, agentCommission, moneyFlowCommission } = calculateFee(
+          data.transfer.amount, 
+          userCountry, 
+          data.recipient.country
+        );
         
         const totalAmount = data.transfer.amount + fees;
         
@@ -194,6 +208,9 @@ export const useTransferForm = () => {
           identifiant: data.recipient.email,
           montant: data.transfer.amount,
           frais: fees,
+          tauxCommission: rate * 100 + "%",
+          commissionAgent: agentCommission,
+          commissionMoneyFlow: moneyFlowCommission,
           userCountry: userCountry,
           recipientCountry: data.recipient.country
         });
@@ -207,7 +224,9 @@ export const useTransferForm = () => {
             sender_id: user.id,
             recipient_identifier: recipientIdentifier,
             transfer_amount: data.transfer.amount,
-            transfer_fees: fees
+            transfer_fees: fees,
+            agent_commission: agentCommission,
+            platform_commission: moneyFlowCommission
           });
 
         if (transferProcessError) {
@@ -224,9 +243,12 @@ export const useTransferForm = () => {
         // La procédure renvoie l'ID du transfert créé
         console.log("ID du transfert créé:", result);
 
+        const isNational = userCountry === data.recipient.country;
+        const rateText = isNational ? "2%" : "6%";
+
         toast({
           title: "Transfert Réussi",
-          description: `Votre transfert de ${data.transfer.amount} XAF vers ${data.recipient.fullName} a été effectué avec succès.`,
+          description: `Votre transfert de ${data.transfer.amount} XAF vers ${data.recipient.fullName} a été effectué avec succès. Frais: ${rateText}`,
         });
         
         // Réinitialiser le formulaire et naviguer vers la page d'accueil après un transfert réussi

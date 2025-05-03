@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { ArrowLeft, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import PhoneInput from "@/components/transfer-steps/PhoneInput";
+import { useQuery } from "@tanstack/react-query";
 
 const AgentDeposit = () => {
   const { user } = useAuth();
@@ -20,10 +22,52 @@ const AgentDeposit = () => {
     amount: "",
     description: ""
   });
-  const [countryCode, setCountryCode] = useState("+237"); // Default to Cameroun
+  const [countryCode, setCountryCode] = useState("+237"); // Défaut à Cameroun
   const [isVerifying, setIsVerifying] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [recipientName, setRecipientName] = useState("");
+
+  // Récupérer le profil de l'agent pour obtenir son pays
+  const { data: agentProfile } = useQuery({
+    queryKey: ['agent-profile'],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('country')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Mettre à jour le code pays en fonction du pays de l'agent
+  useEffect(() => {
+    if (agentProfile?.country) {
+      // Mapper le pays vers le code de pays approprié
+      const countryToCodes: Record<string, string> = {
+        "Cameroun": "+237",
+        "Cameroon": "+237",
+        "Congo Brazzaville": "+242",
+        "Gabon": "+241",
+        "Tchad": "+235",
+        "Chad": "+235",
+        "République Centrafricaine": "+236",
+        "Central African Republic": "+236",
+        "Guinée Équatoriale": "+240",
+        "Equatorial Guinea": "+240",
+        "Sénégal": "+221",
+        "Nigeria": "+234",
+        "Ghana": "+233",
+      };
+      
+      const code = countryToCodes[agentProfile.country] || "+237";
+      setCountryCode(code);
+    }
+  }, [agentProfile]);
 
   // Handle form input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

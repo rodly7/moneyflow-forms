@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter
 } from "@/components/ui/dialog";
 import {
   InputOTP,
@@ -19,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useTransferForm } from "@/hooks/useTransferForm";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface BalanceCardProps {
   balance: number;
@@ -35,9 +37,15 @@ const BalanceCard = ({
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [commissionDetails, setCommissionDetails] = useState<{
+    agentCommission: number;
+    moneyFlowCommission: number;
+    totalFee: number;
+  } | null>(null);
   const navigate = useNavigate();
   const { confirmWithdrawal } = useTransferForm();
   const { toast } = useToast();
+  const { isAgent } = useAuth();
   
   // If currency is not provided, determine it from the user's country
   const userCurrency = currency || getCurrencyForCountry(userCountry);
@@ -60,16 +68,21 @@ const BalanceCard = ({
     setIsProcessing(true);
     
     try {
-      const success = await confirmWithdrawal(verificationCode);
-      if (success) {
-        setShowVerificationDialog(false);
-        setVerificationCode("");
-        toast({
-          title: "Retrait confirmé",
-          description: "Le retrait a été traité avec succès"
+      const result = await confirmWithdrawal(verificationCode);
+      if (result.success) {
+        setCommissionDetails({
+          agentCommission: result.agentCommission || 0,
+          moneyFlowCommission: result.moneyFlowCommission || 0,
+          totalFee: result.totalFee || 0
         });
+        // Ne pas fermer le dialogue immédiatement, afficher les détails de commission
       } else {
         setVerificationCode("");
+        toast({
+          title: "Erreur",
+          description: result.message || "Une erreur est survenue lors du traitement du retrait",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error("Error processing withdrawal:", error);
@@ -86,6 +99,7 @@ const BalanceCard = ({
   const closeDialog = () => {
     setShowVerificationDialog(false);
     setVerificationCode("");
+    setCommissionDetails(null);
   };
 
   return (
@@ -109,13 +123,15 @@ const BalanceCard = ({
                 {showBalance ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
 
-              <button 
-                onClick={() => setShowVerificationDialog(true)}
-                className="text-white/80 hover:text-white transition-colors ml-2"
-                aria-label="Confirmer un retrait"
-              >
-                <Key size={16} />
-              </button>
+              {isAgent() && (
+                <button 
+                  onClick={() => setShowVerificationDialog(true)}
+                  className="text-white/80 hover:text-white transition-colors ml-2"
+                  aria-label="Confirmer un retrait"
+                >
+                  <Key size={16} />
+                </button>
+              )}
             </div>
           </div>
           
@@ -129,39 +145,73 @@ const BalanceCard = ({
       <Dialog open={showVerificationDialog} onOpenChange={setShowVerificationDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Confirmer un retrait</DialogTitle>
+            <DialogTitle>
+              {commissionDetails ? "Retrait confirmé" : "Confirmer un retrait"}
+            </DialogTitle>
             <DialogDescription>
-              Entrez le code à 6 chiffres fourni par la personne qui demande le retrait
+              {commissionDetails 
+                ? "Le retrait a été traité avec succès" 
+                : "Entrez le code à 6 chiffres fourni par la personne qui demande le retrait"
+              }
             </DialogDescription>
           </DialogHeader>
-          <div className="p-4 space-y-4">
-            <InputOTP 
-              maxLength={6} 
-              value={verificationCode} 
-              onChange={setVerificationCode}
-              render={({ slots }) => (
-                <InputOTPGroup>
-                  {slots.map((slot, i) => (
-                    <InputOTPSlot key={i} {...slot} index={i} />
-                  ))}
-                </InputOTPGroup>
-              )}
-              disabled={isProcessing}
-            />
-            
-            <div className="flex gap-2 justify-end mt-4">
-              <Button variant="outline" onClick={closeDialog} disabled={isProcessing}>
-                Annuler
-              </Button>
+          
+          {commissionDetails ? (
+            <div className="p-4">
+              <div className="space-y-3 mb-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Votre commission:</span>
+                  <span className="font-medium text-emerald-600">
+                    {formatCurrency(commissionDetails.agentCommission, userCurrency)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Commission MoneyFlow:</span>
+                  <span className="font-medium">{formatCurrency(commissionDetails.moneyFlowCommission, userCurrency)}</span>
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t">
+                  <span className="text-sm font-medium">Frais totaux:</span>
+                  <span className="font-bold">{formatCurrency(commissionDetails.totalFee, userCurrency)}</span>
+                </div>
+              </div>
+              
               <Button 
-                onClick={handleVerifyWithdrawal} 
-                disabled={verificationCode.length !== 6 || isProcessing}
-                className="bg-emerald-600 hover:bg-emerald-700"
+                onClick={closeDialog} 
+                className="w-full bg-emerald-600 hover:bg-emerald-700"
               >
-                {isProcessing ? "Vérification..." : "Confirmer le retrait"}
+                Fermer
               </Button>
             </div>
-          </div>
+          ) : (
+            <div className="p-4 space-y-4">
+              <InputOTP 
+                maxLength={6} 
+                value={verificationCode} 
+                onChange={setVerificationCode}
+                render={({ slots }) => (
+                  <InputOTPGroup>
+                    {slots.map((slot, i) => (
+                      <InputOTPSlot key={i} {...slot} index={i} />
+                    ))}
+                  </InputOTPGroup>
+                )}
+                disabled={isProcessing}
+              />
+              
+              <div className="flex gap-2 justify-end mt-4">
+                <Button variant="outline" onClick={closeDialog} disabled={isProcessing}>
+                  Annuler
+                </Button>
+                <Button 
+                  onClick={handleVerifyWithdrawal} 
+                  disabled={verificationCode.length !== 6 || isProcessing}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {isProcessing ? "Vérification..." : "Confirmer le retrait"}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

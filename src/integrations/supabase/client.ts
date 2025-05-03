@@ -119,28 +119,56 @@ export const formatCurrency = (amount: number, currencyCode: string): string => 
 };
 
 // Updated function to calculate fee based on transaction type, countries and user role
-export const calculateFee = (amount: number, senderCountry?: string, recipientCountry?: string, userRole?: string): { fee: number, rate: number } => {
-  // If countries are not provided, use default withdrawal fee rate (2%)
+export const calculateFee = (amount: number, senderCountry?: string, recipientCountry?: string, userRole?: string): { 
+  fee: number, 
+  rate: number,
+  agentCommission: number, 
+  moneyFlowCommission: number 
+} => {
+  // Pour les retraits, le taux est fixe à 2% (0.5% pour l'agent, 1.5% pour MoneyFlow)
   if (!senderCountry || !recipientCountry) {
-    return { fee: amount * 0.02, rate: 0.02 };
+    const totalRate = 0.02;
+    const agentRate = 0.005;
+    const moneyFlowRate = 0.015;
+    
+    return { 
+      fee: amount * totalRate, 
+      rate: totalRate,
+      agentCommission: amount * agentRate,
+      moneyFlowCommission: amount * moneyFlowRate
+    };
   }
   
-  // Check if it's a national or international transfer
+  // Vérifier si c'est un transfert national ou international
   const isNational = senderCountry === recipientCountry;
   
-  // Determine fee rate based on user role and transfer type
-  let feeRate: number;
+  // Nouvelles structures de frais selon les exigences
+  let totalRate: number;
+  let agentRate: number;
+  let moneyFlowRate: number;
   
-  if (userRole === 'agent') {
-    // Agent commission rates
-    feeRate = isNational ? 0.005 : 0.02; // 0.5% for national, 2% for international
+  if (isNational) {
+    // Transfert national: 2% au total (0.5% agent, 1.5% MoneyFlow)
+    totalRate = 0.02;
+    agentRate = 0.005;
+    moneyFlowRate = 0.015;
   } else {
-    // Money Flow (regular user) rates
-    feeRate = isNational ? 0.015 : 0.04; // 1.5% for national, 4% for international
+    // Transfert international: 6% au total (2% agent, 4% MoneyFlow)
+    totalRate = 0.06;
+    agentRate = 0.02;
+    moneyFlowRate = 0.04;
   }
   
-  const fee = amount * feeRate;
-  return { fee, rate: feeRate };
+  const fee = amount * totalRate;
+  const agentCommission = amount * agentRate;
+  const moneyFlowCommission = amount * moneyFlowRate;
+  
+  return { 
+    fee, 
+    rate: totalRate,
+    agentCommission,
+    moneyFlowCommission
+  };
 };
 
 // Function to handle withdrawal operations - now with verification code
@@ -203,7 +231,7 @@ export const processWithdrawal = async (userId: string, amount: number, phoneNum
   }
 };
 
-// Function to process withdrawal verification using a code instead of QR
+// Updated function to process withdrawal verification with commission breakdown
 export const processWithdrawalVerification = async (verificationCode: string, processorId: string) => {
   try {
     // Fetch the withdrawal details with the verification code
@@ -223,13 +251,19 @@ export const processWithdrawalVerification = async (verificationCode: string, pr
       throw new Error("Vous ne pouvez pas confirmer votre propre retrait");
     }
     
-    // Calculate fees
-    const { fee } = calculateFee(withdrawal.amount);
+    // Calculate fees with commission breakdown
+    const { fee, agentCommission, moneyFlowCommission } = calculateFee(withdrawal.amount);
     
     // Update withdrawal status to 'completed'
     const { error: updateError } = await supabase
       .from('withdrawals')
-      .update({ status: 'completed', updated_at: new Date().toISOString() })
+      .update({ 
+        status: 'completed',
+        updated_at: new Date().toISOString(),
+        fee: fee,
+        agent_commission: agentCommission,
+        platform_commission: moneyFlowCommission
+      })
       .eq('id', withdrawal.id);
     
     if (updateError) throw updateError;
@@ -238,7 +272,7 @@ export const processWithdrawalVerification = async (verificationCode: string, pr
     const { error: balanceError } = await supabase
       .rpc('increment_balance', { 
         user_id: processorId, 
-        amount: withdrawal.amount - fee
+        amount: withdrawal.amount - fee + agentCommission
       });
     
     if (balanceError) {
@@ -251,7 +285,7 @@ export const processWithdrawalVerification = async (verificationCode: string, pr
       const { error: adminFeeError } = await supabase
         .rpc('increment_balance', {
           user_id: adminId,
-          amount: fee
+          amount: moneyFlowCommission
         });
       
       if (adminFeeError) {
@@ -260,7 +294,12 @@ export const processWithdrawalVerification = async (verificationCode: string, pr
       }
     }
     
-    return withdrawal;
+    return {
+      ...withdrawal,
+      agentCommission,
+      moneyFlowCommission,
+      totalFee: fee
+    };
   } catch (error) {
     throw error;
   }
