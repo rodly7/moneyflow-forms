@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { ArrowLeft, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,8 +18,7 @@ const AgentDeposit = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [formData, setFormData] = useState({
     recipientPhone: "",
-    amount: "",
-    description: ""
+    amount: ""
   });
   const [countryCode, setCountryCode] = useState("+237"); // Défaut à Cameroun
   const [isVerifying, setIsVerifying] = useState(false);
@@ -241,8 +239,7 @@ const AgentDeposit = () => {
       // Réinitialiser le formulaire
       setFormData({
         recipientPhone: "",
-        amount: "",
-        description: ""
+        amount: ""
       });
       setIsVerified(false);
       setRecipientName("");
@@ -294,32 +291,21 @@ const AgentDeposit = () => {
               />
 
               <div className="space-y-2">
-                <Label htmlFor="amount">Montant du dépôt (FCFA)</Label>
                 <Input
                   id="amount"
                   name="amount"
                   type="number"
-                  placeholder="10000"
+                  placeholder="Montant du dépôt (FCFA)"
                   value={formData.amount}
                   onChange={handleChange}
                   required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description (optionnel)</Label>
-                <Input
-                  id="description"
-                  name="description"
-                  placeholder="Dépôt Money Flow"
-                  value={formData.description}
-                  onChange={handleChange}
+                  className="h-12 text-lg"
                 />
               </div>
 
               <Button
                 type="submit"
-                className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4 h-12 text-lg"
                 disabled={isProcessing || !isVerified}
               >
                 {isProcessing ? (

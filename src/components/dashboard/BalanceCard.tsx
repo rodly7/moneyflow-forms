@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency, getCurrencyForCountry } from "@/integrations/supabase/client";
-import { Eye, EyeOff, Key, Wallet } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -45,7 +45,6 @@ const BalanceCard = ({
   const navigate = useNavigate();
   const { confirmWithdrawal } = useTransferForm();
   const { toast } = useToast();
-  const { isAgent } = useAuth();
   
   // If currency is not provided, determine it from the user's country
   const userCurrency = currency || getCurrencyForCountry(userCountry);
@@ -108,7 +107,6 @@ const BalanceCard = ({
         <CardContent className="p-6 text-white">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Wallet className="w-5 h-5 text-white/80" />
               <h3 className="font-medium text-white/80 text-xs">
                 Solde disponible
               </h3>
@@ -122,16 +120,6 @@ const BalanceCard = ({
               >
                 {showBalance ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
-
-              {isAgent() && (
-                <button 
-                  onClick={() => setShowVerificationDialog(true)}
-                  className="text-white/80 hover:text-white transition-colors ml-2"
-                  aria-label="Confirmer un retrait"
-                >
-                  <Key size={16} />
-                </button>
-              )}
             </div>
           </div>
           
