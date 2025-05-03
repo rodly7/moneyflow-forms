@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import PhoneInput from "@/components/transfer-steps/PhoneInput";
 
 const AgentDeposit = () => {
   const { user } = useAuth();
@@ -20,6 +21,10 @@ const AgentDeposit = () => {
     amount: "",
     description: ""
   });
+  const [countryCode, setCountryCode] = useState("+237"); // Default to Cameroun
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  const [recipientName, setRecipientName] = useState("");
 
   // Handle form input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,6 +33,52 @@ const AgentDeposit = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+  // Handle phone number change
+  const handlePhoneChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      recipientPhone: value
+    }));
+    // Reset verification if phone changes
+    setIsVerified(false);
+    setRecipientName("");
+  };
+
+  // Verify recipient
+  const verifyRecipient = async () => {
+    const fullPhone = countryCode + formData.recipientPhone;
+    if (!fullPhone || fullPhone.length < 8) return;
+
+    setIsVerifying(true);
+    try {
+      // Check if recipient exists
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('phone', fullPhone)
+        .single();
+
+      if (error) {
+        toast({
+          title: "Destinataire introuvable",
+          description: "Aucun compte associé à ce numéro",
+          variant: "destructive"
+        });
+        setIsVerified(false);
+        setRecipientName("");
+      } else {
+        setIsVerified(true);
+        setRecipientName(`${profile.first_name || ''} ${profile.last_name || ''}`.trim());
+      }
+    } catch (err) {
+      console.error("Error checking recipient:", err);
+      setIsVerified(false);
+      setRecipientName("");
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   // Handle deposit submission
@@ -65,6 +116,7 @@ const AgentDeposit = () => {
     }
 
     setIsProcessing(true);
+    const fullPhone = countryCode + formData.recipientPhone;
 
     try {
       // Vérifier si l'agent a suffisamment de fonds
@@ -86,7 +138,7 @@ const AgentDeposit = () => {
       const { data: recipientProfile, error: recipientProfileError } = await supabase
         .from('profiles')
         .select('id, country')
-        .eq('phone', formData.recipientPhone)
+        .eq('phone', fullPhone)
         .single();
 
       if (recipientProfileError) {
@@ -126,7 +178,7 @@ const AgentDeposit = () => {
           amount: amount,
           country: recipientProfile.country || "Cameroun", // Utiliser le pays du destinataire ou valeur par défaut
           payment_method: 'agent_deposit',
-          payment_phone: formData.recipientPhone,
+          payment_phone: fullPhone,
           payment_provider: 'agent',
           transaction_reference: transactionReference,
           status: 'completed',
@@ -140,7 +192,7 @@ const AgentDeposit = () => {
       // Notification de succès
       toast({
         title: "Dépôt effectué avec succès",
-        description: `Le compte de ${formData.recipientPhone} a été crédité de ${amount} FCFA`,
+        description: `Le compte de ${fullPhone} a été crédité de ${amount} FCFA`,
       });
 
       // Réinitialiser le formulaire
@@ -149,6 +201,8 @@ const AgentDeposit = () => {
         amount: "",
         description: ""
       });
+      setIsVerified(false);
+      setRecipientName("");
 
       // Redirection vers la page d'accueil
       navigate('/');
@@ -185,17 +239,16 @@ const AgentDeposit = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="recipientPhone">Numéro du bénéficiaire</Label>
-                <Input
-                  id="recipientPhone"
-                  name="recipientPhone"
-                  placeholder="+237 6XX XXX XXX"
-                  value={formData.recipientPhone}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+              <PhoneInput
+                phoneInput={formData.recipientPhone}
+                countryCode={countryCode}
+                onPhoneChange={handlePhoneChange}
+                isLoading={isVerifying}
+                isVerified={isVerified}
+                recipientName={recipientName}
+                label="Numéro du bénéficiaire"
+                onBlurComplete={verifyRecipient}
+              />
 
               <div className="space-y-2">
                 <Label htmlFor="amount">Montant du dépôt (FCFA)</Label>
@@ -224,7 +277,7 @@ const AgentDeposit = () => {
               <Button
                 type="submit"
                 className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4"
-                disabled={isProcessing}
+                disabled={isProcessing || !isVerified}
               >
                 {isProcessing ? (
                   <div className="flex items-center">
