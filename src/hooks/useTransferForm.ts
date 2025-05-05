@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "./use-toast";
@@ -108,11 +109,6 @@ export const useTransferForm = () => {
         });
       }
 
-      toast({
-        title: "Retrait confirmé",
-        description: "Le retrait a été confirmé avec succès et votre compte a été crédité."
-      });
-
       // Retourner les informations sur le retrait et les commissions
       return {
         success: true,
@@ -123,11 +119,6 @@ export const useTransferForm = () => {
       };
     } catch (error) {
       console.error("Erreur lors de la confirmation du retrait:", error);
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Une erreur s'est produite lors de la confirmation du retrait",
-        variant: "destructive"
-      });
       return { 
         success: false, 
         message: error instanceof Error ? error.message : "Une erreur s'est produite lors de la confirmation du retrait" 
@@ -237,28 +228,14 @@ export const useTransferForm = () => {
           return;
         }
 
-        // Après le transfert réussi, nous devons stocker les informations de commission ailleurs
-        // puisque la table transfers n'a pas ces champs
-        if (result) {
-          // Ici, nous pouvons soit:
-          // 1. Stocker les commissions dans une table séparée
-          // 2. Utiliser des métadonnées ou un autre champ existant
-          // 3. Gérer les commissions sans les stocker dans la base de données
-          
-          // Pour le moment, nous enregistrons simplement dans la console et continuerons sans stocker
-          console.log("Commissions pour le transfert", {
-            transferId: result,
-            agentCommission: agentCommission,
-            moneyFlowCommission: moneyFlowCommission,
-            totalFee: fees
-          });
-          
-          // Note: Si ces champs sont nécessaires, il faudrait ajouter ces colonnes à la table transfers
-          // via une migration Supabase ou l'interface d'administration Supabase
-        }
-
-        // La procédure renvoie l'ID du transfert créé
-        console.log("ID du transfert créé:", result);
+        // Enregistrer les informations de commission en console uniquement
+        // car la table transfers n'a pas encore ces champs
+        console.log("Commissions pour le transfert", {
+          transferId: result,
+          agentCommission: agentCommission,
+          moneyFlowCommission: moneyFlowCommission,
+          totalFee: fees
+        });
 
         const isNational = userCountry === data.recipient.country;
         const rateText = isNational ? "2%" : "6%";

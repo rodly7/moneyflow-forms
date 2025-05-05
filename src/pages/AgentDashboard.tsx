@@ -3,18 +3,19 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase, formatCurrency, getCurrencyForCountry } from "@/integrations/supabase/client";
+import { supabase, formatCurrency, getCurrencyForCountry, calculateFee } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, CreditCard, Receipt } from "lucide-react";
+import { ArrowLeft, Banknote, CreditCard, Receipt, WalletCards } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
+import { useTransferForm } from "@/hooks/useTransferForm";
 
 const AgentDashboard = () => {
   const { user, isAgent } = useAuth();
@@ -22,6 +23,12 @@ const AgentDashboard = () => {
   const navigate = useNavigate();
   const [verificationCode, setVerificationCode] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [commissionDetails, setCommissionDetails] = useState<{
+    agentCommission: number;
+    moneyFlowCommission: number;
+    totalFee: number;
+  } | null>(null);
+  const { confirmWithdrawal } = useTransferForm();
 
   // Redirect non-agent users to the dashboard
   useEffect(() => {
@@ -104,75 +111,26 @@ const AgentDashboard = () => {
     setIsProcessing(true);
     
     try {
-      // Vérifier si le code existe et est valide
-      const { data, error } = await supabase
-        .from('withdrawals')
-        .select('*')
-        .eq('verification_code', verificationCode)
-        .eq('status', 'pending')
-        .single();
+      const result = await confirmWithdrawal(verificationCode);
+      
+      if (result.success) {
+        setCommissionDetails({
+          agentCommission: result.agentCommission || 0,
+          moneyFlowCommission: result.moneyFlowCommission || 0,
+          totalFee: result.totalFee || 0
+        });
         
-      if (error || !data) {
-        throw new Error("Code de retrait invalide ou déjà utilisé");
-      }
-      
-      // S'assurer que l'agent n'est pas l'utilisateur qui a fait la demande
-      if (data.user_id === user?.id) {
-        throw new Error("Vous ne pouvez pas confirmer votre propre retrait");
-      }
-
-      // Calculer les frais (pour les agents: 0.5% national, 2% international)
-      const { data: senderProfile } = await supabase
-        .from('profiles')
-        .select('country')
-        .eq('id', data.user_id)
-        .single();
-        
-      const senderCountry = senderProfile?.country || 'Cameroun';
-      const agentCountry = profile?.country || 'Cameroun';
-      const isInternational = senderCountry !== agentCountry;
-      
-      // Calculer la commission de l'agent
-      const commissionRate = isInternational ? 0.02 : 0.005;
-      const commission = data.amount * commissionRate;
-      
-      // Mettre à jour le statut du retrait
-      await supabase
-        .from('withdrawals')
-        .update({ 
-          status: 'completed',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', data.id);
-      
-      // Ajouter le montant (moins les frais) au compte de l'agent
-      await supabase.rpc('increment_balance', {
-        user_id: user?.id,
-        amount: data.amount - commission
-      });
-      
-      // Créditer les frais au compte administrateur
-      const { data: adminData } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('phone', '+221773637752')
-        .single();
-      
-      if (adminData) {
-        await supabase.rpc('increment_balance', {
-          user_id: adminData.id,
-          amount: commission
+        toast({
+          title: "Retrait confirmé",
+          description: `Le retrait a été effectué avec succès. Votre commission: ${formatCurrency(result.agentCommission || 0, userCurrency)}`,
+        });
+      } else {
+        toast({
+          title: "Erreur",
+          description: result.message || "Une erreur est survenue lors de la vérification du code",
+          variant: "destructive"
         });
       }
-      
-      toast({
-        title: "Retrait confirmé",
-        description: `Le retrait de ${formatCurrency(data.amount, userCurrency)} a été effectué avec succès. Votre commission: ${formatCurrency(commission, userCurrency)}`,
-      });
-      
-      // Réinitialiser le code de vérification
-      setVerificationCode("");
-      
     } catch (error) {
       console.error('Erreur lors de la vérification du code:', error);
       toast({
@@ -183,6 +141,11 @@ const AgentDashboard = () => {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const closeCommissionDetails = () => {
+    setCommissionDetails(null);
+    setVerificationCode("");
   };
 
   if (!user || !isAgent()) {
@@ -231,10 +194,19 @@ const AgentDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Quick Actions for Agent - Seulement Retrait et Commission */}
+        {/* Quick Actions for Agent */}
         <div className="grid grid-cols-2 gap-4">
           <Button 
-            onClick={() => setVerificationCode("")} 
+            onClick={() => navigate("/agent-deposit")}
+            variant="outline" 
+            className="flex flex-col items-center justify-center h-24 bg-white"
+          >
+            <Banknote className="h-8 w-8 mb-2" />
+            <span className="text-sm font-medium">Dépôt</span>
+          </Button>
+          
+          <Button 
+            onClick={() => setCommissionDetails(null)} 
             variant="outline" 
             className="flex flex-col items-center justify-center h-24 bg-white"
           >
@@ -248,6 +220,15 @@ const AgentDashboard = () => {
             className="flex flex-col items-center justify-center h-24 bg-white"
           >
             <Receipt className="h-8 w-8 mb-2" />
+            <span className="text-sm font-medium">Historique</span>
+          </Button>
+          
+          <Button 
+            onClick={() => navigate("/transactions")} 
+            variant="outline" 
+            className="flex flex-col items-center justify-center h-24 bg-white"
+          >
+            <WalletCards className="h-8 w-8 mb-2" />
             <span className="text-sm font-medium">Commissions</span>
           </Button>
         </div>
@@ -261,32 +242,62 @@ const AgentDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="withdrawalCode">Code de retrait</Label>
-              <InputOTP 
-                maxLength={6}
-                value={verificationCode}
-                onChange={setVerificationCode}
-                disabled={isProcessing}
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
-            </div>
-            
-            <Button
-              className="w-full bg-emerald-600 hover:bg-emerald-700"
-              onClick={handleVerifyWithdrawal}
-              disabled={verificationCode.length !== 6 || isProcessing}
-            >
-              {isProcessing ? "Traitement en cours..." : "Confirmer le retrait"}
-            </Button>
+            {commissionDetails ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Votre commission:</span>
+                    <span className="font-medium text-emerald-600">
+                      {formatCurrency(commissionDetails.agentCommission, userCurrency)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Commission MoneyFlow:</span>
+                    <span className="font-medium">{formatCurrency(commissionDetails.moneyFlowCommission, userCurrency)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <span className="text-sm font-medium">Frais totaux:</span>
+                    <span className="font-bold">{formatCurrency(commissionDetails.totalFee, userCurrency)}</span>
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={closeCommissionDetails} 
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                >
+                  Fermer
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="withdrawalCode">Code de retrait</Label>
+                  <InputOTP 
+                    maxLength={6}
+                    value={verificationCode}
+                    onChange={setVerificationCode}
+                    disabled={isProcessing}
+                  >
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+                
+                <Button
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                  onClick={handleVerifyWithdrawal}
+                  disabled={verificationCode.length !== 6 || isProcessing}
+                >
+                  {isProcessing ? "Traitement en cours..." : "Confirmer le retrait"}
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -307,7 +318,7 @@ const AgentDashboard = () => {
                   <div key={transaction.id} className="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
                     <div>
                       <p className="font-medium">
-                        {transaction.type === 'recharge' ? 'Recharge' : 'Retrait'}
+                        {transaction.type === 'recharge' ? 'Dépôt' : 'Retrait'}
                       </p>
                       <p className="text-sm text-gray-500">
                         {new Date(transaction.updated_at || transaction.created_at).toLocaleString()}
@@ -318,7 +329,7 @@ const AgentDashboard = () => {
                         {transaction.type === 'recharge' ? '-' : '+'} {formatCurrency(transaction.amount, userCurrency)}
                       </div>
                       <div className="text-xs text-emerald-700 text-right">
-                        Commission: {formatCurrency(transaction.amount * (transaction.type === 'recharge' ? 0.005 : 0.02), userCurrency)}
+                        Commission: {formatCurrency(transaction.agent_commission || (transaction.amount * (transaction.type === 'recharge' ? 0.005 : 0.02)), userCurrency)}
                       </div>
                     </div>
                   </div>

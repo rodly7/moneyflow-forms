@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +24,7 @@ const AgentDeposit = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [recipientName, setRecipientName] = useState("");
+  const [recipientId, setRecipientId] = useState("");
 
   // Récupérer le profil de l'agent pour obtenir son pays
   const { data: agentProfile } = useQuery({
@@ -85,7 +86,19 @@ const AgentDeposit = () => {
     // Reset verification if phone changes
     setIsVerified(false);
     setRecipientName("");
+    setRecipientId("");
   };
+
+  // Verify recipient immediately as they type
+  useEffect(() => {
+    if (formData.recipientPhone && formData.recipientPhone.length >= 8) {
+      const delayDebounceFn = setTimeout(() => {
+        verifyRecipient();
+      }, 500);
+      
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [formData.recipientPhone, countryCode]);
 
   // Verify recipient
   const verifyRecipient = async () => {
@@ -94,11 +107,14 @@ const AgentDeposit = () => {
 
     setIsVerifying(true);
     try {
+      // Nettoyer le numéro (enlever les espaces, tirets, etc.)
+      const cleanedPhone = fullPhone.replace(/[\s-]/g, '');
+      
       // Check if recipient exists
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('full_name')
-        .eq('phone', fullPhone)
+        .select('id, full_name')
+        .eq('phone', cleanedPhone)
         .single();
 
       if (error) {
@@ -109,14 +125,22 @@ const AgentDeposit = () => {
         });
         setIsVerified(false);
         setRecipientName("");
+        setRecipientId("");
       } else {
         setIsVerified(true);
-        setRecipientName(profile.full_name || '');
+        setRecipientName(profile.full_name || 'Utilisateur');
+        setRecipientId(profile.id);
+        
+        toast({
+          title: "Utilisateur trouvé",
+          description: `${profile.full_name || 'Utilisateur'} a été trouvé dans la base de données`
+        });
       }
     } catch (err) {
       console.error("Error checking recipient:", err);
       setIsVerified(false);
       setRecipientName("");
+      setRecipientId("");
     } finally {
       setIsVerifying(false);
     }
@@ -136,10 +160,10 @@ const AgentDeposit = () => {
     }
 
     // Basic validation
-    if (!formData.recipientPhone || !formData.amount) {
+    if (!formData.recipientPhone || !formData.amount || !isVerified || !recipientId) {
       toast({
         title: "Formulaire incomplet",
-        description: "Veuillez remplir tous les champs obligatoires",
+        description: "Veuillez remplir tous les champs obligatoires et vérifier le bénéficiaire",
         variant: "destructive"
       });
       return;
@@ -163,7 +187,7 @@ const AgentDeposit = () => {
       // Vérifier si l'agent a suffisamment de fonds
       const { data: agentProfile, error: agentProfileError } = await supabase
         .from('profiles')
-        .select('balance')
+        .select('balance, country')
         .eq('id', user.id)
         .single();
 
@@ -175,25 +199,27 @@ const AgentDeposit = () => {
         throw new Error("Solde insuffisant pour effectuer ce dépôt");
       }
 
-      // Vérifier si le bénéficiaire existe
+      // Vérifier si le bénéficiaire existe (encore une fois par sécurité)
       const { data: recipientProfile, error: recipientProfileError } = await supabase
         .from('profiles')
         .select('id, country')
-        .eq('phone', fullPhone)
+        .eq('id', recipientId)
         .single();
 
       if (recipientProfileError) {
-        throw new Error("Le numéro de téléphone du bénéficiaire n'existe pas");
+        throw new Error("Le bénéficiaire n'existe pas ou n'est plus accessible");
       }
 
+      // Calculer une commission de 0.5% pour l'agent
+      const agentCommission = amount * 0.005;
+      
       // Generate a unique transaction reference
       const transactionReference = `DEP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-      // Procéder au dépôt sans frais (dépôt local)
       // 1. Déduire le montant du compte de l'agent
       const { error: deductError } = await supabase.rpc('increment_balance', {
         user_id: user.id,
-        amount: -amount
+        amount: -(amount)  // On déduit le montant total
       });
 
       if (deductError) {
@@ -209,21 +235,32 @@ const AgentDeposit = () => {
       if (creditError) {
         throw creditError;
       }
+      
+      // 3. Recrediter la commission à l'agent
+      const { error: commissionError } = await supabase.rpc('increment_balance', {
+        user_id: user.id,
+        amount: agentCommission
+      });
+      
+      if (commissionError) {
+        console.error("Erreur lors du crédit de la commission à l'agent:", commissionError);
+        // On continue même en cas d'erreur pour ne pas bloquer la transaction
+      }
 
-      // 3. Enregistrer la transaction dans la table recharges
-      // Conformément à la structure attendue de la table
+      // 4. Enregistrer la transaction dans la table recharges
       const { error: transactionError } = await supabase
         .from('recharges')
         .insert({
           user_id: recipientProfile.id,
           amount: amount,
-          country: recipientProfile.country || "Cameroun", // Utiliser le pays du destinataire ou valeur par défaut
+          country: recipientProfile.country || "Cameroun",
           payment_method: 'agent_deposit',
           payment_phone: fullPhone,
           payment_provider: 'agent',
           transaction_reference: transactionReference,
           status: 'completed',
-          provider_transaction_id: user.id  // Store the agent ID in the provider_transaction_id field
+          provider_transaction_id: user.id,
+          agent_commission: agentCommission
         });
 
       if (transactionError) {
@@ -233,7 +270,7 @@ const AgentDeposit = () => {
       // Notification de succès
       toast({
         title: "Dépôt effectué avec succès",
-        description: `Le compte de ${fullPhone} a été crédité de ${amount} FCFA`,
+        description: `Le compte de ${recipientName} a été crédité de ${amount} FCFA. Votre commission: ${agentCommission} FCFA`,
       });
 
       // Réinitialiser le formulaire
@@ -243,9 +280,10 @@ const AgentDeposit = () => {
       });
       setIsVerified(false);
       setRecipientName("");
+      setRecipientId("");
 
       // Redirection vers la page d'accueil
-      navigate('/');
+      navigate('/agent');
     } catch (error) {
       console.error('Erreur lors du dépôt:', error);
       toast({
@@ -262,7 +300,7 @@ const AgentDeposit = () => {
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-4">
       <div className="container max-w-lg mx-auto space-y-6">
         <div className="flex items-center justify-between mb-4">
-          <Button variant="ghost" onClick={() => navigate('/')} className="text-gray-700">
+          <Button variant="ghost" onClick={() => navigate('/agent')} className="text-gray-700">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
           </Button>
@@ -273,9 +311,6 @@ const AgentDeposit = () => {
         <Card>
           <CardHeader>
             <CardTitle>Effectuer un dépôt</CardTitle>
-            <CardDescription>
-              Créditez directement le compte d'un utilisateur sans frais
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
