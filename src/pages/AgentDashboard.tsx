@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
@@ -15,6 +16,18 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { useTransferForm } from "@/hooks/useTransferForm";
+
+// Define interfaces for the types
+interface BaseTransaction {
+  id: string;
+  amount: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  type: 'recharge' | 'withdrawal';
+  agent_commission: number;
+}
 
 const AgentDashboard = () => {
   const { user, isAgent } = useAuth();
@@ -80,16 +93,16 @@ const AgentDashboard = () => {
       if (withdrawalError) throw withdrawalError;
 
       // Combiner et trier les transactions par date, en assurant que agent_commission existe
-      const combined = [
+      const combined: BaseTransaction[] = [
         ...(recharges || []).map(r => ({ 
           ...r, 
-          type: 'recharge',
-          agent_commission: r.agent_commission ?? (r.amount * 0.005) // Default to 0.5% if not present
+          type: 'recharge' as const,
+          agent_commission: typeof r.agent_commission === 'number' ? r.agent_commission : r.amount * 0.005 // Default to 0.5% if not present
         })),
         ...(withdrawals || []).map(w => ({ 
           ...w, 
-          type: 'withdrawal',
-          agent_commission: w.agent_commission ?? (w.amount * 0.005) // Default to 0.5% if not present
+          type: 'withdrawal' as const,
+          agent_commission: typeof w.agent_commission === 'number' ? w.agent_commission : w.amount * 0.005 // Default to 0.5% if not present
         }))
       ].sort((a, b) => 
         new Date(b.updated_at || b.created_at).getTime() - 
@@ -336,7 +349,7 @@ const AgentDashboard = () => {
                         {transaction.type === 'recharge' ? '-' : '+'} {formatCurrency(transaction.amount, userCurrency)}
                       </div>
                       <div className="text-xs text-emerald-700 text-right">
-                        Commission: {formatCurrency(transaction.agent_commission || 0, userCurrency)}
+                        Commission: {formatCurrency(transaction.agent_commission, userCurrency)}
                       </div>
                     </div>
                   </div>
