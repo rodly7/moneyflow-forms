@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import PhoneInput from "@/components/transfer-steps/PhoneInput";
 import { useQuery } from "@tanstack/react-query";
+import { useRecipientVerification } from "@/hooks/useRecipientVerification";
 
 const AgentDeposit = () => {
   const { user } = useAuth();
@@ -21,10 +22,16 @@ const AgentDeposit = () => {
     amount: ""
   });
   const [countryCode, setCountryCode] = useState("+237"); // Défaut à Cameroun
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
   const [recipientName, setRecipientName] = useState("");
   const [recipientId, setRecipientId] = useState("");
+
+  // Utiliser le hook useRecipientVerification pour la recherche des utilisateurs
+  const {
+    isLoading: isVerifying,
+    recipientVerified: isVerified,
+    verifyRecipient,
+    setRecipientVerified
+  } = useRecipientVerification();
 
   // Récupérer le profil de l'agent pour obtenir son pays
   const { data: agentProfile } = useQuery({
@@ -84,67 +91,91 @@ const AgentDeposit = () => {
       recipientPhone: value
     }));
     // Reset verification if phone changes
-    setIsVerified(false);
+    setRecipientVerified(false);
     setRecipientName("");
     setRecipientId("");
   };
 
-  // Verify recipient immediately as they type
-  useEffect(() => {
-    if (formData.recipientPhone && formData.recipientPhone.length >= 8) {
-      const delayDebounceFn = setTimeout(() => {
-        verifyRecipient();
-      }, 500);
-      
-      return () => clearTimeout(delayDebounceFn);
-    }
-  }, [formData.recipientPhone, countryCode]);
-
-  // Verify recipient
-  const verifyRecipient = async () => {
+  // Verify recipient using the hook
+  const handleVerifyRecipient = async () => {
+    if (!formData.recipientPhone || formData.recipientPhone.length < 6) return;
+    
+    // Formatage du numéro complet avec l'indicatif pays
     const fullPhone = countryCode + formData.recipientPhone;
-    if (!fullPhone || fullPhone.length < 8) return;
-
-    setIsVerifying(true);
+    
     try {
-      // Nettoyer le numéro (enlever les espaces, tirets, etc.)
-      const cleanedPhone = fullPhone.replace(/[\s-]/g, '');
+      const result = await verifyRecipient(fullPhone, countryCode, {
+        fullName: "",
+        email: fullPhone,
+        country: agentProfile?.country || "Cameroun"
+      });
       
-      // Check if recipient exists
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .eq('phone', cleanedPhone)
-        .single();
-
-      if (error) {
+      if (result.verified && result.recipientData) {
+        setRecipientName(result.recipientData.fullName);
+        
+        // Chercher l'ID utilisateur dans la base de données
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('phone', fullPhone)
+          .single();
+        
+        if (!error && profile) {
+          setRecipientId(profile.id);
+          toast({
+            title: "Bénéficiaire trouvé",
+            description: `${result.recipientData.fullName} a été trouvé dans la base de données`
+          });
+        } else {
+          toast({
+            title: "Erreur de récupération",
+            description: "L'ID utilisateur n'a pas pu être récupéré",
+            variant: "destructive"
+          });
+          setRecipientVerified(false);
+        }
+      } else if (result.recipientData) {
+        // Destinataire trouvé dans le système mais pas vérifié (nouvel utilisateur)
+        setRecipientName(result.recipientData.fullName || fullPhone);
+        toast({
+          title: "Nouveau bénéficiaire",
+          description: "Cette personne n'est pas encore inscrite dans le système",
+          variant: "destructive"
+        });
+        setRecipientVerified(false);
+      } else {
         toast({
           title: "Destinataire introuvable",
           description: "Aucun compte associé à ce numéro",
           variant: "destructive"
         });
-        setIsVerified(false);
+        setRecipientVerified(false);
         setRecipientName("");
         setRecipientId("");
-      } else {
-        setIsVerified(true);
-        setRecipientName(profile.full_name || 'Utilisateur');
-        setRecipientId(profile.id);
-        
-        toast({
-          title: "Utilisateur trouvé",
-          description: `${profile.full_name || 'Utilisateur'} a été trouvé dans la base de données`
-        });
       }
     } catch (err) {
       console.error("Error checking recipient:", err);
-      setIsVerified(false);
+      toast({
+        title: "Erreur de vérification",
+        description: "Une erreur s'est produite lors de la vérification du destinataire",
+        variant: "destructive"
+      });
+      setRecipientVerified(false);
       setRecipientName("");
       setRecipientId("");
-    } finally {
-      setIsVerifying(false);
     }
   };
+
+  // Verify recipient automatically as they type
+  useEffect(() => {
+    if (formData.recipientPhone && formData.recipientPhone.length >= 8) {
+      const delayDebounceFn = setTimeout(() => {
+        handleVerifyRecipient();
+      }, 500);
+      
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [formData.recipientPhone, countryCode]);
 
   // Handle deposit submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -278,7 +309,7 @@ const AgentDeposit = () => {
         recipientPhone: "",
         amount: ""
       });
-      setIsVerified(false);
+      setRecipientVerified(false);
       setRecipientName("");
       setRecipientId("");
 
@@ -322,7 +353,7 @@ const AgentDeposit = () => {
                 isVerified={isVerified}
                 recipientName={recipientName}
                 label="Numéro du bénéficiaire"
-                onBlurComplete={verifyRecipient}
+                onBlurComplete={handleVerifyRecipient}
               />
 
               <div className="space-y-2">
