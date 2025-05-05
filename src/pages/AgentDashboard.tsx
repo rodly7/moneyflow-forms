@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
@@ -80,10 +79,18 @@ const AgentDashboard = () => {
 
       if (withdrawalError) throw withdrawalError;
 
-      // Combiner et trier les transactions par date
+      // Combiner et trier les transactions par date, en assurant que agent_commission existe
       const combined = [
-        ...(recharges || []).map(r => ({ ...r, type: 'recharge' })),
-        ...(withdrawals || []).map(w => ({ ...w, type: 'withdrawal' }))
+        ...(recharges || []).map(r => ({ 
+          ...r, 
+          type: 'recharge',
+          agent_commission: r.agent_commission ?? (r.amount * 0.005) // Default to 0.5% if not present
+        })),
+        ...(withdrawals || []).map(w => ({ 
+          ...w, 
+          type: 'withdrawal',
+          agent_commission: w.agent_commission ?? (w.amount * 0.005) // Default to 0.5% if not present
+        }))
       ].sort((a, b) => 
         new Date(b.updated_at || b.created_at).getTime() - 
         new Date(a.updated_at || a.created_at).getTime()
@@ -329,7 +336,7 @@ const AgentDashboard = () => {
                         {transaction.type === 'recharge' ? '-' : '+'} {formatCurrency(transaction.amount, userCurrency)}
                       </div>
                       <div className="text-xs text-emerald-700 text-right">
-                        Commission: {formatCurrency(transaction.agent_commission || (transaction.amount * (transaction.type === 'recharge' ? 0.005 : 0.02)), userCurrency)}
+                        Commission: {formatCurrency(transaction.agent_commission || 0, userCurrency)}
                       </div>
                     </div>
                   </div>
