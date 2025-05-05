@@ -7,6 +7,7 @@ export type RecipientData = {
   email: string;
   fullName: string;
   country: string;
+  userId?: string; // Add userId to RecipientData
 };
 
 export const useRecipientVerification = () => {
@@ -283,6 +284,10 @@ export const useRecipientVerification = () => {
         console.log("Téléphone formaté avec indicatif:", formattedPhone);
         console.log("Indicatif pays utilisé:", countryCode);
         
+        let foundUserId: string | null = null;
+        let foundDisplayName: string | null = null;
+        let foundCountry: string | null = null;
+        
         // 1. Récupérer tous les utilisateurs depuis auth_users_view
         const { data: authUserData, error: authUserError } = await supabase
           .from('auth_users_view')
@@ -322,24 +327,39 @@ export const useRecipientVerification = () => {
                 
                 if (displayName) {
                   console.log("Nom trouvé dans les métadonnées:", displayName);
+                  foundUserId = user.id;
+                  foundDisplayName = displayName;
+                  foundCountry = metadata.country || recipient.country;
                   
-                  // Créer les données du destinataire avec les informations trouvées
-                  const finalResult = {
-                    verified: true,
-                    recipientData: {
-                      email: userPhone,
-                      fullName: displayName,
-                      country: metadata.country || recipient.country,
-                    }
-                  };
+                  // Vérifier si l'utilisateur a un profil
+                  const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('id', user.id)
+                    .single();
                   
-                  toast({
-                    title: "Bénéficiaire trouvé",
-                    description: finalResult.recipientData.fullName,
-                  });
-                  
-                  setRecipientVerified(true);
-                  return finalResult;
+                  if (profileData) {
+                    console.log("Profil utilisateur trouvé:", profileData.id);
+                    
+                    // Créer les données du destinataire avec les informations trouvées
+                    const finalResult = {
+                      verified: true,
+                      recipientData: {
+                        email: userPhone,
+                        fullName: displayName,
+                        country: foundCountry,
+                        userId: user.id // Important: include the user ID
+                      }
+                    };
+                    
+                    toast({
+                      title: "Bénéficiaire trouvé",
+                      description: finalResult.recipientData.fullName,
+                    });
+                    
+                    setRecipientVerified(true);
+                    return finalResult;
+                  }
                 }
               }
             }
@@ -373,6 +393,7 @@ export const useRecipientVerification = () => {
                     email: profile.phone,
                     fullName: profile.full_name || `Utilisateur ${profile.phone}`,
                     country: profile.country || recipient.country,
+                    userId: profile.id // Important: include the user ID
                   }
                 };
                 
