@@ -29,6 +29,42 @@ interface BaseTransaction {
   agent_commission: number;
 }
 
+// Define specific interfaces for recharge and withdrawal
+interface Recharge {
+  id: string;
+  amount: number;
+  status: string;
+  created_at: string;
+  updated_at: string | null;
+  user_id: string;
+  country: string;
+  payment_method: string;
+  payment_phone: string;
+  payment_provider: string;
+  provider_transaction_id: string | null;
+  transaction_reference: string;
+  // Optional commission fields that may not exist in all records
+  agent_commission?: number;
+  platform_commission?: number;
+  fee?: number;
+}
+
+interface Withdrawal {
+  id: string;
+  amount: number;
+  status: string;
+  created_at: string;
+  updated_at: string | null;
+  user_id: string;
+  verification_code: string | null;
+  withdrawal_phone: string;
+  is_deleted: boolean | null;
+  // Optional commission fields that may not exist in all records
+  agent_commission?: number;
+  platform_commission?: number;
+  fee?: number;
+}
+
 const AgentDashboard = () => {
   const { user, isAgent } = useAuth();
   const { toast } = useToast();
@@ -92,21 +128,26 @@ const AgentDashboard = () => {
 
       if (withdrawalError) throw withdrawalError;
 
+      // Safely cast data to our specific interfaces
+      const typedRecharges = recharges as Recharge[] || [];
+      const typedWithdrawals = withdrawals as Withdrawal[] || [];
+
       // Combiner et trier les transactions par date, en assurant que agent_commission existe
       const combined: BaseTransaction[] = [
-        ...(recharges || []).map(r => ({ 
+        ...typedRecharges.map(r => ({ 
           ...r, 
           type: 'recharge' as const,
-          agent_commission: typeof r.agent_commission === 'number' ? r.agent_commission : r.amount * 0.005 // Default to 0.5% if not present
+          updated_at: r.updated_at || r.created_at,
+          agent_commission: r.agent_commission !== undefined ? r.agent_commission : r.amount * 0.005 // Default to 0.5% if not present
         })),
-        ...(withdrawals || []).map(w => ({ 
+        ...typedWithdrawals.map(w => ({ 
           ...w, 
           type: 'withdrawal' as const,
-          agent_commission: typeof w.agent_commission === 'number' ? w.agent_commission : w.amount * 0.005 // Default to 0.5% if not present
+          updated_at: w.updated_at || w.created_at,
+          agent_commission: w.agent_commission !== undefined ? w.agent_commission : w.amount * 0.005 // Default to 0.5% if not present
         }))
       ].sort((a, b) => 
-        new Date(b.updated_at || b.created_at).getTime() - 
-        new Date(a.updated_at || a.created_at).getTime()
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
       ).slice(0, 10);
 
       return combined;
