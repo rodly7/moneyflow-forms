@@ -59,12 +59,12 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
         </Link>
       )}
       
-      {/* Agent dashboard access - Enlarged and simplified */}
+      {/* Changed from "Agent" to "Retrait Agent" */}
       {isAgent() && (
-        <Link to="/agent" className="w-full col-span-2">
+        <Link to="/retrait-agent" className="w-full col-span-2">
           <Button variant="outline" className="flex flex-col items-center justify-center h-20 w-full border-emerald-200 bg-emerald-50">
             <Wallet className="h-6 w-6 mb-1 text-emerald-600" />
-            <span className="text-sm font-medium text-emerald-600">Agent</span>
+            <span className="text-sm font-medium text-emerald-600">Retrait Agent</span>
           </Button>
         </Link>
       )}

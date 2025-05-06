@@ -3,6 +3,7 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
+  Navigate,
 } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Auth from "@/pages/Auth";
@@ -32,7 +33,7 @@ function App() {
           <Route path="/withdraw" element={<Layout><Withdraw /></Layout>} />
           <Route path="/verify-identity" element={<VerifyIdentity />} />
           <Route path="/qrcode" element={<Layout><QRCode /></Layout>} />
-          <Route path="/scan" element={<Layout><QrScanner /></Layout>} />
+          <Route path="/scan" element={<QrScanner />} />
           <Route path="/receive" element={<Layout><Receive /></Layout>} />
           <Route path="/mobile-recharge" element={<Layout><MobileRecharge /></Layout>} />
           <Route path="/bill-payments" element={<Layout><BillPayments /></Layout>} />
@@ -40,6 +41,8 @@ function App() {
           <Route path="/transactions" element={<Layout><Transactions /></Layout>} />
           <Route path="/retrait-agent" element={<Layout><AgentDashboard /></Layout>} />
           <Route path="/agent-deposit" element={<Layout><AgentDeposit /></Layout>} />
+          {/* Add redirection from /agent to /retrait-agent */}
+          <Route path="/agent" element={<Navigate to="/retrait-agent" replace />} />
           <Route path="*" element={<Auth />} />
         </Routes>
         <Toaster />
