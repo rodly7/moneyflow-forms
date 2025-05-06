@@ -103,7 +103,9 @@ const AgentDeposit = () => {
     // Formatage du numéro complet avec l'indicatif pays
     const fullPhone = formData.recipientPhone.startsWith('+') 
       ? formData.recipientPhone 
-      : countryCode + formData.recipientPhone;
+      : `${countryCode}${formData.recipientPhone.startsWith('0') ? formData.recipientPhone.substring(1) : formData.recipientPhone}`;
+    
+    console.log("Vérification pour le numéro complet:", fullPhone);
     
     try {
       const result = await verifyRecipient(fullPhone, countryCode, {
@@ -127,132 +129,68 @@ const AgentDeposit = () => {
           return;
         }
         
-        // If no userId in recipientData, try to find it using additional methods
-        console.log("ID utilisateur non disponible dans les données, recherche supplémentaire...");
+        // Si l'ID n'est pas dans recipientData (ce qui ne devrait plus arriver avec notre mise à jour)
+        console.log("ATTENTION: ID utilisateur non disponible dans les données, recherche supplémentaire...");
         
-        // 1. D'abord, essayons de trouver par téléphone exact
-        const { data: profileByPhone, error: phoneError } = await supabase
+        // Backup: recherche directe par téléphone
+        const { data: profileByPhone } = await supabase
           .from('profiles')
-          .select('id, phone')
+          .select('id')
           .eq('phone', fullPhone)
           .single();
         
-        if (!phoneError && profileByPhone) {
+        if (profileByPhone) {
           setRecipientId(profileByPhone.id);
-          console.log("Utilisateur trouvé par téléphone exact:", profileByPhone.id);
+          console.log("ID récupéré par téléphone exact:", profileByPhone.id);
           setRecipientVerified(true);
-          toast({
-            title: "Bénéficiaire trouvé",
-            description: `${result.recipientData.fullName} a été trouvé dans la base de données`
-          });
           return;
         }
         
-        console.log("Recherche par téléphone exact échouée, essai alternatif");
-        
-        // 2. Si échec, essayons de trouver par les derniers chiffres du téléphone
-        // Extraire les derniers 8 chiffres pour comparer
+        // Si toujours pas d'ID, essayer avec les derniers chiffres
         const lastDigits = fullPhone.replace(/\D/g, '').slice(-8);
         
-        if (lastDigits.length === 8) {
-          let userFound = false;
-          
-          const { data: profilesByLastDigits, error: lastDigitsError } = await supabase
+        if (lastDigits.length >= 8) {
+          const { data: profiles } = await supabase
             .from('profiles')
             .select('id, phone');
           
-          if (!lastDigitsError && profilesByLastDigits) {
-            // Parcourir les profils pour trouver une correspondance avec les derniers chiffres
-            for (const profile of profilesByLastDigits) {
-              if (!profile.phone) continue;
-              
-              const profileLastDigits = profile.phone.replace(/\D/g, '').slice(-8);
-              
-              if (profileLastDigits === lastDigits) {
-                setRecipientId(profile.id);
-                userFound = true;
-                console.log("Utilisateur trouvé par derniers chiffres:", profile.id);
-                setRecipientVerified(true);
-                toast({
-                  title: "Bénéficiaire trouvé",
-                  description: `${result.recipientData.fullName} a été trouvé dans la base de données`
-                });
-                break;
-              }
-            }
-            
-            if (userFound) return;
-          }
-          
-          // 3. Si toujours pas trouvé, essayons de trouver à partir de auth_users_view
-          console.log("Tentative de recherche dans auth_users_view");
-          const { data: authUsers, error: authError } = await supabase
-            .from('auth_users_view')
-            .select('id, raw_user_meta_data');
-          
-          if (!authError && authUsers) {
-            for (const authUser of authUsers) {
-              const metadata = authUser.raw_user_meta_data as any;
-              if (metadata && metadata.phone) {
-                const userPhone = metadata.phone.replace(/\D/g, '');
-                const searchPhone = fullPhone.replace(/\D/g, '');
-                
-                // Vérifier si les numéros contiennent les mêmes derniers chiffres
-                if (userPhone.endsWith(lastDigits) || searchPhone.endsWith(userPhone.slice(-8))) {
-                  // Vérifier si un profil existe pour cet utilisateur
-                  const { data: userProfile, error: userProfileError } = await supabase
-                    .from('profiles')
-                    .select('id')
-                    .eq('id', authUser.id)
-                    .single();
-                  
-                  if (!userProfileError && userProfile) {
-                    setRecipientId(userProfile.id);
-                    userFound = true;
-                    console.log("Utilisateur trouvé via auth_users_view:", userProfile.id);
-                    setRecipientVerified(true);
-                    toast({
-                      title: "Bénéficiaire trouvé",
-                      description: `${result.recipientData.fullName} a été trouvé dans la base de données`
-                    });
-                    break;
-                  }
+          if (profiles) {
+            for (const profile of profiles) {
+              if (profile.phone) {
+                const profileLastDigits = profile.phone.replace(/\D/g, '').slice(-8);
+                if (profileLastDigits === lastDigits) {
+                  setRecipientId(profile.id);
+                  console.log("ID récupéré par correspondance des derniers chiffres:", profile.id);
+                  setRecipientVerified(true);
+                  return;
                 }
               }
             }
           }
+        }
+        
+        // Si toujours pas d'ID et que nous avons un nom
+        if (result.recipientData.fullName && result.recipientData.fullName !== fullPhone) {
+          const { data: profilesByName } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .ilike('full_name', `%${result.recipientData.fullName}%`);
           
-          // Si l'utilisateur n'est toujours pas trouvé, dernier essai
-          if (!userFound) {
-            // 4. Essayons de trouver par correspondance de nom
-            const { data: profilesByName, error: nameError } = await supabase
-              .from('profiles')
-              .select('id, full_name')
-              .ilike('full_name', `%${result.recipientData.fullName}%`);
-            
-            if (!nameError && profilesByName && profilesByName.length === 1) {
-              // Si un seul résultat, c'est probablement le bon
-              setRecipientId(profilesByName[0].id);
-              userFound = true;
-              console.log("Utilisateur trouvé par nom:", profilesByName[0].id);
-              setRecipientVerified(true);
-              toast({
-                title: "Bénéficiaire trouvé",
-                description: `${result.recipientData.fullName} a été trouvé dans la base de données`
-              });
-            }
-          }
-          
-          // Si l'utilisateur n'est toujours pas trouvé
-          if (!userFound) {
-            toast({
-              title: "Erreur de récupération",
-              description: "L'ID utilisateur n'a pas pu être récupéré. Veuillez réessayer.",
-              variant: "destructive"
-            });
-            setRecipientVerified(false);
+          if (profilesByName && profilesByName.length === 1) {
+            setRecipientId(profilesByName[0].id);
+            console.log("ID récupéré par nom:", profilesByName[0].id);
+            setRecipientVerified(true);
+            return;
           }
         }
+        
+        // Si nous arrivons ici, c'est un problème
+        toast({
+          title: "Erreur de récupération d'ID",
+          description: "L'ID utilisateur n'a pas pu être récupéré malgré que l'utilisateur existe",
+          variant: "destructive"
+        });
+        setRecipientVerified(false);
       } else if (result.recipientData) {
         // Destinataire trouvé dans le système mais pas vérifié (nouvel utilisateur)
         setRecipientName(result.recipientData.fullName || fullPhone);
@@ -331,7 +269,9 @@ const AgentDeposit = () => {
     }
 
     setIsProcessing(true);
-    const fullPhone = countryCode + formData.recipientPhone;
+    const fullPhone = formData.recipientPhone.startsWith('+') 
+      ? formData.recipientPhone 
+      : `${countryCode}${formData.recipientPhone.startsWith('0') ? formData.recipientPhone.substring(1) : formData.recipientPhone}`;
 
     try {
       // Vérifier si l'agent a suffisamment de fonds

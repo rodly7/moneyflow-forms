@@ -7,7 +7,7 @@ export type RecipientData = {
   email: string;
   fullName: string;
   country: string;
-  userId?: string; // Add userId to RecipientData
+  userId?: string;
 };
 
 export const useRecipientVerification = () => {
@@ -155,14 +155,16 @@ export const useRecipientVerification = () => {
       }
       
       // Vérifier si un des numéros est inclus dans l'autre
-      if (congoPhone1.includes(congoPhone2) || congoPhone2.includes(congoPhone1)) {
+      if ((congoPhone1.length > 0 && congoPhone2.length > 0) && 
+          (congoPhone1.includes(congoPhone2) || congoPhone2.includes(congoPhone1))) {
         console.log("✓ Congo number is substring of the other");
         return true;
       }
     }
     
     // Vérifier si un numéro est une sous-chaîne de l'autre
-    if (normalizedPhone1.endsWith(normalizedPhone2) || normalizedPhone2.endsWith(normalizedPhone1)) {
+    if ((normalizedPhone1.length > 0 && normalizedPhone2.length > 0) &&
+        (normalizedPhone1.endsWith(normalizedPhone2) || normalizedPhone2.endsWith(normalizedPhone1))) {
       console.log("✓ Substring match (one ends with the other)");
       return true;
     }
@@ -189,8 +191,8 @@ export const useRecipientVerification = () => {
         }
         
         // Vérifier si les derniers chiffres correspondent
-        if (phone1WithoutCode.endsWith(normalizedPhone2) || 
-            normalizedPhone2.endsWith(phone1WithoutCode)) {
+        if ((phone1WithoutCode.length > 0 && normalizedPhone2.length > 0) &&
+            (phone1WithoutCode.endsWith(normalizedPhone2) || normalizedPhone2.endsWith(phone1WithoutCode))) {
           console.log("✓ Partial match after removing country code");
           return true;
         }
@@ -214,8 +216,8 @@ export const useRecipientVerification = () => {
         }
         
         // Vérifier si les derniers chiffres correspondent
-        if (phone2WithoutCode.endsWith(normalizedPhone1) || 
-            normalizedPhone1.endsWith(phone2WithoutCode)) {
+        if ((phone2WithoutCode.length > 0 && normalizedPhone1.length > 0) &&
+            (phone2WithoutCode.endsWith(normalizedPhone1) || normalizedPhone1.endsWith(phone2WithoutCode))) {
           console.log("✓ Partial match after removing country code (reverse)");
           return true;
         }
@@ -318,12 +320,14 @@ export const useRecipientVerification = () => {
               const userPhone = metadata.phone || '';
               console.log(`Téléphone dans les métadonnées: ${userPhone}`);
               
+              if (!userPhone) continue;
+              
               // Utiliser notre fonction avancée de comparaison de numéros
               if (phoneNumbersMatch(userPhone, cleanedPhone, countryCode)) {
                 console.log("✓ Correspondance trouvée!");
                 
                 // Extraire le nom des métadonnées
-                const displayName = extractNameFromMetadata(metadata) || metadata.full_name || metadata.fullName;
+                const displayName = extractNameFromMetadata(metadata) || metadata.full_name || metadata.fullName || "Utilisateur";
                 
                 if (displayName) {
                   console.log("Nom trouvé dans les métadonnées:", displayName);
@@ -358,6 +362,7 @@ export const useRecipientVerification = () => {
                     });
                     
                     setRecipientVerified(true);
+                    setIsLoading(false);
                     return finalResult;
                   }
                 }
@@ -403,6 +408,7 @@ export const useRecipientVerification = () => {
                 });
                 
                 setRecipientVerified(true);
+                setIsLoading(false);
                 return finalResult;
               }
             }
@@ -426,6 +432,7 @@ export const useRecipientVerification = () => {
           description: "Ce destinataire recevra un code pour réclamer le transfert",
         });
         
+        setIsLoading(false);
         return noUserResult;
       }
     } catch (error) {
@@ -435,9 +442,8 @@ export const useRecipientVerification = () => {
         description: "Une erreur s'est produite lors de la vérification",
         variant: "destructive",
       });
-      return { verified: false };
-    } finally {
       setIsLoading(false);
+      return { verified: false };
     }
   };
 
