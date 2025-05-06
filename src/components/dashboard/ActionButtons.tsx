@@ -1,15 +1,16 @@
 
-import { ArrowUpRight, Banknote, CreditCard, Wallet, UserMinus, Receipt } from "lucide-react";
+import { ArrowUpRight, Banknote, CreditCard, Wallet, UserMinus, Receipt, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { getCurrencyForCountry } from "@/integrations/supabase/client";
 
 interface ActionButtonsProps {
   onTransferClick: () => void;
 }
 
 const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
-  const { isAgent } = useAuth();
+  const { isAgent, user, userRole } = useAuth();
   
   return (
     <div className="mx-4 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
@@ -59,14 +60,23 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
         </Link>
       )}
       
-      {/* Changed from "Agent" to "Retrait Agent" */}
+      {/* Replaced "Retrait Agent" with separate "Retrait" and "Commission" buttons */}
       {isAgent() && (
-        <Link to="/retrait-agent" className="w-full col-span-2">
-          <Button variant="outline" className="flex flex-col items-center justify-center h-20 w-full border-emerald-200 bg-emerald-50">
-            <Wallet className="h-6 w-6 mb-1 text-emerald-600" />
-            <span className="text-sm font-medium text-emerald-600">Retrait Agent</span>
-          </Button>
-        </Link>
+        <>
+          <Link to="/retrait-agent" className="w-full">
+            <Button variant="outline" className="flex flex-col items-center justify-center h-20 bg-white w-full border-emerald-200 bg-emerald-50">
+              <Wallet className="h-5 w-5 mb-1 text-emerald-600" />
+              <span className="text-xs font-medium text-emerald-600">Retrait</span>
+            </Button>
+          </Link>
+          
+          <Link to="/commission" className="w-full">
+            <Button variant="outline" className="flex flex-col items-center justify-center h-20 bg-white w-full border-amber-200 bg-amber-50">
+              <Receipt className="h-5 w-5 mb-1 text-amber-600" />
+              <span className="text-xs font-medium text-amber-600">Commission</span>
+            </Button>
+          </Link>
+        </>
       )}
     </div>
   );

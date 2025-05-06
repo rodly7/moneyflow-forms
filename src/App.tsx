@@ -22,6 +22,7 @@ import Dashboard from "@/pages/Dashboard";
 import VerifyIdentity from "@/pages/VerifyIdentity";
 import AgentDashboard from "@/pages/AgentDashboard";
 import AgentDeposit from "@/pages/AgentDeposit";
+import Commission from "@/pages/Commission";
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
           <Route path="/transactions" element={<Layout><Transactions /></Layout>} />
           <Route path="/retrait-agent" element={<Layout><AgentDashboard /></Layout>} />
           <Route path="/agent-deposit" element={<Layout><AgentDeposit /></Layout>} />
+          <Route path="/commission" element={<Layout><Commission /></Layout>} />
           {/* Add redirection from /agent to /retrait-agent */}
           <Route path="/agent" element={<Navigate to="/retrait-agent" replace />} />
           <Route path="*" element={<Auth />} />
