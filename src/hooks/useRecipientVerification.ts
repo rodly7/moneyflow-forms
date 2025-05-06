@@ -286,111 +286,24 @@ export const useRecipientVerification = () => {
         console.log("Téléphone formaté avec indicatif:", formattedPhone);
         console.log("Indicatif pays utilisé:", countryCode);
         
-        let foundUserId: string | null = null;
-        let foundDisplayName: string | null = null;
-        let foundCountry: string | null = null;
-        
-        // 1. Récupérer tous les utilisateurs depuis auth_users_view
-        const { data: authUserData, error: authUserError } = await supabase
-          .from('auth_users_view')
-          .select('id, email, raw_user_meta_data')
-          .order('created_at', { ascending: false });
-        
-        if (authUserError) {
-          console.error('Erreur lors de la recherche dans auth_users_view:', authUserError);
-          toast({
-            title: "Erreur",
-            description: "Une erreur s'est produite lors de la vérification: " + authUserError.message,
-            variant: "destructive",
-          });
-          return { verified: false };
-        }
-        
-        console.log("Nombre d'utilisateurs trouvés:", authUserData?.length);
-        console.log("Recherche pour le numéro:", formattedPhone);
-        
-        // 2. Recherche approfondie à travers les métadonnées des utilisateurs
-        if (authUserData && authUserData.length > 0) {
-          for (const user of authUserData) {
-            if (user.raw_user_meta_data) {
-              const metadata = user.raw_user_meta_data as any;
-              console.log(`Vérification de l'utilisateur: ${user.id}`);
-              
-              // Récupérer le numéro de téléphone des métadonnées
-              const userPhone = metadata.phone || '';
-              console.log(`Téléphone dans les métadonnées: ${userPhone}`);
-              
-              if (!userPhone) continue;
-              
-              // Utiliser notre fonction avancée de comparaison de numéros
-              if (phoneNumbersMatch(userPhone, cleanedPhone, countryCode)) {
-                console.log("✓ Correspondance trouvée!");
-                
-                // Extraire le nom des métadonnées
-                const displayName = extractNameFromMetadata(metadata) || metadata.full_name || metadata.fullName || "Utilisateur";
-                
-                if (displayName) {
-                  console.log("Nom trouvé dans les métadonnées:", displayName);
-                  foundUserId = user.id;
-                  foundDisplayName = displayName;
-                  foundCountry = metadata.country || recipient.country;
-                  
-                  // Vérifier si l'utilisateur a un profil
-                  const { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('id')
-                    .eq('id', user.id)
-                    .single();
-                  
-                  if (profileData) {
-                    console.log("Profil utilisateur trouvé:", profileData.id);
-                    
-                    // Créer les données du destinataire avec les informations trouvées
-                    const finalResult = {
-                      verified: true,
-                      recipientData: {
-                        email: userPhone,
-                        fullName: displayName,
-                        country: foundCountry,
-                        userId: user.id // Important: include the user ID
-                      }
-                    };
-                    
-                    toast({
-                      title: "Bénéficiaire trouvé",
-                      description: finalResult.recipientData.fullName,
-                    });
-                    
-                    setRecipientVerified(true);
-                    setIsLoading(false);
-                    return finalResult;
-                  }
-                }
-              }
-            }
-          }
-        }
-        
-        // 3. Si aucune correspondance n'est trouvée dans les métadonnées,
-        // vérifier directement dans la table profiles
-        console.log("Recherche dans la table profiles");
+        // IMPROVED USER VERIFICATION - Strategy 1: Check profiles table directly first
+        // This is often more reliable than checking auth_users_view
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('id, full_name, country, phone')
           .order('created_at', { ascending: false });
         
-        if (profilesError) {
-          console.error('Erreur lors de la recherche dans profiles:', profilesError);
-        } else if (profilesData && profilesData.length > 0) {
-          console.log("Nombre de profils trouvés:", profilesData.length);
+        if (!profilesError && profilesData && profilesData.length > 0) {
+          console.log("Nombre de profils trouvés dans la table profiles:", profilesData.length);
           
           // Parcourir les profils pour trouver une correspondance téléphonique
           for (const profile of profilesData) {
             if (profile.phone) {
-              console.log(`Comparaison profil: "${profile.phone}" vs "${cleanedPhone}"`);
+              console.log(`Comparaison profil: "${profile.phone}" vs "${formattedPhone}"`);
               
-              if (phoneNumbersMatch(profile.phone, cleanedPhone, countryCode)) {
+              if (phoneNumbersMatch(profile.phone, formattedPhone, countryCode)) {
                 console.log("✓ Correspondance trouvée dans profiles:", profile.phone);
+                console.log("ID utilisateur trouvé directement dans profiles:", profile.id);
                 
                 const finalResult = {
                   verified: true,
@@ -415,21 +328,156 @@ export const useRecipientVerification = () => {
           }
         }
         
+        // Strategy 2: Check auth_users_view if no match in profiles
+        const { data: authUserData, error: authUserError } = await supabase
+          .from('auth_users_view')
+          .select('id, email, raw_user_meta_data')
+          .order('created_at', { ascending: false });
+        
+        if (authUserError) {
+          console.error('Erreur lors de la recherche dans auth_users_view:', authUserError);
+          toast({
+            title: "Erreur",
+            description: "Une erreur s'est produite lors de la vérification: " + authUserError.message,
+            variant: "destructive",
+          });
+          return { verified: false };
+        }
+        
+        console.log("Nombre d'utilisateurs trouvés dans auth_users_view:", authUserData?.length);
+        
+        // 2. Recherche approfondie à travers les métadonnées des utilisateurs
+        if (authUserData && authUserData.length > 0) {
+          for (const user of authUserData) {
+            if (user.raw_user_meta_data) {
+              const metadata = user.raw_user_meta_data as any;
+              console.log(`Vérification de l'utilisateur: ${user.id}`);
+              
+              // Récupérer le numéro de téléphone des métadonnées
+              const userPhone = metadata.phone || '';
+              console.log(`Téléphone dans les métadonnées: ${userPhone}`);
+              
+              if (!userPhone) continue;
+              
+              // Utiliser notre fonction avancée de comparaison de numéros
+              if (phoneNumbersMatch(userPhone, formattedPhone, countryCode)) {
+                console.log("✓ Correspondance trouvée dans auth_users_view!");
+                
+                // Extraire le nom des métadonnées
+                const displayName = extractNameFromMetadata(metadata) || metadata.full_name || metadata.fullName || "Utilisateur";
+                
+                if (displayName) {
+                  console.log("Nom trouvé dans les métadonnées:", displayName);
+                  console.log("ID utilisateur trouvé dans auth_users_view:", user.id);
+                  
+                  // IMPROVED: Check if the user has a profile and create one if needed
+                  const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('id', user.id)
+                    .single();
+                  
+                  if (profileData) {
+                    console.log("Profil utilisateur existant trouvé:", profileData.id);
+                  } else {
+                    console.log("Aucun profil trouvé, vérification du profil par téléphone");
+                    
+                    // Look for a profile with matching phone number
+                    const { data: phoneProfileData } = await supabase
+                      .from('profiles')
+                      .select('id')
+                      .eq('phone', userPhone)
+                      .single();
+                    
+                    if (!phoneProfileData) {
+                      console.log("Création d'un nouveau profil pour l'utilisateur");
+                      // Create a profile for this user if none exists
+                      await supabase.from('profiles').insert({
+                        id: user.id,
+                        full_name: displayName,
+                        phone: userPhone,
+                        country: metadata.country || recipient.country || "Cameroun",
+                        balance: 0
+                      });
+                    }
+                  }
+                  
+                  // Return verified user data with ID
+                  const finalResult = {
+                    verified: true,
+                    recipientData: {
+                      email: userPhone,
+                      fullName: displayName,
+                      country: metadata.country || recipient.country,
+                      userId: user.id
+                    }
+                  };
+                  
+                  toast({
+                    title: "Bénéficiaire trouvé",
+                    description: finalResult.recipientData.fullName,
+                  });
+                  
+                  setRecipientVerified(true);
+                  setIsLoading(false);
+                  return finalResult;
+                }
+              }
+            }
+          }
+        }
+        
+        // Strategy 3: Last digit matching for phone numbers
+        // This sometimes finds matches that the other methods miss
+        console.log("Recherche par derniers chiffres du numéro...");
+        const lastDigits = normalizePhoneNumber(formattedPhone).slice(-8);
+        
+        if (lastDigits.length >= 8 && profilesData) {
+          for (const profile of profilesData) {
+            if (profile.phone) {
+              const profileLastDigits = normalizePhoneNumber(profile.phone).slice(-8);
+              if (profileLastDigits === lastDigits) {
+                console.log("✓ Correspondance trouvée par les 8 derniers chiffres:", profile.id);
+                
+                const finalResult = {
+                  verified: true,
+                  recipientData: {
+                    email: profile.phone,
+                    fullName: profile.full_name || `Utilisateur ${profile.phone}`,
+                    country: profile.country || recipient.country,
+                    userId: profile.id
+                  }
+                };
+                
+                toast({
+                  title: "Bénéficiaire trouvé",
+                  description: finalResult.recipientData.fullName,
+                });
+                
+                setRecipientVerified(true);
+                setIsLoading(false);
+                return finalResult;
+              }
+            }
+          }
+        }
+        
         // 4. Si aucun utilisateur n'est trouvé, permettre le transfert vers un numéro non enregistré
-        console.log("Aucun utilisateur trouvé avec ce numéro:", cleanedPhone);
+        console.log("Aucun utilisateur trouvé avec ce numéro:", formattedPhone);
         
         const noUserResult = {
           verified: false,
           recipientData: {
             email: formattedPhone,
-            fullName: formattedPhone, // Utiliser le numéro de téléphone comme nom
+            fullName: recipient.fullName || formattedPhone, // Utiliser le nom fourni ou le numéro
             country: recipient.country,
           }
         };
         
         toast({
-          title: "Numéro enregistré",
-          description: "Ce destinataire recevra un code pour réclamer le transfert",
+          title: "Numéro non trouvé",
+          description: "Ce numéro n'est pas enregistré dans le système",
+          variant: "destructive",
         });
         
         setIsLoading(false);

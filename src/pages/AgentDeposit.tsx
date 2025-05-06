@@ -24,6 +24,7 @@ const AgentDeposit = () => {
   const [countryCode, setCountryCode] = useState("+237"); // Défaut à Cameroun
   const [recipientName, setRecipientName] = useState("");
   const [recipientId, setRecipientId] = useState("");
+  const [verificationAttempted, setVerificationAttempted] = useState(false);
 
   // Utiliser le hook useRecipientVerification pour la recherche des utilisateurs
   const {
@@ -91,14 +92,19 @@ const AgentDeposit = () => {
       recipientPhone: value
     }));
     // Reset verification if phone changes
-    setRecipientVerified(false);
-    setRecipientName("");
-    setRecipientId("");
+    if (isVerified || verificationAttempted) {
+      setRecipientVerified(false);
+      setRecipientName("");
+      setRecipientId("");
+      setVerificationAttempted(false);
+    }
   };
 
-  // Verify recipient using the hook
+  // Verify recipient using the hook - with improved ID retrieval
   const handleVerifyRecipient = async () => {
     if (!formData.recipientPhone || formData.recipientPhone.length < 6) return;
+    
+    setVerificationAttempted(true);
     
     // Formatage du numéro complet avec l'indicatif pays
     const fullPhone = formData.recipientPhone.startsWith('+') 
@@ -115,6 +121,7 @@ const AgentDeposit = () => {
       });
       
       if (result.verified && result.recipientData) {
+        console.log("Résultat de la vérification:", result);
         setRecipientName(result.recipientData.fullName);
         
         // Use the userId from recipientData if available
@@ -129,10 +136,9 @@ const AgentDeposit = () => {
           return;
         }
         
-        // Si l'ID n'est pas dans recipientData (ce qui ne devrait plus arriver avec notre mise à jour)
-        console.log("ATTENTION: ID utilisateur non disponible dans les données, recherche supplémentaire...");
+        // Fallback: search directly by phone number
+        console.log("ID utilisateur non disponible, recherche par téléphone...");
         
-        // Backup: recherche directe par téléphone
         const { data: profileByPhone } = await supabase
           .from('profiles')
           .select('id')
@@ -146,7 +152,8 @@ const AgentDeposit = () => {
           return;
         }
         
-        // Si toujours pas d'ID, essayer avec les derniers chiffres
+        // Fallback: search by last 8 digits
+        console.log("Recherche par les 8 derniers chiffres...");
         const lastDigits = fullPhone.replace(/\D/g, '').slice(-8);
         
         if (lastDigits.length >= 8) {
@@ -169,7 +176,7 @@ const AgentDeposit = () => {
           }
         }
         
-        // Si toujours pas d'ID et que nous avons un nom
+        // Final fallback: search by name
         if (result.recipientData.fullName && result.recipientData.fullName !== fullPhone) {
           const { data: profilesByName } = await supabase
             .from('profiles')
@@ -184,7 +191,7 @@ const AgentDeposit = () => {
           }
         }
         
-        // Si nous arrivons ici, c'est un problème
+        // If we get here, we have a problem
         toast({
           title: "Erreur de récupération d'ID",
           description: "L'ID utilisateur n'a pas pu être récupéré malgré que l'utilisateur existe",
@@ -195,8 +202,8 @@ const AgentDeposit = () => {
         // Destinataire trouvé dans le système mais pas vérifié (nouvel utilisateur)
         setRecipientName(result.recipientData.fullName || fullPhone);
         toast({
-          title: "Nouveau bénéficiaire",
-          description: "Cette personne n'est pas encore inscrite dans le système",
+          title: "Numéro non enregistré",
+          description: "Ce numéro n'est pas encore inscrit dans le système",
           variant: "destructive"
         });
         setRecipientVerified(false);
@@ -445,6 +452,12 @@ const AgentDeposit = () => {
                   </div>
                 )}
               </Button>
+              
+              {verificationAttempted && !isVerified && (
+                <p className="text-center text-sm text-red-500 font-medium">
+                  Ce numéro n'est pas reconnu dans le système. Veuillez vérifier le numéro ou inscrire la personne.
+                </p>
+              )}
             </form>
           </CardContent>
         </Card>
