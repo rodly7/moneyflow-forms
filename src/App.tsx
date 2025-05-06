@@ -38,7 +38,7 @@ function App() {
           <Route path="/bill-payments" element={<Layout><BillPayments /></Layout>} />
           <Route path="/prepaid-cards" element={<Layout><PrepaidCards /></Layout>} />
           <Route path="/transactions" element={<Layout><Transactions /></Layout>} />
-          <Route path="/agent" element={<Layout><AgentDashboard /></Layout>} />
+          <Route path="/retrait-agent" element={<Layout><AgentDashboard /></Layout>} />
           <Route path="/agent-deposit" element={<Layout><AgentDeposit /></Layout>} />
           <Route path="*" element={<Auth />} />
         </Routes>

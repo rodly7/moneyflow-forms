@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
@@ -153,10 +152,10 @@ export const calculateFee = (amount: number, senderCountry?: string, recipientCo
     agentRate = 0.005;
     moneyFlowRate = 0.015;
   } else {
-    // Transfert international: 6% au total (2% agent, 4% MoneyFlow)
-    totalRate = 0.06;
-    agentRate = 0.02;
-    moneyFlowRate = 0.04;
+    // Transfert international: 5% au total (1.5% agent, 3.5% MoneyFlow)
+    totalRate = 0.05;
+    agentRate = 0.015;
+    moneyFlowRate = 0.035;
   }
   
   const fee = amount * totalRate;

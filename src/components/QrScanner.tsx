@@ -3,12 +3,9 @@ import { useState, useRef, useEffect } from "react";
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Check, Copy, QrCode, X } from "lucide-react";
+import { QrCode, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTransferForm } from "@/hooks/useTransferForm";
 import {
@@ -21,7 +18,6 @@ const QrScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isCodeCopied, setIsCodeCopied] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -84,12 +80,6 @@ const QrScanner = () => {
     setVerificationCode(value);
   };
 
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(verificationCode);
-    setIsCodeCopied(true);
-    setTimeout(() => setIsCodeCopied(false), 2000);
-  };
-
   // Process verification code
   const processCode = async (code: string) => {
     setIsProcessing(true);
@@ -108,9 +98,9 @@ const QrScanner = () => {
       console.log("Processing verification code:", code);
       
       // Use the confirmWithdrawal function from useTransferForm
-      const success = await confirmWithdrawal(code);
+      const result = await confirmWithdrawal(code);
       
-      if (success) {
+      if (result.success) {
         // Refresh cache
         queryClient.invalidateQueries({
           queryKey: ['withdrawals']
@@ -119,10 +109,21 @@ const QrScanner = () => {
           queryKey: ['profile']
         });
         
-        // Reset form and navigate is handled inside confirmWithdrawal
+        toast({
+          title: "Retrait confirmé",
+          description: `Le retrait a été effectué avec succès. Votre commission: ${result.agentCommission} XAF`,
+        });
+        
+        // Réinitialiser le formulaire et naviguer vers la page principale
         setVerificationCode("");
+        navigate('/retrait-agent');
+      } else {
+        toast({
+          title: "Erreur",
+          description: result.message || "Une erreur est survenue lors du traitement du retrait",
+          variant: "destructive"
+        });
       }
-      
     } catch (error) {
       console.error("Error processing withdrawal:", error);
       toast({
@@ -142,12 +143,12 @@ const QrScanner = () => {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/retrait-agent')}
             className="text-gray-700"
           >
             <X className="w-5 h-5" />
           </Button>
-          <h2 className="text-xl font-semibold">Code de Retrait</h2>
+          <h2 className="text-xl font-semibold">Scanner Code de Retrait</h2>
           <div className="w-9"></div>
         </div>
       
@@ -155,10 +156,10 @@ const QrScanner = () => {
           <div className="card border rounded-lg shadow-md p-4 bg-white">
             <div className="text-center mb-6">
               <p className="text-sm text-gray-600 mb-2">
-                Saisissez le code à 6 chiffres fourni par la personne qui souhaite retirer de l'argent
+                Saisissez ou scannez le code à 6 chiffres fourni par le client qui souhaite retirer de l'argent
               </p>
               <p className="text-xs text-gray-500">
-                Une fois le code validé, le montant sera crédité sur votre compte
+                Une fois le code validé, le montant sera crédité sur votre compte avec votre commission de 0,5%
               </p>
             </div>
 
@@ -186,7 +187,7 @@ const QrScanner = () => {
             )}
 
             <div className="mb-6">
-              <Label htmlFor="verificationCode" className="mb-2 block text-center">Code de vérification (6 chiffres)</Label>
+              <label htmlFor="verificationCode" className="mb-2 block text-center">Code de vérification (6 chiffres)</label>
               <div className="flex justify-center mb-3">
                 <InputOTP 
                   maxLength={6} 
