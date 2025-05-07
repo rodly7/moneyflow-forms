@@ -6,20 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, processWithdrawal, formatCurrency, getCurrencyForCountry } from "@/integrations/supabase/client";
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
+import { supabase, formatCurrency, getCurrencyForCountry } from "@/integrations/supabase/client";
+import { countries } from "@/data/countries";
 
 const Withdraw = () => {
   const { user } = useAuth();
@@ -32,8 +22,6 @@ const Withdraw = () => {
   const [countryCode, setCountryCode] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [showVerificationCode, setShowVerificationCode] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
   const [currency, setCurrency] = useState("XAF");
   const [feeAmount, setFeeAmount] = useState(0);
 
@@ -80,7 +68,8 @@ const Withdraw = () => {
   useEffect(() => {
     if (amount && !isNaN(Number(amount))) {
       const amountValue = Number(amount);
-      const { fee } = calculateFee(amountValue);
+      // Frais de 2% (0.5% pour l'agent, 1.5% pour MoneyFlow)
+      const fee = amountValue * 0.02;
       setFeeAmount(fee);
     } else {
       setFeeAmount(0);
@@ -118,14 +107,30 @@ const Withdraw = () => {
       const formattedPhone = phoneNumber.startsWith('+') 
         ? phoneNumber 
         : `${countryCode}${phoneNumber.startsWith('0') ? phoneNumber.substring(1) : phoneNumber}`;
-
-      // Process the withdrawal in Supabase and get back the verification code
-      const withdrawalResult = await processWithdrawal(user.id, Number(amount), formattedPhone);
       
-      // Set verification code for display
-      setVerificationCode(withdrawalResult.verificationCode);
-      setShowVerificationCode(true);
-      setIsProcessing(false);
+      // Vérifier le solde de l'utilisateur
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('balance')
+        .eq('id', user.id)
+        .single();
+        
+      if (profileError || !userProfile) {
+        throw new Error("Impossible de vérifier votre solde");
+      }
+      
+      const amountValue = Number(amount);
+      if (userProfile.balance < amountValue) {
+        throw new Error("Solde insuffisant pour effectuer ce retrait");
+      }
+
+      toast({
+        title: "Demande de retrait enregistrée",
+        description: `Veuillez vous rendre chez un agent pour finaliser votre retrait de ${formatCurrency(amountValue, currency)}`,
+      });
+      
+      // Rediriger vers la page d'accueil
+      navigate('/');
 
     } catch (error) {
       console.error("Erreur lors du retrait:", error);
@@ -136,11 +141,6 @@ const Withdraw = () => {
       });
       setIsProcessing(false);
     }
-  };
-
-  const handleFinish = () => {
-    setShowVerificationCode(false);
-    navigate('/');
   };
 
   return (
@@ -230,11 +230,17 @@ const Withdraw = () => {
                     <Input
                       id="phone"
                       type="tel"
-                      className="flex-1 bg-gray-100"
+                      className="flex-1"
                       value={phoneNumber}
-                      readOnly
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      required
                     />
                   </div>
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 text-sm text-yellow-800">
+                  <p>Pour retirer votre argent, rendez-vous chez un agent MoneyFlow avec votre téléphone.</p>
+                  <p className="mt-1">L'agent vous aidera à finaliser votre retrait.</p>
                 </div>
 
                 <Button 
@@ -242,60 +248,25 @@ const Withdraw = () => {
                   className="w-full bg-emerald-600 hover:bg-emerald-700"
                   disabled={isProcessing}
                 >
-                  {isProcessing ? "Traitement en cours..." : "Confirmer le retrait"}
+                  {isProcessing ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <span>Traitement en cours...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <Banknote className="mr-2 h-5 w-5" />
+                      <span>Continuer</span>
+                    </div>
+                  )}
                 </Button>
               </form>
             )}
           </CardContent>
         </Card>
       </div>
-
-      {/* Verification Code Dialog */}
-      <Dialog open={showVerificationCode} onOpenChange={setShowVerificationCode}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Code de vérification pour votre retrait</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center justify-center p-4 space-y-4">
-            <p className="text-center text-sm text-gray-600">
-              Partagez ce code avec la personne qui va confirmer votre retrait de {formatCurrency(Number(amount), currency)}.
-            </p>
-            
-            <div className="bg-gray-100 p-5 rounded-lg shadow-sm w-full">
-              <InputOTP maxLength={6} value={verificationCode} disabled>
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
-            </div>
-            
-            <div className="text-center font-bold text-2xl tracking-widest my-2">
-              {verificationCode}
-            </div>
-            
-            <p className="text-center text-xs text-gray-500">
-              Ce code est valide jusqu'à ce que le retrait soit confirmé.
-            </p>
-            
-            <Button 
-              onClick={handleFinish}
-              className="w-full mt-4"
-            >
-              Terminer
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
 
 export default Withdraw;
-
-import { countries } from "@/data/countries";
-import { calculateFee } from "@/integrations/supabase/client";

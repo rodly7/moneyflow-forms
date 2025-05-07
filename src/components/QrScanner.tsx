@@ -1,171 +1,43 @@
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { useQueryClient } from "@tanstack/react-query";
-import { QrCode, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { supabase, processWithdrawalVerification } from "@/integrations/supabase/client";
+import { QrCode, X } from "lucide-react";
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 
+// Ce composant est maintenant obsolète et ne sera plus utilisé dans la nouvelle version
+// Il est conservé temporairement pour référence, mais devra être supprimé plus tard
 const QrScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
   const qrRef = useRef(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    let html5Qrcode: Html5Qrcode | null = null;
-
-    if (isScanning && qrRef.current) {
-      html5Qrcode = new Html5Qrcode("qr-reader");
-      html5Qrcode
-        .start(
-          { facingMode: "environment" },
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-          },
-          (decodedText) => {
-            setVerificationCode(decodedText);
-            setIsScanning(false);
-            if (html5Qrcode) {
-              html5Qrcode.stop();
-            }
-          },
-          (errorMessage) => {
-            console.warn(errorMessage);
-          }
-        )
-        .catch((error) => {
-          console.error("QR Code scanning failed:", error);
-          toast({
-            title: "Erreur de caméra",
-            description: "Impossible d'accéder à la caméra. Veuillez vérifier les permissions.",
-            variant: "destructive"
-          });
-          setIsScanning(false);
-          if (html5Qrcode) {
-            html5Qrcode.stop();
-          }
-        });
-    }
-
-    return () => {
-      if (html5Qrcode) {
-        html5Qrcode.stop();
-      }
-    };
-  }, [isScanning, toast]);
 
   const handleScanToggle = () => {
     setIsScanning((prev) => !prev);
     if (!isScanning) {
       setVerificationCode("");
-      setErrorMessage(null);
     }
   };
 
   const handleVerificationCodeChange = (value: string) => {
     setVerificationCode(value);
-    setErrorMessage(null);
   };
 
-  // Clear the form
-  const resetForm = () => {
-    setVerificationCode("");
-    setErrorMessage(null);
-    setIsProcessing(false);
-  };
-
-  // Process verification code
-  const processCode = async (code: string) => {
-    setIsProcessing(true);
-    setErrorMessage(null);
-    
-    try {
-      if (!user) {
-        toast({
-          title: "Erreur d'authentification",
-          description: "Vous devez être connecté pour traiter un code.",
-          variant: "destructive"
-        });
-        setIsProcessing(false);
-        return;
-      }
-      
-      console.log("Processing verification code:", code);
-      
-      // Check if the code exists and is valid
-      const { data: withdrawalData, error: withdrawalError } = await supabase
-        .from('withdrawals')
-        .select('*')
-        .eq('verification_code', code)
-        .eq('status', 'pending')
-        .single();
-
-      if (withdrawalError || !withdrawalData) {
-        setErrorMessage("Ce code de vérification n'existe pas ou a déjà été utilisé");
-        toast({
-          title: "Code invalide",
-          description: "Ce code de vérification n'existe pas ou a déjà été utilisé",
-          variant: "destructive"
-        });
-        setIsProcessing(false);
-        return;
-      }
-      
-      // Process withdrawal verification
-      const result = await processWithdrawalVerification(code, user.id);
-      
-      if (result) {
-        // Refresh cache
-        queryClient.invalidateQueries({
-          queryKey: ['withdrawals']
-        });
-        queryClient.invalidateQueries({
-          queryKey: ['profile']
-        });
-        
-        toast({
-          title: "Retrait confirmé",
-          description: `Le retrait a été effectué avec succès. Votre commission: ${result.agentCommission} XAF`,
-        });
-        
-        // Reset form and navigate
-        resetForm();
-        navigate('/retrait-agent');
-      } else {
-        setErrorMessage("Une erreur est survenue lors du traitement du retrait");
-        toast({
-          title: "Erreur",
-          description: "Une erreur est survenue lors du traitement du retrait",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error("Error processing withdrawal:", error);
-      const errorMsg = error instanceof Error ? error.message : "Une erreur s'est produite lors du traitement du retrait.";
-      setErrorMessage(errorMsg);
-      toast({
-        title: "Erreur",
-        description: errorMsg,
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
+  const processCode = async () => {
+    toast({
+      title: "Fonctionnalité désactivée",
+      description: "Le nouveau système de retrait est maintenant disponible. Utilisez-le à la place.",
+      variant: "destructive"
+    });
+    navigate('/agent');
   };
 
   return (
@@ -180,7 +52,7 @@ const QrScanner = () => {
           >
             <X className="w-5 h-5" />
           </Button>
-          <h2 className="text-xl font-semibold">Scanner Code de Retrait</h2>
+          <h2 className="text-xl font-semibold">Fonctionnalité obsolète</h2>
           <div className="w-9"></div>
         </div>
       
@@ -188,80 +60,21 @@ const QrScanner = () => {
           <div className="card border rounded-lg shadow-md p-4 bg-white">
             <div className="text-center mb-6">
               <p className="text-sm text-gray-600 mb-2">
-                Saisissez ou scannez le code à 6 chiffres fourni par le client qui souhaite retirer de l'argent
+                Cette fonctionnalité a été remplacée par le nouveau système de retrait.
               </p>
               <p className="text-xs text-gray-500">
-                Une fois le code validé, le montant sera crédité sur votre compte avec votre commission de 0,5%
+                Veuillez utiliser le nouveau système accessible depuis le tableau de bord.
               </p>
             </div>
 
             <Button
-              variant={isScanning ? "destructive" : "default"}
-              onClick={handleScanToggle}
-              disabled={isProcessing}
+              variant="default"
+              onClick={() => navigate('/agent')}
               className="w-full mb-4"
             >
-              {isScanning ? (
-                <>
-                  <X className="mr-2 h-4 w-4" />
-                  Arrêter le Scan
-                </>
-              ) : (
-                <>
-                  <QrCode className="mr-2 h-4 w-4" />
-                  Scanner un QR Code
-                </>
-              )}
+              <X className="mr-2 h-4 w-4" />
+              Retourner au tableau de bord
             </Button>
-
-            {isScanning && (
-              <div ref={qrRef} id="qr-reader" className="w-full max-w-md mx-auto mb-4" />
-            )}
-
-            <div className="mb-6">
-              <label htmlFor="verificationCode" className="mb-2 block text-center">Code de vérification (6 chiffres)</label>
-              <div className="flex justify-center mb-3">
-                <InputOTP 
-                  maxLength={6} 
-                  value={verificationCode} 
-                  onChange={handleVerificationCodeChange}
-                  disabled={isScanning || isProcessing}
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
-              
-              {errorMessage && (
-                <div className="text-center text-red-500 text-sm mt-2 mb-3">
-                  {errorMessage}
-                </div>
-              )}
-            </div>
-
-            <Button
-              onClick={() => processCode(verificationCode)}
-              disabled={verificationCode.length !== 6 || isProcessing}
-              className="w-full bg-emerald-600 hover:bg-emerald-700"
-            >
-              {isProcessing ? "Traitement..." : "Valider le Code"}
-            </Button>
-            
-            {errorMessage && (
-              <Button
-                variant="outline"
-                onClick={resetForm}
-                className="w-full mt-3"
-              >
-                Réessayer avec un autre code
-              </Button>
-            )}
           </div>
         </div>
       </div>

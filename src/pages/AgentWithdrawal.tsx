@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,7 +12,7 @@ import PhoneInput from "@/components/transfer-steps/PhoneInput";
 import { useQuery } from "@tanstack/react-query";
 import { useRecipientVerification } from "@/hooks/useRecipientVerification";
 
-const AgentDeposit = () => {
+const AgentWithdrawal = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -99,7 +100,7 @@ const AgentDeposit = () => {
     }
   };
 
-  // Verify recipient using the hook - with improved ID retrieval
+  // Verify recipient using the hook
   const handleVerifyRecipient = async () => {
     if (!formData.recipientPhone || formData.recipientPhone.length < 6) return;
     
@@ -175,96 +176,23 @@ const AgentDeposit = () => {
           }
         }
         
-        // If not found, create a new user profile
-        console.log("Bénéficiaire non trouvé, création d'un nouveau profil...");
-        
-        // Create new profile
-        const { data: newProfile, error: createError } = await supabase.from('profiles').insert({
-          phone: fullPhone,
-          full_name: result.recipientData.fullName || fullPhone,
-          country: agentProfile?.country || "Cameroun",
-          balance: 0,
-          id: crypto.randomUUID()
-        }).select().single();
-        
-        if (createError) {
-          console.error("Erreur lors de la création du profil:", createError);
-          toast({
-            title: "Erreur",
-            description: "Impossible de créer un nouveau profil pour ce numéro",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        if (newProfile) {
-          setRecipientId(newProfile.id);
-          setRecipientVerified(true);
-          toast({
-            title: "Nouveau bénéficiaire créé",
-            description: `Un compte a été créé pour ${fullPhone}`
-          });
-        }
+        toast({
+          title: "Utilisateur non trouvé",
+          description: "Impossible de trouver cet utilisateur dans la base de données",
+          variant: "destructive"
+        });
       } else if (result.recipientData) {
-        // Create new profile if not found
-        console.log("Création d'un nouveau profil pour:", fullPhone);
-        
-        const { data: newProfile, error: createError } = await supabase.from('profiles').insert({
-          phone: fullPhone,
-          full_name: result.recipientData.fullName || fullPhone,
-          country: agentProfile?.country || "Cameroun",
-          balance: 0,
-          id: crypto.randomUUID()
-        }).select().single();
-        
-        if (createError) {
-          console.error("Erreur lors de la création du profil:", createError);
-          toast({
-            title: "Erreur",
-            description: "Impossible de créer un nouveau profil pour ce numéro",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        if (newProfile) {
-          setRecipientName(result.recipientData.fullName || fullPhone);
-          setRecipientId(newProfile.id);
-          setRecipientVerified(true);
-          toast({
-            title: "Nouveau bénéficiaire créé",
-            description: `Un compte a été créé pour ${fullPhone}`
-          });
-        }
+        toast({
+          title: "Utilisateur non trouvé",
+          description: "Impossible de trouver cet utilisateur dans la base de données",
+          variant: "destructive"
+        });
       } else {
-        // Create a minimal profile with just the phone number
-        const { data: newProfile, error: createError } = await supabase.from('profiles').insert({
-          phone: fullPhone,
-          full_name: fullPhone,
-          country: agentProfile?.country || "Cameroun",
-          balance: 0,
-          id: crypto.randomUUID()
-        }).select().single();
-        
-        if (createError) {
-          console.error("Erreur lors de la création du profil minimal:", createError);
-          toast({
-            title: "Erreur",
-            description: "Impossible de créer un nouveau profil pour ce numéro",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        if (newProfile) {
-          setRecipientName(fullPhone);
-          setRecipientId(newProfile.id);
-          setRecipientVerified(true);
-          toast({
-            title: "Nouveau bénéficiaire créé",
-            description: `Un compte a été créé pour ${fullPhone}`
-          });
-        }
+        toast({
+          title: "Erreur de vérification",
+          description: "Une erreur s'est produite lors de la vérification du destinataire",
+          variant: "destructive"
+        });
       }
     } catch (err) {
       console.error("Error checking recipient:", err);
@@ -290,14 +218,14 @@ const AgentDeposit = () => {
     }
   }, [formData.recipientPhone, countryCode]);
 
-  // Handle deposit submission
+  // Handle withdrawal submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user?.id) {
       toast({
         title: "Erreur d'authentification",
-        description: "Vous devez être connecté pour effectuer un dépôt",
+        description: "Vous devez être connecté pour effectuer un retrait",
         variant: "destructive"
       });
       return;
@@ -330,30 +258,32 @@ const AgentDeposit = () => {
       : `${countryCode}${formData.recipientPhone.startsWith('0') ? formData.recipientPhone.substring(1) : formData.recipientPhone}`;
 
     try {
-      // Vérifier si l'agent a suffisamment de fonds
-      const { data: agentProfile, error: agentProfileError } = await supabase
+      // Vérifier si le client a suffisamment de fonds
+      const { data: clientProfile, error: clientProfileError } = await supabase
         .from('profiles')
         .select('balance, country')
-        .eq('id', user.id)
+        .eq('id', recipientId)
         .single();
 
-      if (agentProfileError || !agentProfile) {
-        throw new Error("Impossible de vérifier votre solde");
+      if (clientProfileError || !clientProfile) {
+        throw new Error("Impossible de vérifier le solde du client");
       }
 
-      if (agentProfile.balance < amount) {
-        throw new Error("Solde insuffisant pour effectuer ce dépôt");
+      if (clientProfile.balance < amount) {
+        throw new Error("Solde insuffisant pour effectuer ce retrait");
       }
 
       // Calculer une commission de 0.5% pour l'agent
       const agentCommission = amount * 0.005;
+      const platformCommission = amount * 0.015;
+      const totalFees = agentCommission + platformCommission;
       
       // Generate a unique transaction reference
-      const transactionReference = `DEP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      const transactionReference = `RET-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-      // 1. Déduire le montant du compte de l'agent
+      // 1. Déduire le montant du compte du client
       const { error: deductError } = await supabase.rpc('increment_balance', {
-        user_id: user.id,
+        user_id: recipientId,
         amount: -(amount)  // On déduit le montant total
       });
 
@@ -361,56 +291,57 @@ const AgentDeposit = () => {
         throw deductError;
       }
 
-      // 2. Ajouter le montant au compte du bénéficiaire
+      // 2. Ajouter le montant (moins les frais) + commission au compte de l'agent
       const { error: creditError } = await supabase.rpc('increment_balance', {
-        user_id: recipientId,
-        amount: amount
+        user_id: user.id,
+        amount: amount - totalFees + agentCommission
       });
 
       if (creditError) {
         // Annuler la déduction si le crédit échoue
         await supabase.rpc('increment_balance', {
-          user_id: user.id,
+          user_id: recipientId,
           amount: amount
         });
         throw creditError;
       }
       
-      // 3. Recrediter la commission à l'agent
-      const { error: commissionError } = await supabase.rpc('increment_balance', {
-        user_id: user.id,
-        amount: agentCommission
-      });
-      
-      if (commissionError) {
-        console.error("Erreur lors du crédit de la commission à l'agent:", commissionError);
-        // On continue même en cas d'erreur pour ne pas bloquer la transaction
+      // 3. Créditer la commission de la plateforme au compte admin
+      const { data: adminData } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('phone', '+221773637752')
+        .single();
+        
+      if (adminData) {
+        await supabase.rpc('increment_balance', {
+          user_id: adminData.id,
+          amount: platformCommission
+        });
       }
 
-      // 4. Enregistrer la transaction dans la table recharges avec enable_rls explicitement à true
+      // 4. Enregistrer la transaction dans la table withdrawals
       const { error: transactionError } = await supabase
-        .from('recharges')
+        .from('withdrawals')
         .insert({
           user_id: recipientId,
           amount: amount,
-          country: agentProfile.country || "Cameroun",
-          payment_method: 'agent_deposit',
-          payment_phone: fullPhone,
-          payment_provider: 'agent',
-          transaction_reference: transactionReference,
+          withdrawal_phone: fullPhone,
           status: 'completed',
-          provider_transaction_id: user.id
-        }, { count: 'exact' });
+          fee: totalFees,
+          agent_commission: agentCommission,
+          platform_commission: platformCommission,
+          agent_id: user.id
+        });
 
       if (transactionError) {
-        console.error('Erreur transaction:', transactionError);
-        throw new Error("Erreur lors de l'enregistrement de la transaction");
+        throw transactionError;
       }
 
       // Notification de succès
       toast({
-        title: "Dépôt effectué avec succès",
-        description: `Le compte de ${recipientName} a été crédité de ${amount} FCFA. Votre commission: ${agentCommission} FCFA`,
+        title: "Retrait effectué avec succès",
+        description: `Vous avez remis ${amount} FCFA à ${recipientName}. Votre commission: ${agentCommission} FCFA`,
       });
 
       // Réinitialiser le formulaire
@@ -425,10 +356,10 @@ const AgentDeposit = () => {
       // Redirection vers la page d'accueil
       navigate('/agent');
     } catch (error) {
-      console.error('Erreur lors du dépôt:', error);
+      console.error('Erreur lors du retrait:', error);
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Une erreur est survenue lors du dépôt",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors du retrait",
         variant: "destructive"
       });
     } finally {
@@ -444,13 +375,13 @@ const AgentDeposit = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
           </Button>
-          <h1 className="text-2xl font-bold">Dépôt</h1>
+          <h1 className="text-2xl font-bold">Retrait</h1>
           <div className="w-10"></div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Effectuer un dépôt</CardTitle>
+            <CardTitle>Effectuer un retrait</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -461,7 +392,7 @@ const AgentDeposit = () => {
                 isLoading={isVerifying}
                 isVerified={isVerified}
                 recipientName={recipientName}
-                label="Numéro du bénéficiaire"
+                label="Numéro du client"
                 onBlurComplete={handleVerifyRecipient}
               />
 
@@ -470,7 +401,7 @@ const AgentDeposit = () => {
                   id="amount"
                   name="amount"
                   type="number"
-                  placeholder="Montant du dépôt (FCFA)"
+                  placeholder="Montant du retrait (FCFA)"
                   value={formData.amount}
                   onChange={handleChange}
                   required
@@ -491,7 +422,7 @@ const AgentDeposit = () => {
                 ) : (
                   <div className="flex items-center justify-center">
                     <Banknote className="mr-2 h-5 w-5" />
-                    <span>Effectuer le dépôt</span>
+                    <span>Effectuer le retrait</span>
                   </div>
                 )}
               </Button>
@@ -503,4 +434,4 @@ const AgentDeposit = () => {
   );
 };
 
-export default AgentDeposit;
+export default AgentWithdrawal;
