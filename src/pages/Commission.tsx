@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Star, Receipt } from "lucide-react";
 
 interface CommissionData {
@@ -17,6 +16,12 @@ interface CommissionData {
 const Commission = () => {
   const { user } = useAuth();
   const [currency, setCurrency] = useState("XAF");
+  const [commissionData, setCommissionData] = useState<CommissionData>({
+    total_commission: 0,
+    transfer_commission: 0,
+    withdrawal_commission: 0,
+    currency: "XAF"
+  });
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['profile'],
@@ -32,62 +37,77 @@ const Commission = () => {
     },
   });
 
+  // Fetch transfers with agent commission
+  const { data: transfersWithCommission, isLoading: transfersLoading } = useQuery({
+    queryKey: ['transfers-with-commission'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transfers')
+        .select('amount, created_at')
+        .eq('sender_id', user?.id);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch withdrawals with agent commission
+  const { data: withdrawalsWithCommission, isLoading: withdrawalsLoading } = useQuery({
+    queryKey: ['withdrawals-with-commission'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('withdrawals')
+        .select('amount, created_at')
+        .eq('status', 'completed');
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
   useEffect(() => {
     if (profile?.country) {
       setCurrency(getCurrencyForCountry(profile.country));
     }
   }, [profile]);
 
-  const { data: commissionData, isLoading } = useQuery({
-    queryKey: ['commission-data'],
-    queryFn: async () => {
-      // Get commission data for the agent
-      const { data: transferCommissionsData, error: transferError } = await supabase
-        .from('commissions')
-        .select('amount')
-        .eq('agent_id', user?.id)
-        .eq('type', 'transfer');
-
-      const { data: withdrawalCommissionsData, error: withdrawalError } = await supabase
-        .from('commissions')
-        .select('amount')
-        .eq('agent_id', user?.id)
-        .eq('type', 'withdrawal');
-
-      if (transferError || withdrawalError) {
-        throw transferError || withdrawalError;
-      }
-
-      const transferCommission = transferCommissionsData?.reduce((sum, item) => sum + item.amount, 0) || 0;
-      const withdrawalCommission = withdrawalCommissionsData?.reduce((sum, item) => sum + item.amount, 0) || 0;
+  useEffect(() => {
+    if (transfersWithCommission && withdrawalsWithCommission) {
+      // Calculate transfer commissions (1.5% for international transfers)
+      const transferTotal = transfersWithCommission.reduce((sum, item) => sum + item.amount, 0);
+      const transferCommission = transferTotal * 0.015; // 1.5% for agent on international transfers
       
-      return {
-        total_commission: transferCommission + withdrawalCommission,
+      // Calculate withdrawal commissions (0.5% for withdrawals)
+      const withdrawalTotal = withdrawalsWithCommission.reduce((sum, item) => sum + item.amount, 0);
+      const withdrawalCommission = withdrawalTotal * 0.005; // 0.5% for agent on withdrawals
+      
+      setCommissionData({
         transfer_commission: transferCommission,
         withdrawal_commission: withdrawalCommission,
+        total_commission: transferCommission + withdrawalCommission,
         currency: "XAF" // Base currency
-      };
-    },
-    enabled: !!user?.id,
-  });
+      });
+    }
+  }, [transfersWithCommission, withdrawalsWithCommission]);
 
-  if (isLoading || profileLoading) {
+  if (profileLoading || transfersLoading || withdrawalsLoading) {
     return <div className="flex justify-center items-center min-h-screen">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
     </div>;
   }
 
-  const convertedCommission = commissionData ? {
+  const convertedCommission = {
     total_commission: convertCurrency(commissionData.total_commission, "XAF", currency),
     transfer_commission: convertCurrency(commissionData.transfer_commission, "XAF", currency),
     withdrawal_commission: convertCurrency(commissionData.withdrawal_commission, "XAF", currency),
     currency
-  } : {
-    total_commission: 0,
-    transfer_commission: 0,
-    withdrawal_commission: 0,
-    currency
   };
+
+  // Check if the user is an agent or admin from user metadata
+  const userRole = user?.user_metadata?.role || "user";
+  const isAgent = userRole === "agent" || userRole === "admin";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-500/20 to-blue-500/20 py-8 px-4">
@@ -98,7 +118,7 @@ const Commission = () => {
               <Receipt className="mr-2 h-6 w-6 text-amber-600" />
               Commissions
             </CardTitle>
-            {profile?.role === "agent" && (
+            {isAgent && (
               <div className="flex items-center bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm">
                 <Star className="h-4 w-4 mr-1 text-amber-500 fill-amber-500" />
                 Agent

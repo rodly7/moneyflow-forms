@@ -13,7 +13,6 @@ interface Profile {
   full_name: string | null;
   phone: string;
   avatar_url?: string | null;
-  role?: string;
 }
 
 interface ProfileHeaderProps {
@@ -21,7 +20,7 @@ interface ProfileHeaderProps {
 }
 
 const ProfileHeader = ({ profile }: ProfileHeaderProps) => {
-  const { signOut } = useAuth();
+  const { signOut, user, userRole } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -34,7 +33,7 @@ const ProfileHeader = ({ profile }: ProfileHeaderProps) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
-  const isAgent = profile?.role === 'agent' || profile?.role === 'admin';
+  const isAgent = userRole === 'agent' || userRole === 'admin';
 
   return (
     <Card className="bg-white shadow-lg mx-4">
