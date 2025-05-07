@@ -176,46 +176,96 @@ const AgentDeposit = () => {
           }
         }
         
-        // Final fallback: search by name
-        if (result.recipientData.fullName && result.recipientData.fullName !== fullPhone) {
-          const { data: profilesByName } = await supabase
-            .from('profiles')
-            .select('id, full_name')
-            .ilike('full_name', `%${result.recipientData.fullName}%`);
-          
-          if (profilesByName && profilesByName.length === 1) {
-            setRecipientId(profilesByName[0].id);
-            console.log("ID récupéré par nom:", profilesByName[0].id);
-            setRecipientVerified(true);
-            return;
-          }
+        // If not found, create a new user profile
+        console.log("Bénéficiaire non trouvé, création d'un nouveau profil...");
+        
+        // Create new profile
+        const { data: newProfile, error: createError } = await supabase.from('profiles').insert({
+          phone: fullPhone,
+          full_name: result.recipientData.fullName || fullPhone,
+          country: agentProfile?.country || "Cameroun",
+          balance: 0,
+          id: crypto.randomUUID()
+        }).select().single();
+        
+        if (createError) {
+          console.error("Erreur lors de la création du profil:", createError);
+          toast({
+            title: "Erreur",
+            description: "Impossible de créer un nouveau profil pour ce numéro",
+            variant: "destructive"
+          });
+          return;
         }
         
-        // If we get here, we have a problem
-        toast({
-          title: "Erreur de récupération d'ID",
-          description: "L'ID utilisateur n'a pas pu être récupéré malgré que l'utilisateur existe",
-          variant: "destructive"
-        });
-        setRecipientVerified(false);
+        if (newProfile) {
+          setRecipientId(newProfile.id);
+          setRecipientVerified(true);
+          toast({
+            title: "Nouveau bénéficiaire créé",
+            description: `Un compte a été créé pour ${fullPhone}`
+          });
+        }
       } else if (result.recipientData) {
-        // Destinataire trouvé dans le système mais pas vérifié (nouvel utilisateur)
-        setRecipientName(result.recipientData.fullName || fullPhone);
-        toast({
-          title: "Numéro non enregistré",
-          description: "Ce numéro n'est pas encore inscrit dans le système",
-          variant: "destructive"
-        });
-        setRecipientVerified(false);
+        // Create new profile if not found
+        console.log("Création d'un nouveau profil pour:", fullPhone);
+        
+        const { data: newProfile, error: createError } = await supabase.from('profiles').insert({
+          phone: fullPhone,
+          full_name: result.recipientData.fullName || fullPhone,
+          country: agentProfile?.country || "Cameroun",
+          balance: 0,
+          id: crypto.randomUUID()
+        }).select().single();
+        
+        if (createError) {
+          console.error("Erreur lors de la création du profil:", createError);
+          toast({
+            title: "Erreur",
+            description: "Impossible de créer un nouveau profil pour ce numéro",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        if (newProfile) {
+          setRecipientName(result.recipientData.fullName || fullPhone);
+          setRecipientId(newProfile.id);
+          setRecipientVerified(true);
+          toast({
+            title: "Nouveau bénéficiaire créé",
+            description: `Un compte a été créé pour ${fullPhone}`
+          });
+        }
       } else {
-        toast({
-          title: "Destinataire introuvable",
-          description: "Aucun compte associé à ce numéro",
-          variant: "destructive"
-        });
-        setRecipientVerified(false);
-        setRecipientName("");
-        setRecipientId("");
+        // Create a minimal profile with just the phone number
+        const { data: newProfile, error: createError } = await supabase.from('profiles').insert({
+          phone: fullPhone,
+          full_name: fullPhone,
+          country: agentProfile?.country || "Cameroun",
+          balance: 0,
+          id: crypto.randomUUID()
+        }).select().single();
+        
+        if (createError) {
+          console.error("Erreur lors de la création du profil minimal:", createError);
+          toast({
+            title: "Erreur",
+            description: "Impossible de créer un nouveau profil pour ce numéro",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        if (newProfile) {
+          setRecipientName(fullPhone);
+          setRecipientId(newProfile.id);
+          setRecipientVerified(true);
+          toast({
+            title: "Nouveau bénéficiaire créé",
+            description: `Un compte a été créé pour ${fullPhone}`
+          });
+        }
       }
     } catch (err) {
       console.error("Error checking recipient:", err);
@@ -255,7 +305,7 @@ const AgentDeposit = () => {
     }
 
     // Basic validation
-    if (!formData.recipientPhone || !formData.amount || !isVerified || !recipientId) {
+    if (!formData.recipientPhone || !formData.amount || !recipientId) {
       toast({
         title: "Formulaire incomplet",
         description: "Veuillez remplir tous les champs obligatoires et vérifier le bénéficiaire",
@@ -296,17 +346,6 @@ const AgentDeposit = () => {
         throw new Error("Solde insuffisant pour effectuer ce dépôt");
       }
 
-      // Vérifier si le bénéficiaire existe (encore une fois par sécurité)
-      const { data: recipientProfile, error: recipientProfileError } = await supabase
-        .from('profiles')
-        .select('id, country')
-        .eq('id', recipientId)
-        .single();
-
-      if (recipientProfileError) {
-        throw new Error("Le bénéficiaire n'existe pas ou n'est plus accessible");
-      }
-
       // Calculer une commission de 0.5% pour l'agent
       const agentCommission = amount * 0.005;
       
@@ -325,11 +364,16 @@ const AgentDeposit = () => {
 
       // 2. Ajouter le montant au compte du bénéficiaire
       const { error: creditError } = await supabase.rpc('increment_balance', {
-        user_id: recipientProfile.id,
+        user_id: recipientId,
         amount: amount
       });
 
       if (creditError) {
+        // Annuler la déduction si le crédit échoue
+        await supabase.rpc('increment_balance', {
+          user_id: user.id,
+          amount: amount
+        });
         throw creditError;
       }
       
@@ -348,9 +392,9 @@ const AgentDeposit = () => {
       const { error: transactionError } = await supabase
         .from('recharges')
         .insert({
-          user_id: recipientProfile.id,
+          user_id: recipientId,
           amount: amount,
-          country: recipientProfile.country || "Cameroun",
+          country: agentProfile.country || "Cameroun",
           payment_method: 'agent_deposit',
           payment_phone: fullPhone,
           payment_provider: 'agent',
@@ -438,7 +482,7 @@ const AgentDeposit = () => {
               <Button
                 type="submit"
                 className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4 h-12 text-lg"
-                disabled={isProcessing || !isVerified}
+                disabled={isProcessing || !recipientId}
               >
                 {isProcessing ? (
                   <div className="flex items-center">
@@ -452,12 +496,6 @@ const AgentDeposit = () => {
                   </div>
                 )}
               </Button>
-              
-              {verificationAttempted && !isVerified && (
-                <p className="text-center text-sm text-red-500 font-medium">
-                  Ce numéro n'est pas reconnu dans le système. Veuillez vérifier le numéro ou inscrire la personne.
-                </p>
-              )}
             </form>
           </CardContent>
         </Card>

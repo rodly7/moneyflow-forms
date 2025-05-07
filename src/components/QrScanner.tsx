@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { QrCode, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useTransferForm } from "@/hooks/useTransferForm";
+import { supabase, processWithdrawalVerification } from "@/integrations/supabase/client";
 import {
   InputOTP,
   InputOTPGroup,
@@ -22,7 +23,6 @@ const QrScanner = () => {
   const queryClient = useQueryClient();
   const qrRef = useRef(null);
   const navigate = useNavigate();
-  const { confirmWithdrawal } = useTransferForm();
 
   useEffect(() => {
     let html5Qrcode: Html5Qrcode | null = null;
@@ -96,10 +96,10 @@ const QrScanner = () => {
       
       console.log("Processing verification code:", code);
       
-      // Use the confirmWithdrawal function from useTransferForm
-      const result = await confirmWithdrawal(code);
+      // Process withdrawal verification using function from client.ts
+      const result = await processWithdrawalVerification(code, user.id);
       
-      if (result.success) {
+      if (result) {
         // Refresh cache
         queryClient.invalidateQueries({
           queryKey: ['withdrawals']
@@ -119,7 +119,7 @@ const QrScanner = () => {
       } else {
         toast({
           title: "Erreur",
-          description: result.message || "Une erreur est survenue lors du traitement du retrait",
+          description: "Une erreur est survenue lors du traitement du retrait",
           variant: "destructive"
         });
       }
