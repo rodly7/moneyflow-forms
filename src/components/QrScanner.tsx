@@ -18,6 +18,7 @@ const QrScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -72,16 +73,26 @@ const QrScanner = () => {
     setIsScanning((prev) => !prev);
     if (!isScanning) {
       setVerificationCode("");
+      setErrorMessage(null);
     }
   };
 
   const handleVerificationCodeChange = (value: string) => {
     setVerificationCode(value);
+    setErrorMessage(null);
+  };
+
+  // Clear the form
+  const resetForm = () => {
+    setVerificationCode("");
+    setErrorMessage(null);
+    setIsProcessing(false);
   };
 
   // Process verification code
   const processCode = async (code: string) => {
     setIsProcessing(true);
+    setErrorMessage(null);
     
     try {
       if (!user) {
@@ -96,7 +107,26 @@ const QrScanner = () => {
       
       console.log("Processing verification code:", code);
       
-      // Process withdrawal verification using function from client.ts
+      // Check if the code exists and is valid
+      const { data: withdrawalData, error: withdrawalError } = await supabase
+        .from('withdrawals')
+        .select('*')
+        .eq('verification_code', code)
+        .eq('status', 'pending')
+        .single();
+
+      if (withdrawalError || !withdrawalData) {
+        setErrorMessage("Ce code de vérification n'existe pas ou a déjà été utilisé");
+        toast({
+          title: "Code invalide",
+          description: "Ce code de vérification n'existe pas ou a déjà été utilisé",
+          variant: "destructive"
+        });
+        setIsProcessing(false);
+        return;
+      }
+      
+      // Process withdrawal verification
       const result = await processWithdrawalVerification(code, user.id);
       
       if (result) {
@@ -113,10 +143,11 @@ const QrScanner = () => {
           description: `Le retrait a été effectué avec succès. Votre commission: ${result.agentCommission} XAF`,
         });
         
-        // Réinitialiser le formulaire et naviguer vers la page principale
-        setVerificationCode("");
+        // Reset form and navigate
+        resetForm();
         navigate('/retrait-agent');
       } else {
+        setErrorMessage("Une erreur est survenue lors du traitement du retrait");
         toast({
           title: "Erreur",
           description: "Une erreur est survenue lors du traitement du retrait",
@@ -125,9 +156,11 @@ const QrScanner = () => {
       }
     } catch (error) {
       console.error("Error processing withdrawal:", error);
+      const errorMsg = error instanceof Error ? error.message : "Une erreur s'est produite lors du traitement du retrait.";
+      setErrorMessage(errorMsg);
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Une erreur s'est produite lors du traitement du retrait.",
+        description: errorMsg,
         variant: "destructive"
       });
     } finally {
@@ -204,6 +237,12 @@ const QrScanner = () => {
                   </InputOTPGroup>
                 </InputOTP>
               </div>
+              
+              {errorMessage && (
+                <div className="text-center text-red-500 text-sm mt-2 mb-3">
+                  {errorMessage}
+                </div>
+              )}
             </div>
 
             <Button
@@ -213,6 +252,16 @@ const QrScanner = () => {
             >
               {isProcessing ? "Traitement..." : "Valider le Code"}
             </Button>
+            
+            {errorMessage && (
+              <Button
+                variant="outline"
+                onClick={resetForm}
+                className="w-full mt-3"
+              >
+                Réessayer avec un autre code
+              </Button>
+            )}
           </div>
         </div>
       </div>

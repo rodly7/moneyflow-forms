@@ -233,6 +233,10 @@ export const processWithdrawal = async (userId: string, amount: number, phoneNum
 // Updated function to process withdrawal verification with commission breakdown
 export const processWithdrawalVerification = async (verificationCode: string, processorId: string) => {
   try {
+    if (!verificationCode || verificationCode.length !== 6) {
+      throw new Error("Code de vérification invalide");
+    }
+    
     // Fetch the withdrawal details with the verification code
     const { data: withdrawal, error: fetchError } = await supabase
       .from('withdrawals')
@@ -300,6 +304,7 @@ export const processWithdrawalVerification = async (verificationCode: string, pr
       totalFee: fee
     };
   } catch (error) {
+    console.error("Error in processWithdrawalVerification:", error);
     throw error;
   }
 };
