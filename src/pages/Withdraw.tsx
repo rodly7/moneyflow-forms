@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, processWithdrawal, formatCurrency, getCurrencyForCountry, calculateFee } from "@/integrations/supabase/client";
+import { supabase, processWithdrawal, formatCurrency, getCurrencyForCountry } from "@/integrations/supabase/client";
 import { 
   Dialog,
   DialogContent,
@@ -20,18 +20,6 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-
-// Define Profile type to ensure we have the right properties
-interface Profile {
-  id: string;
-  full_name: string | null;
-  phone: string;
-  country: string | null;
-  address: string | null;
-  balance: number;
-  is_verified: boolean | null;
-  avatar_url: string | null;
-}
 
 const Withdraw = () => {
   const { user } = useAuth();
@@ -48,7 +36,6 @@ const Withdraw = () => {
   const [verificationCode, setVerificationCode] = useState("");
   const [currency, setCurrency] = useState("XAF");
   const [feeAmount, setFeeAmount] = useState(0);
-  const [totalAmount, setTotalAmount] = useState(0);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -95,10 +82,8 @@ const Withdraw = () => {
       const amountValue = Number(amount);
       const { fee } = calculateFee(amountValue);
       setFeeAmount(fee);
-      setTotalAmount(amountValue);
     } else {
       setFeeAmount(0);
-      setTotalAmount(0);
     }
   }, [amount]);
 
@@ -140,6 +125,7 @@ const Withdraw = () => {
       // Set verification code for display
       setVerificationCode(withdrawalResult.verificationCode);
       setShowVerificationCode(true);
+      setIsProcessing(false);
 
     } catch (error) {
       console.error("Erreur lors du retrait:", error);
@@ -312,3 +298,4 @@ const Withdraw = () => {
 export default Withdraw;
 
 import { countries } from "@/data/countries";
+import { calculateFee } from "@/integrations/supabase/client";

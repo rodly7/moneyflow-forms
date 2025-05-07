@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -400,8 +399,7 @@ const AgentDeposit = () => {
           payment_provider: 'agent',
           transaction_reference: transactionReference,
           status: 'completed',
-          provider_transaction_id: user.id,
-          agent_commission: agentCommission
+          provider_transaction_id: user.id
         });
 
       if (transactionError) {
