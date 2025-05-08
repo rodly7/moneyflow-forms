@@ -13,35 +13,13 @@ type TransferDetailsProps = TransferData & {
 };
 
 const TransferDetails = ({ transfer, recipient, updateFields }: TransferDetailsProps) => {
-  // Get current user's country and role from profile/context
+  // Get current user's role from context
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   
-  const { data: profile } = useQuery({
-    queryKey: ['profile'],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('country')
-        .eq('id', user.id)
-        .single();
-      
-      if (error) {
-        console.error("Error fetching user profile:", error);
-        return null;
-      }
-      return data;
-    },
-  });
-
-  const userCountry = profile?.country || "Cameroun"; // Default to Cameroun if profile not found
-  const isInternational = recipient.country && recipient.country !== userCountry;
-  
   // For agents, restrict to international transfers only
   useEffect(() => {
-    if (userRole === 'agent' && !isInternational && recipient.country) {
+    if (userRole === 'agent' && recipient.country && recipient.country === "Cameroun") {
       toast({
         title: "Transfert non autorisé",
         description: "En tant qu'agent, vous ne pouvez effectuer que des transferts internationaux",
@@ -52,22 +30,20 @@ const TransferDetails = ({ transfer, recipient, updateFields }: TransferDetailsP
         recipient: { ...recipient, country: "" }
       });
     }
-  }, [recipient.country, userRole, isInternational]);
+  }, [recipient.country, userRole]);
   
-  // Calculate fees using the updated function with user role
+  // Calculate fees using the updated function with fixed 6% rate
   const { fee: fees, rate: feeRate } = calculateFee(
     transfer.amount, 
-    userCountry, 
+    "any", // No longer needed as we use fixed rates
     recipient.country, 
     userRole || 'user'
   );
   
   const total = transfer.amount + fees;
   
-  // Format fee percentage for display
-  const feePercentageDisplay = userRole === 'agent' 
-    ? (isInternational ? '2%' : '0.5%') 
-    : (isInternational ? '4%' : '1.5%');
+  // Display fixed fee percentage
+  const feePercentageDisplay = userRole === 'agent' ? '6% (2% commission)' : '6%';
 
   return (
     <div className="space-y-6">

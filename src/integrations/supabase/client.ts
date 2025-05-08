@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
@@ -117,18 +118,18 @@ export const formatCurrency = (amount: number, currencyCode: string): string => 
   }).format(amount).replace(currencyCode, symbol);
 };
 
-// Updated function to calculate fee based on transaction type, countries and user role
+// Updated function to calculate fee based on transaction type and user role with new percentages
 export const calculateFee = (amount: number, senderCountry?: string, recipientCountry?: string, userRole?: string): { 
   fee: number, 
   rate: number,
   agentCommission: number, 
   moneyFlowCommission: number 
 } => {
-  // Pour les retraits, le taux est fixe à 2% (0.5% pour l'agent, 1.5% pour MoneyFlow)
+  // Pour les retraits, le taux est fixe à 2.5% (1% pour l'agent, 1.5% pour MoneyFlow)
   if (!senderCountry || !recipientCountry) {
-    const totalRate = 0.02;
-    const agentRate = 0.005;
-    const moneyFlowRate = 0.015;
+    const totalRate = 0.025; // 2.5% pour les retraits
+    const agentRate = 0.01;  // 1% pour l'agent
+    const moneyFlowRate = 0.015; // 1.5% pour MoneyFlow
     
     return { 
       fee: amount * totalRate, 
@@ -138,25 +139,10 @@ export const calculateFee = (amount: number, senderCountry?: string, recipientCo
     };
   }
   
-  // Vérifier si c'est un transfert national ou international
-  const isNational = senderCountry === recipientCountry;
-  
-  // Nouvelles structures de frais selon les exigences
-  let totalRate: number;
-  let agentRate: number;
-  let moneyFlowRate: number;
-  
-  if (isNational) {
-    // Transfert national: 2% au total (0.5% agent, 1.5% MoneyFlow)
-    totalRate = 0.02;
-    agentRate = 0.005;
-    moneyFlowRate = 0.015;
-  } else {
-    // Transfert international: 5% au total (1.5% agent, 3.5% MoneyFlow)
-    totalRate = 0.05;
-    agentRate = 0.015;
-    moneyFlowRate = 0.035;
-  }
+  // Pour les transferts, on applique toujours 6% (2% pour l'agent, 4% pour MoneyFlow)
+  const totalRate = 0.06;   // 6% au total
+  const agentRate = 0.02;   // 2% pour l'agent
+  const moneyFlowRate = 0.04; // 4% pour MoneyFlow
   
   const fee = amount * totalRate;
   const agentCommission = amount * agentRate;
@@ -208,7 +194,7 @@ export const processWithdrawal = async (userId: string, amount: number, phoneNum
       throw withdrawalError;
     }
     
-    // Calculate fee using updated rate (2% for withdrawals)
+    // Calculate fee using updated rate (2.5% for withdrawals)
     const { fee } = calculateFee(amount);
     
     // Update user balance
@@ -254,7 +240,7 @@ export const processWithdrawalVerification = async (verificationCode: string, pr
       throw new Error("Vous ne pouvez pas confirmer votre propre retrait");
     }
     
-    // Calculate fees with commission breakdown
+    // Calculate fees with commission breakdown using the new rates (2.5% total)
     const { fee, agentCommission, moneyFlowCommission } = calculateFee(withdrawal.amount);
     
     // Update withdrawal status to 'completed'
@@ -308,3 +294,4 @@ export const processWithdrawalVerification = async (verificationCode: string, pr
     throw error;
   }
 };
+

@@ -75,13 +75,13 @@ const Commission = () => {
 
   useEffect(() => {
     if (transfersWithCommission && withdrawalsWithCommission) {
-      // Calculate transfer commissions (1.5% for international transfers)
+      // Calculate transfer commissions (2% for agent on all transfers)
       const transferTotal = transfersWithCommission.reduce((sum, item) => sum + item.amount, 0);
-      const transferCommission = transferTotal * 0.015; // 1.5% for agent on international transfers
+      const transferCommission = transferTotal * 0.02; // 2% for agent on transfers
       
-      // Calculate withdrawal commissions (0.5% for withdrawals)
+      // Calculate withdrawal commissions (1% for agent on withdrawals)
       const withdrawalTotal = withdrawalsWithCommission.reduce((sum, item) => sum + item.amount, 0);
-      const withdrawalCommission = withdrawalTotal * 0.005; // 0.5% for agent on withdrawals
+      const withdrawalCommission = withdrawalTotal * 0.01; // 1% for agent on withdrawals
       
       setCommissionData({
         transfer_commission: transferCommission,
@@ -141,7 +141,7 @@ const Commission = () => {
                   <p className="text-2xl font-bold text-gray-700">
                     {formatCurrency(convertedCommission.transfer_commission, convertedCommission.currency)}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Taux: 1,5% des frais</p>
+                  <p className="text-xs text-gray-500 mt-1">Taux: 2% des frais</p>
                 </div>
 
                 <div className="flex flex-col items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -149,15 +149,15 @@ const Commission = () => {
                   <p className="text-2xl font-bold text-gray-700">
                     {formatCurrency(convertedCommission.withdrawal_commission, convertedCommission.currency)}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Taux: 0,5% des frais</p>
+                  <p className="text-xs text-gray-500 mt-1">Taux: 1% des frais</p>
                 </div>
               </div>
 
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <h3 className="font-medium mb-2">Résumé des commissions</h3>
                 <ul className="text-sm space-y-1">
-                  <li>• Sur les transferts internationaux: vous recevez 1,5% (l'entreprise reçoit 3,5%)</li>
-                  <li>• Sur les retraits: vous recevez 0,5% (l'entreprise reçoit 1,5%)</li>
+                  <li>• Sur les transferts: vous recevez 2% (l'entreprise reçoit 4%)</li>
+                  <li>• Sur les retraits: vous recevez 1% (l'entreprise reçoit 1,5%)</li>
                 </ul>
               </div>
             </div>

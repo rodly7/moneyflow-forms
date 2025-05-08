@@ -10,40 +10,20 @@ type TransferSummaryProps = TransferData & {
 };
 
 const TransferSummary = ({ recipient, transfer }: TransferSummaryProps) => {
-  // Get current user's country and role from profile/context
+  // Get current user's role from context
   const { user, userRole } = useAuth();
-  const { data: profile } = useQuery({
-    queryKey: ['profile'],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('country')
-        .eq('id', user.id)
-        .single();
-      
-      if (error) {
-        console.error("Error fetching user profile:", error);
-        return null;
-      }
-      return data;
-    },
-  });
-
-  const userCountry = profile?.country || "Cameroun"; // Default to Cameroun if profile not found
   
-  // Apply different fee rates based on whether the transfer is national or international
-  const isInternational = recipient.country && recipient.country !== userCountry;
-  
-  // Calculate fees using the new function with user role
-  const { fee: fees } = calculateFee(transfer.amount, userCountry, recipient.country, userRole || 'user');
+  // Calculate fees using the new function with fixed 6% rate
+  const { fee: fees } = calculateFee(
+    transfer.amount, 
+    "any", // No longer using country for fee calculation
+    recipient.country, 
+    userRole || 'user'
+  );
   const total = transfer.amount + fees;
 
-  // Format fee percentage for display
-  const feePercentageDisplay = userRole === 'agent' 
-    ? (isInternational ? '2%' : '0.5%') 
-    : (isInternational ? '4%' : '1.5%');
+  // Display fixed fee percentage
+  const feePercentageDisplay = userRole === 'agent' ? '6% (2% commission)' : '6%';
 
   return (
     <div className="space-y-6">
