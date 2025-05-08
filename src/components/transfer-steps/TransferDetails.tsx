@@ -3,10 +3,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TransferData } from "@/types/transfer";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
-import { supabase, calculateFee } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { calculateFee } from "@/integrations/supabase/client";
 
 type TransferDetailsProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
@@ -17,7 +16,7 @@ const TransferDetails = ({ transfer, recipient, updateFields }: TransferDetailsP
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   
-  // For agents, restrict to international transfers only
+  // Pour les agents, restreindre aux transferts internationaux uniquement
   useEffect(() => {
     if (userRole === 'agent' && recipient.country && recipient.country === "Cameroun") {
       toast({

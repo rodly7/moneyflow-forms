@@ -2,8 +2,7 @@
 import { Card } from "@/components/ui/card";
 import { TransferData } from "@/types/transfer";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
-import { supabase, calculateFee } from "@/integrations/supabase/client";
+import { calculateFee } from "@/integrations/supabase/client";
 
 type TransferSummaryProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
