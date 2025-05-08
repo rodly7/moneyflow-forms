@@ -1,5 +1,5 @@
 
-import { ArrowUpRight, Banknote, CreditCard, Wallet, UserMinus, Receipt } from "lucide-react";
+import { ArrowUpRight, Banknote, CreditCard, UserMinus, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,10 +13,16 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
   
   return (
     <div className="mx-4 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
-      {/* Transfer - Available for all users */}
-      <Button onClick={onTransferClick} variant="outline" className="flex flex-col items-center justify-center h-20 bg-white">
+      {/* Transfer - Show for agent only for international transfers */}
+      <Button 
+        onClick={onTransferClick} 
+        variant="outline" 
+        className="flex flex-col items-center justify-center h-20 bg-white"
+      >
         <ArrowUpRight className="h-5 w-5 mb-1" />
-        <span className="text-xs font-medium">Transfert</span>
+        <span className="text-xs font-medium">
+          {isAgent() ? "Transfert International" : "Transfert"}
+        </span>
       </Button>
       
       {/* Mobile recharge - Only for regular users */}
@@ -29,15 +35,13 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
         </Link>
       )}
       
-      {/* Withdraw - Only for regular users */}
-      {!isAgent() && (
-        <Link to="/withdraw" className="w-full">
-          <Button variant="outline" className="flex flex-col items-center justify-center h-20 bg-white w-full">
-            <UserMinus className="h-5 w-5 mb-1" />
-            <span className="text-xs font-medium">Retirer</span>
-          </Button>
-        </Link>
-      )}
+      {/* Withdraw - For all users */}
+      <Link to={isAgent() ? "/agent-withdrawal" : "/withdraw"} className="w-full">
+        <Button variant="outline" className="flex flex-col items-center justify-center h-20 bg-white w-full">
+          <UserMinus className="h-5 w-5 mb-1" />
+          <span className="text-xs font-medium">Retrait</span>
+        </Button>
+      </Link>
       
       {/* Payments - Only for regular users */}
       {!isAgent() && (
@@ -45,26 +49,6 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
           <Button variant="outline" className="flex flex-col items-center justify-center h-20 bg-white w-full">
             <CreditCard className="h-5 w-5 mb-1" />
             <span className="text-xs font-medium">Paiements</span>
-          </Button>
-        </Link>
-      )}
-      
-      {/* Dépôt - For agents only */}
-      {isAgent() && (
-        <Link to="/agent-deposit" className="w-full">
-          <Button variant="outline" className="flex flex-col items-center justify-center h-20 bg-white w-full">
-            <Banknote className="h-5 w-5 mb-1" />
-            <span className="text-xs font-medium">Dépôt</span>
-          </Button>
-        </Link>
-      )}
-      
-      {/* Retrait - For agents only */}
-      {isAgent() && (
-        <Link to="/agent-withdrawal" className="w-full">
-          <Button variant="outline" className="flex flex-col items-center justify-center h-20 bg-white w-full border-emerald-200 bg-emerald-50">
-            <Wallet className="h-5 w-5 mb-1 text-emerald-600" />
-            <span className="text-xs font-medium text-emerald-600">Retrait</span>
           </Button>
         </Link>
       )}

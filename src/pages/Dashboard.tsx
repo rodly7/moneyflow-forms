@@ -1,7 +1,7 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import { supabase, formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
+import { supabase, formatCurrency, getCurrencyForCountry } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -9,7 +9,7 @@ import { CreditCard, Wallet } from "lucide-react";
 import BalanceCard from "@/components/dashboard/BalanceCard";
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, isAgent } = useAuth();
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
@@ -23,6 +23,7 @@ const Dashboard = () => {
       if (error) throw error;
       return data;
     },
+    enabled: !!user,
   });
 
   if (isLoading) {
@@ -33,6 +34,7 @@ const Dashboard = () => {
 
   const userCurrency = profile?.country ? getCurrencyForCountry(profile.country) : "XAF";
   const convertedBalance = profile?.balance ? profile.balance : 0;
+  const isUserAgent = isAgent();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-8 px-4">
@@ -53,16 +55,23 @@ const Dashboard = () => {
               Recevoir de l'argent
             </Button>
           </Link>
-          <Link to="/withdraw">
+          <Link to={isUserAgent ? "/agent-withdrawal" : "/withdraw"}>
             <Button
               variant="outline"
               className="w-full h-24 text-lg border-2"
             >
               <CreditCard className="w-6 h-6 mr-2" />
-              Retirer de l'argent
+              {isUserAgent ? "Gérer les retraits" : "Retirer de l'argent"}
             </Button>
           </Link>
         </div>
+
+        {isUserAgent && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-sm text-emerald-800">
+            <p className="font-medium">Vous êtes connecté en tant qu'agent</p>
+            <p>Vous pouvez gérer les retraits et effectuer des transferts internationaux</p>
+          </div>
+        )}
       </div>
     </div>
   );

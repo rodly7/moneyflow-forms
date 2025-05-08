@@ -3,7 +3,6 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Navigate,
 } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Auth from "@/pages/Auth";
@@ -20,10 +19,8 @@ import { Toaster } from "@/components/ui/toaster"
 import Withdraw from "@/pages/Withdraw";
 import Dashboard from "@/pages/Dashboard";
 import VerifyIdentity from "@/pages/VerifyIdentity";
-import AgentDashboard from "@/pages/AgentDashboard";
-import AgentDeposit from "@/pages/AgentDeposit";
-import AgentWithdrawal from "@/pages/AgentWithdrawal";
 import Commission from "@/pages/Commission";
+import AgentWithdrawal from "@/pages/AgentWithdrawal";
 
 function App() {
   return (
@@ -41,12 +38,8 @@ function App() {
           <Route path="/bill-payments" element={<Layout><BillPayments /></Layout>} />
           <Route path="/prepaid-cards" element={<Layout><PrepaidCards /></Layout>} />
           <Route path="/transactions" element={<Layout><Transactions /></Layout>} />
-          <Route path="/retrait-agent" element={<Layout><AgentDashboard /></Layout>} />
-          <Route path="/agent-deposit" element={<Layout><AgentDeposit /></Layout>} />
-          <Route path="/agent-withdrawal" element={<Layout><AgentWithdrawal /></Layout>} />
           <Route path="/commission" element={<Layout><Commission /></Layout>} />
-          {/* Add redirection from /agent to /retrait-agent */}
-          <Route path="/agent" element={<Navigate to="/retrait-agent" replace />} />
+          <Route path="/agent-withdrawal" element={<Layout><AgentWithdrawal /></Layout>} />
           <Route path="*" element={<Auth />} />
         </Routes>
         <Toaster />

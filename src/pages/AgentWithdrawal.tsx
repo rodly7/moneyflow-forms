@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -52,10 +52,10 @@ const AgentWithdrawal = () => {
   });
 
   // Mettre à jour le code pays en fonction du pays de l'agent
-  useEffect(() => {
+  useState(() => {
     if (agentProfile?.country) {
       // Mapper le pays vers le code de pays approprié
-      const countryToCodes: Record<string, string> = {
+      const countryToCodes = {
         "Cameroun": "+237",
         "Cameroon": "+237",
         "Congo Brazzaville": "+242",
@@ -71,10 +71,10 @@ const AgentWithdrawal = () => {
         "Ghana": "+233",
       };
       
-      const code = countryToCodes[agentProfile.country] || "+237";
+      const code = countryToCodes[agentProfile.country as keyof typeof countryToCodes] || "+237";
       setCountryCode(code);
     }
-  }, [agentProfile]);
+  });
 
   // Handle form input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,16 +162,17 @@ const AgentWithdrawal = () => {
             .select('id, phone');
           
           if (profiles) {
-            for (const profile of profiles) {
-              if (profile.phone) {
-                const profileLastDigits = profile.phone.replace(/\D/g, '').slice(-8);
-                if (profileLastDigits === lastDigits) {
-                  setRecipientId(profile.id);
-                  console.log("ID récupéré par correspondance des derniers chiffres:", profile.id);
-                  setRecipientVerified(true);
-                  return;
-                }
-              }
+            const matchingProfile = profiles.find(profile => {
+              if (!profile.phone) return false;
+              const profileLastDigits = profile.phone.replace(/\D/g, '').slice(-8);
+              return profileLastDigits === lastDigits;
+            });
+            
+            if (matchingProfile) {
+              setRecipientId(matchingProfile.id);
+              console.log("ID récupéré par correspondance des derniers chiffres:", matchingProfile.id);
+              setRecipientVerified(true);
+              return;
             }
           }
         }
@@ -206,17 +207,6 @@ const AgentWithdrawal = () => {
       setRecipientId("");
     }
   };
-
-  // Verify recipient automatically as they type
-  useEffect(() => {
-    if (formData.recipientPhone && formData.recipientPhone.length >= 8) {
-      const delayDebounceFn = setTimeout(() => {
-        handleVerifyRecipient();
-      }, 500);
-      
-      return () => clearTimeout(delayDebounceFn);
-    }
-  }, [formData.recipientPhone, countryCode]);
 
   // Handle withdrawal submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -265,8 +255,12 @@ const AgentWithdrawal = () => {
         .eq('id', recipientId)
         .single();
 
-      if (clientProfileError || !clientProfile) {
+      if (clientProfileError) {
         throw new Error("Impossible de vérifier le solde du client");
+      }
+
+      if (!clientProfile) {
+        throw new Error("Profil client introuvable");
       }
 
       if (clientProfile.balance < amount) {
@@ -354,7 +348,7 @@ const AgentWithdrawal = () => {
       setRecipientId("");
 
       // Redirection vers la page d'accueil
-      navigate('/agent');
+      navigate('/dashboard');
     } catch (error) {
       console.error('Erreur lors du retrait:', error);
       toast({
@@ -371,7 +365,7 @@ const AgentWithdrawal = () => {
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-4">
       <div className="container max-w-lg mx-auto space-y-6">
         <div className="flex items-center justify-between mb-4">
-          <Button variant="ghost" onClick={() => navigate('/agent')} className="text-gray-700">
+          <Button variant="ghost" onClick={() => navigate('/dashboard')} className="text-gray-700">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
           </Button>

@@ -5,6 +5,8 @@ import { TransferData } from "@/types/transfer";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, calculateFee } from "@/integrations/supabase/client";
+import { useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 type TransferDetailsProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
@@ -13,6 +15,8 @@ type TransferDetailsProps = TransferData & {
 const TransferDetails = ({ transfer, recipient, updateFields }: TransferDetailsProps) => {
   // Get current user's country and role from profile/context
   const { user, userRole } = useAuth();
+  const { toast } = useToast();
+  
   const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
@@ -33,9 +37,22 @@ const TransferDetails = ({ transfer, recipient, updateFields }: TransferDetailsP
   });
 
   const userCountry = profile?.country || "Cameroun"; // Default to Cameroun if profile not found
-  
-  // Apply different fee rates based on role and transfer type
   const isInternational = recipient.country && recipient.country !== userCountry;
+  
+  // For agents, restrict to international transfers only
+  useEffect(() => {
+    if (userRole === 'agent' && !isInternational && recipient.country) {
+      toast({
+        title: "Transfert non autorisé",
+        description: "En tant qu'agent, vous ne pouvez effectuer que des transferts internationaux",
+        variant: "destructive"
+      });
+      // Reset the recipient country
+      updateFields({
+        recipient: { ...recipient, country: "" }
+      });
+    }
+  }, [recipient.country, userRole, isInternational]);
   
   // Calculate fees using the updated function with user role
   const { fee: fees, rate: feeRate } = calculateFee(

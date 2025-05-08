@@ -1,13 +1,12 @@
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const QrScanner = () => {
-  const { toast } = useToast();
   const navigate = useNavigate();
+  const { isAgent } = useAuth();
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0">
@@ -16,7 +15,7 @@ const QrScanner = () => {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => navigate('/retrait-agent')}
+            onClick={() => navigate('/dashboard')}
             className="text-gray-700"
           >
             <X className="w-5 h-5" />
@@ -38,7 +37,7 @@ const QrScanner = () => {
 
             <Button
               variant="default"
-              onClick={() => navigate('/agent')}
+              onClick={() => navigate(isAgent() ? '/agent-withdrawal' : '/withdraw')}
               className="w-full mb-4"
             >
               <X className="mr-2 h-4 w-4" />
