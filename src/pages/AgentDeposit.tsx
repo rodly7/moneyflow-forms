@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -358,7 +359,7 @@ const AgentDeposit = () => {
       });
 
       if (deductError) {
-        throw deductError;
+        throw new Error("Erreur lors de la déduction du montant de votre compte");
       }
 
       // 2. Ajouter le montant au compte du bénéficiaire
@@ -373,7 +374,7 @@ const AgentDeposit = () => {
           user_id: user.id,
           amount: amount
         });
-        throw creditError;
+        throw new Error("Erreur lors du crédit du compte bénéficiaire");
       }
       
       // 3. Recrediter la commission à l'agent
@@ -387,7 +388,7 @@ const AgentDeposit = () => {
         // On continue même en cas d'erreur pour ne pas bloquer la transaction
       }
 
-      // 4. Enregistrer la transaction dans la table recharges avec enable_rls explicitement à true
+      // 4. Enregistrer la transaction dans la table recharges
       const { error: transactionError } = await supabase
         .from('recharges')
         .insert({
@@ -400,11 +401,11 @@ const AgentDeposit = () => {
           transaction_reference: transactionReference,
           status: 'completed',
           provider_transaction_id: user.id
-        }, { count: 'exact' });
+        });
 
       if (transactionError) {
         console.error('Erreur transaction:', transactionError);
-        throw new Error("Erreur lors de l'enregistrement de la transaction");
+        // Ne pas annuler la transaction même en cas d'erreur d'enregistrement
       }
 
       // Notification de succès

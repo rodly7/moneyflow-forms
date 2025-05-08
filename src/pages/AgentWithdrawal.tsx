@@ -41,7 +41,7 @@ const AgentWithdrawal = () => {
       if (!user?.id) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('country')
+        .select('country, balance')
         .eq('id', user.id)
         .single();
       
