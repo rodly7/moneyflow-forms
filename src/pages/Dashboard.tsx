@@ -5,7 +5,7 @@ import { supabase, formatCurrency, getCurrencyForCountry } from "@/integrations/
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { CreditCard, Wallet } from "lucide-react";
+import { CreditCard, Wallet, Star } from "lucide-react";
 import BalanceCard from "@/components/dashboard/BalanceCard";
 
 const Dashboard = () => {
@@ -55,7 +55,7 @@ const Dashboard = () => {
               Recevoir de l'argent
             </Button>
           </Link>
-          <Link to={isUserAgent ? "/agent-withdrawal" : "/withdraw"}>
+          <Link to="/withdraw">
             <Button
               variant="outline"
               className="w-full h-24 text-lg border-2"
@@ -67,10 +67,28 @@ const Dashboard = () => {
         </div>
 
         {isUserAgent && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-sm text-emerald-800">
-            <p className="font-medium">Vous êtes connecté en tant qu'agent</p>
-            <p>Vous pouvez gérer les retraits et effectuer des transferts internationaux</p>
-          </div>
+          <Card className="bg-emerald-50 border border-emerald-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Star className="h-5 w-5 text-amber-500 fill-amber-500" />
+                <h3 className="font-medium">Profil Agent</h3>
+              </div>
+              <p className="text-sm text-emerald-800">Vous êtes connecté en tant qu'agent. Vous pouvez gérer les retraits et effectuer des transferts internationaux.</p>
+              
+              <div className="flex gap-2 mt-3">
+                <Link to="/commission">
+                  <Button size="sm" variant="outline" className="bg-white">
+                    Commissions
+                  </Button>
+                </Link>
+                <Link to="/transactions">
+                  <Button size="sm" variant="outline" className="bg-white">
+                    Transactions
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

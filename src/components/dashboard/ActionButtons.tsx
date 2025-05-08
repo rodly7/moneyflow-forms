@@ -9,7 +9,7 @@ interface ActionButtonsProps {
 }
 
 const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
-  const { isAgent, user } = useAuth();
+  const { isAgent } = useAuth();
   
   return (
     <div className="mx-4 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
@@ -36,7 +36,7 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
       )}
       
       {/* Withdraw - For all users */}
-      <Link to={isAgent() ? "/agent-withdrawal" : "/withdraw"} className="w-full">
+      <Link to="/withdraw" className="w-full">
         <Button variant="outline" className="flex flex-col items-center justify-center h-20 bg-white w-full">
           <UserMinus className="h-5 w-5 mb-1" />
           <span className="text-xs font-medium">Retrait</span>

@@ -37,7 +37,7 @@ const QrScanner = () => {
 
             <Button
               variant="default"
-              onClick={() => navigate(isAgent() ? '/agent-withdrawal' : '/withdraw')}
+              onClick={() => navigate('/withdraw')}
               className="w-full mb-4"
             >
               <X className="mr-2 h-4 w-4" />

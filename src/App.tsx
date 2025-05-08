@@ -20,7 +20,6 @@ import Withdraw from "@/pages/Withdraw";
 import Dashboard from "@/pages/Dashboard";
 import VerifyIdentity from "@/pages/VerifyIdentity";
 import Commission from "@/pages/Commission";
-import AgentWithdrawal from "@/pages/AgentWithdrawal";
 
 function App() {
   return (
@@ -39,7 +38,6 @@ function App() {
           <Route path="/prepaid-cards" element={<Layout><PrepaidCards /></Layout>} />
           <Route path="/transactions" element={<Layout><Transactions /></Layout>} />
           <Route path="/commission" element={<Layout><Commission /></Layout>} />
-          <Route path="/agent-withdrawal" element={<Layout><AgentWithdrawal /></Layout>} />
           <Route path="*" element={<Auth />} />
         </Routes>
         <Toaster />
