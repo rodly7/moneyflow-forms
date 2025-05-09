@@ -4,20 +4,22 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
-interface ActionButtonsProps {
+type ActionButtonsProps = {
   onTransferClick: () => void;
-}
+};
 
 const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
-  const { isAgent } = useAuth();
+  const { userRole } = useAuth();
+  
+  const isAgent = () => userRole === 'agent';
   
   return (
-    <div className="mx-4 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
-      {/* Transfer - Show for agent only for international transfers */}
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 py-2">
+      {/* Transfer button */}
       <Button 
-        onClick={onTransferClick} 
         variant="outline" 
         className="flex flex-col items-center justify-center h-20 bg-white"
+        onClick={onTransferClick}
       >
         <ArrowUpRight className="h-5 w-5 mb-1" />
         <span className="text-xs font-medium">
@@ -29,7 +31,7 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
       <Button 
         variant="outline" 
         className="flex flex-col items-center justify-center h-20 bg-white"
-        onClick={() => window.location.href = '/verify-identity'}
+        onClick={() => window.location.href = '/deposit'}
       >
         <PiggyBank className="h-5 w-5 mb-1" />
         <span className="text-xs font-medium">Dépôt</span>
@@ -37,41 +39,36 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
       
       {/* Mobile recharge - Only for regular users */}
       {!isAgent() && (
-        <Link to="/mobile-recharge" className="w-full">
-          <Button variant="outline" className="flex flex-col items-center justify-center h-20 bg-white w-full">
-            <Banknote className="h-5 w-5 mb-1" />
-            <span className="text-xs font-medium">Mobile</span>
-          </Button>
-        </Link>
+        <Button 
+          variant="outline" 
+          className="flex flex-col items-center justify-center h-20 bg-white"
+          onClick={() => window.location.href = '/mobile-recharge'}
+        >
+          <CreditCard className="h-5 w-5 mb-1" />
+          <span className="text-xs font-medium">Recharge</span>
+        </Button>
       )}
       
       {/* Withdraw - For all users */}
-      <Link to="/withdraw" className="w-full">
-        <Button variant="outline" className="flex flex-col items-center justify-center h-20 bg-white w-full">
-          <UserMinus className="h-5 w-5 mb-1" />
-          <span className="text-xs font-medium">Retrait</span>
+      <Button 
+        variant="outline" 
+        className="flex flex-col items-center justify-center h-20 bg-white"
+        onClick={() => window.location.href = '/withdraw'}
+      >
+        <UserMinus className="h-5 w-5 mb-1" />
+        <span className="text-xs font-medium">Retrait</span>
+      </Button>
+      
+      {/* Transactions - For all users */}
+      <Link to="/transactions" className="contents">
+        <Button 
+          variant="outline" 
+          className="flex flex-col items-center justify-center h-20 bg-white"
+        >
+          <Receipt className="h-5 w-5 mb-1" />
+          <span className="text-xs font-medium">Transactions</span>
         </Button>
       </Link>
-      
-      {/* Payments - Only for regular users */}
-      {!isAgent() && (
-        <Link to="/bill-payments" className="w-full">
-          <Button variant="outline" className="flex flex-col items-center justify-center h-20 bg-white w-full">
-            <CreditCard className="h-5 w-5 mb-1" />
-            <span className="text-xs font-medium">Paiements</span>
-          </Button>
-        </Link>
-      )}
-      
-      {/* Commission - For agents only */}
-      {isAgent() && (
-        <Link to="/commission" className="w-full">
-          <Button variant="outline" className="flex flex-col items-center justify-center h-20 bg-white w-full border-amber-200 bg-amber-50">
-            <Receipt className="h-5 w-5 mb-1 text-amber-600" />
-            <span className="text-xs font-medium text-amber-600">Commission</span>
-          </Button>
-        </Link>
-      )}
     </div>
   );
 };
