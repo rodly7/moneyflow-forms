@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
     try {
       setIsProcessing(true);
       
-      // Find the withdrawal with this verification code for this user
+      // Trouver le retrait avec ce code de vérification pour cet utilisateur
       const { data: withdrawalData, error: withdrawalError } = await supabase
         .from('withdrawals')
         .select('*')
@@ -58,7 +59,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         throw new Error("Ce code de vérification n'existe pas ou a déjà été utilisé");
       }
 
-      // Check user balance
+      // Vérifier le solde de l'utilisateur
       const { data: userProfile, error: profileError } = await supabase
         .from('profiles')
         .select('balance')
@@ -78,21 +79,23 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         throw new Error("Solde insuffisant pour effectuer ce retrait");
       }
 
-      // Calculate fees using the calculateFee function
+      // Calculer les frais en utilisant la fonction calculateFee
       const { fee, agentCommission, moneyFlowCommission } = calculateFee(withdrawalData.amount);
 
-      // 1. Deduct amount from user account
+      // 1. Débiter le montant du compte utilisateur
       const { error: deductError } = await supabase.rpc('increment_balance', {
         user_id: user.id,
         amount: -(withdrawalData.amount)
       });
 
       if (deductError) {
-        throw deductError;
+        console.error("Erreur lors du débit:", deductError);
+        throw new Error("Erreur lors du débit de votre compte");
       }
 
-      // 2. Add amount (minus fees) + commission to agent account
-      // We need to get agent_id from the withdrawal request first
+      // 2. Trouver l'agent qui a fait la demande et créditer son compte
+      // Pour l'instant, on utilise le premier agent trouvé, mais idéalement il faudrait
+      // stocker l'ID de l'agent qui a fait la demande dans la table withdrawals
       const { data: agentProfiles, error: agentError } = await supabase
         .from('profiles')
         .select('id')
@@ -100,7 +103,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         .limit(1);
 
       if (agentError || !agentProfiles || agentProfiles.length === 0) {
-        // Rollback user deduction
+        // Annuler le débit utilisateur
         await supabase.rpc('increment_balance', {
           user_id: user.id,
           amount: withdrawalData.amount
@@ -109,23 +112,25 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
       }
 
       const agentId = agentProfiles[0].id;
-      const netAmount = withdrawalData.amount - fee + agentCommission;
+      // L'agent reçoit le montant moins les frais plus sa commission
+      const netAmountForAgent = withdrawalData.amount - fee + agentCommission;
       
       const { error: creditError } = await supabase.rpc('increment_balance', {
         user_id: agentId,
-        amount: netAmount
+        amount: netAmountForAgent
       });
 
       if (creditError) {
-        // Rollback user deduction if crediting agent fails
+        console.error("Erreur lors du crédit agent:", creditError);
+        // Annuler le débit utilisateur si le crédit agent échoue
         await supabase.rpc('increment_balance', {
           user_id: user.id,
           amount: withdrawalData.amount
         });
-        throw creditError;
+        throw new Error("Erreur lors du crédit du compte agent");
       }
       
-      // 3. Credit platform commission to admin account
+      // 3. Créditer la commission platform au compte admin
       const { data: adminData, error: adminError } = await supabase
         .from('profiles')
         .select('id')
@@ -139,7 +144,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         });
       }
 
-      // 4. Update withdrawal status to completed
+      // 4. Mettre à jour le statut du retrait à completed
       const { error: updateError } = await supabase
         .from('withdrawals')
         .update({ 
@@ -149,7 +154,8 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         .eq('id', withdrawalData.id);
 
       if (updateError) {
-        throw updateError;
+        console.error("Erreur lors de la mise à jour:", updateError);
+        throw new Error("Erreur lors de la finalisation du retrait");
       }
 
       toast({
@@ -183,7 +189,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
     try {
       setIsProcessing(true);
       
-      // Update withdrawal status to rejected
+      // Mettre à jour le statut du retrait à rejected
       const { error: updateError } = await supabase
         .from('withdrawals')
         .update({ 
