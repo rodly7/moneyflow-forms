@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +29,7 @@ const Dashboard = () => {
       
       const { data, error } = await supabase
         .from('withdrawals')
-        .select('*, agent:agent_id(full_name)')
+        .select('*')
         .eq('user_id', user.id)
         .eq('status', 'agent_pending')
         .order('created_at', { ascending: false });
@@ -77,14 +78,14 @@ const Dashboard = () => {
     enabled: !!user,
   });
 
-  const { data: transactions } = useQuery({
-    queryKey: ['transactions', user?.id],
+  const { data: transfers } = useQuery({
+    queryKey: ['transfers', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
-        .from('transactions')
+        .from('transfers')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('sender_id', user.id)
         .order('created_at', { ascending: false })
         .limit(5);
       if (error) throw error;
@@ -96,7 +97,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-md mx-auto space-y-6">
-        <ProfileHeader />
+        <ProfileHeader profile={profile} />
         
         {/* Pending withdrawal notifications for users */}
         {!isAgent() && pendingWithdrawals.length > 0 && (
@@ -122,14 +123,23 @@ const Dashboard = () => {
           </Card>
         )}
 
-        <BalanceCard />
+        <BalanceCard balance={profile?.balance || 0} userCountry={profile?.country || "Cameroun"} />
         <ActionButtons onTransferClick={() => setShowTransferForm(true)} />
-        <TransactionsCard />
+        <TransactionsCard transactions={transfers || []} onDeleteTransaction={() => {}} />
         
         {showTransferForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-              <TransferForm onClose={() => setShowTransferForm(false)} />
+              <TransferForm />
+              <div className="p-4">
+                <Button 
+                  onClick={() => setShowTransferForm(false)}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Fermer
+                </Button>
+              </div>
             </div>
           </div>
         )}

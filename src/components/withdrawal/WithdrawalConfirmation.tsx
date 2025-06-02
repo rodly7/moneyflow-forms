@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, calculateFee } from "@/integrations/supabase/client";
 import { CheckCircle, XCircle } from "lucide-react";
 
 interface WithdrawalConfirmationProps {
@@ -44,7 +44,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
       // Find the withdrawal with this verification code for this user
       const { data: withdrawalData, error: withdrawalError } = await supabase
         .from('withdrawals')
-        .select('*, agent:agent_id(full_name)')
+        .select('*')
         .eq('verification_code', verificationCode)
         .eq('user_id', user.id)
         .eq('status', 'agent_pending')
@@ -69,6 +69,9 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         throw new Error("Solde insuffisant pour effectuer ce retrait");
       }
 
+      // Calculate fees using the calculateFee function
+      const { fee, agentCommission, moneyFlowCommission } = calculateFee(withdrawalData.amount);
+
       // 1. Deduct amount from user account
       const { error: deductError } = await supabase.rpc('increment_balance', {
         user_id: user.id,
@@ -80,9 +83,27 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
       }
 
       // 2. Add amount (minus fees) + commission to agent account
-      const netAmount = withdrawalData.amount - withdrawalData.fee + withdrawalData.agent_commission;
+      // We need to get agent_id from the withdrawal request first
+      const { data: agentProfiles, error: agentError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('role', 'agent')
+        .limit(1);
+
+      if (agentError || !agentProfiles || agentProfiles.length === 0) {
+        // Rollback user deduction
+        await supabase.rpc('increment_balance', {
+          user_id: user.id,
+          amount: withdrawalData.amount
+        });
+        throw new Error("Aucun agent trouvé pour traiter le retrait");
+      }
+
+      const agentId = agentProfiles[0].id;
+      const netAmount = withdrawalData.amount - fee + agentCommission;
+      
       const { error: creditError } = await supabase.rpc('increment_balance', {
-        user_id: withdrawalData.agent_id,
+        user_id: agentId,
         amount: netAmount
       });
 
@@ -105,7 +126,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
       if (adminData) {
         await supabase.rpc('increment_balance', {
           user_id: adminData.id,
-          amount: withdrawalData.platform_commission
+          amount: moneyFlowCommission
         });
       }
 

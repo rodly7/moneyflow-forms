@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, formatCurrency, getCurrencyForCountry } from "@/integrations/supabase/client";
+import { supabase, formatCurrency, getCurrencyForCountry, calculateFee } from "@/integrations/supabase/client";
 import { countries } from "@/data/countries";
 import PhoneInput from "@/components/transfer-steps/PhoneInput";
 import { useRecipientVerification } from "@/hooks/useRecipientVerification";
@@ -80,8 +80,8 @@ const Withdraw = () => {
   useEffect(() => {
     if (amount && !isNaN(Number(amount))) {
       const amountValue = Number(amount);
-      // Frais de 2% (0.5% pour l'agent, 1.5% pour MoneyFlow)
-      const fee = amountValue * 0.02;
+      // Use the calculateFee function for consistency
+      const { fee } = calculateFee(amountValue);
       setFeeAmount(fee);
     } else {
       setFeeAmount(0);
@@ -243,11 +243,6 @@ const Withdraw = () => {
           throw new Error("Solde insuffisant pour effectuer ce retrait");
         }
 
-        // Calculate fees
-        const agentCommission = amountValue * 0.005;
-        const platformCommission = amountValue * 0.015;
-        const totalFees = agentCommission + platformCommission;
-        
         // Generate verification code for client confirmation
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         
@@ -259,38 +254,17 @@ const Withdraw = () => {
             amount: amountValue,
             withdrawal_phone: formattedPhone,
             status: 'agent_pending', // New status for agent-initiated withdrawals
-            verification_code: verificationCode,
-            fee: totalFees,
-            agent_commission: agentCommission,
-            platform_commission: platformCommission,
-            agent_id: user.id
+            verification_code: verificationCode
           });
 
         if (withdrawalError) {
           throw withdrawalError;
         }
 
-        // Send notification to client (you would implement actual push notification here)
         toast({
           title: "Demande de retrait envoyée",
-          description: `Une demande de retrait de ${amountValue} FCFA a été envoyée à ${recipientName}. En attente de confirmation du client.`,
+          description: `Une demande de retrait de ${amountValue} FCFA a été envoyée à ${recipientName}. En attente de confirmation du client. Code: ${verificationCode}`,
         });
-
-        // Here you would send an actual notification to the client
-        // For now, we'll just create a notification record
-        await supabase
-          .from('notifications')
-          .insert({
-            user_id: recipientId,
-            title: 'Demande de retrait',
-            message: `Un agent souhaite effectuer un retrait de ${amountValue} FCFA sur votre compte. Code de confirmation: ${verificationCode}`,
-            type: 'withdrawal_request',
-            data: {
-              withdrawalCode: verificationCode,
-              agentId: user.id,
-              amount: amountValue
-            }
-          });
 
       } else {
         // Regular user requesting a withdrawal
@@ -422,7 +396,7 @@ const Withdraw = () => {
                       <span>{formatCurrency(Number(amount), currency)}</span>
                     </div>
                     <div className="flex justify-between text-gray-500">
-                      <span>Frais (2%):</span>
+                      <span>Frais (2.5%):</span>
                       <span>{formatCurrency(feeAmount, currency)}</span>
                     </div>
                     <div className="border-t mt-2 pt-2 flex justify-between font-medium">
