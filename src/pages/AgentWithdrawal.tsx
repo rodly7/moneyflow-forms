@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -226,27 +225,37 @@ const AgentWithdrawal = () => {
       : `${countryCode}${formData.recipientPhone.startsWith('0') ? formData.recipientPhone.substring(1) : formData.recipientPhone}`;
 
     try {
+      console.log("Vérification du solde pour l'utilisateur ID:", recipientId);
+      
       // Vérifier le solde du client AVANT de créer la demande
       const { data: clientProfile, error: clientProfileError } = await supabase
         .from('profiles')
-        .select('balance, country')
+        .select('balance, country, full_name')
         .eq('id', recipientId)
         .single();
 
       if (clientProfileError) {
-        throw new Error("Impossible de vérifier le solde du client");
+        console.error("Erreur lors de la récupération du profil client:", clientProfileError);
+        throw new Error(`Erreur de base de données: ${clientProfileError.message}`);
       }
 
       if (!clientProfile) {
-        throw new Error("Profil client introuvable");
+        throw new Error("Profil client introuvable - ID invalide");
       }
+
+      console.log("Profil client trouvé:", {
+        id: recipientId,
+        name: clientProfile.full_name,
+        balance: clientProfile.balance,
+        country: clientProfile.country
+      });
 
       console.log("Solde du client:", clientProfile.balance, "Montant demandé:", amount);
 
       if (clientProfile.balance < amount) {
         toast({
           title: "Solde insuffisant",
-          description: `Le client n'a que ${clientProfile.balance} FCFA dans son compte. Montant demandé: ${amount} FCFA`,
+          description: `Le client ${clientProfile.full_name || 'inconnu'} n'a que ${clientProfile.balance} FCFA dans son compte. Montant demandé: ${amount} FCFA`,
           variant: "destructive"
         });
         setIsProcessing(false);
@@ -268,12 +277,13 @@ const AgentWithdrawal = () => {
         });
 
       if (withdrawalError) {
-        throw withdrawalError;
+        console.error("Erreur lors de l'insertion du retrait:", withdrawalError);
+        throw new Error(`Erreur lors de la création du retrait: ${withdrawalError.message}`);
       }
 
       toast({
         title: "Demande de retrait envoyée",
-        description: `Une demande de retrait de ${amount} FCFA a été envoyée à ${recipientName}. Code de vérification: ${verificationCode}`,
+        description: `Une demande de retrait de ${amount} FCFA a été envoyée à ${recipientName || clientProfile.full_name}. Code de vérification: ${verificationCode}`,
       });
 
       // Réinitialiser le formulaire
@@ -284,6 +294,7 @@ const AgentWithdrawal = () => {
       setRecipientVerified(false);
       setRecipientName("");
       setRecipientId("");
+      setVerificationAttempted(false);
 
       // Redirection vers la page d'accueil
       navigate('/dashboard');
