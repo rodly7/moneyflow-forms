@@ -158,20 +158,24 @@ const Withdraw = () => {
     console.log("Numéro à vérifier:", phoneNumber);
     
     try {
-      // Utiliser la fonction unifiée
-      const foundUser = await findUserByPhone(phoneNumber);
+      // Utiliser la fonction de vérification du hook useRecipientVerification
+      const result = await verifyRecipient(phoneNumber, countryCode, {
+        fullName: "",
+        email: phoneNumber,
+        country: country || "Congo Brazzaville"
+      });
       
-      if (foundUser) {
-        console.log("✓ Utilisateur trouvé:", foundUser);
-        setRecipientId(foundUser.id);
-        setRecipientName(foundUser.full_name || "Utilisateur");
+      if (result.verified && result.recipientData?.userId) {
+        console.log("✓ Utilisateur trouvé via useRecipientVerification:", result.recipientData);
+        setRecipientId(result.recipientData.userId);
+        setRecipientName(result.recipientData.fullName);
         setRecipientVerified(true);
         toast({
           title: "Bénéficiaire trouvé",
-          description: `${foundUser.full_name || "Utilisateur"} a été trouvé dans la base de données`
+          description: `${result.recipientData.fullName} a été trouvé dans la base de données`
         });
       } else {
-        console.log("✗ Aucun utilisateur trouvé");
+        console.log("✗ Aucun utilisateur trouvé via useRecipientVerification");
         toast({
           title: "Utilisateur non trouvé",
           description: "Impossible de trouver cet utilisateur dans la base de données",
@@ -222,14 +226,22 @@ const Withdraw = () => {
       const amountValue = Number(amount);
       
       if (isAgent()) {
-        // Pour les agents: utiliser la même logique de recherche que la vérification
-        console.log("Agent - Recherche du client avec le numéro:", phoneNumber);
-        
-        const clientProfile = await findUserByPhone(phoneNumber);
-        
-        if (!clientProfile) {
-          console.error("AUCUN PROFIL CLIENT TROUVÉ");
-          throw new Error("Client introuvable dans la base de données. Veuillez vérifier que le numéro est correct.");
+        // Pour les agents: utiliser recipientId obtenu lors de la vérification
+        if (!recipientId) {
+          throw new Error("Veuillez d'abord vérifier le destinataire en appuyant sur le bouton de vérification");
+        }
+
+        console.log("Agent - Utilisation de l'ID client vérifié:", recipientId);
+
+        // Vérifier que le client existe toujours avec cet ID
+        const { data: clientProfile, error: clientError } = await supabase
+          .from('profiles')
+          .select('id, full_name, balance, country, phone')
+          .eq('id', recipientId)
+          .maybeSingle();
+
+        if (clientError || !clientProfile) {
+          throw new Error("Client introuvable avec l'ID fourni. Veuillez re-vérifier le numéro");
         }
 
         console.log("Profil client trouvé:", clientProfile);
