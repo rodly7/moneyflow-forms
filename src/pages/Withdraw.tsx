@@ -126,6 +126,7 @@ const Withdraw = () => {
           if (!profileCheckError && profileExists) {
             setRecipientId(result.recipientData.userId);
             setRecipientVerified(true);
+            console.log("✓ Recipient ID set:", result.recipientData.userId);
             toast({
               title: "Bénéficiaire trouvé",
               description: `${result.recipientData.fullName} a été trouvé dans la base de données`
@@ -144,6 +145,7 @@ const Withdraw = () => {
               if (delayedProfile) {
                 setRecipientId(result.recipientData.userId);
                 setRecipientVerified(true);
+                console.log("✓ Recipient ID set (delayed):", result.recipientData.userId);
                 toast({
                   title: "Bénéficiaire trouvé",
                   description: `${result.recipientData.fullName} a été trouvé dans la base de données`
@@ -157,13 +159,19 @@ const Withdraw = () => {
         // Fallback: recherche directe par téléphone
         const { data: profileByPhone } = await supabase
           .from('profiles')
-          .select('id, balance')
+          .select('id, balance, full_name')
           .eq('phone', fullPhone)
           .maybeSingle();
         
         if (profileByPhone) {
           setRecipientId(profileByPhone.id);
           setRecipientVerified(true);
+          setRecipientName(profileByPhone.full_name || recipientName);
+          console.log("✓ Recipient ID set (by phone):", profileByPhone.id);
+          toast({
+            title: "Bénéficiaire trouvé",
+            description: `${profileByPhone.full_name || recipientName} a été trouvé dans la base de données`
+          });
           return;
         }
 
@@ -173,7 +181,7 @@ const Withdraw = () => {
         if (lastDigits.length >= 8) {
           const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, phone, balance');
+            .select('id, phone, balance, full_name');
           
           if (profiles) {
             const matchingProfile = profiles.find(profile => {
@@ -185,6 +193,69 @@ const Withdraw = () => {
             if (matchingProfile) {
               setRecipientId(matchingProfile.id);
               setRecipientVerified(true);
+              setRecipientName(matchingProfile.full_name || recipientName);
+              console.log("✓ Recipient ID set (by last digits):", matchingProfile.id);
+              toast({
+                title: "Bénéficiaire trouvé",
+                description: `${matchingProfile.full_name || recipientName} a été trouvé dans la base de données`
+              });
+              return;
+            }
+          }
+        }
+        
+        toast({
+          title: "Utilisateur non trouvé",
+          description: "Impossible de trouver cet utilisateur dans la base de données",
+          variant: "destructive"
+        });
+      } else {
+        // Recherche manuelle dans la base de données si la vérification échoue
+        console.log("Recherche manuelle dans la base de données...");
+        
+        // Recherche directe par téléphone
+        const { data: directProfile } = await supabase
+          .from('profiles')
+          .select('id, balance, full_name, phone')
+          .eq('phone', fullPhone)
+          .maybeSingle();
+        
+        if (directProfile) {
+          setRecipientId(directProfile.id);
+          setRecipientVerified(true);
+          setRecipientName(directProfile.full_name || "Utilisateur");
+          console.log("✓ Recipient ID set (direct search):", directProfile.id);
+          toast({
+            title: "Bénéficiaire trouvé",
+            description: `${directProfile.full_name || "Utilisateur"} a été trouvé dans la base de données`
+          });
+          return;
+        }
+        
+        // Recherche par les 8 derniers chiffres
+        const lastDigits = fullPhone.replace(/\D/g, '').slice(-8);
+        
+        if (lastDigits.length >= 8) {
+          const { data: allProfiles } = await supabase
+            .from('profiles')
+            .select('id, phone, balance, full_name');
+          
+          if (allProfiles) {
+            const matchingProfile = allProfiles.find(profile => {
+              if (!profile.phone) return false;
+              const profileLastDigits = profile.phone.replace(/\D/g, '').slice(-8);
+              return profileLastDigits === lastDigits;
+            });
+            
+            if (matchingProfile) {
+              setRecipientId(matchingProfile.id);
+              setRecipientVerified(true);
+              setRecipientName(matchingProfile.full_name || "Utilisateur");
+              console.log("✓ Recipient ID set (manual last digits):", matchingProfile.id);
+              toast({
+                title: "Bénéficiaire trouvé",
+                description: `${matchingProfile.full_name || "Utilisateur"} a été trouvé dans la base de données`
+              });
               return;
             }
           }
@@ -509,6 +580,13 @@ const Withdraw = () => {
                     </div>
                   )}
                 </Button>
+                
+                {/* Debug info for agents */}
+                {isAgent() && (
+                  <div className="text-xs text-gray-500 mt-2">
+                    Debug: recipientId = {recipientId || "non défini"}, isVerified = {isVerified ? "oui" : "non"}
+                  </div>
+                )}
               </form>
             )}
           </CardContent>
