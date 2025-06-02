@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -220,7 +219,7 @@ const Withdraw = () => {
       const amountValue = Number(amount);
       
       if (isAgent()) {
-        // Agent processing a withdrawal
+        // Agent initiating a withdrawal - create pending withdrawal request
         if (!recipientId) {
           throw new Error("Veuillez d'abord vérifier le client");
         }
@@ -249,67 +248,50 @@ const Withdraw = () => {
         const platformCommission = amountValue * 0.015;
         const totalFees = agentCommission + platformCommission;
         
-        // 1. Deduct amount from client account
-        const { error: deductError } = await supabase.rpc('increment_balance', {
-          user_id: recipientId,
-          amount: -(amountValue)
-        });
-
-        if (deductError) {
-          throw deductError;
-        }
-
-        // 2. Add amount (minus fees) + commission to agent account
-        const { error: creditError } = await supabase.rpc('increment_balance', {
-          user_id: user.id,
-          amount: amountValue - totalFees + agentCommission
-        });
-
-        if (creditError) {
-          // Rollback client deduction if crediting agent fails
-          await supabase.rpc('increment_balance', {
-            user_id: recipientId,
-            amount: amountValue
-          });
-          throw creditError;
-        }
+        // Generate verification code for client confirmation
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         
-        // 3. Credit platform commission to admin account
-        const { data: adminData } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('phone', '+221773637752')
-          .single();
-          
-        if (adminData) {
-          await supabase.rpc('increment_balance', {
-            user_id: adminData.id,
-            amount: platformCommission
-          });
-        }
-
-        // 4. Record the transaction
-        const { error: transactionError } = await supabase
+        // Create withdrawal request with pending status
+        const { error: withdrawalError } = await supabase
           .from('withdrawals')
           .insert({
             user_id: recipientId,
             amount: amountValue,
             withdrawal_phone: formattedPhone,
-            status: 'completed',
+            status: 'agent_pending', // New status for agent-initiated withdrawals
+            verification_code: verificationCode,
             fee: totalFees,
             agent_commission: agentCommission,
             platform_commission: platformCommission,
             agent_id: user.id
           });
 
-        if (transactionError) {
-          throw transactionError;
+        if (withdrawalError) {
+          throw withdrawalError;
         }
 
+        // Send notification to client (you would implement actual push notification here)
         toast({
-          title: "Retrait effectué avec succès",
-          description: `Vous avez remis ${amountValue} FCFA à ${recipientName}. Votre commission: ${agentCommission} FCFA`,
+          title: "Demande de retrait envoyée",
+          description: `Une demande de retrait de ${amountValue} FCFA a été envoyée à ${recipientName}. En attente de confirmation du client.`,
         });
+
+        // Here you would send an actual notification to the client
+        // For now, we'll just create a notification record
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: recipientId,
+            title: 'Demande de retrait',
+            message: `Un agent souhaite effectuer un retrait de ${amountValue} FCFA sur votre compte. Code de confirmation: ${verificationCode}`,
+            type: 'withdrawal_request',
+            data: {
+              withdrawalCode: verificationCode,
+              agentId: user.id,
+              amount: amountValue
+            }
+          });
+
       } else {
         // Regular user requesting a withdrawal
         // Generate a verification code
