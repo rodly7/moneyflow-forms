@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -36,6 +35,60 @@ const Withdraw = () => {
     verifyRecipient,
     setRecipientVerified
   } = useRecipientVerification();
+
+  // Fonction unifiée pour chercher un utilisateur par téléphone
+  const findUserByPhone = async (phoneNumber: string) => {
+    const formattedPhone = phoneNumber.startsWith('+') 
+      ? phoneNumber 
+      : `${countryCode}${phoneNumber.startsWith('0') ? phoneNumber.substring(1) : phoneNumber}`;
+    
+    console.log("Recherche unifiée pour le numéro:", formattedPhone);
+    
+    // 1. Recherche directe par téléphone
+    try {
+      const { data: profileByPhone, error: phoneError } = await supabase
+        .from('profiles')
+        .select('id, full_name, balance, country, phone')
+        .eq('phone', formattedPhone)
+        .maybeSingle();
+      
+      if (!phoneError && profileByPhone) {
+        console.log("✓ Utilisateur trouvé par recherche directe:", profileByPhone);
+        return profileByPhone;
+      }
+    } catch (err) {
+      console.log("Erreur recherche directe:", err);
+    }
+    
+    // 2. Recherche par les 8 derniers chiffres
+    console.log("Recherche par les 8 derniers chiffres...");
+    const lastDigits = formattedPhone.replace(/\D/g, '').slice(-8);
+    
+    if (lastDigits.length >= 8) {
+      try {
+        const { data: allProfiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, phone, full_name, balance, country');
+        
+        if (!profilesError && allProfiles) {
+          const matchingProfile = allProfiles.find(profile => {
+            if (!profile.phone) return false;
+            const profileLastDigits = profile.phone.replace(/\D/g, '').slice(-8);
+            return profileLastDigits === lastDigits;
+          });
+          
+          if (matchingProfile) {
+            console.log("✓ Utilisateur trouvé par derniers chiffres:", matchingProfile);
+            return matchingProfile;
+          }
+        }
+      } catch (err) {
+        console.log("Erreur recherche par derniers chiffres:", err);
+      }
+    }
+    
+    return null;
+  };
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -101,112 +154,30 @@ const Withdraw = () => {
     
     setVerificationAttempted(true);
     
-    const fullPhone = phoneNumber.startsWith('+') 
-      ? phoneNumber 
-      : `${countryCode}${phoneNumber.startsWith('0') ? phoneNumber.substring(1) : phoneNumber}`;
-    
     console.log("=== DEBUT VERIFICATION ===");
-    console.log("Numéro à vérifier:", fullPhone);
+    console.log("Numéro à vérifier:", phoneNumber);
     
     try {
-      const result = await verifyRecipient(fullPhone, countryCode, {
-        fullName: "",
-        email: fullPhone,
-        country: country || "Cameroun"
-      });
+      // Utiliser la fonction unifiée
+      const foundUser = await findUserByPhone(phoneNumber);
       
-      console.log("Résultat de verifyRecipient:", result);
-      
-      if (result.verified && result.recipientData) {
-        console.log("✓ Vérification réussie via hook");
-        setRecipientName(result.recipientData.fullName);
-        
-        if (result.recipientData.userId) {
-          console.log("✓ ID trouvé dans recipientData:", result.recipientData.userId);
-          setRecipientId(result.recipientData.userId);
-          setRecipientVerified(true);
-          toast({
-            title: "Bénéficiaire trouvé",
-            description: `${result.recipientData.fullName} a été trouvé dans la base de données`
-          });
-          console.log("=== FIN VERIFICATION ===");
-          console.log("recipientId final:", result.recipientData.userId);
-          console.log("isVerified final:", true);
-          return;
-        }
-      }
-      
-      console.log("✗ Aucun utilisateur trouvé via le hook, recherche manuelle...");
-      
-      // Recherche manuelle directe par téléphone
-      const { data: profileByPhone, error: phoneError } = await supabase
-        .from('profiles')
-        .select('id, full_name, balance')
-        .eq('phone', fullPhone)
-        .maybeSingle();
-      
-      console.log("Recherche directe par téléphone:", { data: profileByPhone, error: phoneError });
-      
-      if (!phoneError && profileByPhone) {
-        console.log("✓ Utilisateur trouvé par recherche directe:", profileByPhone);
-        setRecipientId(profileByPhone.id);
-        setRecipientName(profileByPhone.full_name || "Utilisateur");
+      if (foundUser) {
+        console.log("✓ Utilisateur trouvé:", foundUser);
+        setRecipientId(foundUser.id);
+        setRecipientName(foundUser.full_name || "Utilisateur");
         setRecipientVerified(true);
         toast({
           title: "Bénéficiaire trouvé",
-          description: `${profileByPhone.full_name || "Utilisateur"} a été trouvé dans la base de données`
+          description: `${foundUser.full_name || "Utilisateur"} a été trouvé dans la base de données`
         });
-        console.log("=== FIN VERIFICATION ===");
-        console.log("recipientId final:", profileByPhone.id);
-        console.log("isVerified final:", true);
-        return;
+      } else {
+        console.log("✗ Aucun utilisateur trouvé");
+        toast({
+          title: "Utilisateur non trouvé",
+          description: "Impossible de trouver cet utilisateur dans la base de données",
+          variant: "destructive"
+        });
       }
-      
-      // Recherche par les 8 derniers chiffres
-      console.log("Recherche par les 8 derniers chiffres...");
-      const lastDigits = fullPhone.replace(/\D/g, '').slice(-8);
-      
-      if (lastDigits.length >= 8) {
-        const { data: allProfiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, phone, full_name, balance');
-        
-        console.log(`Recherche dans ${allProfiles?.length || 0} profils pour les chiffres:`, lastDigits);
-        
-        if (!profilesError && allProfiles) {
-          const matchingProfile = allProfiles.find(profile => {
-            if (!profile.phone) return false;
-            const profileLastDigits = profile.phone.replace(/\D/g, '').slice(-8);
-            const match = profileLastDigits === lastDigits;
-            if (match) {
-              console.log("✓ Correspondance trouvée:", profile);
-            }
-            return match;
-          });
-          
-          if (matchingProfile) {
-            setRecipientId(matchingProfile.id);
-            setRecipientName(matchingProfile.full_name || "Utilisateur");
-            setRecipientVerified(true);
-            console.log("✓ ID défini via derniers chiffres:", matchingProfile.id);
-            toast({
-              title: "Bénéficiaire trouvé",
-              description: `${matchingProfile.full_name || "Utilisateur"} a été trouvé dans la base de données`
-            });
-            console.log("=== FIN VERIFICATION ===");
-            console.log("recipientId final:", matchingProfile.id);
-            console.log("isVerified final:", true);
-            return;
-          }
-        }
-      }
-      
-      console.log("✗ Aucun utilisateur trouvé");
-      toast({
-        title: "Utilisateur non trouvé",
-        description: "Impossible de trouver cet utilisateur dans la base de données",
-        variant: "destructive"
-      });
       
     } catch (err) {
       console.error("Erreur lors de la vérification:", err);
@@ -217,8 +188,6 @@ const Withdraw = () => {
       });
     } finally {
       console.log("=== FIN VERIFICATION ===");
-      console.log("recipientId final:", recipientId);
-      console.log("isVerified final:", isVerified);
     }
   };
 
@@ -250,97 +219,20 @@ const Withdraw = () => {
         throw new Error("Utilisateur non connecté");
       }
 
-      const formattedPhone = phoneNumber.startsWith('+') 
-        ? phoneNumber 
-        : `${countryCode}${phoneNumber.startsWith('0') ? phoneNumber.substring(1) : phoneNumber}`;
-      
       const amountValue = Number(amount);
       
       if (isAgent()) {
-        // VÉRIFICATION STRICTE: S'assurer que l'agent a un recipientId valide
-        if (!recipientId) {
-          console.error("ERREUR: recipientId manquant pour l'agent");
-          console.log("Debug values:", { recipientId, isVerified, recipientName });
-          throw new Error("Veuillez d'abord vérifier le client en utilisant son numéro de téléphone.");
-        }
+        // Pour les agents: utiliser la même logique de recherche que la vérification
+        console.log("Agent - Recherche du client avec le numéro:", phoneNumber);
         
-        console.log("Agent - Traitement du retrait avec recipientId:", recipientId);
+        const clientProfile = await findUserByPhone(phoneNumber);
         
-        // CORRECTION: Utiliser une approche plus robuste pour vérifier le profil client
-        // Essayer plusieurs méthodes pour s'assurer que l'utilisateur existe
-        
-        // Méthode 1: Recherche directe par ID
-        let clientProfile = null;
-        let profileError = null;
-
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('id, balance, full_name, country, phone')
-            .eq('id', recipientId)
-            .single();
-          
-          clientProfile = data;
-          profileError = error;
-          console.log("Recherche par ID - Résultat:", { data, error });
-        } catch (err) {
-          console.log("Erreur lors de la recherche par ID:", err);
-        }
-
-        // Méthode 2: Si la recherche par ID échoue, rechercher par téléphone
         if (!clientProfile) {
-          console.log("Recherche par téléphone en fallback...");
-          try {
-            const { data, error } = await supabase
-              .from('profiles')
-              .select('id, balance, full_name, country, phone')
-              .eq('phone', formattedPhone)
-              .single();
-            
-            if (!error && data) {
-              clientProfile = data;
-              setRecipientId(data.id); // Mettre à jour l'ID avec celui trouvé
-              console.log("Client trouvé par téléphone:", data);
-            }
-          } catch (err) {
-            console.log("Erreur lors de la recherche par téléphone:", err);
-          }
-        }
-
-        // Méthode 3: Recherche dans tous les profils par les derniers chiffres
-        if (!clientProfile) {
-          console.log("Recherche par derniers chiffres en fallback...");
-          const lastDigits = formattedPhone.replace(/\D/g, '').slice(-8);
-          
-          try {
-            const { data: allProfiles, error } = await supabase
-              .from('profiles')
-              .select('id, balance, full_name, country, phone');
-            
-            if (!error && allProfiles) {
-              const matchingProfile = allProfiles.find(profile => {
-                if (!profile.phone) return false;
-                const profileLastDigits = profile.phone.replace(/\D/g, '').slice(-8);
-                return profileLastDigits === lastDigits;
-              });
-              
-              if (matchingProfile) {
-                clientProfile = matchingProfile;
-                setRecipientId(matchingProfile.id); // Mettre à jour l'ID
-                console.log("Client trouvé par derniers chiffres:", matchingProfile);
-              }
-            }
-          } catch (err) {
-            console.log("Erreur lors de la recherche par derniers chiffres:", err);
-          }
-        }
-
-        if (!clientProfile) {
-          console.error("AUCUN PROFIL CLIENT TROUVÉ après toutes les tentatives");
+          console.error("AUCUN PROFIL CLIENT TROUVÉ");
           throw new Error("Client introuvable dans la base de données. Veuillez vérifier que le numéro est correct.");
         }
 
-        console.log("Profil client final validé:", clientProfile);
+        console.log("Profil client trouvé:", clientProfile);
 
         // Vérifier le solde du client
         if (clientProfile.balance < amountValue) {
@@ -354,9 +246,9 @@ const Withdraw = () => {
         const { error: withdrawalError } = await supabase
           .from('withdrawals')
           .insert({
-            user_id: clientProfile.id, // Utiliser l'ID du profil trouvé
+            user_id: clientProfile.id,
             amount: amountValue,
-            withdrawal_phone: formattedPhone,
+            withdrawal_phone: clientProfile.phone,
             status: 'agent_pending',
             verification_code: verificationCode
           });
@@ -373,6 +265,10 @@ const Withdraw = () => {
 
       } else {
         // Utilisateur normal demandant un retrait
+        const formattedPhone = phoneNumber.startsWith('+') 
+          ? phoneNumber 
+          : `${countryCode}${phoneNumber.startsWith('0') ? phoneNumber.substring(1) : phoneNumber}`;
+        
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         
         const { error: withdrawalError } = await supabase
@@ -519,7 +415,7 @@ const Withdraw = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4 h-12 text-lg"
-                  disabled={isProcessing || (isAgent() && !recipientId)}
+                  disabled={isProcessing || (isAgent() && !isVerified)}
                 >
                   {isProcessing ? (
                     <div className="flex items-center">
@@ -533,15 +429,6 @@ const Withdraw = () => {
                     </div>
                   )}
                 </Button>
-                
-                {/* Debug info for agents */}
-                {isAgent() && (
-                  <div className="text-xs text-gray-500 mt-2 space-y-1">
-                    <div>Debug: recipientId = {recipientId || "non défini"}</div>
-                    <div>isVerified = {isVerified ? "oui" : "non"}</div>
-                    <div>recipientName = {recipientName || "non défini"}</div>
-                  </div>
-                )}
               </form>
             )}
           </CardContent>
