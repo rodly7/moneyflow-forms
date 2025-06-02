@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
@@ -5,10 +6,9 @@ import {
   Route,
 } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
-import { ReactQueryProvider } from "./contexts/ReactQueryContext";
 import { Toaster } from "./components/ui/toaster";
-import { ProtectedRoute } from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
+import QrScanner from "./components/QrScanner";
 
 // Pages
 import Auth from "./pages/Auth";
@@ -31,24 +31,23 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <ReactQueryProvider>
-          <Routes>
-            <Route path="/" element={<Layout><Index /></Layout>} />
-            <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-            <Route path="/withdraw" element={<Layout><Withdraw /></Layout>} />
-            <Route path="/verify-identity" element={<VerifyIdentity />} />
-            <Route path="/qrcode" element={<Layout><QRCode /></Layout>} />
-            <Route path="/scan" element={<QrScanner />} />
-            <Route path="/receive" element={<Layout><Receive /></Layout>} />
-            <Route path="/mobile-recharge" element={<Layout><MobileRecharge /></Layout>} />
-            <Route path="/bill-payments" element={<Layout><BillPayments /></Layout>} />
-            <Route path="/prepaid-cards" element={<Layout><PrepaidCards /></Layout>} />
-            <Route path="/transactions" element={<Layout><Transactions /></Layout>} />
-            <Route path="/commission" element={<Layout><Commission /></Layout>} />
-            <Route path="*" element={<Auth />} />
-          </Routes>
-          <Toaster />
-        </ReactQueryProvider>
+        <Routes>
+          <Route path="/" element={<Layout><Index /></Layout>} />
+          <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+          <Route path="/withdraw" element={<Layout><Withdraw /></Layout>} />
+          <Route path="/verify-identity" element={<VerifyIdentity />} />
+          <Route path="/qrcode" element={<Layout><QRCode /></Layout>} />
+          <Route path="/scan" element={<QrScanner />} />
+          <Route path="/receive" element={<Layout><Receive /></Layout>} />
+          <Route path="/mobile-recharge" element={<Layout><MobileRecharge /></Layout>} />
+          <Route path="/bill-payments" element={<Layout><BillPayments /></Layout>} />
+          <Route path="/prepaid-cards" element={<Layout><PrepaidCards /></Layout>} />
+          <Route path="/transactions" element={<Layout><Transactions /></Layout>} />
+          <Route path="/commission" element={<Layout><Commission /></Layout>} />
+          <Route path="/deposit" element={<Layout><DepositForm /></Layout>} />
+          <Route path="*" element={<Auth />} />
+        </Routes>
+        <Toaster />
       </AuthProvider>
     </Router>
   );
