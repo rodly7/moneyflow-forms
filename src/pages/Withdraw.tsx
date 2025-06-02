@@ -120,7 +120,7 @@ const Withdraw = () => {
         console.log("✓ Vérification réussie via hook");
         setRecipientName(result.recipientData.fullName);
         
-        // Définir l'ID depuis les données de vérification
+        // CORRECTION PRINCIPALE: S'assurer que l'ID est défini correctement
         if (result.recipientData.userId) {
           console.log("✓ ID trouvé dans recipientData:", result.recipientData.userId);
           setRecipientId(result.recipientData.userId);
@@ -129,14 +129,16 @@ const Withdraw = () => {
             title: "Bénéficiaire trouvé",
             description: `${result.recipientData.fullName} a été trouvé dans la base de données`
           });
+          console.log("=== FIN VERIFICATION ===");
+          console.log("recipientId final:", result.recipientData.userId);
+          console.log("isVerified final:", true);
           return;
         }
       }
       
-      // Si pas d'ID via le hook, recherche manuelle directe
-      console.log("⚠ Pas d'ID via hook, recherche manuelle...");
+      console.log("✗ Aucun utilisateur trouvé via le hook, recherche manuelle...");
       
-      // Recherche directe par téléphone
+      // Recherche manuelle directe par téléphone
       const { data: profileByPhone, error: phoneError } = await supabase
         .from('profiles')
         .select('id, full_name, balance')
@@ -154,6 +156,9 @@ const Withdraw = () => {
           title: "Bénéficiaire trouvé",
           description: `${profileByPhone.full_name || "Utilisateur"} a été trouvé dans la base de données`
         });
+        console.log("=== FIN VERIFICATION ===");
+        console.log("recipientId final:", profileByPhone.id);
+        console.log("isVerified final:", true);
         return;
       }
       
@@ -188,6 +193,9 @@ const Withdraw = () => {
               title: "Bénéficiaire trouvé",
               description: `${matchingProfile.full_name || "Utilisateur"} a été trouvé dans la base de données`
             });
+            console.log("=== FIN VERIFICATION ===");
+            console.log("recipientId final:", matchingProfile.id);
+            console.log("isVerified final:", true);
             return;
           }
         }
@@ -249,84 +257,30 @@ const Withdraw = () => {
       const amountValue = Number(amount);
       
       if (isAgent()) {
-        if (!recipientId && !isVerified) {
-          throw new Error("Veuillez d'abord vérifier le client");
+        // VÉRIFICATION STRICTE: S'assurer que l'agent a un recipientId valide
+        if (!recipientId) {
+          console.error("ERREUR: recipientId manquant pour l'agent");
+          console.log("Debug values:", { recipientId, isVerified, recipientName });
+          throw new Error("Veuillez d'abord vérifier le client en utilisant son numéro de téléphone.");
         }
         
-        console.log("Agent - Recherche du client pour le retrait");
+        console.log("Agent - Traitement du retrait avec recipientId:", recipientId);
         
-        let clientProfile = null;
-        let finalRecipientId = recipientId;
+        // Vérifier que l'ID correspond à un profil valide
+        const { data: clientProfile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, balance, full_name, country, phone')
+          .eq('id', recipientId)
+          .maybeSingle();
 
-        // Si on a un recipientId, essayer de récupérer le profil
-        if (recipientId) {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('id, balance, full_name, country, phone')
-            .eq('id', recipientId)
-            .maybeSingle();
-
-          if (!profileError && profileData) {
-            clientProfile = profileData;
-            console.log("Profil trouvé avec l'ID:", profileData);
-          } else {
-            console.log("Profil non trouvé avec l'ID, recherche par téléphone");
-          }
+        if (profileError || !clientProfile) {
+          console.error("Erreur lors de la vérification du profil client:", profileError);
+          throw new Error("Client introuvable avec l'ID fourni. Veuillez re-vérifier le numéro.");
         }
 
-        // Si pas de profil trouvé avec l'ID, rechercher par téléphone
-        if (!clientProfile) {
-          console.log("Recherche du client par numéro de téléphone:", formattedPhone);
-          
-          const { data: phoneProfiles, error: phoneError } = await supabase
-            .from('profiles')
-            .select('id, balance, full_name, country, phone');
-
-          if (phoneError) {
-            console.error("Erreur lors de la recherche par téléphone:", phoneError);
-            throw new Error("Erreur de base de données lors de la recherche du client");
-          }
-
-          if (phoneProfiles && phoneProfiles.length > 0) {
-            // Rechercher le profil correspondant au numéro de téléphone
-            const matchingProfile = phoneProfiles.find(profile => {
-              if (!profile.phone) return false;
-              
-              // Normaliser les numéros pour la comparaison
-              const normalizePhone = (phone: string) => phone.replace(/\D/g, '');
-              const profilePhone = normalizePhone(profile.phone);
-              const searchPhone = normalizePhone(formattedPhone);
-              
-              // Comparaison directe
-              if (profilePhone === searchPhone) return true;
-              
-              // Comparaison des 8 derniers chiffres
-              const profileLast8 = profilePhone.slice(-8);
-              const searchLast8 = searchPhone.slice(-8);
-              
-              return profileLast8.length === 8 && searchLast8.length === 8 && profileLast8 === searchLast8;
-            });
-
-            if (matchingProfile) {
-              clientProfile = matchingProfile;
-              finalRecipientId = matchingProfile.id;
-              console.log("Client trouvé par téléphone:", matchingProfile);
-            }
-          }
-        }
-
-        // Si toujours pas de client trouvé, erreur
-        if (!clientProfile) {
-          throw new Error("Client introuvable dans la base de données. Veuillez vérifier que le numéro est correct.");
-        }
+        console.log("Profil client validé:", clientProfile);
 
         // Vérifier le solde du client
-        console.log("Vérification du solde:", {
-          balance: clientProfile.balance,
-          requestedAmount: amountValue,
-          clientName: clientProfile.full_name
-        });
-
         if (clientProfile.balance < amountValue) {
           throw new Error(`Solde insuffisant. Client ${clientProfile.full_name || 'inconnu'} a ${clientProfile.balance} FCFA, montant demandé: ${amountValue} FCFA`);
         }
@@ -338,7 +292,7 @@ const Withdraw = () => {
         const { error: withdrawalError } = await supabase
           .from('withdrawals')
           .insert({
-            user_id: finalRecipientId,
+            user_id: recipientId,
             amount: amountValue,
             withdrawal_phone: formattedPhone,
             status: 'agent_pending',
