@@ -241,110 +241,111 @@ const Withdraw = () => {
       const amountValue = Number(amount);
       
       if (isAgent()) {
-        if (!recipientId) {
+        if (!recipientId && !isVerified) {
           throw new Error("Veuillez d'abord vérifier le client");
         }
         
-        console.log("Agent - Vérification du solde pour l'utilisateur ID:", recipientId);
+        console.log("Agent - Recherche du client pour le retrait");
         
-        // Vérifier le solde du client avec gestion d'erreur améliorée
-        const { data: clientProfile, error: clientProfileError } = await supabase
-          .from('profiles')
-          .select('balance, full_name, country')
-          .eq('id', recipientId)
-          .maybeSingle();
+        let clientProfile = null;
+        let finalRecipientId = recipientId;
 
-        if (clientProfileError) {
-          console.error("Erreur lors de la récupération du profil client:", clientProfileError);
-          throw new Error(`Erreur de base de données: ${clientProfileError.message}`);
-        }
-
-        if (!clientProfile) {
-          // Essayer une recherche alternative par téléphone si l'ID direct ne fonctionne pas
-          console.log("Tentative de recherche alternative par téléphone:", formattedPhone);
-          
-          const { data: altProfile, error: altError } = await supabase
+        // Si on a un recipientId, essayer de récupérer le profil
+        if (recipientId) {
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('id, balance, full_name, country')
-            .eq('phone', formattedPhone)
+            .select('id, balance, full_name, country, phone')
+            .eq('id', recipientId)
             .maybeSingle();
-          
-          if (altError || !altProfile) {
-            throw new Error("Client introuvable. Veuillez vérifier que le client existe dans le système.");
+
+          if (!profileError && profileData) {
+            clientProfile = profileData;
+            console.log("Profil trouvé avec l'ID:", profileData);
+          } else {
+            console.log("Profil non trouvé avec l'ID, recherche par téléphone");
           }
-          
-          // Utiliser le profil trouvé par téléphone
-          setRecipientId(altProfile.id);
-          console.log("Profil trouvé par téléphone:", {
-            id: altProfile.id,
-            name: altProfile.full_name,
-            balance: altProfile.balance,
-            country: altProfile.country
-          });
-
-          if (altProfile.balance < amountValue) {
-            throw new Error(`Solde insuffisant. Client ${altProfile.full_name || 'inconnu'} a ${altProfile.balance} FCFA, montant demandé: ${amountValue} FCFA`);
-          }
-
-          // Continuer avec le profil alternatif
-          const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-          
-          const { error: withdrawalError } = await supabase
-            .from('withdrawals')
-            .insert({
-              user_id: altProfile.id,
-              amount: amountValue,
-              withdrawal_phone: formattedPhone,
-              status: 'agent_pending',
-              verification_code: verificationCode
-            });
-
-          if (withdrawalError) {
-            console.error("Erreur lors de l'insertion du retrait:", withdrawalError);
-            throw new Error(`Erreur lors de la création du retrait: ${withdrawalError.message}`);
-          }
-
-          toast({
-            title: "Demande de retrait envoyée",
-            description: `Une demande de retrait de ${amountValue} FCFA a été envoyée à ${altProfile.full_name}. Code: ${verificationCode}`,
-          });
-        } else {
-          // Utiliser le profil trouvé directement
-          console.log("Profil client trouvé:", {
-            id: recipientId,
-            name: clientProfile.full_name,
-            balance: clientProfile.balance,
-            country: clientProfile.country
-          });
-
-          if (clientProfile.balance < amountValue) {
-            throw new Error(`Solde insuffisant. Client ${clientProfile.full_name || 'inconnu'} a ${clientProfile.balance} FCFA, montant demandé: ${amountValue} FCFA`);
-          }
-
-          // Générer un code de vérification pour la confirmation du client
-          const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-          
-          // Créer la demande de retrait en attente de confirmation
-          const { error: withdrawalError } = await supabase
-            .from('withdrawals')
-            .insert({
-              user_id: recipientId,
-              amount: amountValue,
-              withdrawal_phone: formattedPhone,
-              status: 'agent_pending',
-              verification_code: verificationCode
-            });
-
-          if (withdrawalError) {
-            console.error("Erreur lors de l'insertion du retrait:", withdrawalError);
-            throw new Error(`Erreur lors de la création du retrait: ${withdrawalError.message}`);
-          }
-
-          toast({
-            title: "Demande de retrait envoyée",
-            description: `Une demande de retrait de ${amountValue} FCFA a été envoyée à ${recipientName || clientProfile.full_name}. Code: ${verificationCode}`,
-          });
         }
+
+        // Si pas de profil trouvé avec l'ID, rechercher par téléphone
+        if (!clientProfile) {
+          console.log("Recherche du client par numéro de téléphone:", formattedPhone);
+          
+          const { data: phoneProfiles, error: phoneError } = await supabase
+            .from('profiles')
+            .select('id, balance, full_name, country, phone');
+
+          if (phoneError) {
+            console.error("Erreur lors de la recherche par téléphone:", phoneError);
+            throw new Error("Erreur de base de données lors de la recherche du client");
+          }
+
+          if (phoneProfiles && phoneProfiles.length > 0) {
+            // Rechercher le profil correspondant au numéro de téléphone
+            const matchingProfile = phoneProfiles.find(profile => {
+              if (!profile.phone) return false;
+              
+              // Normaliser les numéros pour la comparaison
+              const normalizePhone = (phone: string) => phone.replace(/\D/g, '');
+              const profilePhone = normalizePhone(profile.phone);
+              const searchPhone = normalizePhone(formattedPhone);
+              
+              // Comparaison directe
+              if (profilePhone === searchPhone) return true;
+              
+              // Comparaison des 8 derniers chiffres
+              const profileLast8 = profilePhone.slice(-8);
+              const searchLast8 = searchPhone.slice(-8);
+              
+              return profileLast8.length === 8 && searchLast8.length === 8 && profileLast8 === searchLast8;
+            });
+
+            if (matchingProfile) {
+              clientProfile = matchingProfile;
+              finalRecipientId = matchingProfile.id;
+              console.log("Client trouvé par téléphone:", matchingProfile);
+            }
+          }
+        }
+
+        // Si toujours pas de client trouvé, erreur
+        if (!clientProfile) {
+          throw new Error("Client introuvable dans la base de données. Veuillez vérifier que le numéro est correct.");
+        }
+
+        // Vérifier le solde du client
+        console.log("Vérification du solde:", {
+          balance: clientProfile.balance,
+          requestedAmount: amountValue,
+          clientName: clientProfile.full_name
+        });
+
+        if (clientProfile.balance < amountValue) {
+          throw new Error(`Solde insuffisant. Client ${clientProfile.full_name || 'inconnu'} a ${clientProfile.balance} FCFA, montant demandé: ${amountValue} FCFA`);
+        }
+
+        // Générer un code de vérification pour la confirmation du client
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Créer la demande de retrait en attente de confirmation
+        const { error: withdrawalError } = await supabase
+          .from('withdrawals')
+          .insert({
+            user_id: finalRecipientId,
+            amount: amountValue,
+            withdrawal_phone: formattedPhone,
+            status: 'agent_pending',
+            verification_code: verificationCode
+          });
+
+        if (withdrawalError) {
+          console.error("Erreur lors de l'insertion du retrait:", withdrawalError);
+          throw new Error(`Erreur lors de la création du retrait: ${withdrawalError.message}`);
+        }
+
+        toast({
+          title: "Demande de retrait envoyée",
+          description: `Une demande de retrait de ${amountValue} FCFA a été envoyée à ${clientProfile.full_name}. Code: ${verificationCode}`,
+        });
 
       } else {
         // Utilisateur normal demandant un retrait
