@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -45,7 +46,7 @@ const Withdraw = () => {
             .from('profiles')
             .select('country, phone, full_name')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
           
           if (error) {
             console.error("Error fetching user profile:", error);
@@ -128,7 +129,7 @@ const Withdraw = () => {
           .from('profiles')
           .select('id, balance')
           .eq('phone', fullPhone)
-          .single();
+          .maybeSingle();
         
         if (profileByPhone) {
           setRecipientId(profileByPhone.id);
@@ -220,7 +221,7 @@ const Withdraw = () => {
           .from('profiles')
           .select('balance, full_name, country')
           .eq('id', recipientId)
-          .single();
+          .maybeSingle();
 
         if (clientProfileError) {
           console.error("Erreur lors de la récupération du profil client:", clientProfileError);
