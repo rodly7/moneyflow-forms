@@ -94,6 +94,17 @@ const Dashboard = () => {
     enabled: !!user,
   });
 
+  // Transform transfers data to match Transaction interface
+  const transformedTransactions = transfers?.map(transfer => ({
+    id: transfer.id,
+    type: 'transfer',
+    amount: -transfer.amount, // Negative because it's outgoing
+    date: new Date(transfer.created_at),
+    description: `Transfert vers ${transfer.recipient_full_name}`,
+    currency: transfer.currency,
+    status: transfer.status
+  })) || [];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-md mx-auto space-y-6">
@@ -125,7 +136,7 @@ const Dashboard = () => {
 
         <BalanceCard balance={profile?.balance || 0} userCountry={profile?.country || "Cameroun"} />
         <ActionButtons onTransferClick={() => setShowTransferForm(true)} />
-        <TransactionsCard transactions={transfers || []} onDeleteTransaction={() => {}} />
+        <TransactionsCard transactions={transformedTransactions} onDeleteTransaction={() => {}} />
         
         {showTransferForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
