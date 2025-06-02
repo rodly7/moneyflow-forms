@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -48,9 +47,14 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         .eq('verification_code', verificationCode)
         .eq('user_id', user.id)
         .eq('status', 'agent_pending')
-        .single();
+        .maybeSingle();
 
-      if (withdrawalError || !withdrawalData) {
+      if (withdrawalError) {
+        console.error("Erreur lors de la recherche du retrait:", withdrawalError);
+        throw new Error("Erreur de base de données lors de la vérification du code");
+      }
+
+      if (!withdrawalData) {
         throw new Error("Ce code de vérification n'existe pas ou a déjà été utilisé");
       }
 
@@ -59,10 +63,15 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         .from('profiles')
         .select('balance')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (profileError || !userProfile) {
+      if (profileError) {
+        console.error("Erreur lors de la vérification du profil:", profileError);
         throw new Error("Impossible de vérifier votre solde");
+      }
+
+      if (!userProfile) {
+        throw new Error("Profil utilisateur introuvable");
       }
 
       if (userProfile.balance < withdrawalData.amount) {
@@ -117,13 +126,13 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
       }
       
       // 3. Credit platform commission to admin account
-      const { data: adminData } = await supabase
+      const { data: adminData, error: adminError } = await supabase
         .from('profiles')
         .select('id')
         .eq('phone', '+221773637752')
-        .single();
+        .maybeSingle();
         
-      if (adminData) {
+      if (!adminError && adminData) {
         await supabase.rpc('increment_balance', {
           user_id: adminData.id,
           amount: moneyFlowCommission

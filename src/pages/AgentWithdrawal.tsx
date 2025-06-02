@@ -41,9 +41,12 @@ const AgentWithdrawal = () => {
         .from('profiles')
         .select('country, balance')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Erreur lors de la récupération du profil agent:", error);
+        throw error;
+      }
       return data;
     },
     enabled: !!user,
@@ -127,39 +130,47 @@ const AgentWithdrawal = () => {
           return;
         }
         
-        // Fallback: search directly by phone number
-        const { data: profileByPhone } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('phone', fullPhone)
-          .single();
-        
-        if (profileByPhone) {
-          setRecipientId(profileByPhone.id);
-          setRecipientVerified(true);
-          return;
+        // Fallback: search directly by phone number with error handling
+        try {
+          const { data: profileByPhone, error: phoneError } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('phone', fullPhone)
+            .maybeSingle();
+          
+          if (!phoneError && profileByPhone) {
+            setRecipientId(profileByPhone.id);
+            setRecipientVerified(true);
+            return;
+          }
+        } catch (phoneSearchError) {
+          console.error("Erreur lors de la recherche par téléphone:", phoneSearchError);
         }
         
-        // Fallback: search by last 8 digits
+        // Fallback: search by last 8 digits with error handling
         const lastDigits = fullPhone.replace(/\D/g, '').slice(-8);
         
         if (lastDigits.length >= 8) {
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, phone');
-          
-          if (profiles) {
-            const matchingProfile = profiles.find(profile => {
-              if (!profile.phone) return false;
-              const profileLastDigits = profile.phone.replace(/\D/g, '').slice(-8);
-              return profileLastDigits === lastDigits;
-            });
+          try {
+            const { data: profiles, error: profilesError } = await supabase
+              .from('profiles')
+              .select('id, phone');
             
-            if (matchingProfile) {
-              setRecipientId(matchingProfile.id);
-              setRecipientVerified(true);
-              return;
+            if (!profilesError && profiles) {
+              const matchingProfile = profiles.find(profile => {
+                if (!profile.phone) return false;
+                const profileLastDigits = profile.phone.replace(/\D/g, '').slice(-8);
+                return profileLastDigits === lastDigits;
+              });
+              
+              if (matchingProfile) {
+                setRecipientId(matchingProfile.id);
+                setRecipientVerified(true);
+                return;
+              }
             }
+          } catch (lastDigitsError) {
+            console.error("Erreur lors de la recherche par derniers chiffres:", lastDigitsError);
           }
         }
         
@@ -227,12 +238,12 @@ const AgentWithdrawal = () => {
     try {
       console.log("Vérification du solde pour l'utilisateur ID:", recipientId);
       
-      // Vérifier le solde du client AVANT de créer la demande
+      // Vérifier le solde du client AVANT de créer la demande avec gestion d'erreur améliorée
       const { data: clientProfile, error: clientProfileError } = await supabase
         .from('profiles')
         .select('balance, country, full_name')
         .eq('id', recipientId)
-        .single();
+        .maybeSingle();
 
       if (clientProfileError) {
         console.error("Erreur lors de la récupération du profil client:", clientProfileError);
@@ -240,7 +251,7 @@ const AgentWithdrawal = () => {
       }
 
       if (!clientProfile) {
-        throw new Error("Profil client introuvable - ID invalide");
+        throw new Error("Profil client introuvable - ID invalide ou utilisateur supprimé");
       }
 
       console.log("Profil client trouvé:", {
