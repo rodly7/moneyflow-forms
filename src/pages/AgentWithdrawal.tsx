@@ -21,12 +21,11 @@ const AgentWithdrawal = () => {
     recipientPhone: "",
     amount: ""
   });
-  const [countryCode, setCountryCode] = useState("+237"); // Défaut à Cameroun
+  const [countryCode, setCountryCode] = useState("+237");
   const [recipientName, setRecipientName] = useState("");
   const [recipientId, setRecipientId] = useState("");
   const [verificationAttempted, setVerificationAttempted] = useState(false);
 
-  // Utiliser le hook useRecipientVerification pour la recherche des utilisateurs
   const {
     isLoading: isVerifying,
     recipientVerified: isVerified,
@@ -34,7 +33,7 @@ const AgentWithdrawal = () => {
     setRecipientVerified
   } = useRecipientVerification();
 
-  // Récupérer le profil de l'agent pour obtenir son pays
+  // Get agent profile
   const { data: agentProfile } = useQuery({
     queryKey: ['agent-profile'],
     queryFn: async () => {
@@ -51,10 +50,9 @@ const AgentWithdrawal = () => {
     enabled: !!user,
   });
 
-  // Mettre à jour le code pays en fonction du pays de l'agent
+  // Update country code based on agent's country
   useState(() => {
     if (agentProfile?.country) {
-      // Mapper le pays vers le code de pays approprié
       const countryToCodes = {
         "Cameroun": "+237",
         "Cameroon": "+237",
@@ -76,7 +74,6 @@ const AgentWithdrawal = () => {
     }
   });
 
-  // Handle form input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -85,13 +82,11 @@ const AgentWithdrawal = () => {
     }));
   };
 
-  // Handle phone number change
   const handlePhoneChange = (value: string) => {
     setFormData(prev => ({
       ...prev,
       recipientPhone: value
     }));
-    // Reset verification if phone changes
     if (isVerified || verificationAttempted) {
       setRecipientVerified(false);
       setRecipientName("");
@@ -100,13 +95,11 @@ const AgentWithdrawal = () => {
     }
   };
 
-  // Verify recipient using the hook
   const handleVerifyRecipient = async () => {
     if (!formData.recipientPhone || formData.recipientPhone.length < 6) return;
     
     setVerificationAttempted(true);
     
-    // Formatage du numéro complet avec l'indicatif pays
     const fullPhone = formData.recipientPhone.startsWith('+') 
       ? formData.recipientPhone 
       : `${countryCode}${formData.recipientPhone.startsWith('0') ? formData.recipientPhone.substring(1) : formData.recipientPhone}`;
@@ -124,7 +117,6 @@ const AgentWithdrawal = () => {
         console.log("Résultat de la vérification:", result);
         setRecipientName(result.recipientData.fullName);
         
-        // Use the userId from recipientData if available
         if (result.recipientData.userId) {
           setRecipientId(result.recipientData.userId);
           console.log("ID utilisateur directement récupéré:", result.recipientData.userId);
@@ -137,8 +129,6 @@ const AgentWithdrawal = () => {
         }
         
         // Fallback: search directly by phone number
-        console.log("ID utilisateur non disponible, recherche par téléphone...");
-        
         const { data: profileByPhone } = await supabase
           .from('profiles')
           .select('id')
@@ -147,13 +137,11 @@ const AgentWithdrawal = () => {
         
         if (profileByPhone) {
           setRecipientId(profileByPhone.id);
-          console.log("ID récupéré par téléphone exact:", profileByPhone.id);
           setRecipientVerified(true);
           return;
         }
         
         // Fallback: search by last 8 digits
-        console.log("Recherche par les 8 derniers chiffres...");
         const lastDigits = fullPhone.replace(/\D/g, '').slice(-8);
         
         if (lastDigits.length >= 8) {
@@ -170,7 +158,6 @@ const AgentWithdrawal = () => {
             
             if (matchingProfile) {
               setRecipientId(matchingProfile.id);
-              console.log("ID récupéré par correspondance des derniers chiffres:", matchingProfile.id);
               setRecipientVerified(true);
               return;
             }
@@ -182,16 +169,10 @@ const AgentWithdrawal = () => {
           description: "Impossible de trouver cet utilisateur dans la base de données",
           variant: "destructive"
         });
-      } else if (result.recipientData) {
+      } else {
         toast({
           title: "Utilisateur non trouvé",
           description: "Impossible de trouver cet utilisateur dans la base de données",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Erreur de vérification",
-          description: "Une erreur s'est produite lors de la vérification du destinataire",
           variant: "destructive"
         });
       }
@@ -208,7 +189,6 @@ const AgentWithdrawal = () => {
     }
   };
 
-  // Handle withdrawal submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -221,7 +201,6 @@ const AgentWithdrawal = () => {
       return;
     }
 
-    // Basic validation
     if (!formData.recipientPhone || !formData.amount || !recipientId) {
       toast({
         title: "Formulaire incomplet",
@@ -231,7 +210,6 @@ const AgentWithdrawal = () => {
       return;
     }
 
-    // Convert amount to number
     const amount = parseFloat(formData.amount);
     if (isNaN(amount) || amount <= 0) {
       toast({
@@ -248,7 +226,7 @@ const AgentWithdrawal = () => {
       : `${countryCode}${formData.recipientPhone.startsWith('0') ? formData.recipientPhone.substring(1) : formData.recipientPhone}`;
 
     try {
-      // Vérifier si le client a suffisamment de fonds
+      // Vérifier le solde du client AVANT de créer la demande
       const { data: clientProfile, error: clientProfileError } = await supabase
         .from('profiles')
         .select('balance, country')
@@ -263,79 +241,39 @@ const AgentWithdrawal = () => {
         throw new Error("Profil client introuvable");
       }
 
+      console.log("Solde du client:", clientProfile.balance, "Montant demandé:", amount);
+
       if (clientProfile.balance < amount) {
-        throw new Error("Solde insuffisant pour effectuer ce retrait");
-      }
-
-      // Calculer une commission de 0.5% pour l'agent
-      const agentCommission = amount * 0.005;
-      const platformCommission = amount * 0.015;
-      const totalFees = agentCommission + platformCommission;
-      
-      // Generate a unique transaction reference
-      const transactionReference = `RET-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-      // 1. Déduire le montant du compte du client
-      const { error: deductError } = await supabase.rpc('increment_balance', {
-        user_id: recipientId,
-        amount: -(amount)  // On déduit le montant total
-      });
-
-      if (deductError) {
-        throw deductError;
-      }
-
-      // 2. Ajouter le montant (moins les frais) + commission au compte de l'agent
-      const { error: creditError } = await supabase.rpc('increment_balance', {
-        user_id: user.id,
-        amount: amount - totalFees + agentCommission
-      });
-
-      if (creditError) {
-        // Annuler la déduction si le crédit échoue
-        await supabase.rpc('increment_balance', {
-          user_id: recipientId,
-          amount: amount
+        toast({
+          title: "Solde insuffisant",
+          description: `Le client n'a que ${clientProfile.balance} FCFA dans son compte. Montant demandé: ${amount} FCFA`,
+          variant: "destructive"
         });
-        throw creditError;
-      }
-      
-      // 3. Créditer la commission de la plateforme au compte admin
-      const { data: adminData } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('phone', '+221773637752')
-        .single();
-        
-      if (adminData) {
-        await supabase.rpc('increment_balance', {
-          user_id: adminData.id,
-          amount: platformCommission
-        });
+        setIsProcessing(false);
+        return;
       }
 
-      // 4. Enregistrer la transaction dans la table withdrawals
-      const { error: transactionError } = await supabase
+      // Générer un code de vérification pour la confirmation du client
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // Créer la demande de retrait en attente de confirmation du client
+      const { error: withdrawalError } = await supabase
         .from('withdrawals')
         .insert({
           user_id: recipientId,
           amount: amount,
           withdrawal_phone: fullPhone,
-          status: 'completed',
-          fee: totalFees,
-          agent_commission: agentCommission,
-          platform_commission: platformCommission,
-          agent_id: user.id
+          status: 'agent_pending',
+          verification_code: verificationCode
         });
 
-      if (transactionError) {
-        throw transactionError;
+      if (withdrawalError) {
+        throw withdrawalError;
       }
 
-      // Notification de succès
       toast({
-        title: "Retrait effectué avec succès",
-        description: `Vous avez remis ${amount} FCFA à ${recipientName}. Votre commission: ${agentCommission} FCFA`,
+        title: "Demande de retrait envoyée",
+        description: `Une demande de retrait de ${amount} FCFA a été envoyée à ${recipientName}. Code de vérification: ${verificationCode}`,
       });
 
       // Réinitialiser le formulaire
@@ -411,12 +349,12 @@ const AgentWithdrawal = () => {
                 {isProcessing ? (
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    <span>Traitement en cours...</span>
+                    <span>Vérification du solde...</span>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center">
                     <Banknote className="mr-2 h-5 w-5" />
-                    <span>Effectuer le retrait</span>
+                    <span>Envoyer la demande</span>
                   </div>
                 )}
               </Button>

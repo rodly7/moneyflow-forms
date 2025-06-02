@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -29,7 +30,6 @@ const Withdraw = () => {
   const [recipientId, setRecipientId] = useState("");
   const [verificationAttempted, setVerificationAttempted] = useState(false);
   
-  // Use the recipient verification hook for agents to verify clients
   const {
     isLoading: isVerifying,
     recipientVerified: isVerified,
@@ -76,11 +76,9 @@ const Withdraw = () => {
     fetchUserProfile();
   }, [user, navigate]);
 
-  // Calculate fee when amount changes
   useEffect(() => {
     if (amount && !isNaN(Number(amount))) {
       const amountValue = Number(amount);
-      // Use the calculateFee function for consistency
       const { fee } = calculateFee(amountValue);
       setFeeAmount(fee);
     } else {
@@ -88,10 +86,8 @@ const Withdraw = () => {
     }
   }, [amount]);
 
-  // Handle phone number verification for agents
   const handlePhoneChange = (value: string) => {
     setPhoneNumber(value);
-    // Reset verification if phone changes
     if (isVerified || verificationAttempted) {
       setRecipientVerified(false);
       setRecipientName("");
@@ -100,13 +96,11 @@ const Withdraw = () => {
     }
   };
 
-  // Verify recipient for agents
   const handleVerifyRecipient = async () => {
     if (!isAgent() || !phoneNumber || phoneNumber.length < 6) return;
     
     setVerificationAttempted(true);
     
-    // Format full phone number with country code
     const fullPhone = phoneNumber.startsWith('+') 
       ? phoneNumber 
       : `${countryCode}${phoneNumber.startsWith('0') ? phoneNumber.substring(1) : phoneNumber}`;
@@ -121,7 +115,6 @@ const Withdraw = () => {
       if (result.verified && result.recipientData) {
         setRecipientName(result.recipientData.fullName);
         
-        // Use the userId from recipientData if available
         if (result.recipientData.userId) {
           setRecipientId(result.recipientData.userId);
           setRecipientVerified(true);
@@ -132,7 +125,6 @@ const Withdraw = () => {
           return;
         }
         
-        // Fallback: search directly by phone number
         const { data: profileByPhone } = await supabase
           .from('profiles')
           .select('id, balance')
@@ -145,7 +137,6 @@ const Withdraw = () => {
           return;
         }
 
-        // Fallback: search by last 8 digits
         const lastDigits = fullPhone.replace(/\D/g, '').slice(-8);
         
         if (lastDigits.length >= 8) {
@@ -219,12 +210,11 @@ const Withdraw = () => {
       const amountValue = Number(amount);
       
       if (isAgent()) {
-        // Agent initiating a withdrawal - create pending withdrawal request
         if (!recipientId) {
           throw new Error("Veuillez d'abord vérifier le client");
         }
         
-        // Check if client has sufficient balance
+        // Vérifier le solde du client
         const { data: clientProfile, error: clientProfileError } = await supabase
           .from('profiles')
           .select('balance')
@@ -240,20 +230,20 @@ const Withdraw = () => {
         }
 
         if (clientProfile.balance < amountValue) {
-          throw new Error("Solde insuffisant pour effectuer ce retrait");
+          throw new Error(`Solde insuffisant. Client a ${clientProfile.balance} FCFA, montant demandé: ${amountValue} FCFA`);
         }
 
-        // Generate verification code for client confirmation
+        // Générer un code de vérification pour la confirmation du client
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         
-        // Create withdrawal request with pending status
+        // Créer la demande de retrait en attente de confirmation
         const { error: withdrawalError } = await supabase
           .from('withdrawals')
           .insert({
             user_id: recipientId,
             amount: amountValue,
             withdrawal_phone: formattedPhone,
-            status: 'agent_pending', // New status for agent-initiated withdrawals
+            status: 'agent_pending',
             verification_code: verificationCode
           });
 
@@ -263,15 +253,13 @@ const Withdraw = () => {
 
         toast({
           title: "Demande de retrait envoyée",
-          description: `Une demande de retrait de ${amountValue} FCFA a été envoyée à ${recipientName}. En attente de confirmation du client. Code: ${verificationCode}`,
+          description: `Une demande de retrait de ${amountValue} FCFA a été envoyée à ${recipientName}. Code: ${verificationCode}`,
         });
 
       } else {
-        // Regular user requesting a withdrawal
-        // Generate a verification code
+        // Utilisateur normal demandant un retrait
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         
-        // Create withdrawal record with verification code
         const { error: withdrawalError } = await supabase
           .from('withdrawals')
           .insert({
@@ -292,7 +280,6 @@ const Withdraw = () => {
         });
       }
       
-      // Reset form and redirect
       setAmount("");
       setPhoneNumber("");
       setRecipientVerified(false);
@@ -421,12 +408,12 @@ const Withdraw = () => {
                   {isProcessing ? (
                     <div className="flex items-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      <span>Traitement en cours...</span>
+                      <span>Vérification en cours...</span>
                     </div>
                   ) : (
                     <div className="flex items-center justify-center">
                       <Banknote className="mr-2 h-5 w-5" />
-                      <span>{isAgent() ? "Effectuer le retrait" : "Continuer"}</span>
+                      <span>{isAgent() ? "Envoyer la demande" : "Continuer"}</span>
                     </div>
                   )}
                 </Button>
