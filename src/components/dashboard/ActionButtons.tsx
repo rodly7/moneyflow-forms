@@ -1,5 +1,5 @@
 
-import { ArrowUpRight, Banknote, CreditCard, UserMinus, Receipt } from "lucide-react";
+import { ArrowUpRight, Banknote, CreditCard, UserMinus, Receipt, PiggyBank } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,6 +26,18 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
           {isAgent() ? "Transfert International" : "Transfert"}
         </span>
       </Button>
+      
+      {/* Deposit - Only for agents */}
+      {isAgent() && (
+        <Button 
+          variant="outline" 
+          className="flex flex-col items-center justify-center h-20 bg-white"
+          onClick={() => window.location.href = '/deposit'}
+        >
+          <PiggyBank className="h-5 w-5 mb-1" />
+          <span className="text-xs font-medium">Dépôt</span>
+        </Button>
+      )}
       
       {/* Mobile recharge - Only for regular users */}
       {!isAgent() && (
