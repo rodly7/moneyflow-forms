@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -120,7 +121,6 @@ const Withdraw = () => {
         console.log("✓ Vérification réussie via hook");
         setRecipientName(result.recipientData.fullName);
         
-        // CORRECTION PRINCIPALE: S'assurer que l'ID est défini correctement
         if (result.recipientData.userId) {
           console.log("✓ ID trouvé dans recipientData:", result.recipientData.userId);
           setRecipientId(result.recipientData.userId);
@@ -266,19 +266,81 @@ const Withdraw = () => {
         
         console.log("Agent - Traitement du retrait avec recipientId:", recipientId);
         
-        // Vérifier que l'ID correspond à un profil valide
-        const { data: clientProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, balance, full_name, country, phone')
-          .eq('id', recipientId)
-          .maybeSingle();
+        // CORRECTION: Utiliser une approche plus robuste pour vérifier le profil client
+        // Essayer plusieurs méthodes pour s'assurer que l'utilisateur existe
+        
+        // Méthode 1: Recherche directe par ID
+        let clientProfile = null;
+        let profileError = null;
 
-        if (profileError || !clientProfile) {
-          console.error("Erreur lors de la vérification du profil client:", profileError);
-          throw new Error("Client introuvable avec l'ID fourni. Veuillez re-vérifier le numéro.");
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('id, balance, full_name, country, phone')
+            .eq('id', recipientId)
+            .single();
+          
+          clientProfile = data;
+          profileError = error;
+          console.log("Recherche par ID - Résultat:", { data, error });
+        } catch (err) {
+          console.log("Erreur lors de la recherche par ID:", err);
         }
 
-        console.log("Profil client validé:", clientProfile);
+        // Méthode 2: Si la recherche par ID échoue, rechercher par téléphone
+        if (!clientProfile) {
+          console.log("Recherche par téléphone en fallback...");
+          try {
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('id, balance, full_name, country, phone')
+              .eq('phone', formattedPhone)
+              .single();
+            
+            if (!error && data) {
+              clientProfile = data;
+              setRecipientId(data.id); // Mettre à jour l'ID avec celui trouvé
+              console.log("Client trouvé par téléphone:", data);
+            }
+          } catch (err) {
+            console.log("Erreur lors de la recherche par téléphone:", err);
+          }
+        }
+
+        // Méthode 3: Recherche dans tous les profils par les derniers chiffres
+        if (!clientProfile) {
+          console.log("Recherche par derniers chiffres en fallback...");
+          const lastDigits = formattedPhone.replace(/\D/g, '').slice(-8);
+          
+          try {
+            const { data: allProfiles, error } = await supabase
+              .from('profiles')
+              .select('id, balance, full_name, country, phone');
+            
+            if (!error && allProfiles) {
+              const matchingProfile = allProfiles.find(profile => {
+                if (!profile.phone) return false;
+                const profileLastDigits = profile.phone.replace(/\D/g, '').slice(-8);
+                return profileLastDigits === lastDigits;
+              });
+              
+              if (matchingProfile) {
+                clientProfile = matchingProfile;
+                setRecipientId(matchingProfile.id); // Mettre à jour l'ID
+                console.log("Client trouvé par derniers chiffres:", matchingProfile);
+              }
+            }
+          } catch (err) {
+            console.log("Erreur lors de la recherche par derniers chiffres:", err);
+          }
+        }
+
+        if (!clientProfile) {
+          console.error("AUCUN PROFIL CLIENT TROUVÉ après toutes les tentatives");
+          throw new Error("Client introuvable dans la base de données. Veuillez vérifier que le numéro est correct.");
+        }
+
+        console.log("Profil client final validé:", clientProfile);
 
         // Vérifier le solde du client
         if (clientProfile.balance < amountValue) {
@@ -292,7 +354,7 @@ const Withdraw = () => {
         const { error: withdrawalError } = await supabase
           .from('withdrawals')
           .insert({
-            user_id: recipientId,
+            user_id: clientProfile.id, // Utiliser l'ID du profil trouvé
             amount: amountValue,
             withdrawal_phone: formattedPhone,
             status: 'agent_pending',
