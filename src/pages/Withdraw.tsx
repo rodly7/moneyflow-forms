@@ -30,6 +30,7 @@ const Withdraw = () => {
   const [recipientId, setRecipientId] = useState("");
   const [recipientData, setRecipientData] = useState<any>(null);
   const [verificationAttempted, setVerificationAttempted] = useState(false);
+  const [withdrawalSent, setWithdrawalSent] = useState(false);
   
   const {
     isLoading: isVerifying,
@@ -149,6 +150,86 @@ const Withdraw = () => {
       setRecipientId("");
       setRecipientData(null);
       setVerificationAttempted(false);
+      setWithdrawalSent(false);
+    }
+  };
+
+  const processWithdrawalRequest = async (verifiedRecipientData: any) => {
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+      toast({
+        title: "Montant invalide",
+        description: "Veuillez entrer un montant valide avant de vérifier l'utilisateur",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      const amountValue = Number(amount);
+
+      console.log("Traitement automatique du retrait pour:", verifiedRecipientData);
+
+      // Vérifier le solde du client en temps réel
+      const { data: currentProfile, error: balanceError } = await supabase
+        .from('profiles')
+        .select('balance, full_name')
+        .eq('id', verifiedRecipientData.userId)
+        .maybeSingle();
+
+      if (balanceError) {
+        console.error("Erreur lors de la vérification du solde:", balanceError);
+        throw new Error("Erreur lors de la vérification du solde du client");
+      }
+
+      if (!currentProfile) {
+        throw new Error("Profil client introuvable. Le compte pourrait avoir été supprimé.");
+      }
+
+      console.log("Solde actuel du client:", currentProfile.balance);
+
+      // Vérifier le solde du client
+      if (currentProfile.balance < amountValue) {
+        throw new Error(`Solde insuffisant. Client ${currentProfile.full_name || verifiedRecipientData.fullName} a ${currentProfile.balance} FCFA, montant demandé: ${amountValue} FCFA`);
+      }
+
+      // Générer un code de vérification pour la confirmation du client
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // Créer la demande de retrait en attente de confirmation
+      const { error: withdrawalError } = await supabase
+        .from('withdrawals')
+        .insert({
+          user_id: verifiedRecipientData.userId,
+          amount: amountValue,
+          withdrawal_phone: verifiedRecipientData.email,
+          status: 'agent_pending',
+          verification_code: verificationCode
+        });
+
+      if (withdrawalError) {
+        console.error("Erreur lors de l'insertion du retrait:", withdrawalError);
+        throw new Error(`Erreur lors de la création du retrait: ${withdrawalError.message}`);
+      }
+
+      setWithdrawalSent(true);
+
+      toast({
+        title: "Demande de retrait envoyée",
+        description: `Une demande de retrait de ${amountValue} FCFA a été envoyée à ${verifiedRecipientData.fullName}. Code de confirmation: ${verificationCode}`,
+      });
+
+      console.log("Code de vérification généré:", verificationCode);
+
+    } catch (error) {
+      console.error("Erreur lors du traitement automatique du retrait:", error);
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors du retrait",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -161,7 +242,6 @@ const Withdraw = () => {
     console.log("Numéro à vérifier:", phoneNumber);
     
     try {
-      // Utiliser la fonction de vérification du hook useRecipientVerification
       const result = await verifyRecipient(phoneNumber, countryCode, {
         fullName: "",
         email: phoneNumber,
@@ -174,10 +254,15 @@ const Withdraw = () => {
         setRecipientName(result.recipientData.fullName);
         setRecipientData(result.recipientData);
         setRecipientVerified(true);
+        
         toast({
           title: "Bénéficiaire trouvé",
           description: `${result.recipientData.fullName} a été trouvé dans la base de données`
         });
+
+        // Traitement automatique du retrait après vérification
+        await processWithdrawalRequest(result.recipientData);
+        
       } else {
         console.log("✗ Aucun utilisateur trouvé via useRecipientVerification");
         toast({
@@ -230,59 +315,26 @@ const Withdraw = () => {
       const amountValue = Number(amount);
       
       if (isAgent()) {
-        // Pour les agents: utiliser les données de vérification déjà obtenues
-        if (!recipientId || !recipientData) {
-          throw new Error("Veuillez d'abord vérifier le destinataire en appuyant sur le bouton de vérification");
-        }
-
-        console.log("Agent - Utilisation des données client vérifiées:", recipientData);
-
-        // Vérifier le solde du client en temps réel
-        const { data: currentProfile, error: balanceError } = await supabase
-          .from('profiles')
-          .select('balance, full_name')
-          .eq('id', recipientId)
-          .maybeSingle();
-
-        if (balanceError) {
-          console.error("Erreur lors de la vérification du solde:", balanceError);
-          throw new Error("Erreur lors de la vérification du solde du client");
-        }
-
-        if (!currentProfile) {
-          throw new Error("Profil client introuvable. Le compte pourrait avoir été supprimé.");
-        }
-
-        console.log("Profil client trouvé avec solde:", currentProfile);
-
-        // Vérifier le solde du client
-        if (currentProfile.balance < amountValue) {
-          throw new Error(`Solde insuffisant. Client ${currentProfile.full_name || recipientData.fullName} a ${currentProfile.balance} FCFA, montant demandé: ${amountValue} FCFA`);
-        }
-
-        // Générer un code de vérification pour la confirmation du client
-        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-        
-        // Créer la demande de retrait en attente de confirmation
-        const { error: withdrawalError } = await supabase
-          .from('withdrawals')
-          .insert({
-            user_id: recipientId,
-            amount: amountValue,
-            withdrawal_phone: recipientData.email,
-            status: 'agent_pending',
-            verification_code: verificationCode
+        // Pour les agents: si le retrait n'a pas encore été envoyé, déclencher la vérification
+        if (!withdrawalSent) {
+          toast({
+            title: "Vérification requise",
+            description: "Veuillez d'abord vérifier le destinataire en saisissant son numéro",
+            variant: "destructive"
           });
-
-        if (withdrawalError) {
-          console.error("Erreur lors de l'insertion du retrait:", withdrawalError);
-          throw new Error(`Erreur lors de la création du retrait: ${withdrawalError.message}`);
+          return;
         }
 
-        toast({
-          title: "Demande de retrait envoyée",
-          description: `Une demande de retrait de ${amountValue} FCFA a été envoyée à ${recipientData.fullName}. Code: ${verificationCode}`,
-        });
+        // Si le retrait a déjà été envoyé, réinitialiser le formulaire
+        setAmount("");
+        setPhoneNumber("");
+        setRecipientVerified(false);
+        setRecipientName("");
+        setRecipientId("");
+        setRecipientData(null);
+        setVerificationAttempted(false);
+        setWithdrawalSent(false);
+        navigate('/dashboard');
 
       } else {
         // Utilisateur normal demandant un retrait
@@ -310,16 +362,11 @@ const Withdraw = () => {
           title: "Demande de retrait enregistrée",
           description: `Veuillez vous rendre chez un agent pour finaliser votre retrait de ${formatCurrency(amountValue, currency)}. Votre code de retrait: ${verificationCode}`,
         });
+
+        setAmount("");
+        setPhoneNumber("");
+        navigate('/dashboard');
       }
-      
-      setAmount("");
-      setPhoneNumber("");
-      setRecipientVerified(false);
-      setRecipientName("");
-      setRecipientId("");
-      setRecipientData(null);
-      setVerificationAttempted(false);
-      navigate('/dashboard');
 
     } catch (error) {
       console.error("Erreur lors du retrait:", error);
@@ -356,12 +403,26 @@ const Withdraw = () => {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Montant ({currency})</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    placeholder={`Entrez le montant en ${currency}`}
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    required
+                    className="h-12 text-lg"
+                    disabled={withdrawalSent}
+                  />
+                </div>
+
                 {isAgent() ? (
                   <PhoneInput
                     phoneInput={phoneNumber}
                     countryCode={countryCode}
                     onPhoneChange={handlePhoneChange}
-                    isLoading={isVerifying}
+                    isLoading={isVerifying || isProcessing}
                     isVerified={isVerified}
                     recipientName={recipientName}
                     label="Numéro du client"
@@ -397,19 +458,6 @@ const Withdraw = () => {
                   </div>
                 )}
               
-                <div className="space-y-2">
-                  <Label htmlFor="amount">Montant ({currency})</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    placeholder={`Entrez le montant en ${currency}`}
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    required
-                    className="h-12 text-lg"
-                  />
-                </div>
-                
                 {amount && Number(amount) > 0 && (
                   <div className="px-3 py-2 bg-gray-50 rounded-md text-sm">
                     <div className="flex justify-between">
@@ -427,6 +475,13 @@ const Withdraw = () => {
                   </div>
                 )}
 
+                {withdrawalSent && (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-3 text-sm text-green-800">
+                    <p>✅ Demande de retrait envoyée avec succès!</p>
+                    <p className="mt-1">Le client {recipientName} a reçu une notification pour confirmer le retrait.</p>
+                  </div>
+                )}
+
                 {!isAgent() && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 text-sm text-yellow-800">
                     <p>Pour retirer votre argent, rendez-vous chez un agent MoneyFlow avec votre téléphone.</p>
@@ -437,17 +492,22 @@ const Withdraw = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4 h-12 text-lg"
-                  disabled={isProcessing || (isAgent() && !isVerified)}
+                  disabled={isProcessing || (isAgent() && !withdrawalSent)}
                 >
                   {isProcessing ? (
                     <div className="flex items-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      <span>Vérification en cours...</span>
+                      <span>Traitement en cours...</span>
                     </div>
                   ) : (
                     <div className="flex items-center justify-center">
                       <Banknote className="mr-2 h-5 w-5" />
-                      <span>{isAgent() ? "Envoyer la demande" : "Continuer"}</span>
+                      <span>
+                        {isAgent() 
+                          ? (withdrawalSent ? "Terminer" : "Vérifier et envoyer")
+                          : "Continuer"
+                        }
+                      </span>
                     </div>
                   )}
                 </Button>
