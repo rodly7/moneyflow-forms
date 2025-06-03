@@ -29,7 +29,7 @@ export const fetchUserBalance = async (userId: string) => {
     .from('profiles')
     .select('balance, full_name, id')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (profileError) {
     console.error("Erreur lors de la récupération du profil:", profileError);
@@ -38,7 +38,28 @@ export const fetchUserBalance = async (userId: string) => {
 
   if (!userProfile) {
     console.error("Profil utilisateur introuvable pour l'ID:", userId);
-    throw new Error("Profil utilisateur introuvable");
+    console.log("Tentative de création d'un profil manquant...");
+    
+    // Tenter de créer le profil manquant
+    const { data: newProfile, error: createError } = await supabase
+      .from('profiles')
+      .insert({
+        id: userId,
+        balance: 0,
+        full_name: '',
+        phone: '',
+        country: 'Congo Brazzaville'
+      })
+      .select('balance, full_name, id')
+      .single();
+
+    if (createError) {
+      console.error("Erreur lors de la création du profil:", createError);
+      throw new Error("Impossible de créer le profil utilisateur");
+    }
+
+    console.log("Profil créé avec succès:", newProfile);
+    return 0; // Nouveau profil avec solde 0
   }
 
   const balance = Number(userProfile.balance) || 0;
