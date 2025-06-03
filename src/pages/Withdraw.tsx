@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Banknote } from "lucide-react";
+import { ArrowLeft, Banknote, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, formatCurrency, getCurrencyForCountry, calculateFee } from "@/integrations/supabase/client";
 import { countries } from "@/data/countries";
@@ -29,6 +28,7 @@ const Withdraw = () => {
   const [recipientName, setRecipientName] = useState("");
   const [recipientId, setRecipientId] = useState("");
   const [recipientData, setRecipientData] = useState<any>(null);
+  const [recipientBalance, setRecipientBalance] = useState<number>(0);
   const [verificationAttempted, setVerificationAttempted] = useState(false);
   const [withdrawalSent, setWithdrawalSent] = useState(false);
   
@@ -149,6 +149,7 @@ const Withdraw = () => {
       setRecipientName("");
       setRecipientId("");
       setRecipientData(null);
+      setRecipientBalance(0);
       setVerificationAttempted(false);
       setWithdrawalSent(false);
     }
@@ -168,71 +169,14 @@ const Withdraw = () => {
       setIsProcessing(true);
       const amountValue = Number(amount);
 
-      console.log("Traitement manuel du retrait pour:", verifiedRecipientData);
-
-      // Vérifier le solde du client en temps réel avec plusieurs tentatives si nécessaire
-      let currentProfile = null;
-      let attempts = 0;
-      const maxAttempts = 3;
-
-      while (!currentProfile && attempts < maxAttempts) {
-        console.log(`Tentative ${attempts + 1} de récupération du profil...`);
-        
-        const { data: profileData, error: balanceError } = await supabase
-          .from('profiles')
-          .select('balance, full_name, country')
-          .eq('id', verifiedRecipientData.userId)
-          .maybeSingle();
-
-        if (!balanceError && profileData) {
-          currentProfile = profileData;
-        } else if (attempts === 0) {
-          // Si c'est la première tentative et qu'aucun profil n'est trouvé, 
-          // on essaie de créer ou mettre à jour le profil
-          console.log("Création/mise à jour du profil client...");
-          
-          const { error: upsertError } = await supabase
-            .from('profiles')
-            .upsert({
-              id: verifiedRecipientData.userId,
-              full_name: verifiedRecipientData.fullName,
-              phone: verifiedRecipientData.email,
-              country: verifiedRecipientData.country || "Congo Brazzaville",
-              balance: 0,
-              updated_at: new Date().toISOString()
-            }, {
-              onConflict: 'id'
-            });
-
-          if (upsertError) {
-            console.error("Erreur lors de la création/mise à jour du profil:", upsertError);
-          } else {
-            console.log("Profil créé/mis à jour avec succès");
-          }
-        }
-
-        attempts++;
-        if (!currentProfile && attempts < maxAttempts) {
-          // Attendre un peu avant la prochaine tentative
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-
-      if (!currentProfile) {
-        // Si toujours pas de profil trouvé, utiliser les données par défaut
-        console.log("Utilisation des données par défaut pour le client");
-        currentProfile = {
-          balance: 0,
-          full_name: verifiedRecipientData.fullName,
-          country: verifiedRecipientData.country || "Congo Brazzaville"
-        };
-      }
-
-      console.log("Solde actuel du client:", currentProfile.balance);
-
-      // Vérifier le solde du client
-      if (currentProfile.balance < amountValue) {
-        throw new Error(`Solde insuffisant. Client ${currentProfile.full_name || verifiedRecipientData.fullName} a ${currentProfile.balance} FCFA, montant demandé: ${amountValue} FCFA`);
+      // Vérifier si le client a suffisamment de fonds
+      if (recipientBalance < amountValue) {
+        toast({
+          title: "Solde insuffisant",
+          description: `Le client ${verifiedRecipientData.fullName} n'a que ${recipientBalance} FCFA. Montant demandé: ${amountValue} FCFA`,
+          variant: "destructive"
+        });
+        return;
       }
 
       // Générer un code de vérification pour la confirmation du client
@@ -296,13 +240,26 @@ const Withdraw = () => {
         setRecipientName(result.recipientData.fullName);
         setRecipientData(result.recipientData);
         setRecipientVerified(true);
+
+        // Récupérer le solde actuel du client
+        const { data: clientProfile, error: balanceError } = await supabase
+          .from('profiles')
+          .select('balance')
+          .eq('id', result.recipientData.userId)
+          .maybeSingle();
+
+        if (!balanceError && clientProfile) {
+          setRecipientBalance(clientProfile.balance || 0);
+          console.log("Solde du client récupéré:", clientProfile.balance);
+        } else {
+          console.error("Erreur lors de la récupération du solde:", balanceError);
+          setRecipientBalance(0);
+        }
         
         toast({
           title: "Bénéficiaire trouvé",
-          description: `${result.recipientData.fullName} a été trouvé dans la base de données`
+          description: `${result.recipientData.fullName} a été trouvé. Solde: ${formatCurrency(clientProfile?.balance || 0, currency)}`
         });
-
-        // Ne pas traiter automatiquement - attendre que l'agent clique sur "Envoyer"
         
       } else {
         console.log("✗ Aucun utilisateur trouvé via useRecipientVerification");
@@ -377,6 +334,7 @@ const Withdraw = () => {
           setRecipientName("");
           setRecipientId("");
           setRecipientData(null);
+          setRecipientBalance(0);
           setVerificationAttempted(false);
           setWithdrawalSent(false);
           navigate('/dashboard');
@@ -426,6 +384,9 @@ const Withdraw = () => {
     }
   };
 
+  // Vérifier si le montant demandé dépasse le solde disponible
+  const isAmountExceedsBalance = isAgent() && isVerified && amount && Number(amount) > recipientBalance;
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-4">
       <div className="container max-w-lg mx-auto space-y-6">
@@ -460,19 +421,42 @@ const Withdraw = () => {
                     required
                     className="h-12 text-lg"
                   />
+                  {isAmountExceedsBalance && (
+                    <div className="flex items-center text-red-600 text-sm mt-1">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      <span>Le montant dépasse le solde disponible ({formatCurrency(recipientBalance, currency)})</span>
+                    </div>
+                  )}
                 </div>
 
                 {isAgent() ? (
-                  <PhoneInput
-                    phoneInput={phoneNumber}
-                    countryCode={countryCode}
-                    onPhoneChange={handlePhoneChange}
-                    isLoading={isVerifying || isProcessing}
-                    isVerified={isVerified}
-                    recipientName={recipientName}
-                    label="Numéro du client"
-                    onBlurComplete={handleVerifyRecipient}
-                  />
+                  <>
+                    <PhoneInput
+                      phoneInput={phoneNumber}
+                      countryCode={countryCode}
+                      onPhoneChange={handlePhoneChange}
+                      isLoading={isVerifying || isProcessing}
+                      isVerified={isVerified}
+                      recipientName={recipientName}
+                      label="Numéro du client"
+                      onBlurComplete={handleVerifyRecipient}
+                    />
+                    
+                    {isVerified && recipientData && (
+                      <div className="px-3 py-2 bg-blue-50 rounded-md text-sm border border-blue-200">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Client vérifié:</span>
+                          <span>{recipientName}</span>
+                        </div>
+                        <div className="flex justify-between items-center mt-1">
+                          <span className="font-medium">Solde disponible:</span>
+                          <span className={`font-bold ${recipientBalance > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatCurrency(recipientBalance, currency)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="space-y-2">
                     <Label htmlFor="fullName">Nom complet</Label>
@@ -537,7 +521,7 @@ const Withdraw = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4 h-12 text-lg"
-                  disabled={isProcessing || (isAgent() && (!isVerified || !recipientData))}
+                  disabled={isProcessing || (isAgent() && (!isVerified || !recipientData || isAmountExceedsBalance))}
                 >
                   {isProcessing ? (
                     <div className="flex items-center">
