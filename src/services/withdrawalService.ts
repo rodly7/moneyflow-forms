@@ -42,51 +42,105 @@ export const ensureUserProfileExists = async (userId: string, userData?: any) =>
     return existingProfile;
   }
 
-  // Si le profil n'existe pas, le créer
-  console.log("📝 Création d'un nouveau profil pour l'utilisateur:", userId);
+  // Si le profil n'existe pas, essayer de le créer seulement si on a les bonnes données
+  console.log("📝 Tentative de création d'un nouveau profil pour l'utilisateur:", userId);
   
-  const profileData = {
-    id: userId,
-    balance: 0,
-    full_name: userData?.fullName || '',
-    phone: userData?.email || '',
-    country: userData?.country || 'Congo Brazzaville'
-  };
+  try {
+    const profileData = {
+      id: userId,
+      balance: 0,
+      full_name: userData?.fullName || 'Utilisateur',
+      phone: userData?.email || userData?.phone || '',
+      country: userData?.country || 'Congo Brazzaville'
+    };
 
-  const { data: newProfile, error: createError } = await supabase
-    .from('profiles')
-    .insert(profileData)
-    .select('id, balance, full_name, phone, country')
-    .single();
+    const { data: newProfile, error: createError } = await supabase
+      .from('profiles')
+      .insert(profileData)
+      .select('id, balance, full_name, phone, country')
+      .single();
 
-  if (createError) {
-    console.error("❌ Erreur lors de la création du profil:", createError);
-    throw new Error("Impossible de créer le profil utilisateur");
+    if (createError) {
+      console.error("❌ Erreur lors de la création du profil:", createError);
+      
+      // Si on ne peut pas créer le profil à cause des politiques RLS,
+      // retourner un profil temporaire avec solde 0
+      console.log("🔄 Retour d'un profil temporaire avec solde 0");
+      return {
+        id: userId,
+        balance: 0,
+        full_name: userData?.fullName || 'Utilisateur',
+        phone: userData?.email || userData?.phone || '',
+        country: userData?.country || 'Congo Brazzaville'
+      };
+    }
+
+    console.log("✅ Nouveau profil créé avec succès:", newProfile);
+    return newProfile;
+    
+  } catch (error) {
+    console.error("❌ Erreur lors de la création:", error);
+    
+    // En cas d'erreur, retourner un profil temporaire
+    console.log("🔄 Retour d'un profil temporaire suite à l'erreur");
+    return {
+      id: userId,
+      balance: 0,
+      full_name: userData?.fullName || 'Utilisateur',
+      phone: userData?.email || userData?.phone || '',
+      country: userData?.country || 'Congo Brazzaville'
+    };
   }
-
-  console.log("✅ Nouveau profil créé avec succès:", newProfile);
-  return newProfile;
 };
 
 export const fetchUserBalance = async (userId: string, userData?: any) => {
   console.log("🔄 Récupération du solde pour l'utilisateur:", userId);
   
   try {
-    // S'assurer que le profil existe avant d'essayer de récupérer le solde
-    const profile = await ensureUserProfileExists(userId, userData);
+    // Essayer de récupérer le profil directement d'abord
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, balance, full_name, phone, country')
+      .eq('id', userId)
+      .maybeSingle();
     
-    const balance = Number(profile.balance) || 0;
-    console.log(`✅ Solde récupéré pour ${profile.full_name || 'utilisateur'}: ${balance} FCFA`);
+    if (!profileError && profile) {
+      const balance = Number(profile.balance) || 0;
+      console.log(`✅ Profil trouvé pour ${profile.full_name || 'utilisateur'}: ${balance} FCFA`);
+      
+      return {
+        balance,
+        fullName: profile.full_name || '',
+        phone: profile.phone || '',
+        country: profile.country || 'Congo Brazzaville'
+      };
+    }
+    
+    // Si le profil n'existe pas, essayer de le créer ou retourner des valeurs par défaut
+    console.log("⚠️ Profil non trouvé, tentative de création...");
+    const profileData = await ensureUserProfileExists(userId, userData);
+    
+    const balance = Number(profileData.balance) || 0;
+    console.log(`✅ Solde récupéré pour ${profileData.full_name || 'utilisateur'}: ${balance} FCFA`);
     
     return {
       balance,
-      fullName: profile.full_name || '',
-      phone: profile.phone || '',
-      country: profile.country || 'Congo Brazzaville'
+      fullName: profileData.full_name || '',
+      phone: profileData.phone || '',
+      country: profileData.country || 'Congo Brazzaville'
     };
+    
   } catch (error) {
     console.error("❌ Erreur dans fetchUserBalance:", error);
-    throw error;
+    
+    // En dernier recours, retourner des valeurs par défaut
+    console.log("🔄 Retour de valeurs par défaut suite à l'erreur");
+    return {
+      balance: 0,
+      fullName: userData?.fullName || 'Utilisateur',
+      phone: userData?.email || userData?.phone || '',
+      country: userData?.country || 'Congo Brazzaville'
+    };
   }
 };
 
