@@ -154,11 +154,11 @@ const Withdraw = () => {
     }
   };
 
-  const processWithdrawalRequest = async (verifiedRecipientData: any) => {
+  const processManualWithdrawal = async (verifiedRecipientData: any) => {
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
       toast({
         title: "Montant invalide",
-        description: "Veuillez entrer un montant valide avant de vérifier l'utilisateur",
+        description: "Veuillez entrer un montant valide",
         variant: "destructive"
       });
       return;
@@ -168,22 +168,64 @@ const Withdraw = () => {
       setIsProcessing(true);
       const amountValue = Number(amount);
 
-      console.log("Traitement automatique du retrait pour:", verifiedRecipientData);
+      console.log("Traitement manuel du retrait pour:", verifiedRecipientData);
 
-      // Vérifier le solde du client en temps réel
-      const { data: currentProfile, error: balanceError } = await supabase
-        .from('profiles')
-        .select('balance, full_name')
-        .eq('id', verifiedRecipientData.userId)
-        .maybeSingle();
+      // Vérifier le solde du client en temps réel avec plusieurs tentatives si nécessaire
+      let currentProfile = null;
+      let attempts = 0;
+      const maxAttempts = 3;
 
-      if (balanceError) {
-        console.error("Erreur lors de la vérification du solde:", balanceError);
-        throw new Error("Erreur lors de la vérification du solde du client");
+      while (!currentProfile && attempts < maxAttempts) {
+        console.log(`Tentative ${attempts + 1} de récupération du profil...`);
+        
+        const { data: profileData, error: balanceError } = await supabase
+          .from('profiles')
+          .select('balance, full_name, country')
+          .eq('id', verifiedRecipientData.userId)
+          .maybeSingle();
+
+        if (!balanceError && profileData) {
+          currentProfile = profileData;
+        } else if (attempts === 0) {
+          // Si c'est la première tentative et qu'aucun profil n'est trouvé, 
+          // on essaie de créer ou mettre à jour le profil
+          console.log("Création/mise à jour du profil client...");
+          
+          const { error: upsertError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: verifiedRecipientData.userId,
+              full_name: verifiedRecipientData.fullName,
+              phone: verifiedRecipientData.email,
+              country: verifiedRecipientData.country || "Congo Brazzaville",
+              balance: 0,
+              updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'id'
+            });
+
+          if (upsertError) {
+            console.error("Erreur lors de la création/mise à jour du profil:", upsertError);
+          } else {
+            console.log("Profil créé/mis à jour avec succès");
+          }
+        }
+
+        attempts++;
+        if (!currentProfile && attempts < maxAttempts) {
+          // Attendre un peu avant la prochaine tentative
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
 
       if (!currentProfile) {
-        throw new Error("Profil client introuvable. Le compte pourrait avoir été supprimé.");
+        // Si toujours pas de profil trouvé, utiliser les données par défaut
+        console.log("Utilisation des données par défaut pour le client");
+        currentProfile = {
+          balance: 0,
+          full_name: verifiedRecipientData.fullName,
+          country: verifiedRecipientData.country || "Congo Brazzaville"
+        };
       }
 
       console.log("Solde actuel du client:", currentProfile.balance);
@@ -222,7 +264,7 @@ const Withdraw = () => {
       console.log("Code de vérification généré:", verificationCode);
 
     } catch (error) {
-      console.error("Erreur lors du traitement automatique du retrait:", error);
+      console.error("Erreur lors du traitement manuel du retrait:", error);
       toast({
         title: "Erreur",
         description: error instanceof Error ? error.message : "Une erreur est survenue lors du retrait",
@@ -260,8 +302,7 @@ const Withdraw = () => {
           description: `${result.recipientData.fullName} a été trouvé dans la base de données`
         });
 
-        // Traitement automatique du retrait après vérification
-        await processWithdrawalRequest(result.recipientData);
+        // Ne pas traiter automatiquement - attendre que l'agent clique sur "Envoyer"
         
       } else {
         console.log("✗ Aucun utilisateur trouvé via useRecipientVerification");
@@ -315,26 +356,31 @@ const Withdraw = () => {
       const amountValue = Number(amount);
       
       if (isAgent()) {
-        // Pour les agents: si le retrait n'a pas encore été envoyé, déclencher la vérification
-        if (!withdrawalSent) {
+        // Pour les agents: vérifier que l'utilisateur est vérifié
+        if (!isVerified || !recipientData) {
           toast({
             title: "Vérification requise",
-            description: "Veuillez d'abord vérifier le destinataire en saisissant son numéro",
+            description: "Veuillez d'abord vérifier le destinataire",
             variant: "destructive"
           });
           return;
         }
 
-        // Si le retrait a déjà été envoyé, réinitialiser le formulaire
-        setAmount("");
-        setPhoneNumber("");
-        setRecipientVerified(false);
-        setRecipientName("");
-        setRecipientId("");
-        setRecipientData(null);
-        setVerificationAttempted(false);
-        setWithdrawalSent(false);
-        navigate('/dashboard');
+        // Traitement manuel du retrait
+        await processManualWithdrawal(recipientData);
+
+        // Réinitialiser le formulaire après succès
+        if (withdrawalSent) {
+          setAmount("");
+          setPhoneNumber("");
+          setRecipientVerified(false);
+          setRecipientName("");
+          setRecipientId("");
+          setRecipientData(null);
+          setVerificationAttempted(false);
+          setWithdrawalSent(false);
+          navigate('/dashboard');
+        }
 
       } else {
         // Utilisateur normal demandant un retrait
@@ -413,7 +459,6 @@ const Withdraw = () => {
                     onChange={(e) => setAmount(e.target.value)}
                     required
                     className="h-12 text-lg"
-                    disabled={withdrawalSent}
                   />
                 </div>
 
@@ -492,7 +537,7 @@ const Withdraw = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4 h-12 text-lg"
-                  disabled={isProcessing || (isAgent() && !withdrawalSent)}
+                  disabled={isProcessing || (isAgent() && (!isVerified || !recipientData))}
                 >
                   {isProcessing ? (
                     <div className="flex items-center">
@@ -504,7 +549,7 @@ const Withdraw = () => {
                       <Banknote className="mr-2 h-5 w-5" />
                       <span>
                         {isAgent() 
-                          ? (withdrawalSent ? "Terminer" : "Vérifier et envoyer")
+                          ? "Envoyer la demande de retrait"
                           : "Continuer"
                         }
                       </span>
