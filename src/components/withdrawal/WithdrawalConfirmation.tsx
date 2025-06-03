@@ -80,7 +80,8 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
       }
 
       // Calculer les frais en utilisant la fonction calculateFee
-      const { fee, agentCommission, moneyFlowCommission } = calculateFee(withdrawalData.amount);
+      const feeCalculation = calculateFee(withdrawalData.amount);
+      const { fee, agentCommission, moneyFlowCommission } = feeCalculation;
 
       // 1. Débiter le montant du compte utilisateur
       const { error: deductError } = await supabase.rpc('increment_balance', {
