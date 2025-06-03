@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Banknote, Wallet, RefreshCw } from "lucide-react";
+import { ArrowLeft, Banknote, Wallet, RefreshCw, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/integrations/supabase/client";
 import { getUserBalance } from "@/services/withdrawalService";
@@ -19,6 +19,9 @@ const Withdraw = () => {
 
   const [amount, setAmount] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [clientName, setClientName] = useState("");
+  const [clientFound, setClientFound] = useState(false);
+  const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [userBalance, setUserBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -82,6 +85,101 @@ const Withdraw = () => {
     }
   };
 
+  const searchClientByPhone = async (phone: string) => {
+    if (!phone || phone.length < 6) {
+      setClientFound(false);
+      setClientName("");
+      return;
+    }
+
+    setIsSearchingClient(true);
+    try {
+      console.log("🔍 Recherche du client avec le numéro:", phone);
+      
+      // Normaliser le numéro de téléphone pour la recherche
+      const normalizedPhone = phone.replace(/[\s+]/g, '');
+      
+      // Rechercher dans la table profiles
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('full_name, phone, balance')
+        .or(`phone.eq.${phone},phone.eq.${normalizedPhone}`);
+
+      if (error) {
+        console.error("❌ Erreur lors de la recherche:", error);
+        throw error;
+      }
+
+      if (profiles && profiles.length > 0) {
+        const client = profiles[0];
+        setClientName(client.full_name || 'Nom non disponible');
+        setClientFound(true);
+        console.log("✅ Client trouvé:", {
+          nom: client.full_name,
+          telephone: client.phone,
+          solde: client.balance
+        });
+        
+        toast({
+          title: "Client trouvé",
+          description: `${client.full_name || 'Utilisateur'} - Solde: ${formatCurrency(client.balance || 0, 'XAF')}`,
+        });
+      } else {
+        // Si pas trouvé avec la recherche exacte, essayer une recherche flexible
+        const { data: flexibleProfiles } = await supabase
+          .from('profiles')
+          .select('full_name, phone, balance')
+          .ilike('phone', `%${normalizedPhone.slice(-8)}%`);
+
+        if (flexibleProfiles && flexibleProfiles.length > 0) {
+          const client = flexibleProfiles[0];
+          setClientName(client.full_name || 'Nom non disponible');
+          setClientFound(true);
+          
+          toast({
+            title: "Client trouvé",
+            description: `${client.full_name || 'Utilisateur'} - Solde: ${formatCurrency(client.balance || 0, 'XAF')}`,
+          });
+        } else {
+          setClientFound(false);
+          setClientName("");
+          toast({
+            title: "Client non trouvé",
+            description: "Aucun utilisateur trouvé avec ce numéro de téléphone",
+            variant: "destructive"
+          });
+        }
+      }
+    } catch (error) {
+      console.error("❌ Erreur lors de la recherche du client:", error);
+      setClientFound(false);
+      setClientName("");
+      toast({
+        title: "Erreur de recherche",
+        description: "Impossible de rechercher le client",
+        variant: "destructive"
+      });
+    }
+    setIsSearchingClient(false);
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPhoneNumber(value);
+    
+    if (isAgent()) {
+      // Réinitialiser l'état du client trouvé
+      setClientFound(false);
+      setClientName("");
+    }
+  };
+
+  const handleSearchClient = () => {
+    if (isAgent() && phoneNumber) {
+      searchClientByPhone(phoneNumber);
+    }
+  };
+
   useEffect(() => {
     fetchUserBalanceFromDB();
     if (!isAgent()) {
@@ -107,6 +205,15 @@ const Withdraw = () => {
       toast({
         title: "Numéro requis",
         description: "Veuillez entrer un numéro de téléphone",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (isAgent() && !clientFound) {
+      toast({
+        title: "Client non vérifié",
+        description: "Veuillez d'abord rechercher et vérifier le client",
         variant: "destructive"
       });
       return;
@@ -150,6 +257,8 @@ const Withdraw = () => {
       setAmount("");
       if (isAgent()) {
         setPhoneNumber("");
+        setClientFound(false);
+        setClientName("");
       }
       navigate('/dashboard');
     } catch (error) {
@@ -240,20 +349,46 @@ const Withdraw = () => {
                   <Label htmlFor="phone">
                     {isAgent() ? "Numéro du client" : "Votre numéro de téléphone"}
                   </Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder={isAgent() ? "Entrez le numéro du client" : "Votre numéro sera récupéré automatiquement"}
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    required
-                    className="h-12"
-                    readOnly={!isAgent()}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder={isAgent() ? "Entrez le numéro du client" : "Votre numéro sera récupéré automatiquement"}
+                      value={phoneNumber}
+                      onChange={handlePhoneChange}
+                      required
+                      className="h-12"
+                      readOnly={!isAgent()}
+                    />
+                    {isAgent() && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleSearchClient}
+                        disabled={isSearchingClient || !phoneNumber}
+                        className="h-12 px-3"
+                      >
+                        {isSearchingClient ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
+                        ) : (
+                          <Search className="w-4 h-4" />
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                  
                   {!isAgent() && phoneNumber && (
                     <p className="text-green-600 text-sm">
                       ✓ Numéro récupéré depuis votre profil
                     </p>
+                  )}
+                  
+                  {isAgent() && clientFound && clientName && (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                      <p className="text-green-800 font-medium">
+                        ✓ Client trouvé: {clientName}
+                      </p>
+                    </div>
                   )}
                 </div>
 
@@ -266,7 +401,7 @@ const Withdraw = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4 h-12 text-lg"
-                  disabled={isProcessing || isAmountExceedsBalance || userBalance <= 0}
+                  disabled={isProcessing || isAmountExceedsBalance || userBalance <= 0 || (isAgent() && !clientFound)}
                 >
                   {isProcessing ? (
                     <div className="flex items-center">
