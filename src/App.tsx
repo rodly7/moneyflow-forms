@@ -24,6 +24,7 @@ import VerifyIdentity from "./pages/VerifyIdentity";
 import Transactions from "./pages/Transactions";
 import Commission from "./pages/Commission";
 import AgentWithdrawal from "./pages/AgentWithdrawal";
+import AgentWithdrawalAdvanced from "./pages/AgentWithdrawalAdvanced";
 import AgentDeposit from "./pages/AgentDeposit";
 import DepositForm from "./components/deposit/DepositForm";
 
@@ -35,6 +36,8 @@ function App() {
           <Route path="/" element={<Layout><Index /></Layout>} />
           <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
           <Route path="/withdraw" element={<Layout><Withdraw /></Layout>} />
+          <Route path="/agent-withdrawal" element={<Layout><AgentWithdrawal /></Layout>} />
+          <Route path="/agent-withdrawal-advanced" element={<Layout><AgentWithdrawalAdvanced /></Layout>} />
           <Route path="/verify-identity" element={<VerifyIdentity />} />
           <Route path="/qrcode" element={<Layout><QRCode /></Layout>} />
           <Route path="/scan" element={<QrScanner />} />

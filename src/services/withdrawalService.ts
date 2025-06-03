@@ -47,6 +47,91 @@ export const getUserBalance = async (userId: string) => {
   };
 };
 
+export const getCountryCodeForAgent = (agentCountry: string): string => {
+  const countryToCodes = {
+    "Cameroun": "+237",
+    "Cameroon": "+237",
+    "Congo Brazzaville": "+242",
+    "Gabon": "+241",
+    "Tchad": "+235",
+    "Chad": "+235",
+    "République Centrafricaine": "+236",
+    "Central African Republic": "+236",
+    "Guinée Équatoriale": "+240",
+    "Equatorial Guinea": "+240",
+    "Sénégal": "+221",
+    "Nigeria": "+234",
+    "Ghana": "+233",
+  };
+  
+  return countryToCodes[agentCountry as keyof typeof countryToCodes] || "+242";
+};
+
+export const findUserByPhoneWithCountryCode = async (phoneNumber: string, countryCode: string) => {
+  console.log("🔍 Recherche d'utilisateur par numéro avec indicatif:", countryCode, phoneNumber);
+  
+  // Normaliser le numéro de téléphone
+  const normalizedPhone = phoneNumber.replace(/[\s+]/g, '');
+  
+  // Construire le numéro complet avec l'indicatif
+  const fullPhoneWithCode = phoneNumber.startsWith('+') 
+    ? phoneNumber 
+    : `${countryCode}${normalizedPhone.startsWith('0') ? normalizedPhone.substring(1) : normalizedPhone}`;
+  
+  console.log("🔍 Numéro complet recherché:", fullPhoneWithCode);
+  
+  // Recherche directe avec le numéro complet
+  const { data: directMatch, error: directError } = await supabase
+    .from('profiles')
+    .select('id, full_name, phone, balance, country')
+    .eq('phone', fullPhoneWithCode)
+    .maybeSingle();
+
+  if (!directError && directMatch) {
+    console.log("✅ Utilisateur trouvé (correspondance directe):", directMatch);
+    return directMatch;
+  }
+
+  // Recherche alternative avec le numéro local
+  const { data: localMatch, error: localError } = await supabase
+    .from('profiles')
+    .select('id, full_name, phone, balance, country')
+    .eq('phone', normalizedPhone)
+    .maybeSingle();
+
+  if (!localError && localMatch) {
+    console.log("✅ Utilisateur trouvé (correspondance locale):", localMatch);
+    return localMatch;
+  }
+
+  // Recherche flexible par les derniers 8 chiffres
+  const { data: allProfiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, full_name, phone, balance, country');
+
+  if (profilesError) {
+    console.error("❌ Erreur lors de la recherche:", profilesError);
+    throw new Error("Erreur lors de la recherche d'utilisateur");
+  }
+
+  if (allProfiles) {
+    const lastDigits = normalizedPhone.slice(-8);
+    
+    for (const profile of allProfiles) {
+      if (profile.phone) {
+        const profileLastDigits = profile.phone.replace(/[\s+]/g, '').slice(-8);
+        if (profileLastDigits === lastDigits && lastDigits.length >= 8) {
+          console.log("✅ Utilisateur trouvé (correspondance par derniers chiffres):", profile);
+          return profile;
+        }
+      }
+    }
+  }
+
+  console.log("❌ Aucun utilisateur trouvé avec ce numéro");
+  return null;
+};
+
 export const findUserByPhone = async (phoneNumber: string) => {
   console.log("🔍 Recherche d'utilisateur par numéro:", phoneNumber);
   
