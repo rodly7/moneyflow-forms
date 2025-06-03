@@ -59,12 +59,12 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         throw new Error("Ce code de vérification n'existe pas ou a déjà été utilisé");
       }
 
-      // Récupérer le solde actuel de l'utilisateur depuis la base de données
+      // Récupérer le solde actuel de l'utilisateur depuis la table profiles
       const { data: userProfile, error: profileError } = await supabase
         .from('profiles')
         .select('balance')
         .eq('id', user.id)
-        .maybeSingle();
+        .single();
 
       if (profileError) {
         console.error("Erreur lors de la vérification du profil:", profileError);
@@ -75,9 +75,15 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         throw new Error("Profil utilisateur introuvable");
       }
 
-      // Convertir les valeurs en nombres simples
-      const currentBalance = Number(userProfile.balance);
-      const withdrawalAmount = Number(withdrawalData.amount);
+      // Convertir les valeurs en nombres
+      const currentBalance = Number(userProfile.balance) || 0;
+      const withdrawalAmount = Number(withdrawalData.amount) || 0;
+
+      console.log("Vérification du solde:", {
+        soldeActuel: currentBalance,
+        montantDemande: withdrawalAmount,
+        utilisateur: user.id
+      });
 
       // Vérifier si le solde est suffisant
       if (currentBalance < withdrawalAmount) {
@@ -101,17 +107,15 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         throw new Error("Erreur lors du débit de votre compte");
       }
 
-      // 2. Trouver l'agent qui a fait la demande et créditer son compte
-      const agentQuery = await supabase
+      // 2. Trouver un agent pour traiter le retrait
+      const { data: agentList, error: agentError } = await supabase
         .from('profiles')
         .select('id')
         .eq('role', 'agent')
         .limit(1);
 
-      const { data: agentProfiles, error: agentError } = agentQuery;
-
-      if (agentError || !agentProfiles || agentProfiles.length === 0) {
-        // Annuler le débit utilisateur
+      if (agentError || !agentList || agentList.length === 0) {
+        // Annuler le débit utilisateur si aucun agent trouvé
         await supabase.rpc('increment_balance', {
           user_id: user.id,
           amount: withdrawalAmount
@@ -119,9 +123,10 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         throw new Error("Aucun agent trouvé pour traiter le retrait");
       }
 
-      const agentId = agentProfiles[0].id;
+      const agentId = agentList[0].id;
       const agentCredit = withdrawalAmount - totalFee + agentCommission;
       
+      // 3. Créditer l'agent
       const { error: creditError } = await supabase.rpc('increment_balance', {
         user_id: agentId,
         amount: agentCredit
@@ -137,7 +142,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         throw new Error("Erreur lors du crédit du compte agent");
       }
       
-      // 3. Créditer la commission platform au compte admin
+      // 4. Créditer la commission platform au compte admin
       const { data: adminData, error: adminError } = await supabase
         .from('profiles')
         .select('id')
@@ -151,7 +156,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         });
       }
 
-      // 4. Mettre à jour le statut du retrait à completed
+      // 5. Mettre à jour le statut du retrait à completed
       const { error: updateError } = await supabase
         .from('withdrawals')
         .update({ 
