@@ -58,7 +58,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         throw new Error("Ce code de vérification n'existe pas ou a déjà été utilisé");
       }
 
-      // Vérifier le solde de l'utilisateur
+      // Récupérer le solde actuel de l'utilisateur depuis la base de données
       const { data: userProfile, error: profileError } = await supabase
         .from('profiles')
         .select('balance')
@@ -74,24 +74,25 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         throw new Error("Profil utilisateur introuvable");
       }
 
-      if (userProfile.balance < withdrawalData.amount) {
-        throw new Error("Solde insuffisant pour effectuer ce retrait");
+      // Convertir les valeurs en nombres simples
+      const currentBalance = Number(userProfile.balance);
+      const withdrawalAmount = Number(withdrawalData.amount);
+
+      // Vérifier si le solde est suffisant
+      if (currentBalance < withdrawalAmount) {
+        throw new Error(`Solde insuffisant. Solde actuel: ${currentBalance} FCFA, montant demandé: ${withdrawalAmount} FCFA`);
       }
 
-      // Conversion directe en nombres pour éviter les problèmes d'inférence TypeScript
-      const amount = parseFloat(String(withdrawalData.amount));
-      
-      // Calculs avec des constantes simples
-      const fee = amount * 0.06;
-      const agentPart = fee / 3;
-      const platformPart = fee - agentPart;
-      const userDebit = -amount;
-      const agentCredit = amount - fee + agentPart;
+      // Calculs des commissions (6% total)
+      const totalFeeRate = 0.06;
+      const totalFee = withdrawalAmount * totalFeeRate;
+      const agentCommission = totalFee / 3; // 1/3 pour l'agent (2%)
+      const platformCommission = totalFee - agentCommission; // 2/3 pour la plateforme (4%)
 
       // 1. Débiter le montant du compte utilisateur
       const { error: deductError } = await supabase.rpc('increment_balance', {
         user_id: user.id,
-        amount: userDebit
+        amount: -withdrawalAmount
       });
 
       if (deductError) {
@@ -110,12 +111,13 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         // Annuler le débit utilisateur
         await supabase.rpc('increment_balance', {
           user_id: user.id,
-          amount: amount
+          amount: withdrawalAmount
         });
         throw new Error("Aucun agent trouvé pour traiter le retrait");
       }
 
       const agentId = agentProfiles[0].id;
+      const agentCredit = withdrawalAmount - totalFee + agentCommission;
       
       const { error: creditError } = await supabase.rpc('increment_balance', {
         user_id: agentId,
@@ -127,7 +129,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         // Annuler le débit utilisateur si le crédit agent échoue
         await supabase.rpc('increment_balance', {
           user_id: user.id,
-          amount: amount
+          amount: withdrawalAmount
         });
         throw new Error("Erreur lors du crédit du compte agent");
       }
@@ -142,7 +144,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
       if (!adminError && adminData) {
         await supabase.rpc('increment_balance', {
           user_id: adminData.id,
-          amount: platformPart
+          amount: platformCommission
         });
       }
 
@@ -162,7 +164,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
 
       toast({
         title: "Retrait confirmé",
-        description: `Votre retrait de ${withdrawalData.amount} FCFA a été confirmé et effectué par l'agent.`,
+        description: `Votre retrait de ${withdrawalAmount} FCFA a été confirmé et effectué par l'agent.`,
       });
 
       onClose();
