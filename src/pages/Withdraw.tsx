@@ -22,6 +22,7 @@ const Withdraw = () => {
   const [userBalance, setUserBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   const fetchUserBalanceFromDB = async () => {
     if (user?.id) {
@@ -31,9 +32,6 @@ const Withdraw = () => {
         const balanceData = await getUserBalance(user.id);
         
         setUserBalance(balanceData.balance);
-        if (!isAgent()) {
-          setPhoneNumber(balanceData.phone || '');
-        }
         
         console.log("✅ Solde affiché:", balanceData.balance, "FCFA");
       } catch (error) {
@@ -48,8 +46,49 @@ const Withdraw = () => {
     }
   };
 
+  const fetchUserProfile = async () => {
+    if (user?.id) {
+      setIsLoadingProfile(true);
+      try {
+        console.log("🔍 Récupération du profil utilisateur depuis la base de données...");
+        
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('phone, full_name')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error("❌ Erreur lors de la récupération du profil:", error);
+          throw error;
+        }
+
+        if (profile) {
+          setPhoneNumber(profile.phone || '');
+          console.log("✅ Profil récupéré:", {
+            nom: profile.full_name,
+            telephone: profile.phone
+          });
+        }
+      } catch (error) {
+        console.error("❌ Erreur lors du chargement du profil:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger votre profil",
+          variant: "destructive"
+        });
+      }
+      setIsLoadingProfile(false);
+    }
+  };
+
   useEffect(() => {
     fetchUserBalanceFromDB();
+    if (!isAgent()) {
+      fetchUserProfile();
+    } else {
+      setIsLoadingProfile(false);
+    }
   }, [user, isAgent]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -146,7 +185,7 @@ const Withdraw = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoadingBalance ? (
+            {(isLoadingBalance || isLoadingProfile) ? (
               <div className="flex justify-center py-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
               </div>
@@ -204,13 +243,18 @@ const Withdraw = () => {
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder="Entrez le numéro de téléphone"
+                    placeholder={isAgent() ? "Entrez le numéro du client" : "Votre numéro sera récupéré automatiquement"}
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     required
                     className="h-12"
                     readOnly={!isAgent()}
                   />
+                  {!isAgent() && phoneNumber && (
+                    <p className="text-green-600 text-sm">
+                      ✓ Numéro récupéré depuis votre profil
+                    </p>
+                  )}
                 </div>
 
                 {!isAgent() && (
