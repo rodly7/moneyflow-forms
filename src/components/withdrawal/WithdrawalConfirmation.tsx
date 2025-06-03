@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -101,11 +102,13 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
       }
 
       // 2. Trouver l'agent qui a fait la demande et créditer son compte
-      const { data: agentProfiles, error: agentError } = await supabase
+      const agentQuery = await supabase
         .from('profiles')
         .select('id')
         .eq('role', 'agent')
         .limit(1);
+
+      const { data: agentProfiles, error: agentError } = agentQuery;
 
       if (agentError || !agentProfiles || agentProfiles.length === 0) {
         // Annuler le débit utilisateur
