@@ -47,6 +47,124 @@ export const getUserBalance = async (userId: string) => {
   };
 };
 
+export const findUserByPhone = async (phoneNumber: string) => {
+  console.log("🔍 Recherche d'utilisateur par numéro:", phoneNumber);
+  
+  // Normaliser le numéro de téléphone
+  const normalizedPhone = phoneNumber.replace(/[\s+]/g, '');
+  
+  // Recherche directe
+  const { data: directMatch, error: directError } = await supabase
+    .from('profiles')
+    .select('id, full_name, phone, balance, country')
+    .eq('phone', phoneNumber)
+    .maybeSingle();
+
+  if (!directError && directMatch) {
+    console.log("✅ Utilisateur trouvé (correspondance directe):", directMatch);
+    return directMatch;
+  }
+
+  // Recherche flexible par les derniers 8 chiffres
+  const { data: allProfiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, full_name, phone, balance, country');
+
+  if (profilesError) {
+    console.error("❌ Erreur lors de la recherche:", profilesError);
+    throw new Error("Erreur lors de la recherche d'utilisateur");
+  }
+
+  if (allProfiles) {
+    const lastDigits = normalizedPhone.slice(-8);
+    
+    for (const profile of allProfiles) {
+      if (profile.phone) {
+        const profileLastDigits = profile.phone.replace(/[\s+]/g, '').slice(-8);
+        if (profileLastDigits === lastDigits && lastDigits.length >= 8) {
+          console.log("✅ Utilisateur trouvé (correspondance par derniers chiffres):", profile);
+          return profile;
+        }
+      }
+    }
+  }
+
+  console.log("❌ Aucun utilisateur trouvé avec ce numéro");
+  return null;
+};
+
+export const processAgentWithdrawal = async (
+  agentId: string,
+  clientId: string,
+  amount: number,
+  phoneNumber: string
+) => {
+  console.log("💰 Traitement du retrait agent:", {
+    agentId,
+    clientId,
+    amount,
+    phoneNumber
+  });
+
+  // Vérifier le solde du client
+  const clientData = await getUserBalance(clientId);
+  
+  if (clientData.balance < amount) {
+    throw new Error(`Solde insuffisant. Le client a ${clientData.balance} FCFA, montant demandé: ${amount} FCFA`);
+  }
+
+  // Débiter le client
+  const { error: debitError } = await supabase.rpc('increment_balance', {
+    user_id: clientId,
+    amount: -amount
+  });
+
+  if (debitError) {
+    console.error("❌ Erreur lors du débit du client:", debitError);
+    throw new Error("Erreur lors du débit du compte client");
+  }
+
+  // Créditer l'agent
+  const { error: creditError } = await supabase.rpc('increment_balance', {
+    user_id: agentId,
+    amount: amount
+  });
+
+  if (creditError) {
+    console.error("❌ Erreur lors du crédit de l'agent:", creditError);
+    // En cas d'erreur, recréditer le client
+    await supabase.rpc('increment_balance', {
+      user_id: clientId,
+      amount: amount
+    });
+    throw new Error("Erreur lors du crédit du compte agent");
+  }
+
+  // Créer l'enregistrement du retrait
+  const { data: withdrawal, error: withdrawalError } = await supabase
+    .from('withdrawals')
+    .insert({
+      user_id: clientId,
+      amount: amount,
+      withdrawal_phone: phoneNumber,
+      status: 'completed'
+    })
+    .select()
+    .single();
+
+  if (withdrawalError) {
+    console.error("❌ Erreur lors de l'enregistrement du retrait:", withdrawalError);
+    // Ne pas faire échouer la transaction si l'enregistrement échoue
+  }
+
+  console.log("✅ Retrait traité avec succès");
+  return {
+    clientName: clientData.fullName,
+    newClientBalance: clientData.balance - amount,
+    amount
+  };
+};
+
 export const updateWithdrawalStatus = async (withdrawalId: string, status: string) => {
   const { error: updateError } = await supabase
     .from('withdrawals')

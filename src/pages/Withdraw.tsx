@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Banknote, Wallet, RefreshCw, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/integrations/supabase/client";
-import { getUserBalance } from "@/services/withdrawalService";
+import { getUserBalance, findUserByPhone } from "@/services/withdrawalService";
 import { supabase } from "@/integrations/supabase/client";
 
 const Withdraw = () => {
@@ -96,22 +96,9 @@ const Withdraw = () => {
     try {
       console.log("🔍 Recherche du client avec le numéro:", phone);
       
-      // Normaliser le numéro de téléphone pour la recherche
-      const normalizedPhone = phone.replace(/[\s+]/g, '');
+      const client = await findUserByPhone(phone);
       
-      // Rechercher dans la table profiles
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('full_name, phone, balance')
-        .or(`phone.eq.${phone},phone.eq.${normalizedPhone}`);
-
-      if (error) {
-        console.error("❌ Erreur lors de la recherche:", error);
-        throw error;
-      }
-
-      if (profiles && profiles.length > 0) {
-        const client = profiles[0];
+      if (client) {
         setClientName(client.full_name || 'Nom non disponible');
         setClientFound(true);
         console.log("✅ Client trouvé:", {
@@ -125,30 +112,13 @@ const Withdraw = () => {
           description: `${client.full_name || 'Utilisateur'} - Solde: ${formatCurrency(client.balance || 0, 'XAF')}`,
         });
       } else {
-        // Si pas trouvé avec la recherche exacte, essayer une recherche flexible
-        const { data: flexibleProfiles } = await supabase
-          .from('profiles')
-          .select('full_name, phone, balance')
-          .ilike('phone', `%${normalizedPhone.slice(-8)}%`);
-
-        if (flexibleProfiles && flexibleProfiles.length > 0) {
-          const client = flexibleProfiles[0];
-          setClientName(client.full_name || 'Nom non disponible');
-          setClientFound(true);
-          
-          toast({
-            title: "Client trouvé",
-            description: `${client.full_name || 'Utilisateur'} - Solde: ${formatCurrency(client.balance || 0, 'XAF')}`,
-          });
-        } else {
-          setClientFound(false);
-          setClientName("");
-          toast({
-            title: "Client non trouvé",
-            description: "Aucun utilisateur trouvé avec ce numéro de téléphone",
-            variant: "destructive"
-          });
-        }
+        setClientFound(false);
+        setClientName("");
+        toast({
+          title: "Client non trouvé",
+          description: "Aucun utilisateur trouvé avec ce numéro de téléphone",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error("❌ Erreur lors de la recherche du client:", error);
