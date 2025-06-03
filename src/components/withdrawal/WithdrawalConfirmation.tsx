@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -79,20 +78,21 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         throw new Error("Solde insuffisant pour effectuer ce retrait");
       }
 
-      // Convertir explicitement en number et calculer les frais
-      const amount = parseFloat(withdrawalData.amount.toString());
-      const withdrawalAmount: number = amount;
-      const feePercentage = 0.06;
-      const totalFee: number = amount * feePercentage;
-      const agentShare = 1 / 3;
-      const platformShare = 2 / 3;
-      const agentCommission: number = totalFee * agentShare;
-      const moneyFlowCommission: number = totalFee * platformShare;
+      // Convertir explicitement en number avec des variables séparées
+      const rawAmount = Number(withdrawalData.amount);
+      const feeRate = 0.06;
+      const agentShareRate = 1 / 3;
+      const platformShareRate = 2 / 3;
+      
+      const totalFeeAmount = rawAmount * feeRate;
+      const agentCommissionAmount = totalFeeAmount * agentShareRate;
+      const platformCommissionAmount = totalFeeAmount * platformShareRate;
 
       // 1. Débiter le montant du compte utilisateur
+      const debitAmount = -rawAmount;
       const { error: deductError } = await supabase.rpc('increment_balance', {
         user_id: user.id,
-        amount: -withdrawalAmount
+        amount: debitAmount
       });
 
       if (deductError) {
@@ -111,18 +111,18 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         // Annuler le débit utilisateur
         await supabase.rpc('increment_balance', {
           user_id: user.id,
-          amount: withdrawalAmount
+          amount: rawAmount
         });
         throw new Error("Aucun agent trouvé pour traiter le retrait");
       }
 
       const agentId = agentProfiles[0].id;
       // L'agent reçoit le montant moins les frais plus sa commission
-      const netAmount: number = withdrawalAmount - totalFee + agentCommission;
+      const netAmountForAgent = rawAmount - totalFeeAmount + agentCommissionAmount;
       
       const { error: creditError } = await supabase.rpc('increment_balance', {
         user_id: agentId,
-        amount: netAmount
+        amount: netAmountForAgent
       });
 
       if (creditError) {
@@ -130,7 +130,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         // Annuler le débit utilisateur si le crédit agent échoue
         await supabase.rpc('increment_balance', {
           user_id: user.id,
-          amount: withdrawalAmount
+          amount: rawAmount
         });
         throw new Error("Erreur lors du crédit du compte agent");
       }
@@ -145,7 +145,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
       if (!adminError && adminData) {
         await supabase.rpc('increment_balance', {
           user_id: adminData.id,
-          amount: moneyFlowCommission
+          amount: platformCommissionAmount
         });
       }
 
