@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getUserBalance, validateUserBalance } from "@/services/withdrawalService";
 
 export const useSimpleWithdrawal = () => {
   const { user, isAgent } = useAuth();
@@ -32,16 +33,9 @@ export const useSimpleWithdrawal = () => {
     try {
       setIsProcessing(true);
 
-      // Vérifier le solde utilisateur
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('balance')
-        .eq('id', user?.id)
-        .single();
-
-      if (!profile || profile.balance < amount) {
-        throw new Error(`Solde insuffisant. Solde disponible: ${profile?.balance || 0} FCFA`);
-      }
+      // Vérifier le solde utilisateur depuis la base de données
+      console.log("🔍 Vérification du solde utilisateur...");
+      await validateUserBalance(user?.id || '', amount);
 
       const verificationCode = await createWithdrawalRequest(amount, phoneNumber);
 
@@ -52,6 +46,7 @@ export const useSimpleWithdrawal = () => {
 
       return { success: true, verificationCode };
     } catch (error) {
+      console.error("❌ Erreur lors du retrait:", error);
       toast({
         title: "Erreur",
         description: error instanceof Error ? error.message : "Erreur lors du retrait",
@@ -78,6 +73,9 @@ export const useSimpleWithdrawal = () => {
       if (error || !withdrawal) {
         throw new Error("Code de vérification invalide");
       }
+
+      // Vérifier à nouveau le solde avant de débiter
+      await validateUserBalance(withdrawal.user_id, withdrawal.amount);
 
       // Débiter l'utilisateur et mettre à jour le statut
       const { error: debitError } = await supabase.rpc('increment_balance', {
@@ -108,6 +106,7 @@ export const useSimpleWithdrawal = () => {
 
       return { success: true };
     } catch (error) {
+      console.error("❌ Erreur lors de la confirmation:", error);
       toast({
         title: "Erreur",
         description: error instanceof Error ? error.message : "Erreur lors de la confirmation",

@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Banknote, Wallet } from "lucide-react";
+import { ArrowLeft, Banknote, Wallet, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, formatCurrency } from "@/integrations/supabase/client";
+import { formatCurrency } from "@/integrations/supabase/client";
 import { useSimpleWithdrawal } from "@/hooks/useSimpleWithdrawal";
+import { getUserBalance } from "@/services/withdrawalService";
 
 const Withdraw = () => {
   const { user, isAgent } = useAuth();
@@ -22,37 +23,34 @@ const Withdraw = () => {
   const [userBalance, setUserBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(true);
 
-  useEffect(() => {
-    const fetchUserBalance = async () => {
-      if (user?.id) {
-        setIsLoadingBalance(true);
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('balance, phone')
-            .eq('id', user.id)
-            .single();
-
-          if (profile) {
-            setUserBalance(profile.balance);
-            if (!isAgent()) {
-              setPhoneNumber(profile.phone || '');
-            }
-          }
-        } catch (error) {
-          console.error("Erreur lors du chargement du solde:", error);
-          toast({
-            title: "Erreur",
-            description: "Impossible de charger votre solde",
-            variant: "destructive"
-          });
+  const fetchUserBalanceFromDB = async () => {
+    if (user?.id) {
+      setIsLoadingBalance(true);
+      try {
+        console.log("🔍 Récupération du solde utilisateur depuis la base de données...");
+        const balanceData = await getUserBalance(user.id);
+        
+        setUserBalance(balanceData.balance);
+        if (!isAgent()) {
+          setPhoneNumber(balanceData.phone || '');
         }
-        setIsLoadingBalance(false);
+        
+        console.log("✅ Solde affiché:", balanceData.balance, "FCFA");
+      } catch (error) {
+        console.error("❌ Erreur lors du chargement du solde:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger votre solde",
+          variant: "destructive"
+        });
       }
-    };
+      setIsLoadingBalance(false);
+    }
+  };
 
-    fetchUserBalance();
-  }, [user, toast, isAgent]);
+  useEffect(() => {
+    fetchUserBalanceFromDB();
+  }, [user, isAgent]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +77,11 @@ const Withdraw = () => {
     
     if (result.success) {
       setAmount("");
-      setPhoneNumber("");
+      if (isAgent()) {
+        setPhoneNumber("");
+      }
+      // Actualiser le solde après le retrait
+      await fetchUserBalanceFromDB();
       navigate('/dashboard');
     }
   };
@@ -111,7 +113,7 @@ const Withdraw = () => {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Affichage du solde */}
+                {/* Affichage du solde avec bouton d'actualisation */}
                 <div className="px-3 py-2 bg-emerald-50 rounded-md text-sm border border-emerald-200">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center">
@@ -120,9 +122,21 @@ const Withdraw = () => {
                         {isAgent() ? "Solde disponible:" : "Votre solde:"}
                       </span>
                     </div>
-                    <span className={`font-bold ${userBalance > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {formatCurrency(userBalance, 'XAF')}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-bold ${userBalance > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {formatCurrency(userBalance, 'XAF')}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={fetchUserBalanceFromDB}
+                        disabled={isLoadingBalance}
+                        className="h-6 w-6 p-0"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${isLoadingBalance ? 'animate-spin' : ''}`} />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -139,7 +153,7 @@ const Withdraw = () => {
                   />
                   {isAmountExceedsBalance && (
                     <p className="text-red-600 text-sm">
-                      Le montant dépasse le solde disponible
+                      Le montant dépasse le solde disponible ({formatCurrency(userBalance, 'XAF')})
                     </p>
                   )}
                 </div>
@@ -169,7 +183,7 @@ const Withdraw = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4 h-12 text-lg"
-                  disabled={isProcessing || isAmountExceedsBalance}
+                  disabled={isProcessing || isAmountExceedsBalance || userBalance <= 0}
                 >
                   {isProcessing ? (
                     <div className="flex items-center">

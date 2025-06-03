@@ -23,6 +23,8 @@ export const fetchWithdrawalByCode = async (verificationCode: string, userId: st
 };
 
 export const getUserBalance = async (userId: string) => {
+  console.log("🔍 Recherche du solde pour l'utilisateur:", userId);
+  
   const { data: profile, error } = await supabase
     .from('profiles')
     .select('balance, full_name, phone, country')
@@ -30,12 +32,15 @@ export const getUserBalance = async (userId: string) => {
     .single();
 
   if (error) {
-    console.error("Erreur lors de la récupération du profil:", error);
+    console.error("❌ Erreur lors de la récupération du profil:", error);
     throw new Error("Impossible de récupérer les informations du profil");
   }
 
+  const balance = Number(profile.balance) || 0;
+  console.log("✅ Solde récupéré:", balance, "FCFA");
+
   return {
-    balance: Number(profile.balance) || 0,
+    balance,
     fullName: profile.full_name || '',
     phone: profile.phone || '',
     country: profile.country || 'Congo Brazzaville'
@@ -60,6 +65,11 @@ export const updateWithdrawalStatus = async (withdrawalId: string, status: strin
 export const validateUserBalance = async (userId: string, withdrawalAmount: number) => {
   const balanceData = await getUserBalance(userId);
   const currentBalance = balanceData.balance;
+  
+  console.log("💰 Validation du solde:", {
+    soldeActuel: currentBalance,
+    montantDemande: withdrawalAmount
+  });
   
   if (currentBalance < withdrawalAmount) {
     throw new Error(`Solde insuffisant. Solde disponible: ${currentBalance} FCFA, montant demandé: ${withdrawalAmount} FCFA`);
