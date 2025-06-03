@@ -9,19 +9,19 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Banknote, Wallet, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/integrations/supabase/client";
-import { useSimpleWithdrawal } from "@/hooks/useSimpleWithdrawal";
 import { getUserBalance } from "@/services/withdrawalService";
+import { supabase } from "@/integrations/supabase/client";
 
 const Withdraw = () => {
   const { user, isAgent } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { processWithdrawal, isProcessing } = useSimpleWithdrawal();
 
   const [amount, setAmount] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [userBalance, setUserBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const fetchUserBalanceFromDB = async () => {
     if (user?.id) {
@@ -73,16 +73,55 @@ const Withdraw = () => {
       return;
     }
 
-    const result = await processWithdrawal(Number(amount), phoneNumber);
-    
-    if (result.success) {
+    if (Number(amount) > userBalance) {
+      toast({
+        title: "Solde insuffisant",
+        description: `Votre solde (${formatCurrency(userBalance, 'XAF')}) est insuffisant pour ce retrait`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+
+      if (!user?.id) {
+        throw new Error("Utilisateur non connecté");
+      }
+
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      const { error } = await supabase
+        .from('withdrawals')
+        .insert({
+          user_id: user.id,
+          amount: Number(amount),
+          withdrawal_phone: phoneNumber,
+          status: isAgent() ? 'agent_pending' : 'pending',
+          verification_code: verificationCode
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Demande de retrait créée",
+        description: `Code de vérification: ${verificationCode}`,
+      });
+
       setAmount("");
       if (isAgent()) {
         setPhoneNumber("");
       }
-      // Actualiser le solde après le retrait
-      await fetchUserBalanceFromDB();
       navigate('/dashboard');
+    } catch (error) {
+      console.error("❌ Erreur lors du retrait:", error);
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Erreur lors du retrait",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
