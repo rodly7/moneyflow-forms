@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Banknote, AlertCircle, User, Wallet } from "lucide-react";
+import { ArrowLeft, Banknote, AlertCircle, User, Wallet, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, formatCurrency, getCurrencyForCountry, calculateFee } from "@/integrations/supabase/client";
 import { countries } from "@/data/countries";
@@ -34,6 +34,7 @@ const Withdraw = () => {
   const [withdrawalSent, setWithdrawalSent] = useState(false);
   const [userBalance, setUserBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
   
   const {
     isLoading: isVerifying,
@@ -52,7 +53,7 @@ const Withdraw = () => {
   const fetchUserBalance = async (userId: string) => {
     try {
       setIsLoadingBalance(true);
-      console.log("Récupération du solde pour l'utilisateur:", userId);
+      console.log("🔄 Récupération du solde en temps réel pour l'utilisateur:", userId);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -61,21 +62,21 @@ const Withdraw = () => {
         .single();
       
       if (error) {
-        console.error("Erreur lors de la récupération du solde:", error);
+        console.error("❌ Erreur lors de la récupération du solde:", error);
         throw error;
       }
       
       if (data) {
-        console.log("Solde récupéré depuis la BD:", data.balance);
+        console.log("✅ Solde récupéré depuis la BD:", data.balance, "FCFA");
         return {
-          balance: data.balance || 0,
+          balance: Number(data.balance) || 0,
           fullName: data.full_name || ""
         };
       }
       
       return { balance: 0, fullName: "" };
     } catch (error) {
-      console.error("Erreur dans fetchUserBalance:", error);
+      console.error("❌ Erreur dans fetchUserBalance:", error);
       toast({
         title: "Erreur",
         description: "Impossible de récupérer le solde utilisateur",
@@ -84,6 +85,35 @@ const Withdraw = () => {
       return { balance: 0, fullName: "" };
     } finally {
       setIsLoadingBalance(false);
+    }
+  };
+
+  // Fonction pour actualiser le solde utilisateur
+  const refreshUserBalance = async () => {
+    if (!user?.id) return;
+    
+    setIsRefreshingBalance(true);
+    try {
+      const balanceData = await fetchUserBalance(user.id);
+      setUserBalance(balanceData.balance);
+      console.log("🔄 Solde utilisateur actualisé:", balanceData.balance, "FCFA");
+    } catch (error) {
+      console.error("Erreur lors de l'actualisation du solde:", error);
+    } finally {
+      setIsRefreshingBalance(false);
+    }
+  };
+
+  // Fonction pour actualiser le solde du destinataire
+  const refreshRecipientBalance = async () => {
+    if (!recipientId) return;
+    
+    try {
+      const balanceData = await fetchUserBalance(recipientId);
+      setRecipientBalance(balanceData.balance);
+      console.log("🔄 Solde destinataire actualisé:", balanceData.balance, "FCFA");
+    } catch (error) {
+      console.error("Erreur lors de l'actualisation du solde destinataire:", error);
     }
   };
 
@@ -150,7 +180,7 @@ const Withdraw = () => {
             .from('profiles')
             .select('country, phone, full_name, balance')
             .eq('id', user.id)
-            .maybeSingle();
+            .single();
           
           if (error) {
             console.error("Error fetching user profile:", error);
@@ -163,7 +193,7 @@ const Withdraw = () => {
             setCountry(userCountry);
             setPhoneNumber(data.phone || "");
             setFullName(data.full_name || "");
-            setUserBalance(data.balance || 0);
+            setUserBalance(Number(data.balance) || 0);
             setCurrency(getCurrencyForCountry(userCountry));
             
             const selectedCountry = countries.find(c => c.name === userCountry);
@@ -463,13 +493,25 @@ const Withdraw = () => {
                         <Wallet className="w-4 h-4 mr-2 text-emerald-600" />
                         <span className="font-medium">Votre solde disponible:</span>
                       </div>
-                      <span className={`font-bold ${userBalance > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {isLoadingBalance ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
-                        ) : (
-                          formatCurrency(userBalance, currency)
-                        )}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-bold ${userBalance > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {isLoadingBalance || isRefreshingBalance ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
+                          ) : (
+                            formatCurrency(userBalance, currency)
+                          )}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={refreshUserBalance}
+                          disabled={isRefreshingBalance}
+                          className="p-1 h-6 w-6"
+                        >
+                          <RefreshCw className={`h-3 w-3 ${isRefreshingBalance ? 'animate-spin' : ''}`} />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -526,13 +568,24 @@ const Withdraw = () => {
                             <Wallet className="w-4 h-4 mr-2 text-blue-600" />
                             <span className="font-medium">Solde disponible:</span>
                           </div>
-                          <span className={`font-bold ${recipientBalance > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {isLoadingBalance ? (
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                            ) : (
-                              formatCurrency(recipientBalance, currency)
-                            )}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={`font-bold ${recipientBalance > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {isLoadingBalance ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                              ) : (
+                                formatCurrency(recipientBalance, currency)
+                              )}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={refreshRecipientBalance}
+                              className="p-1 h-6 w-6"
+                            >
+                              <RefreshCw className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     )}

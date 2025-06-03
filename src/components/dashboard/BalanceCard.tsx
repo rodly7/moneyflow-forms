@@ -1,9 +1,12 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency, getCurrencyForCountry } from "@/integrations/supabase/client";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -19,8 +22,6 @@ import {
 } from "@/components/ui/input-otp";
 import { Button } from "@/components/ui/button";
 import { useTransferForm } from "@/hooks/useTransferForm";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface BalanceCardProps {
   balance: number;
@@ -45,14 +46,65 @@ const BalanceCard = ({
   const navigate = useNavigate();
   const { confirmWithdrawal } = useTransferForm();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   
   // If currency is not provided, determine it from the user's country
   const userCurrency = currency || getCurrencyForCountry(userCountry);
 
+  // Query pour récupérer le solde en temps réel
+  const { data: realTimeBalance, isLoading: isLoadingBalance, refetch: refetchBalance } = useQuery({
+    queryKey: ['user-balance', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return balance;
+      
+      console.log("🔄 Récupération du solde en temps réel...");
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('balance')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) {
+        console.error("❌ Erreur lors de la récupération du solde:", error);
+        throw error;
+      }
+      
+      const currentBalance = Number(data.balance) || 0;
+      console.log("✅ Solde en temps réel:", currentBalance, "FCFA");
+      return currentBalance;
+    },
+    refetchInterval: 30000, // Actualise toutes les 30 secondes
+    staleTime: 10000, // Considère les données comme périmées après 10 secondes
+  });
+
+  // Utilise le solde en temps réel si disponible, sinon le solde passé en props
+  const displayBalanceValue = realTimeBalance !== undefined ? realTimeBalance : balance;
+
   // Format the balance or display asterisks if hidden
   const displayBalance = showBalance 
-    ? formatCurrency(balance, userCurrency)
+    ? formatCurrency(displayBalanceValue, userCurrency)
     : "••••••";
+
+  const handleRefreshBalance = async () => {
+    try {
+      console.log("🔄 Actualisation manuelle du solde...");
+      await refetchBalance();
+      // Invalide aussi le cache du profil principal
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      toast({
+        title: "Solde actualisé",
+        description: "Le solde a été mis à jour avec succès"
+      });
+    } catch (error) {
+      console.error("Erreur lors de l'actualisation:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'actualiser le solde",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleVerifyWithdrawal = async () => {
     if (verificationCode.length !== 6) {
@@ -114,6 +166,14 @@ const BalanceCard = ({
             
             <div className="flex items-center gap-2">
               <button 
+                onClick={handleRefreshBalance}
+                disabled={isLoadingBalance}
+                className="text-white/80 hover:text-white transition-colors disabled:opacity-50"
+                aria-label="Actualiser le solde"
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoadingBalance ? 'animate-spin' : ''}`} />
+              </button>
+              <button 
                 onClick={() => setShowBalance(!showBalance)}
                 className="text-white/80 hover:text-white transition-colors"
                 aria-label={showBalance ? "Masquer le solde" : "Afficher le solde"}
@@ -123,9 +183,24 @@ const BalanceCard = ({
             </div>
           </div>
           
-          <p className="text-2xl font-bold text-white">
-            {displayBalance}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-2xl font-bold text-white">
+              {isLoadingBalance ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                  <span className="text-lg">Chargement...</span>
+                </div>
+              ) : (
+                displayBalance
+              )}
+            </p>
+          </div>
+          
+          {realTimeBalance !== undefined && realTimeBalance !== balance && (
+            <p className="text-xs text-white/60 mt-1">
+              Solde mis à jour en temps réel
+            </p>
+          )}
         </CardContent>
       </Card>
 
