@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -79,14 +78,11 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         throw new Error("Solde insuffisant pour effectuer ce retrait");
       }
 
-      // Calculer les frais avec des types explicites pour éviter les erreurs TypeScript
-      const withdrawalAmount = Number(withdrawalData.amount);
-      const feeRate = 0.06;
-      const fee = withdrawalAmount * feeRate;
-      const agentCommissionRate = 2/6;
-      const platformCommissionRate = 4/6;
-      const agentCommission = fee * agentCommissionRate;
-      const moneyFlowCommission = fee * platformCommissionRate;
+      // Calculer les frais avec des constantes simples
+      const withdrawalAmount: number = withdrawalData.amount;
+      const fee: number = withdrawalAmount * 0.06;
+      const agentCommission: number = fee * (1/3);
+      const moneyFlowCommission: number = fee * (2/3);
 
       // 1. Débiter le montant du compte utilisateur
       const { error: deductError } = await supabase.rpc('increment_balance', {
@@ -119,7 +115,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
 
       const agentId = agentProfiles[0].id;
       // L'agent reçoit le montant moins les frais plus sa commission
-      const netAmountForAgent = withdrawalAmount - fee + agentCommission;
+      const netAmountForAgent: number = withdrawalAmount - fee + agentCommission;
       
       const { error: creditError } = await supabase.rpc('increment_balance', {
         user_id: agentId,
