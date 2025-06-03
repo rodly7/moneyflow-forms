@@ -12,6 +12,7 @@ import { countries } from "@/data/countries";
 import PhoneInput from "@/components/transfer-steps/PhoneInput";
 import { useRecipientVerification } from "@/hooks/useRecipientVerification";
 import { useDiagnostic } from "@/hooks/useDiagnostic";
+import { fetchUserBalance } from "@/services/withdrawalService";
 
 const Withdraw = () => {
   const { user, isAgent } = useAuth();
@@ -49,45 +50,6 @@ const Withdraw = () => {
     isAnalyzing: isDiagnosing
   } = useDiagnostic();
 
-  // Fonction pour récupérer le solde utilisateur depuis la base de données
-  const fetchUserBalance = async (userId: string) => {
-    try {
-      setIsLoadingBalance(true);
-      console.log("🔄 Récupération du solde en temps réel pour l'utilisateur:", userId);
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('balance, full_name')
-        .eq('id', userId)
-        .single();
-      
-      if (error) {
-        console.error("❌ Erreur lors de la récupération du solde:", error);
-        throw error;
-      }
-      
-      if (data) {
-        console.log("✅ Solde récupéré depuis la BD:", data.balance, "FCFA");
-        return {
-          balance: Number(data.balance) || 0,
-          fullName: data.full_name || ""
-        };
-      }
-      
-      return { balance: 0, fullName: "" };
-    } catch (error) {
-      console.error("❌ Erreur dans fetchUserBalance:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de récupérer le solde utilisateur",
-        variant: "destructive"
-      });
-      return { balance: 0, fullName: "" };
-    } finally {
-      setIsLoadingBalance(false);
-    }
-  };
-
   // Fonction pour actualiser le solde utilisateur
   const refreshUserBalance = async () => {
     if (!user?.id) return;
@@ -99,6 +61,11 @@ const Withdraw = () => {
       console.log("🔄 Solde utilisateur actualisé:", balanceData.balance, "FCFA");
     } catch (error) {
       console.error("Erreur lors de l'actualisation du solde:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'actualiser le solde",
+        variant: "destructive"
+      });
     } finally {
       setIsRefreshingBalance(false);
     }
@@ -106,14 +73,19 @@ const Withdraw = () => {
 
   // Fonction pour actualiser le solde du destinataire
   const refreshRecipientBalance = async () => {
-    if (!recipientId) return;
+    if (!recipientId || !recipientData) return;
     
     try {
-      const balanceData = await fetchUserBalance(recipientId);
+      const balanceData = await fetchUserBalance(recipientId, recipientData);
       setRecipientBalance(balanceData.balance);
       console.log("🔄 Solde destinataire actualisé:", balanceData.balance, "FCFA");
     } catch (error) {
       console.error("Erreur lors de l'actualisation du solde destinataire:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'actualiser le solde du destinataire",
+        variant: "destructive"
+      });
     }
   };
 
@@ -176,40 +148,33 @@ const Withdraw = () => {
       if (user?.id) {
         setIsLoading(true);
         try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('country, phone, full_name, balance')
-            .eq('id', user.id)
-            .single();
+          const balanceData = await fetchUserBalance(user.id);
+          setUserBalance(balanceData.balance);
+          setFullName(balanceData.fullName);
+          setPhoneNumber(balanceData.phone);
           
-          if (error) {
-            console.error("Error fetching user profile:", error);
-            setIsLoading(false);
-            return;
-          }
+          const userCountry = balanceData.country || "Congo Brazzaville";
+          setCountry(userCountry);
+          setCurrency(getCurrencyForCountry(userCountry));
           
-          if (data) {
-            const userCountry = data.country || "Congo Brazzaville";
-            setCountry(userCountry);
-            setPhoneNumber(data.phone || "");
-            setFullName(data.full_name || "");
-            setUserBalance(Number(data.balance) || 0);
-            setCurrency(getCurrencyForCountry(userCountry));
-            
-            const selectedCountry = countries.find(c => c.name === userCountry);
-            if (selectedCountry) {
-              setCountryCode(selectedCountry.code);
-            }
+          const selectedCountry = countries.find(c => c.name === userCountry);
+          if (selectedCountry) {
+            setCountryCode(selectedCountry.code);
           }
         } catch (error) {
           console.error("Error in fetchUserProfile:", error);
+          toast({
+            title: "Erreur",
+            description: "Impossible de charger le profil utilisateur",
+            variant: "destructive"
+          });
         }
         setIsLoading(false);
       }
     };
 
     fetchUserProfile();
-  }, [user, navigate]);
+  }, [user, navigate, toast]);
 
   useEffect(() => {
     if (amount && !isNaN(Number(amount))) {
@@ -318,17 +283,27 @@ const Withdraw = () => {
         setRecipientVerified(true);
 
         // Récupérer le solde actuel du client depuis la base de données
-        const balanceData = await fetchUserBalance(result.recipientData.userId);
-        setRecipientBalance(balanceData.balance);
-        
-        // 🔍 NOUVEAU: Lancer le diagnostic automatiquement
-        console.log("🔎 Lancement du diagnostic pour l'utilisateur trouvé...");
-        await analyzeUserById(result.recipientData.userId);
-        
-        toast({
-          title: "Bénéficiaire trouvé",
-          description: `${result.recipientData.fullName} a été trouvé. Solde: ${formatCurrency(balanceData.balance, currency)} (Diagnostic lancé - voir console)`
-        });
+        try {
+          const balanceData = await fetchUserBalance(result.recipientData.userId, result.recipientData);
+          setRecipientBalance(balanceData.balance);
+          
+          toast({
+            title: "Bénéficiaire trouvé",
+            description: `${result.recipientData.fullName} a été trouvé. Solde: ${formatCurrency(balanceData.balance, currency)}`
+          });
+          
+          // Lancer le diagnostic automatiquement
+          console.log("🔎 Lancement du diagnostic pour l'utilisateur trouvé...");
+          await analyzeUserById(result.recipientData.userId);
+          
+        } catch (balanceError) {
+          console.error("Erreur lors de la récupération du solde:", balanceError);
+          toast({
+            title: "Bénéficiaire trouvé mais erreur de solde",
+            description: `${result.recipientData.fullName} trouvé mais impossible de récupérer le solde`,
+            variant: "destructive"
+          });
+        }
         
       } else {
         console.log("✗ Aucun utilisateur trouvé via useRecipientVerification");

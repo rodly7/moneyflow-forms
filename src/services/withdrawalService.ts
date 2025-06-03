@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export const fetchWithdrawalByCode = async (verificationCode: string, userId: string) => {
@@ -22,50 +21,72 @@ export const fetchWithdrawalByCode = async (verificationCode: string, userId: st
   return withdrawalData;
 };
 
-export const fetchUserBalance = async (userId: string) => {
-  console.log("Récupération du solde depuis la table profiles pour l'utilisateur:", userId);
+export const ensureUserProfileExists = async (userId: string, userData?: any) => {
+  console.log("🔍 Vérification de l'existence du profil pour l'utilisateur:", userId);
   
-  const { data: userProfile, error: profileError } = await supabase
+  // D'abord, vérifier si le profil existe
+  const { data: existingProfile, error: checkError } = await supabase
     .from('profiles')
-    .select('balance, full_name, id')
+    .select('id, balance, full_name, phone, country')
     .eq('id', userId)
     .maybeSingle();
 
-  if (profileError) {
-    console.error("Erreur lors de la récupération du profil:", profileError);
-    throw new Error("Impossible de vérifier votre solde dans la base de données");
+  if (checkError) {
+    console.error("❌ Erreur lors de la vérification du profil:", checkError);
+    throw new Error("Erreur lors de la vérification du profil utilisateur");
   }
 
-  if (!userProfile) {
-    console.error("Profil utilisateur introuvable pour l'ID:", userId);
-    console.log("Tentative de création d'un profil manquant...");
-    
-    // Tenter de créer le profil manquant
-    const { data: newProfile, error: createError } = await supabase
-      .from('profiles')
-      .insert({
-        id: userId,
-        balance: 0,
-        full_name: '',
-        phone: '',
-        country: 'Congo Brazzaville'
-      })
-      .select('balance, full_name, id')
-      .single();
-
-    if (createError) {
-      console.error("Erreur lors de la création du profil:", createError);
-      throw new Error("Impossible de créer le profil utilisateur");
-    }
-
-    console.log("Profil créé avec succès:", newProfile);
-    return 0; // Nouveau profil avec solde 0
+  if (existingProfile) {
+    console.log("✅ Profil existant trouvé:", existingProfile);
+    return existingProfile;
   }
 
-  const balance = Number(userProfile.balance) || 0;
-  console.log(`Solde récupéré pour ${userProfile.full_name || 'utilisateur inconnu'}: ${balance} FCFA`);
+  // Si le profil n'existe pas, le créer
+  console.log("📝 Création d'un nouveau profil pour l'utilisateur:", userId);
   
-  return balance;
+  const profileData = {
+    id: userId,
+    balance: 0,
+    full_name: userData?.fullName || '',
+    phone: userData?.email || '',
+    country: userData?.country || 'Congo Brazzaville'
+  };
+
+  const { data: newProfile, error: createError } = await supabase
+    .from('profiles')
+    .insert(profileData)
+    .select('id, balance, full_name, phone, country')
+    .single();
+
+  if (createError) {
+    console.error("❌ Erreur lors de la création du profil:", createError);
+    throw new Error("Impossible de créer le profil utilisateur");
+  }
+
+  console.log("✅ Nouveau profil créé avec succès:", newProfile);
+  return newProfile;
+};
+
+export const fetchUserBalance = async (userId: string, userData?: any) => {
+  console.log("🔄 Récupération du solde pour l'utilisateur:", userId);
+  
+  try {
+    // S'assurer que le profil existe avant d'essayer de récupérer le solde
+    const profile = await ensureUserProfileExists(userId, userData);
+    
+    const balance = Number(profile.balance) || 0;
+    console.log(`✅ Solde récupéré pour ${profile.full_name || 'utilisateur'}: ${balance} FCFA`);
+    
+    return {
+      balance,
+      fullName: profile.full_name || '',
+      phone: profile.phone || '',
+      country: profile.country || 'Congo Brazzaville'
+    };
+  } catch (error) {
+    console.error("❌ Erreur dans fetchUserBalance:", error);
+    throw error;
+  }
 };
 
 export const findAvailableAgent = async () => {
