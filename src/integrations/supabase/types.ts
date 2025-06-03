@@ -9,6 +9,75 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      agents: {
+        Row: {
+          agent_id: string
+          birth_date: string | null
+          birth_place: string | null
+          commission_balance: number
+          country: string
+          created_at: string
+          full_name: string
+          id: string
+          identity_photo: string | null
+          nationality: string | null
+          phone: string
+          status: Database["public"]["Enums"]["agent_status"]
+          transactions_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          birth_date?: string | null
+          birth_place?: string | null
+          commission_balance?: number
+          country: string
+          created_at?: string
+          full_name: string
+          id?: string
+          identity_photo?: string | null
+          nationality?: string | null
+          phone: string
+          status?: Database["public"]["Enums"]["agent_status"]
+          transactions_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          birth_date?: string | null
+          birth_place?: string | null
+          commission_balance?: number
+          country?: string
+          created_at?: string
+          full_name?: string
+          id?: string
+          identity_photo?: string | null
+          nationality?: string | null
+          phone?: string
+          status?: Database["public"]["Enums"]["agent_status"]
+          transactions_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "auth_users_agents_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "auth_users_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pending_transfers: {
         Row: {
           amount: number
@@ -50,6 +119,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pending_transfers_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "auth_users_agents_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pending_transfers_sender_id_fkey"
             columns: ["sender_id"]
@@ -107,6 +183,13 @@ export type Database = {
             foreignKeyName: "profiles_id_fkey"
             columns: ["id"]
             isOneToOne: true
+            referencedRelation: "auth_users_agents_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
             referencedRelation: "auth_users_view"
             referencedColumns: ["id"]
           },
@@ -156,6 +239,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "recharges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "auth_users_agents_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "recharges_user_id_fkey"
             columns: ["user_id"]
@@ -210,6 +300,13 @@ export type Database = {
             foreignKeyName: "transfers_sender_id_fkey"
             columns: ["sender_id"]
             isOneToOne: false
+            referencedRelation: "auth_users_agents_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfers_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
             referencedRelation: "auth_users_view"
             referencedColumns: ["id"]
           },
@@ -254,6 +351,13 @@ export type Database = {
             foreignKeyName: "withdrawals_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "auth_users_agents_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "withdrawals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "auth_users_view"
             referencedColumns: ["id"]
           },
@@ -261,6 +365,30 @@ export type Database = {
       }
     }
     Views: {
+      auth_users_agents_view: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          last_sign_in_at: string | null
+          raw_user_meta_data: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          last_sign_in_at?: string | null
+          raw_user_meta_data?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          last_sign_in_at?: string | null
+          raw_user_meta_data?: Json | null
+        }
+        Relationships: []
+      }
       auth_users_view: {
         Row: {
           created_at: string | null
@@ -287,17 +415,26 @@ export type Database = {
       }
     }
     Functions: {
-      claim_pending_transfer: {
-        Args: {
-          claim_code_param: string
-          recipient_id: string
-        }
+      check_agent_exists: {
+        Args: { agent_id_param: string }
         Returns: boolean
       }
-      find_recipient: {
+      claim_pending_transfer: {
+        Args: { claim_code_param: string; recipient_id: string }
+        Returns: boolean
+      }
+      create_new_agent: {
         Args: {
-          search_term: string
+          user_id_param: string
+          agent_id_param: string
+          full_name_param: string
+          phone_param: string
+          country_param: string
         }
+        Returns: undefined
+      }
+      find_recipient: {
+        Args: { search_term: string }
         Returns: {
           id: string
           full_name: string
@@ -306,11 +443,28 @@ export type Database = {
           country: string
         }[]
       }
-      increment_balance: {
-        Args: {
+      get_agent_by_user_id: {
+        Args: { user_id_param: string }
+        Returns: {
+          agent_id: string
+          birth_date: string | null
+          birth_place: string | null
+          commission_balance: number
+          country: string
+          created_at: string
+          full_name: string
+          id: string
+          identity_photo: string | null
+          nationality: string | null
+          phone: string
+          status: Database["public"]["Enums"]["agent_status"]
+          transactions_count: number
+          updated_at: string
           user_id: string
-          amount: number
-        }
+        }[]
+      }
+      increment_balance: {
+        Args: { user_id: string; amount: number }
         Returns: undefined
       }
       process_money_transfer: {
@@ -324,7 +478,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      agent_status: "pending" | "active" | "suspended" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -332,27 +486,29 @@ export type Database = {
   }
 }
 
-type PublicSchema = Database[Extract<keyof Database, "public">]
+type DefaultSchema = Database[Extract<keyof Database, "public">]
 
 export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
-        PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -360,20 +516,22 @@ export type Tables<
     : never
 
 export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -381,20 +539,22 @@ export type TablesInsert<
     : never
 
 export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -402,21 +562,23 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof PublicSchema["Enums"]
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof PublicSchema["CompositeTypes"]
+    | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof Database
@@ -425,6 +587,14 @@ export type CompositeTypes<
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
   ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
-    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      agent_status: ["pending", "active", "suspended", "rejected"],
+    },
+  },
+} as const
