@@ -11,6 +11,7 @@ import { supabase, formatCurrency, getCurrencyForCountry, calculateFee } from "@
 import { countries } from "@/data/countries";
 import PhoneInput from "@/components/transfer-steps/PhoneInput";
 import { useRecipientVerification } from "@/hooks/useRecipientVerification";
+import { useDiagnostic } from "@/hooks/useDiagnostic";
 
 const Withdraw = () => {
   const { user, isAgent } = useAuth();
@@ -40,6 +41,12 @@ const Withdraw = () => {
     verifyRecipient,
     setRecipientVerified
   } = useRecipientVerification();
+
+  const {
+    analyzeUserByPhone,
+    analyzeUserById,
+    isAnalyzing: isDiagnosing
+  } = useDiagnostic();
 
   // Fonction pour récupérer le solde utilisateur depuis la base de données
   const fetchUserBalance = async (userId: string) => {
@@ -284,9 +291,13 @@ const Withdraw = () => {
         const balanceData = await fetchUserBalance(result.recipientData.userId);
         setRecipientBalance(balanceData.balance);
         
+        // 🔍 NOUVEAU: Lancer le diagnostic automatiquement
+        console.log("🔎 Lancement du diagnostic pour l'utilisateur trouvé...");
+        await analyzeUserById(result.recipientData.userId);
+        
         toast({
           title: "Bénéficiaire trouvé",
-          description: `${result.recipientData.fullName} a été trouvé. Solde: ${formatCurrency(balanceData.balance, currency)}`
+          description: `${result.recipientData.fullName} a été trouvé. Solde: ${formatCurrency(balanceData.balance, currency)} (Diagnostic lancé - voir console)`
         });
         
       } else {
