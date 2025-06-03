@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export const fetchWithdrawalByCode = async (verificationCode: string, userId: string) => {
@@ -138,7 +139,8 @@ export const updateWithdrawalStatusByCode = async (verificationCode: string, use
 export const validateUserBalanceForWithdrawal = async (userId: string, withdrawalAmount: number) => {
   console.log(`Validation du solde pour retrait - Utilisateur: ${userId}, Montant: ${withdrawalAmount} FCFA`);
   
-  const currentBalance = await fetchUserBalance(userId);
+  const balanceData = await fetchUserBalance(userId);
+  const currentBalance = balanceData.balance;
   
   if (currentBalance < withdrawalAmount) {
     const errorMessage = `Solde insuffisant. Solde disponible: ${currentBalance} FCFA, montant demandé: ${withdrawalAmount} FCFA`;
