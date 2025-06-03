@@ -42,17 +42,17 @@ export const fetchUserBalance = async (userId: string) => {
 };
 
 export const findAvailableAgent = async () => {
-  const { data: agentList, error: agentError } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
     .select('id')
     .eq('role', 'agent')
     .limit(1);
 
-  if (agentError || !agentList || agentList.length === 0) {
+  if (error || !data || data.length === 0) {
     throw new Error("Aucun agent trouvé pour traiter le retrait");
   }
 
-  return agentList[0].id;
+  return data[0].id;
 };
 
 export const updateWithdrawalStatus = async (withdrawalId: string, status: string) => {
