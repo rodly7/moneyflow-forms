@@ -23,22 +23,28 @@ export const fetchWithdrawalByCode = async (verificationCode: string, userId: st
 };
 
 export const fetchUserBalance = async (userId: string) => {
+  console.log("Récupération du solde depuis la table profiles pour l'utilisateur:", userId);
+  
   const { data: userProfile, error: profileError } = await supabase
     .from('profiles')
-    .select('balance')
+    .select('balance, full_name, id')
     .eq('id', userId)
     .single();
 
   if (profileError) {
-    console.error("Erreur lors de la vérification du profil:", profileError);
-    throw new Error("Impossible de vérifier votre solde");
+    console.error("Erreur lors de la récupération du profil:", profileError);
+    throw new Error("Impossible de vérifier votre solde dans la base de données");
   }
 
   if (!userProfile) {
+    console.error("Profil utilisateur introuvable pour l'ID:", userId);
     throw new Error("Profil utilisateur introuvable");
   }
 
-  return Number(userProfile.balance) || 0;
+  const balance = Number(userProfile.balance) || 0;
+  console.log(`Solde récupéré pour ${userProfile.full_name || 'utilisateur inconnu'}: ${balance} FCFA`);
+  
+  return balance;
 };
 
 export const findAvailableAgent = async () => {
@@ -84,4 +90,24 @@ export const updateWithdrawalStatusByCode = async (verificationCode: string, use
   if (updateError) {
     throw updateError;
   }
+};
+
+// Nouvelle fonction pour vérifier le solde avant retrait
+export const validateUserBalanceForWithdrawal = async (userId: string, withdrawalAmount: number) => {
+  console.log(`Validation du solde pour retrait - Utilisateur: ${userId}, Montant: ${withdrawalAmount} FCFA`);
+  
+  const currentBalance = await fetchUserBalance(userId);
+  
+  if (currentBalance < withdrawalAmount) {
+    const errorMessage = `Solde insuffisant. Solde disponible: ${currentBalance} FCFA, montant demandé: ${withdrawalAmount} FCFA`;
+    console.error(errorMessage);
+    throw new Error(errorMessage);
+  }
+  
+  console.log(`✓ Solde suffisant pour le retrait. Solde: ${currentBalance} FCFA, Retrait: ${withdrawalAmount} FCFA`);
+  return {
+    currentBalance,
+    withdrawalAmount,
+    remainingBalance: currentBalance - withdrawalAmount
+  };
 };

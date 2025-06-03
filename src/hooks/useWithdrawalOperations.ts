@@ -4,10 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { 
   fetchWithdrawalByCode, 
-  fetchUserBalance, 
   findAvailableAgent, 
   updateWithdrawalStatus,
-  updateWithdrawalStatusByCode 
+  updateWithdrawalStatusByCode,
+  validateUserBalanceForWithdrawal
 } from "@/services/withdrawalService";
 import { 
   debitUserBalance, 
@@ -15,8 +15,7 @@ import {
   creditPlatformCommission 
 } from "@/services/balanceService";
 import { 
-  calculateWithdrawalFees, 
-  validateSufficientBalance 
+  calculateWithdrawalFees
 } from "@/utils/withdrawalCalculations";
 
 export const useWithdrawalOperations = (onClose: () => void) => {
@@ -48,43 +47,42 @@ export const useWithdrawalOperations = (onClose: () => void) => {
       
       // 1. Trouver le retrait avec le code de vérification
       const withdrawalData = await fetchWithdrawalByCode(verificationCode, user.id);
-
-      // 2. Récupérer et vérifier le solde de l'utilisateur
-      const currentBalance = await fetchUserBalance(user.id);
       const withdrawalAmount = Number(withdrawalData.amount) || 0;
 
-      console.log("Vérification du solde:", {
-        soldeActuel: currentBalance,
-        montantDemande: withdrawalAmount,
+      console.log("Données du retrait trouvées:", {
+        id: withdrawalData.id,
+        montant: withdrawalAmount,
         utilisateur: user.id
       });
 
-      // 3. Vérifier si le solde est suffisant
-      validateSufficientBalance(currentBalance, withdrawalAmount);
+      // 2. Valider le solde de l'utilisateur depuis la base de données
+      const balanceValidation = await validateUserBalanceForWithdrawal(user.id, withdrawalAmount);
+      
+      console.log("Validation du solde réussie:", balanceValidation);
 
-      // 4. Calculer les commissions
+      // 3. Calculer les commissions
       const { totalFee, agentCommission, platformCommission } = calculateWithdrawalFees(withdrawalAmount);
 
-      // 5. Débiter le montant du compte utilisateur
+      // 4. Débiter le montant du compte utilisateur
       await debitUserBalance(user.id, withdrawalAmount);
 
       try {
-        // 6. Trouver un agent pour traiter le retrait
+        // 5. Trouver un agent pour traiter le retrait
         const agentId = await findAvailableAgent();
         const agentCredit = withdrawalAmount - totalFee + agentCommission;
         
-        // 7. Créditer l'agent
+        // 6. Créditer l'agent
         await creditUserBalance(agentId, agentCredit);
         
-        // 8. Créditer la commission platform au compte admin
+        // 7. Créditer la commission platform au compte admin
         await creditPlatformCommission(platformCommission);
 
-        // 9. Mettre à jour le statut du retrait à completed
+        // 8. Mettre à jour le statut du retrait à completed
         await updateWithdrawalStatus(withdrawalData.id, 'completed');
 
         toast({
           title: "Retrait confirmé",
-          description: `Votre retrait de ${withdrawalAmount} FCFA a été confirmé et effectué par l'agent.`,
+          description: `Votre retrait de ${withdrawalAmount} FCFA a été confirmé et effectué par l'agent. Nouveau solde: ${balanceValidation.remainingBalance} FCFA`,
         });
 
         onClose();
