@@ -79,9 +79,11 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         throw new Error("Solde insuffisant pour effectuer ce retrait");
       }
 
-      // Calculer les frais en utilisant la fonction calculateFee
-      const feeCalculation = calculateFee(withdrawalData.amount);
-      const { fee, agentCommission, moneyFlowCommission } = feeCalculation;
+      // Calculer les frais en utilisant la fonction calculateFee avec des types explicites
+      const withdrawalAmount: number = withdrawalData.amount;
+      const fee: number = withdrawalAmount * 0.06;
+      const agentCommission: number = fee * (2/6);
+      const moneyFlowCommission: number = fee * (4/6);
 
       // 1. Débiter le montant du compte utilisateur
       const { error: deductError } = await supabase.rpc('increment_balance', {
