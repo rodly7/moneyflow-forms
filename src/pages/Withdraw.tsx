@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -27,6 +28,7 @@ const Withdraw = () => {
   const [feeAmount, setFeeAmount] = useState(0);
   const [recipientName, setRecipientName] = useState("");
   const [recipientId, setRecipientId] = useState("");
+  const [recipientData, setRecipientData] = useState<any>(null);
   const [verificationAttempted, setVerificationAttempted] = useState(false);
   
   const {
@@ -145,6 +147,7 @@ const Withdraw = () => {
       setRecipientVerified(false);
       setRecipientName("");
       setRecipientId("");
+      setRecipientData(null);
       setVerificationAttempted(false);
     }
   };
@@ -169,6 +172,7 @@ const Withdraw = () => {
         console.log("✓ Utilisateur trouvé via useRecipientVerification:", result.recipientData);
         setRecipientId(result.recipientData.userId);
         setRecipientName(result.recipientData.fullName);
+        setRecipientData(result.recipientData);
         setRecipientVerified(true);
         toast({
           title: "Bénéficiaire trouvé",
@@ -226,29 +230,34 @@ const Withdraw = () => {
       const amountValue = Number(amount);
       
       if (isAgent()) {
-        // Pour les agents: utiliser recipientId obtenu lors de la vérification
-        if (!recipientId) {
+        // Pour les agents: utiliser les données de vérification déjà obtenues
+        if (!recipientId || !recipientData) {
           throw new Error("Veuillez d'abord vérifier le destinataire en appuyant sur le bouton de vérification");
         }
 
-        console.log("Agent - Utilisation de l'ID client vérifié:", recipientId);
+        console.log("Agent - Utilisation des données client vérifiées:", recipientData);
 
-        // Vérifier que le client existe toujours avec cet ID
-        const { data: clientProfile, error: clientError } = await supabase
+        // Vérifier le solde du client en temps réel
+        const { data: currentProfile, error: balanceError } = await supabase
           .from('profiles')
-          .select('id, full_name, balance, country, phone')
+          .select('balance, full_name')
           .eq('id', recipientId)
           .maybeSingle();
 
-        if (clientError || !clientProfile) {
-          throw new Error("Client introuvable avec l'ID fourni. Veuillez re-vérifier le numéro");
+        if (balanceError) {
+          console.error("Erreur lors de la vérification du solde:", balanceError);
+          throw new Error("Erreur lors de la vérification du solde du client");
         }
 
-        console.log("Profil client trouvé:", clientProfile);
+        if (!currentProfile) {
+          throw new Error("Profil client introuvable. Le compte pourrait avoir été supprimé.");
+        }
+
+        console.log("Profil client trouvé avec solde:", currentProfile);
 
         // Vérifier le solde du client
-        if (clientProfile.balance < amountValue) {
-          throw new Error(`Solde insuffisant. Client ${clientProfile.full_name || 'inconnu'} a ${clientProfile.balance} FCFA, montant demandé: ${amountValue} FCFA`);
+        if (currentProfile.balance < amountValue) {
+          throw new Error(`Solde insuffisant. Client ${currentProfile.full_name || recipientData.fullName} a ${currentProfile.balance} FCFA, montant demandé: ${amountValue} FCFA`);
         }
 
         // Générer un code de vérification pour la confirmation du client
@@ -258,9 +267,9 @@ const Withdraw = () => {
         const { error: withdrawalError } = await supabase
           .from('withdrawals')
           .insert({
-            user_id: clientProfile.id,
+            user_id: recipientId,
             amount: amountValue,
-            withdrawal_phone: clientProfile.phone,
+            withdrawal_phone: recipientData.email,
             status: 'agent_pending',
             verification_code: verificationCode
           });
@@ -272,7 +281,7 @@ const Withdraw = () => {
 
         toast({
           title: "Demande de retrait envoyée",
-          description: `Une demande de retrait de ${amountValue} FCFA a été envoyée à ${clientProfile.full_name}. Code: ${verificationCode}`,
+          description: `Une demande de retrait de ${amountValue} FCFA a été envoyée à ${recipientData.fullName}. Code: ${verificationCode}`,
         });
 
       } else {
@@ -308,6 +317,7 @@ const Withdraw = () => {
       setRecipientVerified(false);
       setRecipientName("");
       setRecipientId("");
+      setRecipientData(null);
       setVerificationAttempted(false);
       navigate('/dashboard');
 
