@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Banknote, AlertCircle } from "lucide-react";
+import { ArrowLeft, Banknote, AlertCircle, User, Wallet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, formatCurrency, getCurrencyForCountry, calculateFee } from "@/integrations/supabase/client";
 import { countries } from "@/data/countries";
@@ -31,6 +31,8 @@ const Withdraw = () => {
   const [recipientBalance, setRecipientBalance] = useState<number>(0);
   const [verificationAttempted, setVerificationAttempted] = useState(false);
   const [withdrawalSent, setWithdrawalSent] = useState(false);
+  const [userBalance, setUserBalance] = useState<number>(0);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   
   const {
     isLoading: isVerifying,
@@ -38,6 +40,45 @@ const Withdraw = () => {
     verifyRecipient,
     setRecipientVerified
   } = useRecipientVerification();
+
+  // Fonction pour récupérer le solde utilisateur depuis la base de données
+  const fetchUserBalance = async (userId: string) => {
+    try {
+      setIsLoadingBalance(true);
+      console.log("Récupération du solde pour l'utilisateur:", userId);
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('balance, full_name')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error("Erreur lors de la récupération du solde:", error);
+        throw error;
+      }
+      
+      if (data) {
+        console.log("Solde récupéré depuis la BD:", data.balance);
+        return {
+          balance: data.balance || 0,
+          fullName: data.full_name || ""
+        };
+      }
+      
+      return { balance: 0, fullName: "" };
+    } catch (error) {
+      console.error("Erreur dans fetchUserBalance:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de récupérer le solde utilisateur",
+        variant: "destructive"
+      });
+      return { balance: 0, fullName: "" };
+    } finally {
+      setIsLoadingBalance(false);
+    }
+  };
 
   // Fonction unifiée pour chercher un utilisateur par téléphone
   const findUserByPhone = async (phoneNumber: string) => {
@@ -100,7 +141,7 @@ const Withdraw = () => {
         try {
           const { data, error } = await supabase
             .from('profiles')
-            .select('country, phone, full_name')
+            .select('country, phone, full_name, balance')
             .eq('id', user.id)
             .maybeSingle();
           
@@ -115,6 +156,7 @@ const Withdraw = () => {
             setCountry(userCountry);
             setPhoneNumber(data.phone || "");
             setFullName(data.full_name || "");
+            setUserBalance(data.balance || 0);
             setCurrency(getCurrencyForCountry(userCountry));
             
             const selectedCountry = countries.find(c => c.name === userCountry);
@@ -169,7 +211,6 @@ const Withdraw = () => {
       setIsProcessing(true);
       const amountValue = Number(amount);
 
-      // Vérifier si le client a suffisamment de fonds
       if (recipientBalance < amountValue) {
         toast({
           title: "Solde insuffisant",
@@ -179,10 +220,8 @@ const Withdraw = () => {
         return;
       }
 
-      // Générer un code de vérification pour la confirmation du client
       const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
       
-      // Créer la demande de retrait en attente de confirmation
       const { error: withdrawalError } = await supabase
         .from('withdrawals')
         .insert({
@@ -241,24 +280,13 @@ const Withdraw = () => {
         setRecipientData(result.recipientData);
         setRecipientVerified(true);
 
-        // Récupérer le solde actuel du client
-        const { data: clientProfile, error: balanceError } = await supabase
-          .from('profiles')
-          .select('balance')
-          .eq('id', result.recipientData.userId)
-          .maybeSingle();
-
-        if (!balanceError && clientProfile) {
-          setRecipientBalance(clientProfile.balance || 0);
-          console.log("Solde du client récupéré:", clientProfile.balance);
-        } else {
-          console.error("Erreur lors de la récupération du solde:", balanceError);
-          setRecipientBalance(0);
-        }
+        // Récupérer le solde actuel du client depuis la base de données
+        const balanceData = await fetchUserBalance(result.recipientData.userId);
+        setRecipientBalance(balanceData.balance);
         
         toast({
           title: "Bénéficiaire trouvé",
-          description: `${result.recipientData.fullName} a été trouvé. Solde: ${formatCurrency(clientProfile?.balance || 0, currency)}`
+          description: `${result.recipientData.fullName} a été trouvé. Solde: ${formatCurrency(balanceData.balance, currency)}`
         });
         
       } else {
@@ -313,7 +341,6 @@ const Withdraw = () => {
       const amountValue = Number(amount);
       
       if (isAgent()) {
-        // Pour les agents: vérifier que l'utilisateur est vérifié
         if (!isVerified || !recipientData) {
           toast({
             title: "Vérification requise",
@@ -323,10 +350,8 @@ const Withdraw = () => {
           return;
         }
 
-        // Traitement manuel du retrait
         await processManualWithdrawal(recipientData);
 
-        // Réinitialiser le formulaire après succès
         if (withdrawalSent) {
           setAmount("");
           setPhoneNumber("");
@@ -341,7 +366,16 @@ const Withdraw = () => {
         }
 
       } else {
-        // Utilisateur normal demandant un retrait
+        // Utilisateur normal: vérifier son propre solde avant de créer la demande
+        if (userBalance < amountValue) {
+          toast({
+            title: "Solde insuffisant",
+            description: `Votre solde actuel est de ${formatCurrency(userBalance, currency)}. Vous ne pouvez pas retirer ${formatCurrency(amountValue, currency)}.`,
+            variant: "destructive"
+          });
+          return;
+        }
+
         const formattedPhone = phoneNumber.startsWith('+') 
           ? phoneNumber 
           : `${countryCode}${phoneNumber.startsWith('0') ? phoneNumber.substring(1) : phoneNumber}`;
@@ -384,8 +418,8 @@ const Withdraw = () => {
     }
   };
 
-  // Vérifier si le montant demandé dépasse le solde disponible
   const isAmountExceedsBalance = isAgent() && isVerified && amount && Number(amount) > recipientBalance;
+  const isUserAmountExceedsBalance = !isAgent() && amount && Number(amount) > userBalance;
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-4">
@@ -410,6 +444,25 @@ const Withdraw = () => {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Affichage du solde utilisateur pour les utilisateurs normaux */}
+                {!isAgent() && (
+                  <div className="px-3 py-2 bg-emerald-50 rounded-md text-sm border border-emerald-200">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <Wallet className="w-4 h-4 mr-2 text-emerald-600" />
+                        <span className="font-medium">Votre solde disponible:</span>
+                      </div>
+                      <span className={`font-bold ${userBalance > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {isLoadingBalance ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
+                        ) : (
+                          formatCurrency(userBalance, currency)
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="amount">Montant ({currency})</Label>
                   <Input
@@ -424,7 +477,13 @@ const Withdraw = () => {
                   {isAmountExceedsBalance && (
                     <div className="flex items-center text-red-600 text-sm mt-1">
                       <AlertCircle className="w-4 h-4 mr-1" />
-                      <span>Le montant dépasse le solde disponible ({formatCurrency(recipientBalance, currency)})</span>
+                      <span>Le montant dépasse le solde disponible du client ({formatCurrency(recipientBalance, currency)})</span>
+                    </div>
+                  )}
+                  {isUserAmountExceedsBalance && (
+                    <div className="flex items-center text-red-600 text-sm mt-1">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      <span>Le montant dépasse votre solde disponible ({formatCurrency(userBalance, currency)})</span>
                     </div>
                   )}
                 </div>
@@ -445,13 +504,23 @@ const Withdraw = () => {
                     {isVerified && recipientData && (
                       <div className="px-3 py-2 bg-blue-50 rounded-md text-sm border border-blue-200">
                         <div className="flex justify-between items-center">
-                          <span className="font-medium">Client vérifié:</span>
+                          <div className="flex items-center">
+                            <User className="w-4 h-4 mr-2 text-blue-600" />
+                            <span className="font-medium">Client vérifié:</span>
+                          </div>
                           <span>{recipientName}</span>
                         </div>
                         <div className="flex justify-between items-center mt-1">
-                          <span className="font-medium">Solde disponible:</span>
+                          <div className="flex items-center">
+                            <Wallet className="w-4 h-4 mr-2 text-blue-600" />
+                            <span className="font-medium">Solde disponible:</span>
+                          </div>
                           <span className={`font-bold ${recipientBalance > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {formatCurrency(recipientBalance, currency)}
+                            {isLoadingBalance ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                            ) : (
+                              formatCurrency(recipientBalance, currency)
+                            )}
                           </span>
                         </div>
                       </div>
@@ -521,7 +590,7 @@ const Withdraw = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4 h-12 text-lg"
-                  disabled={isProcessing || (isAgent() && (!isVerified || !recipientData || isAmountExceedsBalance))}
+                  disabled={isProcessing || (isAgent() && (!isVerified || !recipientData || isAmountExceedsBalance)) || (!isAgent() && isUserAmountExceedsBalance)}
                 >
                   {isProcessing ? (
                     <div className="flex items-center">
