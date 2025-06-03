@@ -45,7 +45,7 @@ export const findAvailableAgent = async () => {
   const { data, error } = await supabase
     .from('agents')
     .select('user_id')
-    .eq('status', 'approved')
+    .eq('status', 'active')
     .limit(1);
 
   if (error || !data || data.length === 0) {
