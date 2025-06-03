@@ -1,238 +1,24 @@
 
-import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle, XCircle } from "lucide-react";
+import { useWithdrawalConfirmation } from "@/hooks/useWithdrawalConfirmation";
+import { useWithdrawalOperations } from "@/hooks/useWithdrawalOperations";
 
 interface WithdrawalConfirmationProps {
   onClose: () => void;
 }
 
 const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [verificationCode, setVerificationCode] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
+  const {
+    verificationCode,
+    setVerificationCode,
+    isProcessing
+  } = useWithdrawalConfirmation(onClose);
 
-  const handleConfirm = async () => {
-    if (!verificationCode || verificationCode.length !== 6) {
-      toast({
-        title: "Code invalide",
-        description: "Veuillez entrer un code de vérification à 6 chiffres",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!user?.id) {
-      toast({
-        title: "Erreur d'authentification",
-        description: "Vous devez être connecté pour confirmer un retrait",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-      
-      // Trouver le retrait avec ce code de vérification pour cet utilisateur
-      const { data: withdrawalData, error: withdrawalError } = await supabase
-        .from('withdrawals')
-        .select('*')
-        .eq('verification_code', verificationCode)
-        .eq('user_id', user.id)
-        .eq('status', 'agent_pending')
-        .maybeSingle();
-
-      if (withdrawalError) {
-        console.error("Erreur lors de la recherche du retrait:", withdrawalError);
-        throw new Error("Erreur de base de données lors de la vérification du code");
-      }
-
-      if (!withdrawalData) {
-        throw new Error("Ce code de vérification n'existe pas ou a déjà été utilisé");
-      }
-
-      // Récupérer le solde actuel de l'utilisateur depuis la table profiles
-      const { data: userProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('balance')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) {
-        console.error("Erreur lors de la vérification du profil:", profileError);
-        throw new Error("Impossible de vérifier votre solde");
-      }
-
-      if (!userProfile) {
-        throw new Error("Profil utilisateur introuvable");
-      }
-
-      // Convertir les valeurs en nombres
-      const currentBalance = Number(userProfile.balance) || 0;
-      const withdrawalAmount = Number(withdrawalData.amount) || 0;
-
-      console.log("Vérification du solde:", {
-        soldeActuel: currentBalance,
-        montantDemande: withdrawalAmount,
-        utilisateur: user.id
-      });
-
-      // Vérifier si le solde est suffisant
-      if (currentBalance < withdrawalAmount) {
-        throw new Error(`Solde insuffisant. Solde actuel: ${currentBalance} FCFA, montant demandé: ${withdrawalAmount} FCFA`);
-      }
-
-      // Calculs des commissions (6% total)
-      const totalFeeRate = 0.06;
-      const totalFee = withdrawalAmount * totalFeeRate;
-      const agentCommission = totalFee / 3; // 1/3 pour l'agent (2%)
-      const platformCommission = totalFee - agentCommission; // 2/3 pour la plateforme (4%)
-
-      // 1. Débiter le montant du compte utilisateur
-      const { error: deductError } = await supabase.rpc('increment_balance', {
-        user_id: user.id,
-        amount: -withdrawalAmount
-      });
-
-      if (deductError) {
-        console.error("Erreur lors du débit:", deductError);
-        throw new Error("Erreur lors du débit de votre compte");
-      }
-
-      // 2. Trouver un agent pour traiter le retrait
-      const { data: agentList, error: agentError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('role', 'agent')
-        .limit(1);
-
-      if (agentError || !agentList || agentList.length === 0) {
-        // Annuler le débit utilisateur si aucun agent trouvé
-        await supabase.rpc('increment_balance', {
-          user_id: user.id,
-          amount: withdrawalAmount
-        });
-        throw new Error("Aucun agent trouvé pour traiter le retrait");
-      }
-
-      const agentId = agentList[0].id;
-      const agentCredit = withdrawalAmount - totalFee + agentCommission;
-      
-      // 3. Créditer l'agent
-      const { error: creditError } = await supabase.rpc('increment_balance', {
-        user_id: agentId,
-        amount: agentCredit
-      });
-
-      if (creditError) {
-        console.error("Erreur lors du crédit agent:", creditError);
-        // Annuler le débit utilisateur si le crédit agent échoue
-        await supabase.rpc('increment_balance', {
-          user_id: user.id,
-          amount: withdrawalAmount
-        });
-        throw new Error("Erreur lors du crédit du compte agent");
-      }
-      
-      // 4. Créditer la commission platform au compte admin
-      const { data: adminData, error: adminError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('phone', '+221773637752')
-        .maybeSingle();
-        
-      if (!adminError && adminData) {
-        await supabase.rpc('increment_balance', {
-          user_id: adminData.id,
-          amount: platformCommission
-        });
-      }
-
-      // 5. Mettre à jour le statut du retrait à completed
-      const { error: updateError } = await supabase
-        .from('withdrawals')
-        .update({ 
-          status: 'completed',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', withdrawalData.id);
-
-      if (updateError) {
-        console.error("Erreur lors de la mise à jour:", updateError);
-        throw new Error("Erreur lors de la finalisation du retrait");
-      }
-
-      toast({
-        title: "Retrait confirmé",
-        description: `Votre retrait de ${withdrawalAmount} FCFA a été confirmé et effectué par l'agent.`,
-      });
-
-      onClose();
-    } catch (error) {
-      console.error("Erreur lors de la confirmation du retrait:", error);
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Une erreur s'est produite lors de la confirmation du retrait",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!verificationCode || verificationCode.length !== 6) {
-      toast({
-        title: "Code invalide",
-        description: "Veuillez entrer un code de vérification à 6 chiffres",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-      
-      // Mettre à jour le statut du retrait à rejected
-      const { error: updateError } = await supabase
-        .from('withdrawals')
-        .update({ 
-          status: 'rejected',
-          updated_at: new Date().toISOString()
-        })
-        .eq('verification_code', verificationCode)
-        .eq('user_id', user?.id)
-        .eq('status', 'agent_pending');
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      toast({
-        title: "Retrait refusé",
-        description: "Vous avez refusé cette demande de retrait.",
-      });
-
-      onClose();
-    } catch (error) {
-      console.error("Erreur lors du refus du retrait:", error);
-      toast({
-        title: "Erreur",
-        description: "Une erreur s'est produite lors du refus du retrait",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  const { handleConfirm, handleReject } = useWithdrawalOperations(onClose);
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -260,7 +46,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
 
         <div className="flex space-x-2">
           <Button
-            onClick={handleConfirm}
+            onClick={() => handleConfirm(verificationCode)}
             disabled={isProcessing || verificationCode.length !== 6}
             className="flex-1 bg-green-600 hover:bg-green-700"
           >
@@ -273,7 +59,7 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
           </Button>
           
           <Button
-            onClick={handleReject}
+            onClick={() => handleReject(verificationCode)}
             disabled={isProcessing || verificationCode.length !== 6}
             variant="destructive"
             className="flex-1"
