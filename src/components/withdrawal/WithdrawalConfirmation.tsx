@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -78,11 +79,15 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
         throw new Error("Solde insuffisant pour effectuer ce retrait");
       }
 
-      // Calculer les frais avec des constantes simples
-      const withdrawalAmount: number = withdrawalData.amount;
-      const fee: number = withdrawalAmount * 0.06;
-      const agentCommission: number = fee * (1/3);
-      const moneyFlowCommission: number = fee * (2/3);
+      // Convertir explicitement en number et calculer les frais
+      const amount = parseFloat(withdrawalData.amount.toString());
+      const withdrawalAmount: number = amount;
+      const feePercentage = 0.06;
+      const totalFee: number = amount * feePercentage;
+      const agentShare = 1 / 3;
+      const platformShare = 2 / 3;
+      const agentCommission: number = totalFee * agentShare;
+      const moneyFlowCommission: number = totalFee * platformShare;
 
       // 1. Débiter le montant du compte utilisateur
       const { error: deductError } = await supabase.rpc('increment_balance', {
@@ -96,8 +101,6 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
       }
 
       // 2. Trouver l'agent qui a fait la demande et créditer son compte
-      // Pour l'instant, on utilise le premier agent trouvé, mais idéalement il faudrait
-      // stocker l'ID de l'agent qui a fait la demande dans la table withdrawals
       const { data: agentProfiles, error: agentError } = await supabase
         .from('profiles')
         .select('id')
@@ -115,11 +118,11 @@ const WithdrawalConfirmation = ({ onClose }: WithdrawalConfirmationProps) => {
 
       const agentId = agentProfiles[0].id;
       // L'agent reçoit le montant moins les frais plus sa commission
-      const netAmountForAgent: number = withdrawalAmount - fee + agentCommission;
+      const netAmount: number = withdrawalAmount - totalFee + agentCommission;
       
       const { error: creditError } = await supabase.rpc('increment_balance', {
         user_id: agentId,
-        amount: netAmountForAgent
+        amount: netAmount
       });
 
       if (creditError) {
