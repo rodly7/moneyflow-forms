@@ -24,18 +24,18 @@ const AgentWithdrawal = () => {
   const [isLoadingBalance, setIsLoadingBalance] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  console.log("AgentWithdrawal component loaded");
+  console.log("AgentWithdrawal component rendering...");
 
   const fetchAgentBalance = async () => {
     if (user?.id) {
       setIsLoadingBalance(true);
       try {
-        console.log("🔍 Récupération du solde agent depuis la base de données...");
+        console.log("🔍 Récupération du solde agent...");
         const balanceData = await getUserBalance(user.id);
         setAgentBalance(balanceData.balance);
-        console.log("✅ Solde agent affiché:", balanceData.balance, "FCFA");
+        console.log("✅ Solde agent:", balanceData.balance, "FCFA");
       } catch (error) {
-        console.error("❌ Erreur lors du chargement du solde agent:", error);
+        console.error("❌ Erreur lors du chargement du solde:", error);
         toast({
           title: "Erreur",
           description: "Impossible de charger votre solde",
@@ -54,17 +54,13 @@ const AgentWithdrawal = () => {
 
     setIsSearchingClient(true);
     try {
-      console.log("🔍 Recherche du client avec le numéro:", phone);
+      console.log("🔍 Recherche client:", phone);
       
       const client = await findUserByPhone(phone);
       
       if (client) {
         setClientData(client);
-        console.log("✅ Client trouvé:", {
-          nom: client.full_name,
-          telephone: client.phone,
-          solde: client.balance
-        });
+        console.log("✅ Client trouvé:", client.full_name);
         
         toast({
           title: "Client trouvé",
@@ -74,12 +70,12 @@ const AgentWithdrawal = () => {
         setClientData(null);
         toast({
           title: "Client non trouvé",
-          description: "Aucun utilisateur trouvé avec ce numéro de téléphone",
+          description: "Aucun utilisateur trouvé avec ce numéro",
           variant: "destructive"
         });
       }
     } catch (error) {
-      console.error("❌ Erreur lors de la recherche du client:", error);
+      console.error("❌ Erreur recherche:", error);
       setClientData(null);
       toast({
         title: "Erreur de recherche",
@@ -89,23 +85,6 @@ const AgentWithdrawal = () => {
     }
     setIsSearchingClient(false);
   };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setPhoneNumber(value);
-    setClientData(null);
-  };
-
-  const handleSearchClient = () => {
-    if (phoneNumber) {
-      searchClientByPhone(phoneNumber);
-    }
-  };
-
-  useEffect(() => {
-    console.log("useEffect - fetchAgentBalance");
-    fetchAgentBalance();
-  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,19 +98,10 @@ const AgentWithdrawal = () => {
       return;
     }
 
-    if (!phoneNumber) {
-      toast({
-        title: "Numéro requis",
-        description: "Veuillez entrer un numéro de téléphone",
-        variant: "destructive"
-      });
-      return;
-    }
-
     if (!clientData) {
       toast({
-        title: "Client non vérifié",
-        description: "Veuillez d'abord rechercher et vérifier le client",
+        title: "Client requis",
+        description: "Veuillez d'abord rechercher le client",
         variant: "destructive"
       });
       return;
@@ -142,7 +112,7 @@ const AgentWithdrawal = () => {
     if (operationAmount > clientData.balance) {
       toast({
         title: "Solde insuffisant",
-        description: `Le client n'a que ${formatCurrency(clientData.balance, 'XAF')} dans son compte`,
+        description: `Le client n'a que ${formatCurrency(clientData.balance, 'XAF')}`,
         variant: "destructive"
       });
       return;
@@ -151,13 +121,8 @@ const AgentWithdrawal = () => {
     try {
       setIsProcessing(true);
 
-      if (!user?.id) {
-        throw new Error("Agent non connecté");
-      }
-
-      // Traitement du retrait (client débité, agent crédité)
       const result = await processAgentWithdrawal(
-        user.id,
+        user?.id || '',
         clientData.id,
         operationAmount,
         phoneNumber
@@ -165,19 +130,19 @@ const AgentWithdrawal = () => {
 
       toast({
         title: "Retrait effectué",
-        description: `Retrait de ${formatCurrency(operationAmount, 'XAF')} effectué pour ${result.clientName}. Nouveau solde client: ${formatCurrency(result.newClientBalance, 'XAF')}`,
+        description: `Retrait de ${formatCurrency(operationAmount, 'XAF')} effectué`,
       });
 
-      // Réinitialiser le formulaire
+      // Reset form
       setAmount("");
       setPhoneNumber("");
       setClientData(null);
       
-      // Actualiser le solde de l'agent
+      // Refresh balance
       fetchAgentBalance();
       
     } catch (error) {
-      console.error("❌ Erreur lors du retrait:", error);
+      console.error("❌ Erreur retrait:", error);
       toast({
         title: "Erreur",
         description: error instanceof Error ? error.message : "Erreur lors du retrait",
@@ -188,7 +153,12 @@ const AgentWithdrawal = () => {
     }
   };
 
-  const isAmountExceedsBalance = amount && clientData && Number(amount) > clientData.balance;
+  useEffect(() => {
+    console.log("useEffect - fetchAgentBalance");
+    fetchAgentBalance();
+  }, [user]);
+
+  console.log("Rendering AgentWithdrawal interface...");
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-4">
@@ -216,7 +186,7 @@ const AgentWithdrawal = () => {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Affichage du solde agent avec bouton d'actualisation */}
+                {/* Solde agent */}
                 <div className="px-3 py-2 bg-emerald-50 rounded-md text-sm border border-emerald-200">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center">
@@ -241,6 +211,7 @@ const AgentWithdrawal = () => {
                   </div>
                 </div>
 
+                {/* Recherche client */}
                 <div className="space-y-2">
                   <Label htmlFor="phone">Numéro du client</Label>
                   <div className="flex gap-2">
@@ -249,14 +220,14 @@ const AgentWithdrawal = () => {
                       type="tel"
                       placeholder="Entrez le numéro du client"
                       value={phoneNumber}
-                      onChange={handlePhoneChange}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
                       required
                       className="h-12"
                     />
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={handleSearchClient}
+                      onClick={() => searchClientByPhone(phoneNumber)}
                       disabled={isSearchingClient || !phoneNumber}
                       className="h-12 px-3"
                     >
@@ -271,7 +242,7 @@ const AgentWithdrawal = () => {
                   {clientData && (
                     <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                       <p className="text-green-800 font-medium">
-                        ✓ Client trouvé: {clientData.full_name || 'Nom non disponible'}
+                        ✓ Client: {clientData.full_name || 'Nom non disponible'}
                       </p>
                       <p className="text-green-700 text-sm">
                         Solde: {formatCurrency(clientData.balance || 0, 'XAF')}
@@ -280,6 +251,7 @@ const AgentWithdrawal = () => {
                   )}
                 </div>
 
+                {/* Montant */}
                 <div className="space-y-2">
                   <Label htmlFor="amount">Montant du retrait (XAF)</Label>
                   <Input
@@ -292,23 +264,21 @@ const AgentWithdrawal = () => {
                     className="h-12 text-lg"
                     disabled={!clientData}
                   />
-                  {isAmountExceedsBalance && (
+                  {amount && clientData && Number(amount) > clientData.balance && (
                     <p className="text-red-600 text-sm">
-                      Le montant dépasse le solde du client ({formatCurrency(clientData?.balance || 0, 'XAF')})
+                      Le montant dépasse le solde du client
                     </p>
                   )}
                 </div>
 
                 <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-800">
-                  <p>
-                    💸 Retrait: Le compte du client sera débité et votre compte sera crédité
-                  </p>
+                  <p>💸 Le compte du client sera débité et votre compte sera crédité</p>
                 </div>
 
                 <Button 
                   type="submit" 
                   className="w-full bg-red-600 hover:bg-red-700 mt-4 h-12 text-lg"
-                  disabled={isProcessing || isAmountExceedsBalance || !clientData}
+                  disabled={isProcessing || !clientData || (amount && clientData && Number(amount) > clientData.balance)}
                 >
                   {isProcessing ? (
                     <div className="flex items-center">
