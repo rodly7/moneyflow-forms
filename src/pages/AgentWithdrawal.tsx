@@ -24,6 +24,8 @@ const AgentWithdrawal = () => {
   const [isLoadingBalance, setIsLoadingBalance] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  console.log("AgentWithdrawal component loaded");
+
   const fetchAgentBalance = async () => {
     if (user?.id) {
       setIsLoadingBalance(true);
@@ -101,6 +103,7 @@ const AgentWithdrawal = () => {
   };
 
   useEffect(() => {
+    console.log("useEffect - fetchAgentBalance");
     fetchAgentBalance();
   }, [user]);
 

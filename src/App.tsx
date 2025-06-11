@@ -37,6 +37,7 @@ function App() {
           <Route path="/withdraw" element={<Layout><Withdraw /></Layout>} />
           <Route path="/agent-withdrawal" element={<Layout><AgentWithdrawal /></Layout>} />
           <Route path="/agent-withdrawal-advanced" element={<Layout><AgentWithdrawalAdvanced /></Layout>} />
+          <Route path="/deposit" element={<Layout><AgentDeposit /></Layout>} />
           <Route path="/verify-identity" element={<VerifyIdentity />} />
           <Route path="/qrcode" element={<Layout><QRCode /></Layout>} />
           <Route path="/scan" element={<QrScanner />} />
@@ -46,7 +47,6 @@ function App() {
           <Route path="/prepaid-cards" element={<Layout><PrepaidCards /></Layout>} />
           <Route path="/transactions" element={<Layout><Transactions /></Layout>} />
           <Route path="/commission" element={<Layout><Commission /></Layout>} />
-          <Route path="/deposit" element={<Layout><AgentDeposit /></Layout>} />
           <Route path="*" element={<Auth />} />
         </Routes>
         <Toaster />
