@@ -1,0 +1,220 @@
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Banknote, AlertCircle, Loader2, Search, User, Wallet } from "lucide-react";
+import { formatCurrency } from "@/integrations/supabase/client";
+import { useAgentAutomaticWithdrawal } from "@/hooks/useAgentAutomaticWithdrawal";
+import { findUserByPhone } from "@/services/withdrawalService";
+import { useToast } from "@/hooks/use-toast";
+
+interface ClientData {
+  id: string;
+  full_name: string;
+  phone: string;
+  balance: number;
+  country?: string;
+}
+
+export const AgentAutomaticWithdrawalForm = () => {
+  const [amount, setAmount] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [clientData, setClientData] = useState<ClientData | null>(null);
+  const [isSearchingClient, setIsSearchingClient] = useState(false);
+  
+  const { processAgentAutomaticWithdrawal, isProcessing } = useAgentAutomaticWithdrawal();
+  const { toast } = useToast();
+
+  const searchClientByPhone = async (phone: string) => {
+    if (!phone || phone.length < 6) {
+      setClientData(null);
+      return;
+    }
+
+    setIsSearchingClient(true);
+    try {
+      console.log("🔍 Recherche client:", phone);
+      
+      const client = await findUserByPhone(phone);
+      
+      if (client) {
+        setClientData(client);
+        console.log("✅ Client trouvé:", client.full_name);
+        
+        toast({
+          title: "Client trouvé",
+          description: `${client.full_name || 'Utilisateur'} - Solde: ${formatCurrency(client.balance || 0, 'XAF')}`,
+        });
+      } else {
+        setClientData(null);
+        toast({
+          title: "Client non trouvé",
+          description: "Aucun utilisateur trouvé avec ce numéro",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("❌ Erreur recherche:", error);
+      setClientData(null);
+      toast({
+        title: "Erreur de recherche",
+        description: "Impossible de rechercher le client",
+        variant: "destructive"
+      });
+    }
+    setIsSearchingClient(false);
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPhoneNumber(value);
+    
+    // Réinitialiser les données client quand le numéro change
+    if (clientData) {
+      setClientData(null);
+    }
+  };
+
+  const handleSearch = () => {
+    if (phoneNumber) {
+      searchClientByPhone(phoneNumber);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!amount || !phoneNumber || !clientData) return;
+    
+    const withdrawalAmount = Number(amount);
+    
+    const result = await processAgentAutomaticWithdrawal(
+      clientData.id,
+      withdrawalAmount,
+      phoneNumber,
+      clientData.full_name,
+      clientData.balance
+    );
+    
+    if (result?.success) {
+      // Reset form on success
+      setAmount("");
+      setPhoneNumber("");
+      setClientData(null);
+    }
+  };
+
+  const isValidAmount = amount && Number(amount) > 0 && clientData && Number(amount) <= clientData.balance;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Banknote className="w-5 h-5 text-emerald-500" />
+          Retrait automatique pour client
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Recherche du client */}
+          <div className="space-y-2">
+            <Label htmlFor="phone">Numéro du client</Label>
+            <div className="flex gap-2">
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="Entrez le numéro du client"
+                value={phoneNumber}
+                onChange={handlePhoneChange}
+                required
+                className="h-12"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSearch}
+                disabled={isSearchingClient || !phoneNumber}
+                className="h-12 px-3"
+              >
+                {isSearchingClient ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
+                ) : (
+                  <Search className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Affichage des informations du client */}
+          {clientData && (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-md space-y-2">
+              <div className="flex items-center text-green-800">
+                <User className="w-4 h-4 mr-2" />
+                <span className="font-medium">
+                  {clientData.full_name || 'Nom non disponible'}
+                </span>
+              </div>
+              <div className="flex items-center text-green-700">
+                <Wallet className="w-4 h-4 mr-2" />
+                <span>
+                  Solde: {formatCurrency(clientData.balance || 0, 'XAF')}
+                </span>
+              </div>
+              <div className="text-sm text-green-600">
+                Pays: {clientData.country || 'Non spécifié'}
+              </div>
+            </div>
+          )}
+
+          {/* Montant */}
+          <div className="space-y-2">
+            <Label htmlFor="amount">Montant du retrait (XAF)</Label>
+            <Input
+              id="amount"
+              type="number"
+              placeholder="Entrez le montant à retirer"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+              className="h-12 text-lg"
+              max={clientData?.balance || 0}
+              disabled={!clientData}
+            />
+            {amount && clientData && Number(amount) > clientData.balance && (
+              <p className="text-red-600 text-sm flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                Le montant dépasse le solde disponible du client
+              </p>
+            )}
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+            <p className="text-blue-800 text-sm">
+              💰 Le retrait sera traité automatiquement - Le compte du client sera débité et votre compte agent sera crédité
+            </p>
+          </div>
+
+          <Button 
+            type="submit" 
+            className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 text-lg"
+            disabled={isProcessing || !isValidAmount || !phoneNumber || !clientData}
+          >
+            {isProcessing ? (
+              <div className="flex items-center">
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <span>Traitement en cours...</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center">
+                <Banknote className="mr-2 h-5 w-5" />
+                <span>Effectuer le retrait automatique</span>
+              </div>
+            )}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+};
