@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Banknote, Wallet, RefreshCw, Search, Plus, Minus } from "lucide-react";
+import { ArrowLeft, Banknote, Wallet, RefreshCw, Search, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/integrations/supabase/client";
-import { getUserBalance, findUserByPhone, processAgentWithdrawal } from "@/services/withdrawalService";
+import { getUserBalance, findUserByPhone } from "@/services/withdrawalService";
 import { supabase } from "@/integrations/supabase/client";
 
 const AgentDeposit = () => {
@@ -17,7 +17,6 @@ const AgentDeposit = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [operationType, setOperationType] = useState<'deposit' | 'withdrawal'>('deposit');
   const [amount, setAmount] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [clientData, setClientData] = useState<any>(null);
@@ -138,26 +137,14 @@ const AgentDeposit = () => {
 
     const operationAmount = Number(amount);
 
-    // Validation spécifique selon le type d'opération
-    if (operationType === 'withdrawal') {
-      if (operationAmount > clientData.balance) {
-        toast({
-          title: "Solde insuffisant",
-          description: `Le client n'a que ${formatCurrency(clientData.balance, 'XAF')} dans son compte`,
-          variant: "destructive"
-        });
-        return;
-      }
-    } else {
-      // Pour les dépôts, vérifier le solde de l'agent
-      if (operationAmount > agentBalance) {
-        toast({
-          title: "Solde agent insuffisant",
-          description: `Votre solde (${formatCurrency(agentBalance, 'XAF')}) est insuffisant pour ce dépôt`,
-          variant: "destructive"
-        });
-        return;
-      }
+    // Pour les dépôts, vérifier le solde de l'agent
+    if (operationAmount > agentBalance) {
+      toast({
+        title: "Solde agent insuffisant",
+        description: `Votre solde (${formatCurrency(agentBalance, 'XAF')}) est insuffisant pour ce dépôt`,
+        variant: "destructive"
+      });
+      return;
     }
 
     try {
@@ -167,53 +154,38 @@ const AgentDeposit = () => {
         throw new Error("Agent non connecté");
       }
 
-      if (operationType === 'withdrawal') {
-        // Traitement du retrait (client débité, agent crédité)
-        const result = await processAgentWithdrawal(
-          user.id,
-          clientData.id,
-          operationAmount,
-          phoneNumber
-        );
+      // Traitement du dépôt (agent débité, client crédité)
+      // Débiter l'agent
+      const { error: debitError } = await supabase.rpc('increment_balance', {
+        user_id: user.id,
+        amount: -operationAmount
+      });
 
-        toast({
-          title: "Retrait effectué",
-          description: `Retrait de ${formatCurrency(operationAmount, 'XAF')} effectué pour ${result.clientName}. Nouveau solde client: ${formatCurrency(result.newClientBalance, 'XAF')}`,
-        });
-      } else {
-        // Traitement du dépôt (agent débité, client crédité)
-        // Débiter l'agent
-        const { error: debitError } = await supabase.rpc('increment_balance', {
+      if (debitError) {
+        console.error("❌ Erreur lors du débit de l'agent:", debitError);
+        throw new Error("Erreur lors du débit du compte agent");
+      }
+
+      // Créditer le client
+      const { error: creditError } = await supabase.rpc('increment_balance', {
+        user_id: clientData.id,
+        amount: operationAmount
+      });
+
+      if (creditError) {
+        console.error("❌ Erreur lors du crédit du client:", creditError);
+        // En cas d'erreur, recréditer l'agent
+        await supabase.rpc('increment_balance', {
           user_id: user.id,
-          amount: -operationAmount
-        });
-
-        if (debitError) {
-          console.error("❌ Erreur lors du débit de l'agent:", debitError);
-          throw new Error("Erreur lors du débit du compte agent");
-        }
-
-        // Créditer le client
-        const { error: creditError } = await supabase.rpc('increment_balance', {
-          user_id: clientData.id,
           amount: operationAmount
         });
-
-        if (creditError) {
-          console.error("❌ Erreur lors du crédit du client:", creditError);
-          // En cas d'erreur, recréditer l'agent
-          await supabase.rpc('increment_balance', {
-            user_id: user.id,
-            amount: operationAmount
-          });
-          throw new Error("Erreur lors du crédit du compte client");
-        }
-
-        toast({
-          title: "Dépôt effectué",
-          description: `Dépôt de ${formatCurrency(operationAmount, 'XAF')} effectué pour ${clientData.full_name}. Nouveau solde client: ${formatCurrency(clientData.balance + operationAmount, 'XAF')}`,
-        });
+        throw new Error("Erreur lors du crédit du compte client");
       }
+
+      toast({
+        title: "Dépôt effectué",
+        description: `Dépôt de ${formatCurrency(operationAmount, 'XAF')} effectué pour ${clientData.full_name}. Nouveau solde client: ${formatCurrency(clientData.balance + operationAmount, 'XAF')}`,
+      });
 
       // Réinitialiser le formulaire
       setAmount("");
@@ -224,10 +196,10 @@ const AgentDeposit = () => {
       fetchAgentBalance();
       
     } catch (error) {
-      console.error("❌ Erreur lors de l'opération:", error);
+      console.error("❌ Erreur lors du dépôt:", error);
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Erreur lors de l'opération",
+        description: error instanceof Error ? error.message : "Erreur lors du dépôt",
         variant: "destructive"
       });
     } finally {
@@ -235,10 +207,7 @@ const AgentDeposit = () => {
     }
   };
 
-  const isAmountExceedsBalance = amount && (
-    (operationType === 'withdrawal' && clientData && Number(amount) > clientData.balance) ||
-    (operationType === 'deposit' && Number(amount) > agentBalance)
-  );
+  const isAmountExceedsBalance = amount && Number(amount) > agentBalance;
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-4">
@@ -248,35 +217,16 @@ const AgentDeposit = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
           </Button>
-          <h1 className="text-2xl font-bold">Dépôts & Retraits</h1>
+          <h1 className="text-2xl font-bold">Dépôts Agent</h1>
           <div className="w-10"></div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Opérations pour un client</CardTitle>
-            
-            {/* Sélecteur de type d'opération */}
-            <div className="flex space-x-2 mt-4">
-              <Button
-                type="button"
-                variant={operationType === 'deposit' ? 'default' : 'outline'}
-                onClick={() => setOperationType('deposit')}
-                className="flex-1"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Dépôt
-              </Button>
-              <Button
-                type="button"
-                variant={operationType === 'withdrawal' ? 'default' : 'outline'}
-                onClick={() => setOperationType('withdrawal')}
-                className="flex-1"
-              >
-                <Minus className="w-4 h-4 mr-2" />
-                Retrait
-              </Button>
-            </div>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5 text-emerald-500" />
+              Dépôt pour un client
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoadingBalance ? (
@@ -350,9 +300,7 @@ const AgentDeposit = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="amount">
-                    Montant du {operationType === 'deposit' ? 'dépôt' : 'retrait'} (XAF)
-                  </Label>
+                  <Label htmlFor="amount">Montant du dépôt (XAF)</Label>
                   <Input
                     id="amount"
                     type="number"
@@ -365,20 +313,14 @@ const AgentDeposit = () => {
                   />
                   {isAmountExceedsBalance && (
                     <p className="text-red-600 text-sm">
-                      {operationType === 'withdrawal' 
-                        ? `Le montant dépasse le solde du client (${formatCurrency(clientData?.balance || 0, 'XAF')})`
-                        : `Le montant dépasse votre solde agent (${formatCurrency(agentBalance, 'XAF')})`
-                      }
+                      Le montant dépasse votre solde agent ({formatCurrency(agentBalance, 'XAF')})
                     </p>
                   )}
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-sm text-blue-800">
                   <p>
-                    {operationType === 'deposit' 
-                      ? "💰 Dépôt: Votre compte sera débité et le compte du client sera crédité"
-                      : "💸 Retrait: Le compte du client sera débité et votre compte sera crédité"
-                    }
+                    💰 Dépôt: Votre compte sera débité et le compte du client sera crédité
                   </p>
                 </div>
 
@@ -395,9 +337,7 @@ const AgentDeposit = () => {
                   ) : (
                     <div className="flex items-center justify-center">
                       <Banknote className="mr-2 h-5 w-5" />
-                      <span>
-                        Effectuer le {operationType === 'deposit' ? 'dépôt' : 'retrait'}
-                      </span>
+                      <span>Effectuer le dépôt</span>
                     </div>
                   )}
                 </Button>

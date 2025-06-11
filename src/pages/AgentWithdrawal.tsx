@@ -1,325 +1,191 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Banknote } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, Banknote, Wallet, RefreshCw, Search, Minus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import PhoneInput from "@/components/transfer-steps/PhoneInput";
-import { useQuery } from "@tanstack/react-query";
-import { useRecipientVerification } from "@/hooks/useRecipientVerification";
+import { formatCurrency } from "@/integrations/supabase/client";
+import { getUserBalance, findUserByPhone, processAgentWithdrawal } from "@/services/withdrawalService";
 
 const AgentWithdrawal = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const [amount, setAmount] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [clientData, setClientData] = useState<any>(null);
+  const [isSearchingClient, setIsSearchingClient] = useState(false);
+  const [agentBalance, setAgentBalance] = useState<number>(0);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [formData, setFormData] = useState({
-    recipientPhone: "",
-    amount: ""
-  });
-  const [countryCode, setCountryCode] = useState("+237");
-  const [recipientName, setRecipientName] = useState("");
-  const [recipientId, setRecipientId] = useState("");
-  const [verificationAttempted, setVerificationAttempted] = useState(false);
 
-  const {
-    isLoading: isVerifying,
-    recipientVerified: isVerified,
-    verifyRecipient,
-    setRecipientVerified
-  } = useRecipientVerification();
-
-  // Get agent profile
-  const { data: agentProfile } = useQuery({
-    queryKey: ['agent-profile'],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('country, balance')
-        .eq('id', user.id)
-        .maybeSingle();
-      
-      if (error) {
-        console.error("Erreur lors de la récupération du profil agent:", error);
-        throw error;
+  const fetchAgentBalance = async () => {
+    if (user?.id) {
+      setIsLoadingBalance(true);
+      try {
+        console.log("🔍 Récupération du solde agent depuis la base de données...");
+        const balanceData = await getUserBalance(user.id);
+        setAgentBalance(balanceData.balance);
+        console.log("✅ Solde agent affiché:", balanceData.balance, "FCFA");
+      } catch (error) {
+        console.error("❌ Erreur lors du chargement du solde agent:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger votre solde",
+          variant: "destructive"
+        });
       }
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  // Update country code based on agent's country
-  useState(() => {
-    if (agentProfile?.country) {
-      const countryToCodes = {
-        "Cameroun": "+237",
-        "Cameroon": "+237",
-        "Congo Brazzaville": "+242",
-        "Gabon": "+241",
-        "Tchad": "+235",
-        "Chad": "+235",
-        "République Centrafricaine": "+236",
-        "Central African Republic": "+236",
-        "Guinée Équatoriale": "+240",
-        "Equatorial Guinea": "+240",
-        "Sénégal": "+221",
-        "Nigeria": "+234",
-        "Ghana": "+233",
-      };
-      
-      const code = countryToCodes[agentProfile.country as keyof typeof countryToCodes] || "+237";
-      setCountryCode(code);
-    }
-  });
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handlePhoneChange = (value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      recipientPhone: value
-    }));
-    if (isVerified || verificationAttempted) {
-      setRecipientVerified(false);
-      setRecipientName("");
-      setRecipientId("");
-      setVerificationAttempted(false);
+      setIsLoadingBalance(false);
     }
   };
 
-  const handleVerifyRecipient = async () => {
-    if (!formData.recipientPhone || formData.recipientPhone.length < 6) return;
-    
-    setVerificationAttempted(true);
-    
-    const fullPhone = formData.recipientPhone.startsWith('+') 
-      ? formData.recipientPhone 
-      : `${countryCode}${formData.recipientPhone.startsWith('0') ? formData.recipientPhone.substring(1) : formData.recipientPhone}`;
-    
-    console.log("Vérification pour le numéro complet:", fullPhone);
-    
+  const searchClientByPhone = async (phone: string) => {
+    if (!phone || phone.length < 6) {
+      setClientData(null);
+      return;
+    }
+
+    setIsSearchingClient(true);
     try {
-      const result = await verifyRecipient(fullPhone, countryCode, {
-        fullName: "",
-        email: fullPhone,
-        country: agentProfile?.country || "Cameroun"
-      });
+      console.log("🔍 Recherche du client avec le numéro:", phone);
       
-      if (result.verified && result.recipientData) {
-        console.log("Résultat de la vérification:", result);
-        setRecipientName(result.recipientData.fullName);
-        
-        if (result.recipientData.userId) {
-          setRecipientId(result.recipientData.userId);
-          console.log("ID utilisateur directement récupéré:", result.recipientData.userId);
-          setRecipientVerified(true);
-          toast({
-            title: "Bénéficiaire trouvé",
-            description: `${result.recipientData.fullName} a été trouvé dans la base de données`
-          });
-          return;
-        }
-        
-        // Fallback: search directly by phone number with error handling
-        try {
-          const { data: profileByPhone, error: phoneError } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('phone', fullPhone)
-            .maybeSingle();
-          
-          if (!phoneError && profileByPhone) {
-            setRecipientId(profileByPhone.id);
-            setRecipientVerified(true);
-            return;
-          }
-        } catch (phoneSearchError) {
-          console.error("Erreur lors de la recherche par téléphone:", phoneSearchError);
-        }
-        
-        // Fallback: search by last 8 digits with error handling
-        const lastDigits = fullPhone.replace(/\D/g, '').slice(-8);
-        
-        if (lastDigits.length >= 8) {
-          try {
-            const { data: profiles, error: profilesError } = await supabase
-              .from('profiles')
-              .select('id, phone');
-            
-            if (!profilesError && profiles) {
-              const matchingProfile = profiles.find(profile => {
-                if (!profile.phone) return false;
-                const profileLastDigits = profile.phone.replace(/\D/g, '').slice(-8);
-                return profileLastDigits === lastDigits;
-              });
-              
-              if (matchingProfile) {
-                setRecipientId(matchingProfile.id);
-                setRecipientVerified(true);
-                return;
-              }
-            }
-          } catch (lastDigitsError) {
-            console.error("Erreur lors de la recherche par derniers chiffres:", lastDigitsError);
-          }
-        }
+      const client = await findUserByPhone(phone);
+      
+      if (client) {
+        setClientData(client);
+        console.log("✅ Client trouvé:", {
+          nom: client.full_name,
+          telephone: client.phone,
+          solde: client.balance
+        });
         
         toast({
-          title: "Utilisateur non trouvé",
-          description: "Impossible de trouver cet utilisateur dans la base de données",
-          variant: "destructive"
+          title: "Client trouvé",
+          description: `${client.full_name || 'Utilisateur'} - Solde: ${formatCurrency(client.balance || 0, 'XAF')}`,
         });
       } else {
+        setClientData(null);
         toast({
-          title: "Utilisateur non trouvé",
-          description: "Impossible de trouver cet utilisateur dans la base de données",
+          title: "Client non trouvé",
+          description: "Aucun utilisateur trouvé avec ce numéro de téléphone",
           variant: "destructive"
         });
       }
-    } catch (err) {
-      console.error("Error checking recipient:", err);
+    } catch (error) {
+      console.error("❌ Erreur lors de la recherche du client:", error);
+      setClientData(null);
       toast({
-        title: "Erreur de vérification",
-        description: "Une erreur s'est produite lors de la vérification du destinataire",
+        title: "Erreur de recherche",
+        description: "Impossible de rechercher le client",
         variant: "destructive"
       });
-      setRecipientVerified(false);
-      setRecipientName("");
-      setRecipientId("");
+    }
+    setIsSearchingClient(false);
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPhoneNumber(value);
+    setClientData(null);
+  };
+
+  const handleSearchClient = () => {
+    if (phoneNumber) {
+      searchClientByPhone(phoneNumber);
     }
   };
+
+  useEffect(() => {
+    fetchAgentBalance();
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user?.id) {
-      toast({
-        title: "Erreur d'authentification",
-        description: "Vous devez être connecté pour effectuer un retrait",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!formData.recipientPhone || !formData.amount || !recipientId) {
-      toast({
-        title: "Formulaire incomplet",
-        description: "Veuillez remplir tous les champs obligatoires et vérifier le bénéficiaire",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const amount = parseFloat(formData.amount);
-    if (isNaN(amount) || amount <= 0) {
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
       toast({
         title: "Montant invalide",
-        description: "Le montant doit être un nombre positif",
+        description: "Veuillez entrer un montant valide",
         variant: "destructive"
       });
       return;
     }
 
-    setIsProcessing(true);
-    const fullPhone = formData.recipientPhone.startsWith('+') 
-      ? formData.recipientPhone 
-      : `${countryCode}${formData.recipientPhone.startsWith('0') ? formData.recipientPhone.substring(1) : formData.recipientPhone}`;
+    if (!phoneNumber) {
+      toast({
+        title: "Numéro requis",
+        description: "Veuillez entrer un numéro de téléphone",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!clientData) {
+      toast({
+        title: "Client non vérifié",
+        description: "Veuillez d'abord rechercher et vérifier le client",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const operationAmount = Number(amount);
+
+    if (operationAmount > clientData.balance) {
+      toast({
+        title: "Solde insuffisant",
+        description: `Le client n'a que ${formatCurrency(clientData.balance, 'XAF')} dans son compte`,
+        variant: "destructive"
+      });
+      return;
+    }
 
     try {
-      console.log("Vérification du solde pour l'utilisateur ID:", recipientId);
-      
-      // Vérifier le solde du client AVANT de créer la demande avec gestion d'erreur améliorée
-      const { data: clientProfile, error: clientProfileError } = await supabase
-        .from('profiles')
-        .select('balance, country, full_name')
-        .eq('id', recipientId)
-        .maybeSingle();
+      setIsProcessing(true);
 
-      if (clientProfileError) {
-        console.error("Erreur lors de la récupération du profil client:", clientProfileError);
-        throw new Error(`Erreur de base de données: ${clientProfileError.message}`);
+      if (!user?.id) {
+        throw new Error("Agent non connecté");
       }
 
-      if (!clientProfile) {
-        throw new Error("Profil client introuvable - ID invalide ou utilisateur supprimé");
-      }
-
-      console.log("Profil client trouvé:", {
-        id: recipientId,
-        name: clientProfile.full_name,
-        balance: clientProfile.balance,
-        country: clientProfile.country
-      });
-
-      console.log("Solde du client:", clientProfile.balance, "Montant demandé:", amount);
-
-      if (clientProfile.balance < amount) {
-        toast({
-          title: "Solde insuffisant",
-          description: `Le client ${clientProfile.full_name || 'inconnu'} n'a que ${clientProfile.balance} FCFA dans son compte. Montant demandé: ${amount} FCFA`,
-          variant: "destructive"
-        });
-        setIsProcessing(false);
-        return;
-      }
-
-      // Générer un code de vérification pour la confirmation du client
-      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-      
-      // Créer la demande de retrait en attente de confirmation du client
-      const { error: withdrawalError } = await supabase
-        .from('withdrawals')
-        .insert({
-          user_id: recipientId,
-          amount: amount,
-          withdrawal_phone: fullPhone,
-          status: 'agent_pending',
-          verification_code: verificationCode
-        });
-
-      if (withdrawalError) {
-        console.error("Erreur lors de l'insertion du retrait:", withdrawalError);
-        throw new Error(`Erreur lors de la création du retrait: ${withdrawalError.message}`);
-      }
+      // Traitement du retrait (client débité, agent crédité)
+      const result = await processAgentWithdrawal(
+        user.id,
+        clientData.id,
+        operationAmount,
+        phoneNumber
+      );
 
       toast({
-        title: "Demande de retrait envoyée",
-        description: `Une demande de retrait de ${amount} FCFA a été envoyée à ${recipientName || clientProfile.full_name}. Code de vérification: ${verificationCode}`,
+        title: "Retrait effectué",
+        description: `Retrait de ${formatCurrency(operationAmount, 'XAF')} effectué pour ${result.clientName}. Nouveau solde client: ${formatCurrency(result.newClientBalance, 'XAF')}`,
       });
 
       // Réinitialiser le formulaire
-      setFormData({
-        recipientPhone: "",
-        amount: ""
-      });
-      setRecipientVerified(false);
-      setRecipientName("");
-      setRecipientId("");
-      setVerificationAttempted(false);
-
-      // Redirection vers la page d'accueil
-      navigate('/dashboard');
+      setAmount("");
+      setPhoneNumber("");
+      setClientData(null);
+      
+      // Actualiser le solde de l'agent
+      fetchAgentBalance();
+      
     } catch (error) {
-      console.error('Erreur lors du retrait:', error);
+      console.error("❌ Erreur lors du retrait:", error);
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Une erreur est survenue lors du retrait",
+        description: error instanceof Error ? error.message : "Erreur lors du retrait",
         variant: "destructive"
       });
     } finally {
       setIsProcessing(false);
     }
   };
+
+  const isAmountExceedsBalance = amount && clientData && Number(amount) > clientData.balance;
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-4">
@@ -329,58 +195,132 @@ const AgentWithdrawal = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
           </Button>
-          <h1 className="text-2xl font-bold">Retrait</h1>
+          <h1 className="text-2xl font-bold">Retraits Agent</h1>
           <div className="w-10"></div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Effectuer un retrait</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Minus className="w-5 h-5 text-red-500" />
+              Retrait pour un client
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <PhoneInput
-                phoneInput={formData.recipientPhone}
-                countryCode={countryCode}
-                onPhoneChange={handlePhoneChange}
-                isLoading={isVerifying}
-                isVerified={isVerified}
-                recipientName={recipientName}
-                label="Numéro du client"
-                onBlurComplete={handleVerifyRecipient}
-              />
-
-              <div className="space-y-2">
-                <Input
-                  id="amount"
-                  name="amount"
-                  type="number"
-                  placeholder="Montant du retrait (FCFA)"
-                  value={formData.amount}
-                  onChange={handleChange}
-                  required
-                  className="h-12 text-lg"
-                />
+            {isLoadingBalance ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
               </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Affichage du solde agent avec bouton d'actualisation */}
+                <div className="px-3 py-2 bg-emerald-50 rounded-md text-sm border border-emerald-200">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <Wallet className="w-4 h-4 mr-2 text-emerald-600" />
+                      <span className="font-medium">Votre solde agent:</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-bold ${agentBalance > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {formatCurrency(agentBalance, 'XAF')}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={fetchAgentBalance}
+                        disabled={isLoadingBalance}
+                        className="h-6 w-6 p-0"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${isLoadingBalance ? 'animate-spin' : ''}`} />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4 h-12 text-lg"
-                disabled={isProcessing || !recipientId}
-              >
-                {isProcessing ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    <span>Vérification du solde...</span>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Numéro du client</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="Entrez le numéro du client"
+                      value={phoneNumber}
+                      onChange={handlePhoneChange}
+                      required
+                      className="h-12"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleSearchClient}
+                      disabled={isSearchingClient || !phoneNumber}
+                      className="h-12 px-3"
+                    >
+                      {isSearchingClient ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
+                      ) : (
+                        <Search className="w-4 h-4" />
+                      )}
+                    </Button>
                   </div>
-                ) : (
-                  <div className="flex items-center justify-center">
-                    <Banknote className="mr-2 h-5 w-5" />
-                    <span>Envoyer la demande</span>
-                  </div>
-                )}
-              </Button>
-            </form>
+                  
+                  {clientData && (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                      <p className="text-green-800 font-medium">
+                        ✓ Client trouvé: {clientData.full_name || 'Nom non disponible'}
+                      </p>
+                      <p className="text-green-700 text-sm">
+                        Solde: {formatCurrency(clientData.balance || 0, 'XAF')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Montant du retrait (XAF)</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    placeholder="Entrez le montant"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    required
+                    className="h-12 text-lg"
+                    disabled={!clientData}
+                  />
+                  {isAmountExceedsBalance && (
+                    <p className="text-red-600 text-sm">
+                      Le montant dépasse le solde du client ({formatCurrency(clientData?.balance || 0, 'XAF')})
+                    </p>
+                  )}
+                </div>
+
+                <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-800">
+                  <p>
+                    💸 Retrait: Le compte du client sera débité et votre compte sera crédité
+                  </p>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full bg-red-600 hover:bg-red-700 mt-4 h-12 text-lg"
+                  disabled={isProcessing || isAmountExceedsBalance || !clientData}
+                >
+                  {isProcessing ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <span>Traitement...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <Banknote className="mr-2 h-5 w-5" />
+                      <span>Effectuer le retrait</span>
+                    </div>
+                  )}
+                </Button>
+              </form>
+            )}
           </CardContent>
         </Card>
       </div>
