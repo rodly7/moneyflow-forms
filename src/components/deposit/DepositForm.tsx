@@ -69,6 +69,52 @@ const DepositForm = () => {
     fetchAgentProfile();
   }, [user]);
 
+  // Fonction pour créer un profil manquant et récupérer le solde
+  const createProfileAndGetBalance = async (userId: string, userData: any) => {
+    try {
+      console.log("🔧 Création du profil manquant pour:", userId);
+      
+      // Essayer de créer le profil manquant
+      const { error: insertError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          phone: userData.phone || '',
+          full_name: userData.full_name || 'Utilisateur',
+          country: userData.country || 'Congo Brazzaville',
+          address: userData.address || '',
+          balance: 0
+        });
+
+      if (!insertError) {
+        console.log("✅ Profil créé avec succès");
+        return {
+          userId: userId,
+          balance: 0,
+          fullName: userData.full_name || 'Utilisateur',
+          foundPhone: userData.phone || ''
+        };
+      } else {
+        console.log("⚠️ Erreur lors de la création du profil:", insertError);
+        // Si la création échoue, retourner les données depuis les métadonnées
+        return {
+          userId: userId,
+          balance: 0,
+          fullName: userData.full_name || 'Utilisateur',
+          foundPhone: userData.phone || ''
+        };
+      }
+    } catch (error) {
+      console.error("❌ Erreur lors de la création du profil:", error);
+      return {
+        userId: userId,
+        balance: 0,
+        fullName: userData.full_name || 'Utilisateur',
+        foundPhone: userData.phone || ''
+      };
+    }
+  };
+
   // Fonction pour récupérer le solde exact depuis la table profiles par numéro de téléphone
   const getExactBalanceByPhone = async (phoneNumber: string) => {
     try {
@@ -225,7 +271,18 @@ const DepositForm = () => {
         setRecipientVerified(true);
         
         // Récupérer le solde exact depuis la table profiles par numéro de téléphone
-        const profileData = await getExactBalanceByPhone(fullPhone);
+        let profileData = await getExactBalanceByPhone(fullPhone);
+        
+        if (!profileData) {
+          // Si aucun profil trouvé, créer le profil avec les données utilisateur
+          console.log("🔧 Aucun profil trouvé, création en cours...");
+          profileData = await createProfileAndGetBalance(result.recipientData.userId, {
+            phone: fullPhone,
+            full_name: result.recipientData.fullName,
+            country: result.recipientData.country || "Congo Brazzaville",
+            address: ""
+          });
+        }
         
         if (profileData) {
           setRecipientBalance(profileData.balance);
@@ -236,13 +293,12 @@ const DepositForm = () => {
             description: `${profileData.fullName || result.recipientData.fullName} - Solde exact: ${profileData.balance} FCFA`
           });
         } else {
-          // Fallback: utiliser le solde de la vérification
-          const actualBalance = await getRealUserBalance(result.recipientData.userId);
-          setRecipientBalance(actualBalance);
+          // Fallback: utiliser un solde de 0
+          setRecipientBalance(0);
           
           toast({
             title: "Utilisateur trouvé",
-            description: `${result.recipientData.fullName} - Solde: ${actualBalance} FCFA`
+            description: `${result.recipientData.fullName} - Solde: 0 FCFA (nouveau profil)`
           });
         }
         return;
