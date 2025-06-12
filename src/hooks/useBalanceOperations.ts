@@ -32,10 +32,16 @@ export const useBalanceOperations = () => {
         // Mettre à jour le profil avec le solde réel si nécessaire
         if (Number(existingProfile.balance) !== actualBalance) {
           console.log("🔄 Mise à jour du solde dans le profil");
-          await supabase
+          const { error: updateError } = await supabase
             .from('profiles')
             .update({ balance: actualBalance })
             .eq('id', userId);
+          
+          if (updateError) {
+            console.error("❌ Erreur lors de la mise à jour:", updateError);
+          } else {
+            console.log("✅ Solde mis à jour avec succès");
+          }
         }
         
         return {
@@ -48,7 +54,7 @@ export const useBalanceOperations = () => {
         console.log("🔧 Création du profil manquant avec le solde réel:", actualBalance);
         
         // Créer le profil avec le solde réel
-        const { error: insertError } = await supabase
+        const { data: insertedProfile, error: insertError } = await supabase
           .from('profiles')
           .insert({
             id: userId,
@@ -57,12 +63,38 @@ export const useBalanceOperations = () => {
             country: userData.country || 'Congo Brazzaville',
             address: userData.address || '',
             balance: actualBalance
-          });
+          })
+          .select()
+          .single();
 
         if (insertError) {
-          console.log("⚠️ Erreur lors de la création du profil:", insertError);
+          console.error("❌ Erreur lors de la création du profil:", insertError);
+          // Si l'insertion échoue, essayer de mettre à jour le solde via RPC pour s'assurer qu'il existe
+          const { error: rpcUpdateError } = await supabase.rpc('increment_balance', {
+            user_id: userId,
+            amount: 0
+          });
+          
+          if (!rpcUpdateError) {
+            console.log("✅ Solde créé via RPC, tentative de récupération du profil");
+            // Réessayer de récupérer le profil
+            const { data: retryProfile } = await supabase
+              .from('profiles')
+              .select('id, balance, full_name, phone')
+              .eq('id', userId)
+              .maybeSingle();
+            
+            if (retryProfile) {
+              return {
+                userId: userId,
+                balance: Number(retryProfile.balance) || 0,
+                fullName: retryProfile.full_name || userData.full_name || 'Utilisateur',
+                foundPhone: retryProfile.phone || userData.phone || ''
+              };
+            }
+          }
         } else {
-          console.log("✅ Profil créé avec le solde réel:", actualBalance);
+          console.log("✅ Profil créé avec succès:", insertedProfile);
         }
         
         return {
