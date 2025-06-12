@@ -69,154 +69,84 @@ const DepositForm = () => {
     fetchAgentProfile();
   }, [user]);
 
-  // Fonction pour créer un profil manquant et récupérer le solde
-  const createProfileAndGetBalance = async (userId: string, userData: any) => {
+  // Fonction pour récupérer le solde réel via RPC et créer/mettre à jour le profil
+  const getOrCreateUserProfile = async (userId: string, userData: any) => {
     try {
-      console.log("🔧 Création du profil manquant pour:", userId);
+      console.log("🔍 Récupération/création du profil pour:", userId);
       
-      // Essayer de créer le profil manquant
-      const { error: insertError } = await supabase
+      // D'abord, récupérer le solde réel via RPC
+      const { data: realBalance, error: rpcError } = await supabase.rpc('increment_balance', {
+        user_id: userId,
+        amount: 0
+      });
+      
+      if (rpcError) {
+        console.error("❌ Erreur RPC:", rpcError);
+      }
+      
+      const actualBalance = Number(realBalance) || 0;
+      console.log("💰 Solde réel récupéré via RPC:", actualBalance);
+      
+      // Vérifier si le profil existe
+      const { data: existingProfile, error: profileError } = await supabase
         .from('profiles')
-        .insert({
-          id: userId,
-          phone: userData.phone || '',
-          full_name: userData.full_name || 'Utilisateur',
-          country: userData.country || 'Congo Brazzaville',
-          address: userData.address || '',
-          balance: 0
-        });
-
-      if (!insertError) {
-        console.log("✅ Profil créé avec succès");
+        .select('id, balance, full_name, phone')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      if (!profileError && existingProfile) {
+        console.log("✅ Profil existant trouvé, solde:", existingProfile.balance);
+        // Mettre à jour le profil avec le solde réel si nécessaire
+        if (Number(existingProfile.balance) !== actualBalance) {
+          console.log("🔄 Mise à jour du solde dans le profil");
+          await supabase
+            .from('profiles')
+            .update({ balance: actualBalance })
+            .eq('id', userId);
+        }
+        
         return {
           userId: userId,
-          balance: 0,
-          fullName: userData.full_name || 'Utilisateur',
-          foundPhone: userData.phone || ''
+          balance: actualBalance,
+          fullName: existingProfile.full_name || userData.full_name || 'Utilisateur',
+          foundPhone: existingProfile.phone || userData.phone || ''
         };
       } else {
-        console.log("⚠️ Erreur lors de la création du profil:", insertError);
-        // Si la création échoue, retourner les données depuis les métadonnées
+        console.log("🔧 Création du profil manquant avec le solde réel:", actualBalance);
+        
+        // Créer le profil avec le solde réel
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            phone: userData.phone || '',
+            full_name: userData.full_name || 'Utilisateur',
+            country: userData.country || 'Congo Brazzaville',
+            address: userData.address || '',
+            balance: actualBalance
+          });
+
+        if (insertError) {
+          console.log("⚠️ Erreur lors de la création du profil:", insertError);
+        } else {
+          console.log("✅ Profil créé avec le solde réel:", actualBalance);
+        }
+        
         return {
           userId: userId,
-          balance: 0,
+          balance: actualBalance,
           fullName: userData.full_name || 'Utilisateur',
           foundPhone: userData.phone || ''
         };
       }
     } catch (error) {
-      console.error("❌ Erreur lors de la création du profil:", error);
+      console.error("❌ Erreur lors de la récupération/création du profil:", error);
       return {
         userId: userId,
         balance: 0,
         fullName: userData.full_name || 'Utilisateur',
         foundPhone: userData.phone || ''
       };
-    }
-  };
-
-  // Fonction pour récupérer le solde exact depuis la table profiles par numéro de téléphone
-  const getExactBalanceByPhone = async (phoneNumber: string) => {
-    try {
-      console.log("🔍 Récupération du solde exact par numéro:", phoneNumber);
-      
-      // Normaliser le numéro de téléphone
-      const normalizedPhone = phoneNumber.replace(/\s/g, '');
-      
-      // Construire différentes variantes du numéro pour la recherche
-      const phoneVariants = [
-        phoneNumber,
-        normalizedPhone,
-        normalizedPhone.startsWith('+') ? normalizedPhone : `${countryCode}${normalizedPhone.startsWith('0') ? normalizedPhone.substring(1) : normalizedPhone}`,
-        normalizedPhone.startsWith('0') ? normalizedPhone.substring(1) : normalizedPhone
-      ];
-      
-      console.log("🔍 Variantes de numéros à rechercher:", phoneVariants);
-      
-      // Rechercher dans la table profiles avec toutes les variantes
-      for (const variant of phoneVariants) {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('id, balance, full_name, phone')
-          .eq('phone', variant)
-          .maybeSingle();
-        
-        if (!error && profile) {
-          const exactBalance = Number(profile.balance) || 0;
-          console.log("✅ Profil trouvé avec le numéro:", variant);
-          console.log("💰 Solde exact récupéré:", exactBalance, "FCFA");
-          
-          return {
-            userId: profile.id,
-            balance: exactBalance,
-            fullName: profile.full_name || '',
-            foundPhone: profile.phone
-          };
-        }
-      }
-      
-      // Si aucune correspondance directe, rechercher par les derniers 8 chiffres
-      const lastDigits = normalizedPhone.replace(/\D/g, '').slice(-8);
-      if (lastDigits.length >= 8) {
-        console.log("🔍 Recherche par les 8 derniers chiffres:", lastDigits);
-        
-        const { data: allProfiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, balance, full_name, phone');
-        
-        if (!profilesError && allProfiles) {
-          for (const profile of allProfiles) {
-            if (profile.phone) {
-              const profileLastDigits = profile.phone.replace(/\D/g, '').slice(-8);
-              if (profileLastDigits === lastDigits) {
-                const exactBalance = Number(profile.balance) || 0;
-                console.log("✅ Profil trouvé par les 8 derniers chiffres");
-                console.log("💰 Solde exact récupéré:", exactBalance, "FCFA");
-                
-                return {
-                  userId: profile.id,
-                  balance: exactBalance,
-                  fullName: profile.full_name || '',
-                  foundPhone: profile.phone
-                };
-              }
-            }
-          }
-        }
-      }
-      
-      console.log("❌ Aucun profil trouvé avec ce numéro dans la table profiles");
-      return null;
-      
-    } catch (error) {
-      console.error("❌ Erreur lors de la récupération du solde par téléphone:", error);
-      return null;
-    }
-  };
-
-  // Fonction pour récupérer le solde réel via RPC uniquement
-  const getRealUserBalance = async (userId: string) => {
-    try {
-      console.log("🔄 Récupération du solde réel via RPC pour:", userId);
-      
-      // Utiliser la fonction RPC increment_balance avec un montant de 0 pour obtenir le solde actuel
-      const { data: currentBalance, error: rpcError } = await supabase.rpc('increment_balance', {
-        user_id: userId,
-        amount: 0
-      });
-      
-      if (rpcError) {
-        console.error("❌ Erreur RPC lors de la récupération du solde:", rpcError);
-        return 0;
-      }
-      
-      const actualBalance = Number(currentBalance) || 0;
-      console.log("✅ Solde réel récupéré via RPC:", actualBalance);
-      return actualBalance;
-      
-    } catch (error) {
-      console.error("❌ Erreur générale lors de la récupération du solde:", error);
-      return 0;
     }
   };
 
@@ -270,37 +200,21 @@ const DepositForm = () => {
         setRecipientId(result.recipientData.userId);
         setRecipientVerified(true);
         
-        // Récupérer le solde exact depuis la table profiles par numéro de téléphone
-        let profileData = await getExactBalanceByPhone(fullPhone);
+        // Récupérer ou créer le profil avec le solde réel
+        const profileData = await getOrCreateUserProfile(result.recipientData.userId, {
+          phone: fullPhone,
+          full_name: result.recipientData.fullName,
+          country: result.recipientData.country || "Congo Brazzaville",
+          address: ""
+        });
         
-        if (!profileData) {
-          // Si aucun profil trouvé, créer le profil avec les données utilisateur
-          console.log("🔧 Aucun profil trouvé, création en cours...");
-          profileData = await createProfileAndGetBalance(result.recipientData.userId, {
-            phone: fullPhone,
-            full_name: result.recipientData.fullName,
-            country: result.recipientData.country || "Congo Brazzaville",
-            address: ""
-          });
-        }
+        setRecipientBalance(profileData.balance);
         
-        if (profileData) {
-          setRecipientBalance(profileData.balance);
-          
-          // Afficher un toast avec les informations complètes
-          toast({
-            title: "Utilisateur trouvé",
-            description: `${profileData.fullName || result.recipientData.fullName} - Solde exact: ${profileData.balance} FCFA`
-          });
-        } else {
-          // Fallback: utiliser un solde de 0
-          setRecipientBalance(0);
-          
-          toast({
-            title: "Utilisateur trouvé",
-            description: `${result.recipientData.fullName} - Solde: 0 FCFA (nouveau profil)`
-          });
-        }
+        // Afficher un toast avec les informations complètes
+        toast({
+          title: "Utilisateur trouvé",
+          description: `${profileData.fullName} - Solde exact: ${profileData.balance} FCFA`
+        });
         return;
       } else {
         toast({
