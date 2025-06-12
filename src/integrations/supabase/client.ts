@@ -10,42 +10,88 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
 // Currency utilities
 export const getCurrencyForCountry = (country: string): string => {
   const currencyMap: { [key: string]: string } = {
+    // Afrique Centrale (XAF)
     'Cameroun': 'XAF',
-    'Senegal': 'XOF',
-    'Côte d\'Ivoire': 'XOF',
     'Congo Brazzaville': 'XAF',
     'Gabon': 'XAF',
-    'Mali': 'XOF',
-    'Burkina Faso': 'XOF',
-    'Niger': 'XOF',
     'Tchad': 'XAF',
     'République Centrafricaine': 'XAF',
     'Guinée Équatoriale': 'XAF',
+    
+    // Afrique de l'Ouest (XOF)
+    'Senegal': 'XOF',
+    'Sénégal': 'XOF',
+    'Côte d\'Ivoire': 'XOF',
+    'Mali': 'XOF',
+    'Burkina Faso': 'XOF',
+    'Niger': 'XOF',
     'Bénin': 'XOF',
-    'Togo': 'XOF'
+    'Togo': 'XOF',
+    
+    // Europe (EUR)
+    'France': 'EUR',
+    'Allemagne': 'EUR',
+    'Italie': 'EUR',
+    'Espagne': 'EUR',
+    'Portugal': 'EUR',
+    'Belgique': 'EUR',
+    'Pays-Bas': 'EUR',
+    'Autriche': 'EUR',
+    'Irlande': 'EUR',
+    'Grèce': 'EUR',
+    'Finlande': 'EUR',
+    'Luxembourg': 'EUR',
+    
+    // Canada (CAD)
+    'Canada': 'CAD'
   };
   
   return currencyMap[country] || 'XAF';
 };
 
 export const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string): number => {
-  // For now, XAF and XOF have the same value (both are CFA francs)
-  // In a real application, you would use actual exchange rates
   if (fromCurrency === toCurrency) {
     return amount;
   }
   
-  // XAF and XOF are both CFA francs with same value
-  if ((fromCurrency === 'XAF' && toCurrency === 'XOF') || 
-      (fromCurrency === 'XOF' && toCurrency === 'XAF')) {
-    return amount;
+  // Taux de change approximatifs par rapport au XAF (base)
+  const exchangeRates: { [key: string]: number } = {
+    'XAF': 1,        // Base
+    'XOF': 1,        // XAF et XOF ont la même valeur (CFA francs)
+    'EUR': 655.957,  // 1 EUR = ~656 XAF
+    'CAD': 435.23    // 1 CAD = ~435 XAF
+  };
+  
+  // Convertir d'abord vers XAF si nécessaire
+  let amountInXAF: number;
+  if (fromCurrency === 'XAF') {
+    amountInXAF = amount;
+  } else {
+    amountInXAF = amount * exchangeRates[fromCurrency];
   }
   
-  return amount;
+  // Puis convertir vers la devise cible
+  if (toCurrency === 'XAF') {
+    return amountInXAF;
+  } else {
+    return amountInXAF / exchangeRates[toCurrency];
+  }
 };
 
 export const formatCurrency = (amount: number, currency: string): string => {
-  return `${amount.toLocaleString('fr-FR')} ${currency}`;
+  const roundedAmount = Math.round(amount * 100) / 100; // Arrondir à 2 décimales
+  
+  switch (currency) {
+    case 'EUR':
+      return `${roundedAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+    case 'CAD':
+      return `${roundedAmount.toLocaleString('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} CAD$`;
+    case 'XOF':
+      return `${roundedAmount.toLocaleString('fr-FR')} FCFA`;
+    case 'XAF':
+    default:
+      return `${roundedAmount.toLocaleString('fr-FR')} FCFA`;
+  }
 };
 
 export const calculateFee = (
