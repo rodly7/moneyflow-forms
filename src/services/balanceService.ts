@@ -1,8 +1,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-export const debitUserBalance = async (userId: string, amount: number) => {
-  const { error: deductError } = await supabase.rpc('increment_balance', {
+export const debitUserBalance = async (userId: string, amount: number): Promise<number> => {
+  const { data: newBalance, error: deductError } = await supabase.rpc('increment_balance', {
     user_id: userId,
     amount: -amount
   });
@@ -11,10 +11,12 @@ export const debitUserBalance = async (userId: string, amount: number) => {
     console.error("Erreur lors du débit:", deductError);
     throw new Error("Erreur lors du débit de votre compte");
   }
+
+  return Number(newBalance) || 0;
 };
 
-export const creditUserBalance = async (userId: string, amount: number) => {
-  const { error: creditError } = await supabase.rpc('increment_balance', {
+export const creditUserBalance = async (userId: string, amount: number): Promise<number> => {
+  const { data: newBalance, error: creditError } = await supabase.rpc('increment_balance', {
     user_id: userId,
     amount: amount
   });
@@ -23,9 +25,11 @@ export const creditUserBalance = async (userId: string, amount: number) => {
     console.error("Erreur lors du crédit:", creditError);
     throw new Error("Erreur lors du crédit du compte");
   }
+
+  return Number(newBalance) || 0;
 };
 
-export const creditPlatformCommission = async (commission: number) => {
+export const creditPlatformCommission = async (commission: number): Promise<number | null> => {
   const { data: adminData, error: adminError } = await supabase
     .from('profiles')
     .select('id')
@@ -33,9 +37,33 @@ export const creditPlatformCommission = async (commission: number) => {
     .maybeSingle();
     
   if (!adminError && adminData) {
-    await supabase.rpc('increment_balance', {
+    const { data: newBalance, error: creditError } = await supabase.rpc('increment_balance', {
       user_id: adminData.id,
       amount: commission
     });
+
+    if (creditError) {
+      console.error("Erreur lors du crédit de la commission:", creditError);
+      return null;
+    }
+
+    return Number(newBalance) || 0;
   }
+
+  return null;
+};
+
+export const getUserBalance = async (userId: string): Promise<number> => {
+  // Utiliser la fonction RPC pour récupérer le solde le plus à jour
+  const { data: balance, error } = await supabase.rpc('increment_balance', {
+    user_id: userId,
+    amount: 0
+  });
+
+  if (error) {
+    console.error("Erreur lors de la récupération du solde:", error);
+    return 0;
+  }
+
+  return Number(balance) || 0;
 };

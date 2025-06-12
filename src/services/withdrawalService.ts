@@ -25,40 +25,68 @@ export const fetchWithdrawalByCode = async (verificationCode: string, userId: st
 export const getUserBalance = async (userId: string) => {
   console.log("🔍 Recherche du solde pour l'utilisateur:", userId);
   
-  const { data: profile, error } = await supabase
+  // Utiliser la fonction RPC pour récupérer le solde exact
+  const { data: balance, error: rpcError } = await supabase.rpc('increment_balance', {
+    user_id: userId,
+    amount: 0
+  });
+
+  if (rpcError) {
+    console.error("❌ Erreur RPC lors de la récupération du solde:", rpcError);
+    
+    // Fallback : récupérer depuis la table profiles
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('balance, full_name, phone, country')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("❌ Erreur lors de la récupération du profil:", error);
+      return {
+        balance: 0,
+        fullName: '',
+        phone: '',
+        country: 'Congo Brazzaville'
+      };
+    }
+
+    if (!profile) {
+      console.log("ℹ️ Profil non trouvé, retour d'un solde de 0");
+      return {
+        balance: 0,
+        fullName: '',
+        phone: '',
+        country: 'Congo Brazzaville'
+      };
+    }
+
+    const profileBalance = Number(profile.balance) || 0;
+    console.log("✅ Solde récupéré depuis le profil:", profileBalance, "FCFA");
+
+    return {
+      balance: profileBalance,
+      fullName: profile.full_name || '',
+      phone: profile.phone || '',
+      country: profile.country || 'Congo Brazzaville'
+    };
+  }
+
+  const exactBalance = Number(balance) || 0;
+  console.log("✅ Solde exact récupéré via RPC:", exactBalance, "FCFA");
+
+  // Récupérer les informations du profil
+  const { data: profile } = await supabase
     .from('profiles')
-    .select('balance, full_name, phone, country')
+    .select('full_name, phone, country')
     .eq('id', userId)
     .maybeSingle();
 
-  if (error) {
-    console.error("❌ Erreur lors de la récupération du profil:", error);
-    return {
-      balance: 0,
-      fullName: '',
-      phone: '',
-      country: 'Congo Brazzaville'
-    };
-  }
-
-  if (!profile) {
-    console.log("ℹ️ Profil non trouvé, retour d'un solde de 0");
-    return {
-      balance: 0,
-      fullName: '',
-      phone: '',
-      country: 'Congo Brazzaville'
-    };
-  }
-
-  const balance = Number(profile.balance) || 0;
-  console.log("✅ Solde récupéré:", balance, "FCFA");
-
   return {
-    balance,
-    fullName: profile.full_name || '',
-    phone: profile.phone || '',
-    country: profile.country || 'Congo Brazzaville'
+    balance: exactBalance,
+    fullName: profile?.full_name || '',
+    phone: profile?.phone || '',
+    country: profile?.country || 'Congo Brazzaville'
   };
 };
 
@@ -213,8 +241,8 @@ export const processAgentWithdrawal = async (
     throw new Error(`Solde insuffisant. Le client a ${clientData.balance} FCFA, montant demandé: ${amount} FCFA`);
   }
 
-  // Débiter le client
-  const { error: debitError } = await supabase.rpc('increment_balance', {
+  // Débiter le client et récupérer le nouveau solde
+  const { data: newClientBalance, error: debitError } = await supabase.rpc('increment_balance', {
     user_id: clientId,
     amount: -amount
   });
@@ -225,7 +253,7 @@ export const processAgentWithdrawal = async (
   }
 
   // Créditer l'agent
-  const { error: creditError } = await supabase.rpc('increment_balance', {
+  const { data: newAgentBalance, error: creditError } = await supabase.rpc('increment_balance', {
     user_id: agentId,
     amount: amount
   });
@@ -260,7 +288,8 @@ export const processAgentWithdrawal = async (
   console.log("✅ Retrait traité avec succès");
   return {
     clientName: clientData.fullName,
-    newClientBalance: clientData.balance - amount,
+    newClientBalance: Number(newClientBalance) || 0,
+    newAgentBalance: Number(newAgentBalance) || 0,
     amount
   };
 };
