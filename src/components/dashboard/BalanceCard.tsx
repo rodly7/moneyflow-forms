@@ -1,6 +1,7 @@
+
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatCurrency, getCurrencyForCountry } from "@/integrations/supabase/client";
+import { formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
 import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -49,7 +50,7 @@ const BalanceCard = ({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
-  // If currency is not provided, determine it from the user's country
+  // Déterminer la devise basée sur le pays de l'utilisateur
   const userCurrency = currency || getCurrencyForCountry(userCountry);
 
   // Query pour récupérer le solde en temps réel
@@ -80,10 +81,13 @@ const BalanceCard = ({
 
   // Utilise le solde en temps réel si disponible, sinon le solde passé en props
   const displayBalanceValue = realTimeBalance !== undefined ? realTimeBalance : balance;
+  
+  // Convertir le solde de XAF (devise de base) vers la devise de l'utilisateur
+  const convertedBalance = convertCurrency(displayBalanceValue, "XAF", userCurrency);
 
   // Format the balance or display asterisks if hidden
   const displayBalance = showBalance 
-    ? formatCurrency(displayBalanceValue, userCurrency)
+    ? formatCurrency(convertedBalance, userCurrency)
     : "••••••";
 
   const handleRefreshBalance = async () => {
@@ -201,6 +205,12 @@ const BalanceCard = ({
               Solde mis à jour en temps réel
             </p>
           )}
+          
+          {userCurrency !== "XAF" && (
+            <p className="text-xs text-white/60 mt-1">
+              Converti de {formatCurrency(displayBalanceValue, "XAF")}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -225,16 +235,16 @@ const BalanceCard = ({
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Votre commission:</span>
                   <span className="font-medium text-emerald-600">
-                    {formatCurrency(commissionDetails.agentCommission, userCurrency)}
+                    {formatCurrency(convertCurrency(commissionDetails.agentCommission, "XAF", userCurrency), userCurrency)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Commission MoneyFlow:</span>
-                  <span className="font-medium">{formatCurrency(commissionDetails.moneyFlowCommission, userCurrency)}</span>
+                  <span className="font-medium">{formatCurrency(convertCurrency(commissionDetails.moneyFlowCommission, "XAF", userCurrency), userCurrency)}</span>
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t">
                   <span className="text-sm font-medium">Frais totaux:</span>
-                  <span className="font-bold">{formatCurrency(commissionDetails.totalFee, userCurrency)}</span>
+                  <span className="font-bold">{formatCurrency(convertCurrency(commissionDetails.totalFee, "XAF", userCurrency), userCurrency)}</span>
                 </div>
               </div>
               

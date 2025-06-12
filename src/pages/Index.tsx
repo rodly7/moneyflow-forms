@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, getCurrencyForCountry, convertCurrency, formatCurrency } from "@/integrations/supabase/client";
@@ -144,7 +145,8 @@ const Index = () => {
     </div>;
   }
   
-  const userCurrency = profile?.country ? getCurrencyForCountry(profile.country) : "XAF";
+  const userCountry = profile?.country || "Cameroun";
+  const userCurrency = getCurrencyForCountry(userCountry);
   
   const allTransactions = [
     ...(withdrawals?.map(w => ({
@@ -194,7 +196,7 @@ const Index = () => {
         {profile && (
           <BalanceCard 
             balance={profile.balance} 
-            userCountry={profile.country || 'Cameroun'}
+            userCountry={userCountry}
             currency={userCurrency}
           />
         )}
