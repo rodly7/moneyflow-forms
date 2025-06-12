@@ -67,18 +67,20 @@ export const useTransferForm = () => {
         throw new Error("Vous ne pouvez pas confirmer votre propre retrait");
       }
 
-      // Calculer les frais (2% pour les retraits - 0,5% pour l'agent, 1,5% pour MoneyFlow)
-      const { fee, agentCommission, moneyFlowCommission } = calculateFee(withdrawalData.amount);
+      // Calculer les frais avec la nouvelle fonction
+      const { fee, agentCommission, moneyFlowCommission } = calculateFee(
+        withdrawalData.amount,
+        "Cameroun", // Pays par défaut
+        "Cameroun", // Retrait national par défaut
+        "agent"
+      );
 
       // Mettre à jour le statut du retrait à 'completed'
       const { error: updateError } = await supabase
         .from('withdrawals')
         .update({ 
           status: 'completed', 
-          updated_at: new Date().toISOString(),
-          fee: fee,
-          agent_commission: agentCommission,
-          platform_commission: moneyFlowCommission
+          updated_at: new Date().toISOString()
         })
         .eq('id', withdrawalData.id);
 
@@ -178,7 +180,8 @@ export const useTransferForm = () => {
         const { fee: fees, rate, agentCommission, moneyFlowCommission } = calculateFee(
           data.transfer.amount, 
           userCountry, 
-          data.recipient.country
+          data.recipient.country,
+          "user"
         );
         
         const totalAmount = data.transfer.amount + fees;
@@ -198,7 +201,7 @@ export const useTransferForm = () => {
           identifiant: data.recipient.email,
           montant: data.transfer.amount,
           frais: fees,
-          tauxCommission: rate * 100 + "%",
+          tauxCommission: rate + "%",
           commissionAgent: agentCommission,
           commissionMoneyFlow: moneyFlowCommission,
           userCountry: userCountry,
@@ -238,7 +241,7 @@ export const useTransferForm = () => {
         });
 
         const isNational = userCountry === data.recipient.country;
-        const rateText = isNational ? "2%" : "6%";
+        const rateText = isNational ? "2,5%" : "6,5%";
 
         toast({
           title: "Transfert Réussi",
