@@ -12,17 +12,19 @@ const TransferSummary = ({ recipient, transfer }: TransferSummaryProps) => {
   // Get current user's role from context
   const { user, userRole } = useAuth();
   
-  // Calculate fees using the new function with fixed 6% rate
-  const { fee: fees } = calculateFee(
+  // Calculate fees using the new function with updated rates
+  const { fee: fees, rate: feeRate } = calculateFee(
     transfer.amount, 
-    "any", // No longer using country for fee calculation
+    "Cameroun", // Pays d'envoi par défaut (peut être dynamique selon le profil)
     recipient.country, 
     userRole || 'user'
   );
   const total = transfer.amount + fees;
 
-  // Display fixed fee percentage
-  const feePercentageDisplay = userRole === 'agent' ? '6% (2% commission)' : '6%';
+  // Déterminer si c'est un transfert national ou international
+  const isNational = "Cameroun" === recipient.country;
+  const transferType = isNational ? "national" : "international";
+  const feePercentageDisplay = `${feeRate}% (${transferType})`;
 
   return (
     <div className="space-y-6">

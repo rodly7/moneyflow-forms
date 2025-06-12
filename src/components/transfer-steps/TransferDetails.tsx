@@ -31,18 +31,20 @@ const TransferDetails = ({ transfer, recipient, updateFields }: TransferDetailsP
     }
   }, [recipient.country, userRole]);
   
-  // Calculate fees using the updated function with fixed 6% rate
+  // Calculate fees using the updated function with new rates
   const { fee: fees, rate: feeRate } = calculateFee(
     transfer.amount, 
-    "any", // No longer needed as we use fixed rates
+    "Cameroun", // Pays d'envoi par défaut (peut être dynamique selon le profil)
     recipient.country, 
     userRole || 'user'
   );
   
   const total = transfer.amount + fees;
   
-  // Display fixed fee percentage
-  const feePercentageDisplay = userRole === 'agent' ? '6% (2% commission)' : '6%';
+  // Déterminer si c'est un transfert national ou international
+  const isNational = "Cameroun" === recipient.country;
+  const transferType = isNational ? "national" : "international";
+  const feePercentageDisplay = `${feeRate}% (${transferType})`;
 
   return (
     <div className="space-y-6">
