@@ -280,12 +280,21 @@ export const useRecipientVerification = () => {
         console.log("Indicatif pays utilisé:", countryCode);
         
         // Strategy 1: Recherche directe dans la table profiles
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name, country, phone')
-          .order('created_at', { ascending: false });
+        let profilesData = [];
+        try {
+          const { data, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name, country, phone')
+            .order('created_at', { ascending: false });
+          
+          if (!profilesError && data) {
+            profilesData = data;
+          }
+        } catch (error) {
+          console.error("Erreur lors de la récupération des profils:", error);
+        }
         
-        if (!profilesError && profilesData && profilesData.length > 0) {
+        if (profilesData && profilesData.length > 0) {
           console.log("Nombre de profils trouvés dans la table profiles:", profilesData.length);
           
           for (const profile of profilesData) {
@@ -320,20 +329,18 @@ export const useRecipientVerification = () => {
         }
         
         // Strategy 2: Recherche dans auth_users_view si pas trouvé dans profiles
-        const { data: authUserData, error: authUserError } = await supabase
-          .from('auth_users_view')
-          .select('id, email, raw_user_meta_data')
-          .order('created_at', { ascending: false });
-        
-        if (authUserError) {
-          console.error('Erreur lors de la recherche dans auth_users_view:', authUserError);
-          toast({
-            title: "Erreur",
-            description: "Une erreur s'est produite lors de la vérification: " + authUserError.message,
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return { verified: false };
+        let authUserData = [];
+        try {
+          const { data, error: authUserError } = await supabase
+            .from('auth_users_view')
+            .select('id, email, raw_user_meta_data')
+            .order('created_at', { ascending: false });
+          
+          if (!authUserError && data) {
+            authUserData = data;
+          }
+        } catch (error) {
+          console.error("Erreur lors de la récupération des utilisateurs auth:", error);
         }
         
         console.log("Nombre d'utilisateurs trouvés dans auth_users_view:", authUserData?.length);
@@ -359,20 +366,24 @@ export const useRecipientVerification = () => {
                   console.log("ID utilisateur trouvé dans auth_users_view:", user.id);
                   
                   // Créer un profil s'il n'existe pas déjà
-                  const { error: profileCreateError } = await supabase
-                    .from('profiles')
-                    .upsert({
-                      id: user.id,
-                      phone: userPhone,
-                      full_name: displayName,
-                      country: metadata.country || recipient.country || 'Congo Brazzaville',
-                      balance: 0
-                    }, {
-                      onConflict: 'id'
-                    });
-                  
-                  if (profileCreateError) {
-                    console.log("Impossible de créer le profil, mais on continue:", profileCreateError);
+                  try {
+                    const { error: profileCreateError } = await supabase
+                      .from('profiles')
+                      .upsert({
+                        id: user.id,
+                        phone: userPhone,
+                        full_name: displayName,
+                        country: metadata.country || recipient.country || 'Congo Brazzaville',
+                        balance: 0
+                      }, {
+                        onConflict: 'id'
+                      });
+                    
+                    if (profileCreateError) {
+                      console.log("Impossible de créer le profil, mais on continue:", profileCreateError);
+                    }
+                  } catch (error) {
+                    console.log("Erreur lors de la création du profil:", error);
                   }
                   
                   const finalResult = {

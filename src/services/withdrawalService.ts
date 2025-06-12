@@ -29,11 +29,26 @@ export const getUserBalance = async (userId: string) => {
     .from('profiles')
     .select('balance, full_name, phone, country')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error("❌ Erreur lors de la récupération du profil:", error);
-    throw new Error("Impossible de récupérer les informations du profil");
+    return {
+      balance: 0,
+      fullName: '',
+      phone: '',
+      country: 'Congo Brazzaville'
+    };
+  }
+
+  if (!profile) {
+    console.log("ℹ️ Profil non trouvé, retour d'un solde de 0");
+    return {
+      balance: 0,
+      fullName: '',
+      phone: '',
+      country: 'Congo Brazzaville'
+    };
   }
 
   const balance = Number(profile.balance) || 0;
@@ -111,7 +126,7 @@ export const findUserByPhoneWithCountryCode = async (phoneNumber: string, countr
 
   if (profilesError) {
     console.error("❌ Erreur lors de la recherche:", profilesError);
-    throw new Error("Erreur lors de la recherche d'utilisateur");
+    return null;
   }
 
   if (allProfiles) {
@@ -157,7 +172,7 @@ export const findUserByPhone = async (phoneNumber: string) => {
 
   if (profilesError) {
     console.error("❌ Erreur lors de la recherche:", profilesError);
-    throw new Error("Erreur lors de la recherche d'utilisateur");
+    return null;
   }
 
   if (allProfiles) {
