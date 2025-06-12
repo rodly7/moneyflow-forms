@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,12 +10,14 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import PhoneInput from "@/components/transfer-steps/PhoneInput";
 import { useRecipientVerification } from "@/hooks/useRecipientVerification";
+import { useBalanceOperations } from "@/hooks/useBalanceOperations";
+import { useDepositOperations } from "@/hooks/useDepositOperations";
+import RecipientVerificationDisplay from "./RecipientVerificationDisplay";
 
 const DepositForm = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [isProcessing, setIsProcessing] = useState(false);
   const [formData, setFormData] = useState({
     recipientPhone: "",
     amount: ""
@@ -29,9 +32,11 @@ const DepositForm = () => {
     isLoading: isVerifying,
     recipientVerified: isVerified,
     verifyRecipient,
-    setRecipientVerified,
-    getUserBalance
+    setRecipientVerified
   } = useRecipientVerification();
+
+  const { getOrCreateUserProfile } = useBalanceOperations();
+  const { isProcessing, processDeposit } = useDepositOperations();
 
   // Fetch agent profile to get their country
   useEffect(() => {
@@ -68,87 +73,6 @@ const DepositForm = () => {
     
     fetchAgentProfile();
   }, [user]);
-
-  // Fonction pour récupérer le solde réel via RPC et créer/mettre à jour le profil
-  const getOrCreateUserProfile = async (userId: string, userData: any) => {
-    try {
-      console.log("🔍 Récupération/création du profil pour:", userId);
-      
-      // D'abord, récupérer le solde réel via RPC
-      const { data: realBalance, error: rpcError } = await supabase.rpc('increment_balance', {
-        user_id: userId,
-        amount: 0
-      });
-      
-      if (rpcError) {
-        console.error("❌ Erreur RPC:", rpcError);
-      }
-      
-      const actualBalance = Number(realBalance) || 0;
-      console.log("💰 Solde réel récupéré via RPC:", actualBalance);
-      
-      // Vérifier si le profil existe
-      const { data: existingProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, balance, full_name, phone')
-        .eq('id', userId)
-        .maybeSingle();
-      
-      if (!profileError && existingProfile) {
-        console.log("✅ Profil existant trouvé, solde:", existingProfile.balance);
-        // Mettre à jour le profil avec le solde réel si nécessaire
-        if (Number(existingProfile.balance) !== actualBalance) {
-          console.log("🔄 Mise à jour du solde dans le profil");
-          await supabase
-            .from('profiles')
-            .update({ balance: actualBalance })
-            .eq('id', userId);
-        }
-        
-        return {
-          userId: userId,
-          balance: actualBalance,
-          fullName: existingProfile.full_name || userData.full_name || 'Utilisateur',
-          foundPhone: existingProfile.phone || userData.phone || ''
-        };
-      } else {
-        console.log("🔧 Création du profil manquant avec le solde réel:", actualBalance);
-        
-        // Créer le profil avec le solde réel
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert({
-            id: userId,
-            phone: userData.phone || '',
-            full_name: userData.full_name || 'Utilisateur',
-            country: userData.country || 'Congo Brazzaville',
-            address: userData.address || '',
-            balance: actualBalance
-          });
-
-        if (insertError) {
-          console.log("⚠️ Erreur lors de la création du profil:", insertError);
-        } else {
-          console.log("✅ Profil créé avec le solde réel:", actualBalance);
-        }
-        
-        return {
-          userId: userId,
-          balance: actualBalance,
-          fullName: userData.full_name || 'Utilisateur',
-          foundPhone: userData.phone || ''
-        };
-      }
-    } catch (error) {
-      console.error("❌ Erreur lors de la récupération/création du profil:", error);
-      return {
-        userId: userId,
-        balance: 0,
-        fullName: userData.full_name || 'Utilisateur',
-        foundPhone: userData.phone || ''
-      };
-    }
-  };
 
   // Handle form input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -256,15 +180,6 @@ const DepositForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user?.id) {
-      toast({
-        title: "Erreur d'authentification",
-        description: "Vous devez être connecté pour effectuer un dépôt",
-        variant: "destructive"
-      });
-      return;
-    }
-
     if (!formData.recipientPhone || !formData.amount || !recipientId) {
       toast({
         title: "Formulaire incomplet",
@@ -284,86 +199,13 @@ const DepositForm = () => {
       return;
     }
 
-    setIsProcessing(true);
     const fullPhone = formData.recipientPhone.startsWith('+') 
       ? formData.recipientPhone 
       : `${countryCode}${formData.recipientPhone.startsWith('0') ? formData.recipientPhone.substring(1) : formData.recipientPhone}`;
 
-    try {
-      const { data: agentProfile, error: agentProfileError } = await supabase
-        .from('profiles')
-        .select('balance, country')
-        .eq('id', user.id)
-        .single();
-
-      if (agentProfileError || !agentProfile) {
-        throw new Error("Impossible de vérifier votre solde");
-      }
-
-      if (agentProfile.balance < amount) {
-        throw new Error("Solde insuffisant pour effectuer ce dépôt");
-      }
-
-      const agentCommission = amount * 0.005;
-      const transactionReference = `DEP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-      const { error: deductError } = await supabase.rpc('increment_balance', {
-        user_id: user.id,
-        amount: -(amount)
-      });
-
-      if (deductError) {
-        throw new Error("Erreur lors de la déduction du montant de votre compte");
-      }
-
-      const { error: creditError } = await supabase.rpc('increment_balance', {
-        user_id: recipientId,
-        amount: amount
-      });
-
-      if (creditError) {
-        await supabase.rpc('increment_balance', {
-          user_id: user.id,
-          amount: amount
-        });
-        throw new Error("Erreur lors du crédit du compte de l'utilisateur");
-      }
-      
-      const { error: commissionError } = await supabase.rpc('increment_balance', {
-        user_id: user.id,
-        amount: agentCommission
-      });
-      
-      if (commissionError) {
-        console.error("Erreur lors du crédit de la commission à l'agent:", commissionError);
-      }
-
-      const { error: transactionError } = await supabase
-        .from('recharges')
-        .insert({
-          user_id: recipientId,
-          amount: amount,
-          country: agentProfile.country || "Cameroun",
-          payment_method: 'agent_deposit',
-          payment_phone: fullPhone,
-          payment_provider: 'agent',
-          transaction_reference: transactionReference,
-          status: 'completed',
-          provider_transaction_id: user.id
-        });
-
-      if (transactionError) {
-        console.error('Erreur transaction:', transactionError);
-      }
-
-      // Calculer le nouveau solde du destinataire
-      const newRecipientBalance = (recipientBalance || 0) + amount;
-
-      toast({
-        title: "Dépôt effectué avec succès",
-        description: `Le compte de ${recipientName} a été crédité de ${amount} FCFA. Nouveau solde: ${newRecipientBalance} FCFA. Votre commission: ${agentCommission.toFixed(0)} FCFA`,
-      });
-
+    const success = await processDeposit(amount, recipientId, recipientName, recipientBalance, fullPhone);
+    
+    if (success) {
       setFormData({
         recipientPhone: "",
         amount: ""
@@ -372,17 +214,6 @@ const DepositForm = () => {
       setRecipientName("");
       setRecipientId("");
       setRecipientBalance(null);
-
-      navigate('/');
-    } catch (error) {
-      console.error('Erreur lors du dépôt:', error);
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Une erreur est survenue lors du dépôt",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -415,18 +246,11 @@ const DepositForm = () => {
                 onBlurComplete={handleVerifyRecipient}
               />
 
-              {isVerified && recipientBalance !== null && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex flex-col space-y-2">
-                    <p className="text-sm text-green-700">
-                      <strong>Nom:</strong> {recipientName}
-                    </p>
-                    <p className="text-lg font-semibold text-green-800">
-                      <strong>Solde exact:</strong> {recipientBalance} FCFA
-                    </p>
-                  </div>
-                </div>
-              )}
+              <RecipientVerificationDisplay
+                isVerified={isVerified}
+                recipientName={recipientName}
+                recipientBalance={recipientBalance}
+              />
 
               <div className="space-y-2">
                 <Input
