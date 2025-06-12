@@ -69,31 +69,61 @@ const DepositForm = () => {
     fetchAgentProfile();
   }, [user]);
 
-  // Fonction pour récupérer le solde actualisé d'un utilisateur
-  const fetchUserBalance = async (userId: string) => {
+  // Fonction pour créer un profil s'il n'existe pas et récupérer le solde
+  const ensureProfileAndGetBalance = async (userId: string, userPhone: string, userFullName: string, userCountry: string = "Congo Brazzaville") => {
     try {
-      console.log("🔄 Récupération du solde actualisé pour:", userId);
+      console.log("🔄 Vérification/création du profil et récupération du solde pour:", userId);
       
-      // Forcer une nouvelle requête directe à la base de données
-      const { data: profile, error } = await supabase
+      // D'abord, vérifier si le profil existe
+      const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
         .select('balance, full_name')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
-      if (!error && profile) {
-        const actualBalance = Number(profile.balance) || 0;
-        console.log("💰 Solde actualisé récupéré:", actualBalance);
-        setRecipientBalance(actualBalance);
-        return actualBalance;
-      } else {
-        console.error("❌ Erreur lors de la récupération du solde:", error);
-        setRecipientBalance(0);
-        return 0;
+      if (checkError) {
+        console.error("❌ Erreur lors de la vérification du profil:", checkError);
       }
+      
+      if (!existingProfile) {
+        console.log("📝 Profil inexistant, tentative de création...");
+        
+        // Essayer de créer le profil avec les informations disponibles
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            phone: userPhone,
+            full_name: userFullName,
+            country: userCountry,
+            balance: 0
+          });
+        
+        if (insertError) {
+          console.log("⚠️ Impossible de créer le profil (probablement RLS):", insertError.message);
+          // Si on ne peut pas créer le profil, utiliser la fonction RPC pour obtenir le solde
+          const { data: rpcBalance, error: rpcError } = await supabase.rpc('increment_balance', {
+            user_id: userId,
+            amount: 0
+          });
+          
+          if (!rpcError) {
+            console.log("✅ Solde récupéré via RPC:", rpcBalance);
+            return rpcBalance || 0;
+          }
+        } else {
+          console.log("✅ Profil créé avec succès");
+          return 0; // Nouveau profil = solde 0
+        }
+      }
+      
+      // Si le profil existe ou a été créé, récupérer le solde
+      const actualBalance = Number(existingProfile?.balance) || 0;
+      console.log("💰 Solde final récupéré:", actualBalance);
+      return actualBalance;
+      
     } catch (error) {
-      console.error("❌ Erreur lors de la récupération du solde:", error);
-      setRecipientBalance(0);
+      console.error("❌ Erreur générale:", error);
       return 0;
     }
   };
@@ -142,24 +172,28 @@ const DepositForm = () => {
         country: ""
       });
       
-      if (result.verified && result.recipientData) {
+      if (result.verified && result.recipientData && result.recipientData.userId) {
         console.log("Verification result:", result);
         setRecipientName(result.recipientData.fullName);
+        setRecipientId(result.recipientData.userId);
+        setRecipientVerified(true);
         
-        if (result.recipientData.userId) {
-          setRecipientId(result.recipientData.userId);
-          setRecipientVerified(true);
-          
-          // Récupérer le solde actualisé
-          const actualBalance = await fetchUserBalance(result.recipientData.userId);
-          
-          // Afficher un toast avec les informations complètes
-          toast({
-            title: "Utilisateur trouvé",
-            description: `${result.recipientData.fullName} - Solde exact: ${actualBalance} FCFA`
-          });
-          return;
-        }
+        // Utiliser la nouvelle fonction pour s'assurer que le profil existe et récupérer le solde
+        const actualBalance = await ensureProfileAndGetBalance(
+          result.recipientData.userId,
+          fullPhone,
+          result.recipientData.fullName,
+          result.recipientData.country
+        );
+        
+        setRecipientBalance(actualBalance);
+        
+        // Afficher un toast avec les informations complètes
+        toast({
+          title: "Utilisateur trouvé",
+          description: `${result.recipientData.fullName} - Solde exact: ${actualBalance} FCFA`
+        });
+        return;
       } else {
         toast({
           title: "Utilisateur non trouvé",
