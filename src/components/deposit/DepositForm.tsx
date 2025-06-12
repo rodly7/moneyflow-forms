@@ -35,7 +35,7 @@ const DepositForm = () => {
     setRecipientVerified
   } = useRecipientVerification();
 
-  const { getOrCreateUserProfile } = useBalanceOperations();
+  const { getUserRealBalance, getOrCreateUserProfile } = useBalanceOperations();
   const { isProcessing, processDeposit } = useDepositOperations();
 
   // Fetch agent profile to get their country
@@ -98,7 +98,7 @@ const DepositForm = () => {
     }
   };
 
-  // Verify recipient using the hook
+  // Verify recipient using the direct balance lookup
   const handleVerifyRecipient = async () => {
     if (!formData.recipientPhone || formData.recipientPhone.length < 6) return;
     
@@ -109,9 +109,27 @@ const DepositForm = () => {
       ? formData.recipientPhone 
       : `${countryCode}${formData.recipientPhone.startsWith('0') ? formData.recipientPhone.substring(1) : formData.recipientPhone}`;
     
-    console.log("Verifying phone number:", fullPhone);
+    console.log("🔍 Recherche directe du solde pour:", fullPhone);
     
     try {
+      // Récupérer le solde réel directement depuis la table profiles
+      const balanceResult = await getUserRealBalance(fullPhone);
+      
+      if (balanceResult.userId) {
+        console.log("✅ Utilisateur trouvé avec solde:", balanceResult.balance);
+        setRecipientName(balanceResult.fullName);
+        setRecipientId(balanceResult.userId);
+        setRecipientBalance(balanceResult.balance);
+        setRecipientVerified(true);
+        
+        toast({
+          title: "Utilisateur trouvé",
+          description: `${balanceResult.fullName} - Solde exact: ${balanceResult.balance} FCFA`
+        });
+        return;
+      }
+      
+      // Si pas trouvé par recherche directe, essayer avec la méthode de vérification classique
       const result = await verifyRecipient(fullPhone, countryCode, {
         fullName: "",
         email: fullPhone,
@@ -119,38 +137,48 @@ const DepositForm = () => {
       });
       
       if (result.verified && result.recipientData && result.recipientData.userId) {
-        console.log("Verification result:", result);
+        console.log("✅ Utilisateur trouvé via vérification classique:", result);
         setRecipientName(result.recipientData.fullName);
         setRecipientId(result.recipientData.userId);
         setRecipientVerified(true);
         
-        // Récupérer ou créer le profil avec le solde réel
-        const profileData = await getOrCreateUserProfile(result.recipientData.userId, {
-          phone: fullPhone,
-          full_name: result.recipientData.fullName,
-          country: result.recipientData.country || "Congo Brazzaville",
-          address: ""
-        });
-        
-        setRecipientBalance(profileData.balance);
-        
-        // Afficher un toast avec les informations complètes
-        toast({
-          title: "Utilisateur trouvé",
-          description: `${profileData.fullName} - Solde exact: ${profileData.balance} FCFA`
-        });
+        // Récupérer le solde réel depuis la table profiles
+        const profileResult = await getUserRealBalance(fullPhone);
+        if (profileResult.userId) {
+          setRecipientBalance(profileResult.balance);
+          toast({
+            title: "Utilisateur trouvé",
+            description: `${result.recipientData.fullName} - Solde exact: ${profileResult.balance} FCFA`
+          });
+        } else {
+          // Fallback : récupérer ou créer le profil avec le solde réel
+          const profileData = await getOrCreateUserProfile(result.recipientData.userId, {
+            phone: fullPhone,
+            full_name: result.recipientData.fullName,
+            country: result.recipientData.country || "Congo Brazzaville",
+            address: ""
+          });
+          
+          setRecipientBalance(profileData.balance);
+          toast({
+            title: "Utilisateur trouvé",
+            description: `${profileData.fullName} - Solde exact: ${profileData.balance} FCFA`
+          });
+        }
         return;
-      } else {
-        toast({
-          title: "Utilisateur non trouvé",
-          description: "Ce numéro n'existe pas dans notre base de données",
-          variant: "destructive"
-        });
-        setRecipientVerified(false);
-        setRecipientName("");
-        setRecipientId("");
-        setRecipientBalance(null);
       }
+      
+      // Utilisateur non trouvé
+      toast({
+        title: "Utilisateur non trouvé",
+        description: "Ce numéro n'existe pas dans notre base de données",
+        variant: "destructive"
+      });
+      setRecipientVerified(false);
+      setRecipientName("");
+      setRecipientId("");
+      setRecipientBalance(null);
+      
     } catch (err) {
       console.error("Error checking recipient:", err);
       toast({

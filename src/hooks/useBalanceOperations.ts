@@ -1,9 +1,61 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export const useBalanceOperations = () => {
+  // Fonction pour récupérer le solde réel directement depuis la table profiles
+  const getUserRealBalance = async (phone: string): Promise<{
+    userId: string | null;
+    balance: number;
+    fullName: string;
+    foundPhone: string;
+  }> => {
+    try {
+      console.log("🔍 Recherche du solde réel pour le téléphone:", phone);
+      
+      // Rechercher directement dans la table profiles par téléphone
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, balance, full_name, phone')
+        .eq('phone', phone)
+        .maybeSingle();
+      
+      if (profileError) {
+        console.error("❌ Erreur lors de la recherche dans profiles:", profileError);
+      }
+      
+      if (profileData) {
+        const realBalance = Number(profileData.balance) || 0;
+        console.log("✅ Solde trouvé dans profiles:", realBalance, "FCFA pour", profileData.full_name);
+        
+        return {
+          userId: profileData.id,
+          balance: realBalance,
+          fullName: profileData.full_name || 'Utilisateur',
+          foundPhone: profileData.phone
+        };
+      }
+      
+      console.log("ℹ️ Aucun profil trouvé avec ce numéro de téléphone");
+      return {
+        userId: null,
+        balance: 0,
+        fullName: 'Utilisateur non trouvé',
+        foundPhone: phone
+      };
+      
+    } catch (error) {
+      console.error("❌ Erreur lors de la récupération du solde:", error);
+      return {
+        userId: null,
+        balance: 0,
+        fullName: 'Erreur',
+        foundPhone: phone
+      };
+    }
+  };
+
   // Fonction pour récupérer le solde réel via RPC et créer/mettre à jour le profil
   const getOrCreateUserProfile = async (userId: string, userData: any) => {
+    // ... keep existing code (the same getOrCreateUserProfile function)
     try {
       console.log("🔍 Récupération/création du profil pour:", userId);
       
@@ -116,6 +168,7 @@ export const useBalanceOperations = () => {
   };
 
   return {
-    getOrCreateUserProfile
+    getOrCreateUserProfile,
+    getUserRealBalance
   };
 };
