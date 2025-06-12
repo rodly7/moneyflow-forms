@@ -227,6 +227,36 @@ export const useRecipientVerification = () => {
     return false;
   };
 
+  // Fonction pour vérifier le solde d'un utilisateur en toute sécurité
+  const getUserBalance = async (userId: string): Promise<{ balance: number }> => {
+    try {
+      console.log("🔍 Recherche du solde pour l'utilisateur:", userId);
+      
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('balance')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error("❌ Erreur lors de la récupération du profil:", error);
+        // Si le profil n'existe pas, retourner un solde de 0
+        if (error.code === 'PGRST116') {
+          console.log("ℹ️ Profil non trouvé, retour d'un solde de 0");
+          return { balance: 0 };
+        }
+        throw new Error("Impossible de récupérer les informations du profil");
+      }
+
+      console.log("✅ Solde récupéré:", profile.balance);
+      return { balance: profile.balance || 0 };
+    } catch (error) {
+      console.error("❌ Erreur lors de la récupération du solde:", error);
+      // En cas d'erreur, retourner un solde de 0 plutôt que de faire échouer la vérification
+      return { balance: 0 };
+    }
+  };
+
   // Fonction principale pour vérifier un destinataire par téléphone ou email
   const verifyRecipient = async (identifier: string, countryCode: string, recipient: RecipientData): Promise<{
     verified: boolean;
@@ -286,8 +316,7 @@ export const useRecipientVerification = () => {
         console.log("Téléphone formaté avec indicatif:", formattedPhone);
         console.log("Indicatif pays utilisé:", countryCode);
         
-        // IMPROVED USER VERIFICATION - Strategy 1: Check profiles table directly first
-        // This is often more reliable than checking auth_users_view
+        // Strategy 1: Check profiles table directly first
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('id, full_name, country, phone')
@@ -311,7 +340,7 @@ export const useRecipientVerification = () => {
                     email: profile.phone,
                     fullName: profile.full_name || `Utilisateur ${profile.phone}`,
                     country: profile.country || recipient.country,
-                    userId: profile.id // Important: include the user ID
+                    userId: profile.id
                   }
                 };
                 
@@ -346,7 +375,7 @@ export const useRecipientVerification = () => {
         
         console.log("Nombre d'utilisateurs trouvés dans auth_users_view:", authUserData?.length);
         
-        // 2. Recherche approfondie à travers les métadonnées des utilisateurs
+        // Recherche approfondie à travers les métadonnées des utilisateurs
         if (authUserData && authUserData.length > 0) {
           for (const user of authUserData) {
             if (user.raw_user_meta_data) {
@@ -370,39 +399,7 @@ export const useRecipientVerification = () => {
                   console.log("Nom trouvé dans les métadonnées:", displayName);
                   console.log("ID utilisateur trouvé dans auth_users_view:", user.id);
                   
-                  // IMPROVED: Check if the user has a profile and create one if needed
-                  const { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('id')
-                    .eq('id', user.id)
-                    .single();
-                  
-                  if (profileData) {
-                    console.log("Profil utilisateur existant trouvé:", profileData.id);
-                  } else {
-                    console.log("Aucun profil trouvé, vérification du profil par téléphone");
-                    
-                    // Look for a profile with matching phone number
-                    const { data: phoneProfileData } = await supabase
-                      .from('profiles')
-                      .select('id')
-                      .eq('phone', userPhone)
-                      .single();
-                    
-                    if (!phoneProfileData) {
-                      console.log("Création d'un nouveau profil pour l'utilisateur");
-                      // Create a profile for this user if none exists
-                      await supabase.from('profiles').insert({
-                        id: user.id,
-                        full_name: displayName,
-                        phone: userPhone,
-                        country: metadata.country || recipient.country || "Cameroun",
-                        balance: 0
-                      });
-                    }
-                  }
-                  
-                  // Return verified user data with ID
+                  // Return verified user data with ID - don't try to create profile here
                   const finalResult = {
                     verified: true,
                     recipientData: {
@@ -428,7 +425,6 @@ export const useRecipientVerification = () => {
         }
         
         // Strategy 3: Last digit matching for phone numbers
-        // This sometimes finds matches that the other methods miss
         console.log("Recherche par derniers chiffres du numéro...");
         const lastDigits = normalizePhoneNumber(formattedPhone).slice(-8);
         
@@ -462,14 +458,14 @@ export const useRecipientVerification = () => {
           }
         }
         
-        // 4. Si aucun utilisateur n'est trouvé, permettre le transfert vers un numéro non enregistré
+        // Si aucun utilisateur n'est trouvé, permettre le transfert vers un numéro non enregistré
         console.log("Aucun utilisateur trouvé avec ce numéro:", formattedPhone);
         
         const noUserResult = {
           verified: false,
           recipientData: {
             email: formattedPhone,
-            fullName: recipient.fullName || formattedPhone, // Utiliser le nom fourni ou le numéro
+            fullName: recipient.fullName || formattedPhone,
             country: recipient.country,
           }
         };
@@ -501,6 +497,7 @@ export const useRecipientVerification = () => {
     verifyRecipient,
     isValidEmail,
     isValidPhoneNumber,
-    setRecipientVerified
+    setRecipientVerified,
+    getUserBalance
   };
 };
