@@ -4,6 +4,7 @@ export type TransferData = {
     fullName: string;
     email: string;
     country: string;
+    phone: string;
   };
   transfer: {
     amount: number;
@@ -16,6 +17,7 @@ export const INITIAL_TRANSFER_DATA: TransferData = {
     fullName: "",
     email: "",
     country: "", // Empty by default to force country selection
+    phone: "",
   },
   transfer: {
     amount: 0,
