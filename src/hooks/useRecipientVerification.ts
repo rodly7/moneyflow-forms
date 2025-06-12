@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -196,18 +195,24 @@ export const useRecipientVerification = () => {
     try {
       console.log("🔍 Recherche du solde pour l'utilisateur:", userId);
       
-      // Première tentative : récupérer depuis la table profiles
+      // Utiliser la fonction RPC increment_balance avec un montant de 0 pour obtenir le solde actuel
+      const { data: balanceResult, error: balanceError } = await supabase.rpc('increment_balance', {
+        user_id: userId,
+        amount: 0
+      });
+      
+      if (balanceError) {
+        console.error("❌ Erreur lors de la vérification du solde via RPC:", balanceError);
+      }
+      
+      // Récupérer le profil pour obtenir les autres informations
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('balance, full_name, phone, country')
         .eq('id', userId)
         .maybeSingle();
 
-      if (profileError) {
-        console.error("❌ Erreur lors de la récupération du profil:", profileError);
-      }
-
-      if (profile) {
+      if (!profileError && profile) {
         const balance = Number(profile.balance) || 0;
         console.log("✅ Solde récupéré depuis profiles:", balance);
         return { 
@@ -218,46 +223,30 @@ export const useRecipientVerification = () => {
         };
       }
 
-      // Deuxième tentative : créer le profil s'il n'existe pas
-      console.log("ℹ️ Profil non trouvé dans profiles, création en cours...");
-      
-      // Récupérer les métadonnées utilisateur depuis auth_users_view
+      // Si pas de profil, récupérer depuis auth_users_view pour les métadonnées
       const { data: authUser, error: authError } = await supabase
         .from('auth_users_view')
         .select('raw_user_meta_data')
         .eq('id', userId)
         .maybeSingle();
 
-      if (authError || !authUser) {
-        console.error("❌ Erreur lors de la récupération des métadonnées:", authError);
-        return { balance: 0 };
+      if (!authError && authUser?.raw_user_meta_data) {
+        const metadata = authUser.raw_user_meta_data as any;
+        const userPhone = metadata?.phone || '';
+        const userFullName = extractNameFromMetadata(metadata) || 'Utilisateur';
+        const userCountry = metadata?.country || 'Congo Brazzaville';
+        
+        console.log("ℹ️ Métadonnées utilisateur récupérées, solde par défaut: 0");
+        return { 
+          balance: 0, 
+          fullName: userFullName, 
+          phone: userPhone, 
+          country: userCountry 
+        };
       }
 
-      const metadata = authUser.raw_user_meta_data as any;
-      const userPhone = metadata?.phone || '';
-      const userFullName = extractNameFromMetadata(metadata) || 'Utilisateur';
-      const userCountry = metadata?.country || 'Congo Brazzaville';
-
-      // Créer le profil avec un solde par défaut
-      const { error: createError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: userId,
-          phone: userPhone,
-          full_name: userFullName,
-          country: userCountry,
-          balance: 0 // Solde par défaut
-        }, {
-          onConflict: 'id'
-        });
-
-      if (createError) {
-        console.error("❌ Erreur lors de la création du profil:", createError);
-        return { balance: 0, fullName: userFullName, phone: userPhone, country: userCountry };
-      }
-
-      console.log("✅ Profil créé avec succès");
-      return { balance: 0, fullName: userFullName, phone: userPhone, country: userCountry };
+      console.log("ℹ️ Aucune donnée trouvée, retour d'un solde de 0");
+      return { balance: 0 };
 
     } catch (error) {
       console.error("❌ Erreur lors de la récupération du solde:", error);

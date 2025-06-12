@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,7 +29,8 @@ const DepositForm = () => {
     isLoading: isVerifying,
     recipientVerified: isVerified,
     verifyRecipient,
-    setRecipientVerified
+    setRecipientVerified,
+    getUserBalance
   } = useRecipientVerification();
 
   // Fetch agent profile to get their country
@@ -68,6 +68,35 @@ const DepositForm = () => {
     
     fetchAgentProfile();
   }, [user]);
+
+  // Fonction pour récupérer le solde actualisé d'un utilisateur
+  const fetchUserBalance = async (userId: string) => {
+    try {
+      console.log("🔄 Récupération du solde actualisé pour:", userId);
+      
+      // Forcer une nouvelle requête directe à la base de données
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('balance, full_name')
+        .eq('id', userId)
+        .single();
+      
+      if (!error && profile) {
+        const actualBalance = Number(profile.balance) || 0;
+        console.log("💰 Solde actualisé récupéré:", actualBalance);
+        setRecipientBalance(actualBalance);
+        return actualBalance;
+      } else {
+        console.error("❌ Erreur lors de la récupération du solde:", error);
+        setRecipientBalance(0);
+        return 0;
+      }
+    } catch (error) {
+      console.error("❌ Erreur lors de la récupération du solde:", error);
+      setRecipientBalance(0);
+      return 0;
+    }
+  };
 
   // Handle form input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,16 +145,18 @@ const DepositForm = () => {
       if (result.verified && result.recipientData) {
         console.log("Verification result:", result);
         setRecipientName(result.recipientData.fullName);
-        setRecipientBalance(result.recipientData.balance || 0);
         
         if (result.recipientData.userId) {
           setRecipientId(result.recipientData.userId);
           setRecipientVerified(true);
           
+          // Récupérer le solde actualisé
+          const actualBalance = await fetchUserBalance(result.recipientData.userId);
+          
           // Afficher un toast avec les informations complètes
           toast({
             title: "Utilisateur trouvé",
-            description: `${result.recipientData.fullName} - Solde exact: ${result.recipientData.balance || 0} FCFA`
+            description: `${result.recipientData.fullName} - Solde exact: ${actualBalance} FCFA`
           });
           return;
         }
