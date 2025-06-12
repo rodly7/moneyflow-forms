@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,11 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Banknote, Wallet, RefreshCw, Search, Plus, Minus } from "lucide-react";
+import { ArrowLeft, Banknote, Wallet, RefreshCw, Plus, Minus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/integrations/supabase/client";
-import { getUserBalance, findUserByPhone } from "@/services/withdrawalService";
+import { getUserBalance, getCountryCodeForAgent } from "@/services/withdrawalService";
 import { supabase } from "@/integrations/supabase/client";
+import PhoneInput from "@/components/transfer-steps/PhoneInput";
+import { useRecipientVerification } from "@/hooks/useRecipientVerification";
 
 const AgentDeposit = () => {
   const { user } = useAuth();
@@ -20,10 +23,20 @@ const AgentDeposit = () => {
   const [amount, setAmount] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [clientData, setClientData] = useState<any>(null);
-  const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [agentBalance, setAgentBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [countryCode, setCountryCode] = useState("+242"); // Default to Congo
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientId, setRecipientId] = useState("");
+
+  // Use the useRecipientVerification hook for user lookup
+  const {
+    isLoading: isVerifying,
+    recipientVerified: isVerified,
+    verifyRecipient,
+    setRecipientVerified
+  } = useRecipientVerification();
 
   const fetchAgentBalance = async () => {
     if (user?.id) {
@@ -33,6 +46,10 @@ const AgentDeposit = () => {
         const balanceData = await getUserBalance(user.id);
         setAgentBalance(balanceData.balance);
         console.log("✅ Solde agent affiché:", balanceData.balance, "FCFA");
+        
+        // Set country code based on agent's country
+        const agentCountryCode = getCountryCodeForAgent(balanceData.country);
+        setCountryCode(agentCountryCode);
       } catch (error) {
         console.error("❌ Erreur lors du chargement du solde agent:", error);
         toast({
@@ -45,61 +62,96 @@ const AgentDeposit = () => {
     }
   };
 
-  const searchClientByPhone = async (phone: string) => {
-    if (!phone || phone.length < 6) {
+  // Handle phone number change with automatic verification
+  const handlePhoneChange = (value: string) => {
+    setPhoneNumber(value);
+    // Reset verification if phone changes
+    if (isVerified) {
+      setRecipientVerified(false);
+      setRecipientName("");
+      setRecipientId("");
       setClientData(null);
-      return;
     }
+  };
 
-    setIsSearchingClient(true);
+  // Verify recipient using the hook
+  const handleVerifyRecipient = async () => {
+    if (!phoneNumber || phoneNumber.length < 6) return;
+    
+    // Format the full phone number with country code
+    const fullPhone = phoneNumber.startsWith('+') 
+      ? phoneNumber 
+      : `${countryCode}${phoneNumber.startsWith('0') ? phoneNumber.substring(1) : phoneNumber}`;
+    
+    console.log("Verifying phone number:", fullPhone);
+    
     try {
-      console.log("🔍 Recherche du client avec le numéro:", phone);
+      const result = await verifyRecipient(fullPhone, countryCode, {
+        fullName: "",
+        email: fullPhone,
+        country: ""
+      });
       
-      const client = await findUserByPhone(phone);
-      
-      if (client) {
-        setClientData(client);
-        console.log("✅ Client trouvé:", {
-          nom: client.full_name,
-          telephone: client.phone,
-          solde: client.balance
-        });
+      if (result.verified && result.recipientData) {
+        console.log("Verification result:", result);
+        setRecipientName(result.recipientData.fullName);
         
-        toast({
-          title: "Client trouvé",
-          description: `${client.full_name || 'Utilisateur'} - Solde: ${formatCurrency(client.balance || 0, 'XAF')}`,
-        });
-      } else {
-        setClientData(null);
-        toast({
-          title: "Client non trouvé",
-          description: "Aucun utilisateur trouvé avec ce numéro de téléphone",
-          variant: "destructive"
-        });
+        // Use the userId from recipientData if available
+        if (result.recipientData.userId) {
+          setRecipientId(result.recipientData.userId);
+          
+          // Get additional client data including balance
+          const clientBalance = await getUserBalance(result.recipientData.userId);
+          setClientData({
+            id: result.recipientData.userId,
+            full_name: result.recipientData.fullName,
+            phone: fullPhone,
+            balance: clientBalance.balance
+          });
+          
+          setRecipientVerified(true);
+          toast({
+            title: "Client trouvé",
+            description: `${result.recipientData.fullName} - Solde: ${formatCurrency(clientBalance.balance, 'XAF')}`,
+          });
+          return;
+        }
       }
-    } catch (error) {
-      console.error("❌ Erreur lors de la recherche du client:", error);
+      
+      // User not found
       setClientData(null);
+      setRecipientName("");
+      setRecipientId("");
       toast({
-        title: "Erreur de recherche",
-        description: "Impossible de rechercher le client",
+        title: "Client non trouvé",
+        description: "Ce numéro n'existe pas dans notre base de données",
         variant: "destructive"
       });
+      
+    } catch (err) {
+      console.error("Error checking recipient:", err);
+      toast({
+        title: "Erreur de vérification",
+        description: "Une erreur s'est produite lors de la vérification de l'utilisateur",
+        variant: "destructive"
+      });
+      setRecipientVerified(false);
+      setRecipientName("");
+      setRecipientId("");
+      setClientData(null);
     }
-    setIsSearchingClient(false);
   };
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setPhoneNumber(value);
-    setClientData(null);
-  };
-
-  const handleSearchClient = () => {
-    if (phoneNumber) {
-      searchClientByPhone(phoneNumber);
+  // Verify recipient automatically as they type
+  useEffect(() => {
+    if (phoneNumber && phoneNumber.length >= 8) {
+      const delayDebounceFn = setTimeout(() => {
+        handleVerifyRecipient();
+      }, 500);
+      
+      return () => clearTimeout(delayDebounceFn);
     }
-  };
+  }, [phoneNumber, countryCode]);
 
   useEffect(() => {
     fetchAgentBalance();
@@ -191,6 +243,9 @@ const AgentDeposit = () => {
       setAmount("");
       setPhoneNumber("");
       setClientData(null);
+      setRecipientName("");
+      setRecipientId("");
+      setRecipientVerified(false);
       
       // Actualiser le solde de l'agent
       fetchAgentBalance();
@@ -308,6 +363,9 @@ const AgentDeposit = () => {
       setAmount("");
       setPhoneNumber("");
       setClientData(null);
+      setRecipientName("");
+      setRecipientId("");
+      setRecipientVerified(false);
       
       // Actualiser le solde de l'agent
       fetchAgentBalance();
@@ -393,44 +451,27 @@ const AgentDeposit = () => {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Numéro du client</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="phone"
-                          type="tel"
-                          placeholder="Entrez le numéro du client"
-                          value={phoneNumber}
-                          onChange={handlePhoneChange}
-                          required
-                          className="h-12"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleSearchClient}
-                          disabled={isSearchingClient || !phoneNumber}
-                          className="h-12 px-3"
-                        >
-                          {isSearchingClient ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
-                          ) : (
-                            <Search className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
+                    <PhoneInput
+                      phoneInput={phoneNumber}
+                      countryCode={countryCode}
+                      onPhoneChange={handlePhoneChange}
+                      isLoading={isVerifying}
+                      isVerified={isVerified}
+                      recipientName={recipientName}
+                      label="Numéro du client"
+                      onBlurComplete={handleVerifyRecipient}
+                    />
                       
-                      {clientData && (
-                        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                          <p className="text-green-800 font-medium">
-                            ✓ Client trouvé: {clientData.full_name || 'Nom non disponible'}
-                          </p>
-                          <p className="text-green-700 text-sm">
-                            Solde: {formatCurrency(clientData.balance || 0, 'XAF')}
-                          </p>
-                        </div>
-                      )}
-                    </div>
+                    {clientData && (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                        <p className="text-green-800 font-medium">
+                          ✓ Client trouvé: {clientData.full_name || 'Nom non disponible'}
+                        </p>
+                        <p className="text-green-700 text-sm">
+                          Solde: {formatCurrency(clientData.balance || 0, 'XAF')}
+                        </p>
+                      </div>
+                    )}
 
                     <div className="space-y-2">
                       <Label htmlFor="amount">Montant du dépôt (XAF)</Label>
@@ -514,44 +555,27 @@ const AgentDeposit = () => {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="phone-withdrawal">Numéro du client</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="phone-withdrawal"
-                          type="tel"
-                          placeholder="Entrez le numéro du client"
-                          value={phoneNumber}
-                          onChange={handlePhoneChange}
-                          required
-                          className="h-12"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleSearchClient}
-                          disabled={isSearchingClient || !phoneNumber}
-                          className="h-12 px-3"
-                        >
-                          {isSearchingClient ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
-                          ) : (
-                            <Search className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
+                    <PhoneInput
+                      phoneInput={phoneNumber}
+                      countryCode={countryCode}
+                      onPhoneChange={handlePhoneChange}
+                      isLoading={isVerifying}
+                      isVerified={isVerified}
+                      recipientName={recipientName}
+                      label="Numéro du client"
+                      onBlurComplete={handleVerifyRecipient}
+                    />
                       
-                      {clientData && (
-                        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                          <p className="text-green-800 font-medium">
-                            ✓ Client trouvé: {clientData.full_name || 'Nom non disponible'}
-                          </p>
-                          <p className="text-green-700 text-sm">
-                            Solde: {formatCurrency(clientData.balance || 0, 'XAF')}
-                          </p>
-                        </div>
-                      )}
-                    </div>
+                    {clientData && (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                        <p className="text-green-800 font-medium">
+                          ✓ Client trouvé: {clientData.full_name || 'Nom non disponible'}
+                        </p>
+                        <p className="text-green-700 text-sm">
+                          Solde: {formatCurrency(clientData.balance || 0, 'XAF')}
+                        </p>
+                      </div>
+                    )}
 
                     <div className="space-y-2">
                       <Label htmlFor="amount-withdrawal">Montant du retrait (XAF)</Label>
