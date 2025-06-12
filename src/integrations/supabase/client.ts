@@ -12,13 +12,13 @@ export const getCurrencyForCountry = (country: string): string => {
   const currencyMap: { [key: string]: string } = {
     // Afrique Centrale (XAF)
     'Cameroun': 'XAF',
-    'Congo Brazzaville': 'XAF',
     'Gabon': 'XAF',
     'Tchad': 'XAF',
     'République Centrafricaine': 'XAF',
     'Guinée Équatoriale': 'XAF',
     
     // Afrique de l'Ouest (XOF)
+    'Congo Brazzaville': 'XOF',
     'Senegal': 'XOF',
     'Sénégal': 'XOF',
     'Côte d\'Ivoire': 'XOF',
