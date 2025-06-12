@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Banknote, Wallet, RefreshCw, Search, Plus } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Banknote, Wallet, RefreshCw, Search, Plus, Minus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/integrations/supabase/client";
 import { getUserBalance, findUserByPhone } from "@/services/withdrawalService";
@@ -105,7 +106,7 @@ const AgentDeposit = () => {
     fetchAgentBalance();
   }, [user]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleDepositSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
@@ -207,7 +208,125 @@ const AgentDeposit = () => {
     }
   };
 
-  const isAmountExceedsBalance = amount && Number(amount) > agentBalance;
+  const handleWithdrawalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+      toast({
+        title: "Montant invalide",
+        description: "Veuillez entrer un montant valide",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!phoneNumber) {
+      toast({
+        title: "Numéro requis",
+        description: "Veuillez entrer un numéro de téléphone",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!clientData) {
+      toast({
+        title: "Client non vérifié",
+        description: "Veuillez d'abord rechercher et vérifier le client",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const operationAmount = Number(amount);
+
+    // Pour les retraits, vérifier le solde du client
+    if (operationAmount > clientData.balance) {
+      toast({
+        title: "Solde client insuffisant",
+        description: `Le solde du client (${formatCurrency(clientData.balance, 'XAF')}) est insuffisant pour ce retrait`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+
+      if (!user?.id) {
+        throw new Error("Agent non connecté");
+      }
+
+      // Traitement du retrait (client débité, agent crédité)
+      // Débiter le client
+      const { error: debitError } = await supabase.rpc('increment_balance', {
+        user_id: clientData.id,
+        amount: -operationAmount
+      });
+
+      if (debitError) {
+        console.error("❌ Erreur lors du débit du client:", debitError);
+        throw new Error("Erreur lors du débit du compte client");
+      }
+
+      // Créditer l'agent
+      const { error: creditError } = await supabase.rpc('increment_balance', {
+        user_id: user.id,
+        amount: operationAmount
+      });
+
+      if (creditError) {
+        console.error("❌ Erreur lors du crédit de l'agent:", creditError);
+        // En cas d'erreur, recréditer le client
+        await supabase.rpc('increment_balance', {
+          user_id: clientData.id,
+          amount: operationAmount
+        });
+        throw new Error("Erreur lors du crédit du compte agent");
+      }
+
+      // Créer l'enregistrement du retrait
+      const { error: withdrawalError } = await supabase
+        .from('withdrawals')
+        .insert({
+          user_id: clientData.id,
+          amount: operationAmount,
+          withdrawal_phone: phoneNumber,
+          status: 'completed'
+        });
+
+      if (withdrawalError) {
+        console.error("❌ Erreur lors de l'enregistrement du retrait:", withdrawalError);
+        // Continue même si l'enregistrement échoue
+      }
+
+      toast({
+        title: "Retrait effectué",
+        description: `Retrait de ${formatCurrency(operationAmount, 'XAF')} effectué pour ${clientData.full_name}. Nouveau solde client: ${formatCurrency(clientData.balance - operationAmount, 'XAF')}`,
+      });
+
+      // Réinitialiser le formulaire
+      setAmount("");
+      setPhoneNumber("");
+      setClientData(null);
+      
+      // Actualiser le solde de l'agent
+      fetchAgentBalance();
+      
+    } catch (error) {
+      console.error("❌ Erreur lors du retrait:", error);
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Erreur lors du retrait",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const isDepositAmountExceedsBalance = amount && Number(amount) > agentBalance;
+  const isWithdrawalAmountExceedsBalance = amount && clientData && Number(amount) > clientData.balance;
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-4">
@@ -217,134 +336,272 @@ const AgentDeposit = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
           </Button>
-          <h1 className="text-2xl font-bold">Dépôts Agent</h1>
+          <h1 className="text-2xl font-bold">Services Agent</h1>
           <div className="w-10"></div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="w-5 h-5 text-emerald-500" />
-              Dépôt pour un client
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoadingBalance ? (
-              <div className="flex justify-center py-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Affichage du solde agent avec bouton d'actualisation */}
-                <div className="px-3 py-2 bg-emerald-50 rounded-md text-sm border border-emerald-200">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      <Wallet className="w-4 h-4 mr-2 text-emerald-600" />
-                      <span className="font-medium">Votre solde agent:</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`font-bold ${agentBalance > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {formatCurrency(agentBalance, 'XAF')}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={fetchAgentBalance}
-                        disabled={isLoadingBalance}
-                        className="h-6 w-6 p-0"
-                      >
-                        <RefreshCw className={`w-3 h-3 ${isLoadingBalance ? 'animate-spin' : ''}`} />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+        {isLoadingBalance ? (
+          <Card>
+            <CardContent className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Tabs defaultValue="deposit" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="deposit" className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Dépôt
+              </TabsTrigger>
+              <TabsTrigger value="withdrawal" className="flex items-center gap-2">
+                <Minus className="w-4 h-4" />
+                Retrait
+              </TabsTrigger>
+            </TabsList>
 
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Numéro du client</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="Entrez le numéro du client"
-                      value={phoneNumber}
-                      onChange={handlePhoneChange}
-                      required
-                      className="h-12"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleSearchClient}
-                      disabled={isSearchingClient || !phoneNumber}
-                      className="h-12 px-3"
+            <TabsContent value="deposit">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Plus className="w-5 h-5 text-emerald-500" />
+                    Dépôt pour un client
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleDepositSubmit} className="space-y-4">
+                    {/* Affichage du solde agent avec bouton d'actualisation */}
+                    <div className="px-3 py-2 bg-emerald-50 rounded-md text-sm border border-emerald-200">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center">
+                          <Wallet className="w-4 h-4 mr-2 text-emerald-600" />
+                          <span className="font-medium">Votre solde agent:</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-bold ${agentBalance > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {formatCurrency(agentBalance, 'XAF')}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={fetchAgentBalance}
+                            disabled={isLoadingBalance}
+                            className="h-6 w-6 p-0"
+                          >
+                            <RefreshCw className={`w-3 h-3 ${isLoadingBalance ? 'animate-spin' : ''}`} />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Numéro du client</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="Entrez le numéro du client"
+                          value={phoneNumber}
+                          onChange={handlePhoneChange}
+                          required
+                          className="h-12"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleSearchClient}
+                          disabled={isSearchingClient || !phoneNumber}
+                          className="h-12 px-3"
+                        >
+                          {isSearchingClient ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
+                          ) : (
+                            <Search className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
+                      
+                      {clientData && (
+                        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                          <p className="text-green-800 font-medium">
+                            ✓ Client trouvé: {clientData.full_name || 'Nom non disponible'}
+                          </p>
+                          <p className="text-green-700 text-sm">
+                            Solde: {formatCurrency(clientData.balance || 0, 'XAF')}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="amount">Montant du dépôt (XAF)</Label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        placeholder="Entrez le montant"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        required
+                        className="h-12 text-lg"
+                        disabled={!clientData}
+                      />
+                      {isDepositAmountExceedsBalance && (
+                        <p className="text-red-600 text-sm">
+                          Le montant dépasse votre solde agent ({formatCurrency(agentBalance, 'XAF')})
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-sm text-blue-800">
+                      <p>
+                        💰 Dépôt: Votre compte sera débité et le compte du client sera crédité
+                      </p>
+                    </div>
+
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4 h-12 text-lg"
+                      disabled={isProcessing || isDepositAmountExceedsBalance || agentBalance <= 0 || !clientData}
                     >
-                      {isSearchingClient ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
+                      {isProcessing ? (
+                        <div className="flex items-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          <span>Traitement...</span>
+                        </div>
                       ) : (
-                        <Search className="w-4 h-4" />
+                        <div className="flex items-center justify-center">
+                          <Banknote className="mr-2 h-5 w-5" />
+                          <span>Effectuer le dépôt</span>
+                        </div>
                       )}
                     </Button>
-                  </div>
-                  
-                  {clientData && (
-                    <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                      <p className="text-green-800 font-medium">
-                        ✓ Client trouvé: {clientData.full_name || 'Nom non disponible'}
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="withdrawal">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Minus className="w-5 h-5 text-orange-500" />
+                    Retrait pour un client
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleWithdrawalSubmit} className="space-y-4">
+                    {/* Affichage du solde agent avec bouton d'actualisation */}
+                    <div className="px-3 py-2 bg-emerald-50 rounded-md text-sm border border-emerald-200">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center">
+                          <Wallet className="w-4 h-4 mr-2 text-emerald-600" />
+                          <span className="font-medium">Votre solde agent:</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-bold ${agentBalance > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {formatCurrency(agentBalance, 'XAF')}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={fetchAgentBalance}
+                            disabled={isLoadingBalance}
+                            className="h-6 w-6 p-0"
+                          >
+                            <RefreshCw className={`w-3 h-3 ${isLoadingBalance ? 'animate-spin' : ''}`} />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="phone-withdrawal">Numéro du client</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="phone-withdrawal"
+                          type="tel"
+                          placeholder="Entrez le numéro du client"
+                          value={phoneNumber}
+                          onChange={handlePhoneChange}
+                          required
+                          className="h-12"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleSearchClient}
+                          disabled={isSearchingClient || !phoneNumber}
+                          className="h-12 px-3"
+                        >
+                          {isSearchingClient ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
+                          ) : (
+                            <Search className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
+                      
+                      {clientData && (
+                        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                          <p className="text-green-800 font-medium">
+                            ✓ Client trouvé: {clientData.full_name || 'Nom non disponible'}
+                          </p>
+                          <p className="text-green-700 text-sm">
+                            Solde: {formatCurrency(clientData.balance || 0, 'XAF')}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="amount-withdrawal">Montant du retrait (XAF)</Label>
+                      <Input
+                        id="amount-withdrawal"
+                        type="number"
+                        placeholder="Entrez le montant"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        required
+                        className="h-12 text-lg"
+                        disabled={!clientData}
+                      />
+                      {isWithdrawalAmountExceedsBalance && (
+                        <p className="text-red-600 text-sm">
+                          Le montant dépasse le solde du client ({formatCurrency(clientData.balance, 'XAF')})
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="bg-orange-50 border border-orange-200 rounded-md p-3 text-sm text-orange-800">
+                      <p>
+                        💰 Retrait: Le compte du client sera débité et votre compte sera crédité
                       </p>
-                      <p className="text-green-700 text-sm">
-                        Solde: {formatCurrency(clientData.balance || 0, 'XAF')}
-                      </p>
                     </div>
-                  )}
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="amount">Montant du dépôt (XAF)</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    placeholder="Entrez le montant"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    required
-                    className="h-12 text-lg"
-                    disabled={!clientData}
-                  />
-                  {isAmountExceedsBalance && (
-                    <p className="text-red-600 text-sm">
-                      Le montant dépasse votre solde agent ({formatCurrency(agentBalance, 'XAF')})
-                    </p>
-                  )}
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-sm text-blue-800">
-                  <p>
-                    💰 Dépôt: Votre compte sera débité et le compte du client sera crédité
-                  </p>
-                </div>
-
-                <Button 
-                  type="submit" 
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4 h-12 text-lg"
-                  disabled={isProcessing || isAmountExceedsBalance || agentBalance <= 0 || !clientData}
-                >
-                  {isProcessing ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      <span>Traitement...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center">
-                      <Banknote className="mr-2 h-5 w-5" />
-                      <span>Effectuer le dépôt</span>
-                    </div>
-                  )}
-                </Button>
-              </form>
-            )}
-          </CardContent>
-        </Card>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-orange-600 hover:bg-orange-700 mt-4 h-12 text-lg"
+                      disabled={isProcessing || isWithdrawalAmountExceedsBalance || !clientData}
+                    >
+                      {isProcessing ? (
+                        <div className="flex items-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          <span>Traitement...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center">
+                          <Banknote className="mr-2 h-5 w-5" />
+                          <span>Effectuer le retrait</span>
+                        </div>
+                      )}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
     </div>
   );
