@@ -69,6 +69,85 @@ const DepositForm = () => {
     fetchAgentProfile();
   }, [user]);
 
+  // Fonction pour récupérer le solde exact depuis la table profiles par numéro de téléphone
+  const getExactBalanceByPhone = async (phoneNumber: string) => {
+    try {
+      console.log("🔍 Récupération du solde exact par numéro:", phoneNumber);
+      
+      // Normaliser le numéro de téléphone
+      const normalizedPhone = phoneNumber.replace(/\s/g, '');
+      
+      // Construire différentes variantes du numéro pour la recherche
+      const phoneVariants = [
+        phoneNumber,
+        normalizedPhone,
+        normalizedPhone.startsWith('+') ? normalizedPhone : `${countryCode}${normalizedPhone.startsWith('0') ? normalizedPhone.substring(1) : normalizedPhone}`,
+        normalizedPhone.startsWith('0') ? normalizedPhone.substring(1) : normalizedPhone
+      ];
+      
+      console.log("🔍 Variantes de numéros à rechercher:", phoneVariants);
+      
+      // Rechercher dans la table profiles avec toutes les variantes
+      for (const variant of phoneVariants) {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('id, balance, full_name, phone')
+          .eq('phone', variant)
+          .maybeSingle();
+        
+        if (!error && profile) {
+          const exactBalance = Number(profile.balance) || 0;
+          console.log("✅ Profil trouvé avec le numéro:", variant);
+          console.log("💰 Solde exact récupéré:", exactBalance, "FCFA");
+          
+          return {
+            userId: profile.id,
+            balance: exactBalance,
+            fullName: profile.full_name || '',
+            foundPhone: profile.phone
+          };
+        }
+      }
+      
+      // Si aucune correspondance directe, rechercher par les derniers 8 chiffres
+      const lastDigits = normalizedPhone.replace(/\D/g, '').slice(-8);
+      if (lastDigits.length >= 8) {
+        console.log("🔍 Recherche par les 8 derniers chiffres:", lastDigits);
+        
+        const { data: allProfiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, balance, full_name, phone');
+        
+        if (!profilesError && allProfiles) {
+          for (const profile of allProfiles) {
+            if (profile.phone) {
+              const profileLastDigits = profile.phone.replace(/\D/g, '').slice(-8);
+              if (profileLastDigits === lastDigits) {
+                const exactBalance = Number(profile.balance) || 0;
+                console.log("✅ Profil trouvé par les 8 derniers chiffres");
+                console.log("💰 Solde exact récupéré:", exactBalance, "FCFA");
+                
+                return {
+                  userId: profile.id,
+                  balance: exactBalance,
+                  fullName: profile.full_name || '',
+                  foundPhone: profile.phone
+                };
+              }
+            }
+          }
+        }
+      }
+      
+      console.log("❌ Aucun profil trouvé avec ce numéro dans la table profiles");
+      return null;
+      
+    } catch (error) {
+      console.error("❌ Erreur lors de la récupération du solde par téléphone:", error);
+      return null;
+    }
+  };
+
   // Fonction pour récupérer le solde réel via RPC uniquement
   const getRealUserBalance = async (userId: string) => {
     try {
@@ -145,15 +224,27 @@ const DepositForm = () => {
         setRecipientId(result.recipientData.userId);
         setRecipientVerified(true);
         
-        // Récupérer le solde réel via RPC uniquement
-        const actualBalance = await getRealUserBalance(result.recipientData.userId);
-        setRecipientBalance(actualBalance);
+        // Récupérer le solde exact depuis la table profiles par numéro de téléphone
+        const profileData = await getExactBalanceByPhone(fullPhone);
         
-        // Afficher un toast avec les informations complètes
-        toast({
-          title: "Utilisateur trouvé",
-          description: `${result.recipientData.fullName} - Solde exact: ${actualBalance} FCFA`
-        });
+        if (profileData) {
+          setRecipientBalance(profileData.balance);
+          
+          // Afficher un toast avec les informations complètes
+          toast({
+            title: "Utilisateur trouvé",
+            description: `${profileData.fullName || result.recipientData.fullName} - Solde exact: ${profileData.balance} FCFA`
+          });
+        } else {
+          // Fallback: utiliser le solde de la vérification
+          const actualBalance = await getRealUserBalance(result.recipientData.userId);
+          setRecipientBalance(actualBalance);
+          
+          toast({
+            title: "Utilisateur trouvé",
+            description: `${result.recipientData.fullName} - Solde: ${actualBalance} FCFA`
+          });
+        }
         return;
       } else {
         toast({
