@@ -6,19 +6,39 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { calculateFee } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 type TransferDetailsProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
 };
 
 const TransferDetails = ({ transfer, recipient, updateFields }: TransferDetailsProps) => {
-  // Get current user's role from context
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   
+  // Récupérer le profil de l'utilisateur pour connaître son pays
+  const { data: userProfile } = useQuery({
+    queryKey: ['userProfile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('country')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const userCountry = userProfile?.country || "Cameroun";
+  
   // Pour les agents, restreindre aux transferts internationaux uniquement
   useEffect(() => {
-    if (userRole === 'agent' && recipient.country && recipient.country === "Cameroun") {
+    if (userRole === 'agent' && recipient.country && recipient.country === userCountry) {
       toast({
         title: "Transfert non autorisé",
         description: "En tant qu'agent, vous ne pouvez effectuer que des transferts internationaux",
@@ -29,12 +49,12 @@ const TransferDetails = ({ transfer, recipient, updateFields }: TransferDetailsP
         recipient: { ...recipient, country: "" }
       });
     }
-  }, [recipient.country, userRole]);
+  }, [recipient.country, userRole, userCountry]);
   
-  // Calculate fees using the updated function with new rates
+  // Calculer les frais automatiquement en utilisant le pays de l'utilisateur
   const { fee: fees, rate: feeRate } = calculateFee(
     transfer.amount, 
-    "Cameroun", // Pays d'envoi par défaut (peut être dynamique selon le profil)
+    userCountry,
     recipient.country, 
     userRole || 'user'
   );
@@ -42,7 +62,7 @@ const TransferDetails = ({ transfer, recipient, updateFields }: TransferDetailsP
   const total = transfer.amount + fees;
   
   // Déterminer si c'est un transfert national ou international
-  const isNational = "Cameroun" === recipient.country;
+  const isNational = userCountry === recipient.country;
   const transferType = isNational ? "national" : "international";
   const feePercentageDisplay = `${feeRate}% (${transferType})`;
 
@@ -67,7 +87,7 @@ const TransferDetails = ({ transfer, recipient, updateFields }: TransferDetailsP
         />
       </div>
 
-      {transfer.amount > 0 && (
+      {transfer.amount > 0 && recipient.country && (
         <div className="mt-6 p-6 bg-primary/5 rounded-xl space-y-3 border border-primary/10">
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Montant du transfert :</span>
@@ -89,6 +109,11 @@ const TransferDetails = ({ transfer, recipient, updateFields }: TransferDetailsP
               {total.toLocaleString('fr-FR')} {transfer.currency}
             </span>
           </div>
+          {isNational && (
+            <div className="text-sm text-emerald-600 bg-emerald-50 p-2 rounded">
+              💰 Transfert national - Taux préférentiel de 2,5%
+            </div>
+          )}
         </div>
       )}
     </div>

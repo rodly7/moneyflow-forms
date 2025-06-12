@@ -158,7 +158,7 @@ export const useTransferForm = () => {
           return;
         }
 
-        // Get user's country from profile
+        // Récupérer le pays de l'utilisateur depuis son profil
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('balance, country')
@@ -175,7 +175,7 @@ export const useTransferForm = () => {
           return;
         }
 
-        // Appliquer les nouveaux taux de frais selon si le transfert est national ou international
+        // Utiliser le pays de l'utilisateur pour calculer les frais
         const userCountry = profileData.country || "Cameroun";
         const { fee: fees, rate, agentCommission, moneyFlowCommission } = calculateFee(
           data.transfer.amount, 

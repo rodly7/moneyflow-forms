@@ -3,26 +3,46 @@ import { Card } from "@/components/ui/card";
 import { TransferData } from "@/types/transfer";
 import { useAuth } from "@/contexts/AuthContext";
 import { calculateFee } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 type TransferSummaryProps = TransferData & {
   updateFields: (fields: Partial<TransferData>) => void;
 };
 
 const TransferSummary = ({ recipient, transfer }: TransferSummaryProps) => {
-  // Get current user's role from context
   const { user, userRole } = useAuth();
   
-  // Calculate fees using the new function with updated rates
+  // Récupérer le profil de l'utilisateur pour connaître son pays
+  const { data: userProfile } = useQuery({
+    queryKey: ['userProfile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('country')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const userCountry = userProfile?.country || "Cameroun";
+  
+  // Calculer les frais en utilisant le pays de l'utilisateur
   const { fee: fees, rate: feeRate } = calculateFee(
     transfer.amount, 
-    "Cameroun", // Pays d'envoi par défaut (peut être dynamique selon le profil)
+    userCountry,
     recipient.country, 
     userRole || 'user'
   );
   const total = transfer.amount + fees;
 
   // Déterminer si c'est un transfert national ou international
-  const isNational = "Cameroun" === recipient.country;
+  const isNational = userCountry === recipient.country;
   const transferType = isNational ? "national" : "international";
   const feePercentageDisplay = `${feeRate}% (${transferType})`;
 
@@ -66,6 +86,11 @@ const TransferSummary = ({ recipient, transfer }: TransferSummaryProps) => {
               {total.toLocaleString('fr-FR')} {transfer.currency}
             </span>
           </div>
+          {isNational && (
+            <div className="text-sm text-emerald-600 bg-emerald-50 p-3 rounded-lg mt-4">
+              💰 Transfert national - Vous bénéficiez du taux préférentiel de 2,5%
+            </div>
+          )}
         </Card>
       </div>
     </div>
