@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,12 +19,12 @@ const DepositForm = () => {
     recipientPhone: "",
     amount: ""
   });
-  const [countryCode, setCountryCode] = useState("+237"); // Default to Cameroon
+  const [countryCode, setCountryCode] = useState("+237");
   const [recipientName, setRecipientName] = useState("");
   const [recipientId, setRecipientId] = useState("");
+  const [recipientBalance, setRecipientBalance] = useState<number | null>(null);
   const [verificationAttempted, setVerificationAttempted] = useState(false);
 
-  // Use the useRecipientVerification hook for user lookup
   const {
     isLoading: isVerifying,
     recipientVerified: isVerified,
@@ -44,7 +43,6 @@ const DepositForm = () => {
           .single();
         
         if (!error && data?.country) {
-          // Map country to country code
           const countryToCodes: Record<string, string> = {
             "Cameroun": "+237",
             "Cameroon": "+237",
@@ -85,11 +83,11 @@ const DepositForm = () => {
       ...prev,
       recipientPhone: value
     }));
-    // Reset verification if phone changes
     if (isVerified || verificationAttempted) {
       setRecipientVerified(false);
       setRecipientName("");
       setRecipientId("");
+      setRecipientBalance(null);
       setVerificationAttempted(false);
     }
   };
@@ -111,45 +109,40 @@ const DepositForm = () => {
       const result = await verifyRecipient(fullPhone, countryCode, {
         fullName: "",
         email: fullPhone,
-        country: "" // We'll get this from the profile if it exists
+        country: ""
       });
       
       if (result.verified && result.recipientData) {
         console.log("Verification result:", result);
         setRecipientName(result.recipientData.fullName);
+        setRecipientBalance(result.recipientData.balance || null);
         
-        // Use the userId from recipientData if available
         if (result.recipientData.userId) {
           setRecipientId(result.recipientData.userId);
           setRecipientVerified(true);
-          toast({
-            title: "Utilisateur trouvé",
-            description: `${result.recipientData.fullName} a été trouvé dans la base de données`
-          });
           return;
         }
         
-        // Search directly by phone number
         const { data: profileByPhone } = await supabase
           .from('profiles')
-          .select('id, full_name')
+          .select('id, full_name, balance')
           .eq('phone', fullPhone)
           .single();
         
         if (profileByPhone) {
           setRecipientId(profileByPhone.id);
           setRecipientName(profileByPhone.full_name || result.recipientData.fullName);
+          setRecipientBalance(profileByPhone.balance || 0);
           setRecipientVerified(true);
           return;
         }
         
-        // Search by last 8 digits
         const lastDigits = fullPhone.replace(/\D/g, '').slice(-8);
         
         if (lastDigits.length >= 8) {
           const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, phone, full_name');
+            .select('id, phone, full_name, balance');
           
           if (profiles) {
             for (const profile of profiles) {
@@ -158,10 +151,11 @@ const DepositForm = () => {
                 if (profileLastDigits === lastDigits) {
                   setRecipientId(profile.id);
                   setRecipientName(profile.full_name || result.recipientData.fullName);
+                  setRecipientBalance(profile.balance || 0);
                   setRecipientVerified(true);
                   toast({
                     title: "Utilisateur trouvé",
-                    description: `${profile.full_name || "Utilisateur"} a été trouvé dans la base de données`
+                    description: `${profile.full_name || "Utilisateur"} - Solde: ${profile.balance || 0} FCFA`
                   });
                   return;
                 }
@@ -170,7 +164,6 @@ const DepositForm = () => {
           }
         }
         
-        // User not found
         toast({
           title: "Utilisateur non trouvé",
           description: "Ce numéro n'existe pas dans notre base de données",
@@ -178,7 +171,6 @@ const DepositForm = () => {
         });
         
       } else {
-        // User not found
         toast({
           title: "Utilisateur non trouvé",
           description: "Ce numéro n'existe pas dans notre base de données",
@@ -195,6 +187,7 @@ const DepositForm = () => {
       setRecipientVerified(false);
       setRecipientName("");
       setRecipientId("");
+      setRecipientBalance(null);
     }
   };
 
@@ -222,7 +215,6 @@ const DepositForm = () => {
       return;
     }
 
-    // Basic validation
     if (!formData.recipientPhone || !formData.amount || !recipientId) {
       toast({
         title: "Formulaire incomplet",
@@ -232,7 +224,6 @@ const DepositForm = () => {
       return;
     }
 
-    // Convert amount to number
     const amount = parseFloat(formData.amount);
     if (isNaN(amount) || amount <= 0) {
       toast({
@@ -249,7 +240,6 @@ const DepositForm = () => {
       : `${countryCode}${formData.recipientPhone.startsWith('0') ? formData.recipientPhone.substring(1) : formData.recipientPhone}`;
 
     try {
-      // Check if agent has enough balance
       const { data: agentProfile, error: agentProfileError } = await supabase
         .from('profiles')
         .select('balance, country')
@@ -264,30 +254,24 @@ const DepositForm = () => {
         throw new Error("Solde insuffisant pour effectuer ce dépôt");
       }
 
-      // Calculate agent commission (0.5%)
       const agentCommission = amount * 0.005;
-      
-      // Generate a unique transaction reference
       const transactionReference = `DEP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-      // 1. Deduct amount from agent's account
       const { error: deductError } = await supabase.rpc('increment_balance', {
         user_id: user.id,
-        amount: -(amount)  // Deduct the total amount
+        amount: -(amount)
       });
 
       if (deductError) {
         throw new Error("Erreur lors de la déduction du montant de votre compte");
       }
 
-      // 2. Add amount to recipient's account
       const { error: creditError } = await supabase.rpc('increment_balance', {
         user_id: recipientId,
         amount: amount
       });
 
       if (creditError) {
-        // Rollback the deduction if credit fails
         await supabase.rpc('increment_balance', {
           user_id: user.id,
           amount: amount
@@ -295,7 +279,6 @@ const DepositForm = () => {
         throw new Error("Erreur lors du crédit du compte de l'utilisateur");
       }
       
-      // 3. Credit commission back to agent
       const { error: commissionError } = await supabase.rpc('increment_balance', {
         user_id: user.id,
         amount: agentCommission
@@ -303,10 +286,8 @@ const DepositForm = () => {
       
       if (commissionError) {
         console.error("Erreur lors du crédit de la commission à l'agent:", commissionError);
-        // Continue even if this fails to avoid blocking the transaction
       }
 
-      // 4. Record the transaction in the recharges table
       const { error: transactionError } = await supabase
         .from('recharges')
         .insert({
@@ -323,16 +304,13 @@ const DepositForm = () => {
 
       if (transactionError) {
         console.error('Erreur transaction:', transactionError);
-        // Don't cancel transaction if recording fails
       }
 
-      // Success notification
       toast({
         title: "Dépôt effectué avec succès",
         description: `Le compte de ${recipientName} a été crédité de ${amount} FCFA. Votre commission: ${agentCommission.toFixed(0)} FCFA`,
       });
 
-      // Reset form
       setFormData({
         recipientPhone: "",
         amount: ""
@@ -340,8 +318,8 @@ const DepositForm = () => {
       setRecipientVerified(false);
       setRecipientName("");
       setRecipientId("");
+      setRecipientBalance(null);
 
-      // Redirect to home
       navigate('/');
     } catch (error) {
       console.error('Erreur lors du dépôt:', error);
@@ -383,6 +361,14 @@ const DepositForm = () => {
                 label="Numéro de téléphone de l'utilisateur"
                 onBlurComplete={handleVerifyRecipient}
               />
+
+              {isVerified && recipientBalance !== null && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-700">
+                    <strong>Solde actuel:</strong> {recipientBalance} FCFA
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Input

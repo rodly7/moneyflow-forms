@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -8,6 +7,7 @@ export type RecipientData = {
   fullName: string;
   country: string;
   userId?: string;
+  balance?: number;
 };
 
 export const useRecipientVerification = () => {
@@ -284,7 +284,7 @@ export const useRecipientVerification = () => {
         try {
           const { data, error: profilesError } = await supabase
             .from('profiles')
-            .select('id, full_name, country, phone')
+            .select('id, full_name, country, phone, balance')
             .order('created_at', { ascending: false });
           
           if (!profilesError && data) {
@@ -304,6 +304,7 @@ export const useRecipientVerification = () => {
               if (phoneNumbersMatch(profile.phone, formattedPhone, countryCode)) {
                 console.log("✓ Correspondance trouvée dans profiles:", profile.phone);
                 console.log("ID utilisateur trouvé directement dans profiles:", profile.id);
+                console.log("Solde de l'utilisateur:", profile.balance);
                 
                 const finalResult = {
                   verified: true,
@@ -311,13 +312,14 @@ export const useRecipientVerification = () => {
                     email: profile.phone,
                     fullName: profile.full_name || `Utilisateur ${profile.phone}`,
                     country: profile.country || recipient.country,
-                    userId: profile.id
+                    userId: profile.id,
+                    balance: profile.balance || 0
                   }
                 };
                 
                 toast({
                   title: "Bénéficiaire trouvé",
-                  description: finalResult.recipientData.fullName,
+                  description: `${finalResult.recipientData.fullName} - Solde: ${finalResult.recipientData.balance} FCFA`,
                 });
                 
                 setRecipientVerified(true);
@@ -365,7 +367,9 @@ export const useRecipientVerification = () => {
                   console.log("Nom trouvé dans les métadonnées:", displayName);
                   console.log("ID utilisateur trouvé dans auth_users_view:", user.id);
                   
-                  // Créer un profil s'il n'existe pas déjà
+                  // Récupérer le solde de l'utilisateur
+                  const balanceData = await getUserBalance(user.id);
+                  
                   try {
                     const { error: profileCreateError } = await supabase
                       .from('profiles')
@@ -374,7 +378,7 @@ export const useRecipientVerification = () => {
                         phone: userPhone,
                         full_name: displayName,
                         country: metadata.country || recipient.country || 'Congo Brazzaville',
-                        balance: 0
+                        balance: balanceData.balance
                       }, {
                         onConflict: 'id'
                       });
@@ -392,13 +396,14 @@ export const useRecipientVerification = () => {
                       email: userPhone,
                       fullName: displayName,
                       country: metadata.country || recipient.country,
-                      userId: user.id
+                      userId: user.id,
+                      balance: balanceData.balance
                     }
                   };
                   
                   toast({
                     title: "Bénéficiaire trouvé",
-                    description: finalResult.recipientData.fullName,
+                    description: `${finalResult.recipientData.fullName} - Solde: ${finalResult.recipientData.balance} FCFA`,
                   });
                   
                   setRecipientVerified(true);
@@ -420,6 +425,7 @@ export const useRecipientVerification = () => {
               const profileLastDigits = normalizePhoneNumber(profile.phone).slice(-8);
               if (profileLastDigits === lastDigits) {
                 console.log("✓ Correspondance trouvée par les 8 derniers chiffres:", profile.id);
+                console.log("Solde de l'utilisateur:", profile.balance);
                 
                 const finalResult = {
                   verified: true,
@@ -427,13 +433,14 @@ export const useRecipientVerification = () => {
                     email: profile.phone,
                     fullName: profile.full_name || `Utilisateur ${profile.phone}`,
                     country: profile.country || recipient.country,
-                    userId: profile.id
+                    userId: profile.id,
+                    balance: profile.balance || 0
                   }
                 };
                 
                 toast({
                   title: "Bénéficiaire trouvé",
-                  description: finalResult.recipientData.fullName,
+                  description: `${finalResult.recipientData.fullName} - Solde: ${finalResult.recipientData.balance} FCFA`,
                 });
                 
                 setRecipientVerified(true);
