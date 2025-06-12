@@ -31,7 +31,7 @@ const AgentWithdrawal = () => {
           <CardContent>
             <div className="text-center py-8">
               <p className="text-gray-600 mb-4">
-                Les services de retrait agent ne sont pas disponibles pour le moment.
+                Les services agent ne sont pas disponibles pour le moment.
               </p>
               <p className="text-sm text-gray-500">
                 Veuillez contacter l'administration pour plus d'informations.
