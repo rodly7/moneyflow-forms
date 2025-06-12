@@ -27,15 +27,15 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
         </span>
       </Button>
       
-      {/* Services Agent - Only for agents */}
+      {/* Services Agent - Only for agents - Made larger */}
       {isAgent() && (
         <Button 
           variant="outline" 
-          className="flex flex-col items-center justify-center h-20 bg-white"
+          className="flex flex-col items-center justify-center h-24 bg-white col-span-2"
           onClick={() => window.location.href = '/deposit'}
         >
-          <PiggyBank className="h-5 w-5 mb-1" />
-          <span className="text-xs font-medium">Services Agent</span>
+          <PiggyBank className="h-6 w-6 mb-2" />
+          <span className="text-sm font-medium">Services Agent</span>
         </Button>
       )}
       
