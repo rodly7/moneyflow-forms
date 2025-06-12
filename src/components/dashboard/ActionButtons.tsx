@@ -27,7 +27,7 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
         </span>
       </Button>
       
-      {/* Deposit - Only for agents */}
+      {/* Services Agent - Only for agents */}
       {isAgent() && (
         <Button 
           variant="outline" 
@@ -35,7 +35,7 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
           onClick={() => window.location.href = '/deposit'}
         >
           <PiggyBank className="h-5 w-5 mb-1" />
-          <span className="text-xs font-medium">Dépôt</span>
+          <span className="text-xs font-medium">Services Agent</span>
         </Button>
       )}
       
@@ -51,15 +51,17 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
         </Button>
       )}
       
-      {/* Withdraw - For all users */}
-      <Button 
-        variant="outline" 
-        className="flex flex-col items-center justify-center h-20 bg-white"
-        onClick={() => window.location.href = '/withdraw'}
-      >
-        <UserMinus className="h-5 w-5 mb-1" />
-        <span className="text-xs font-medium">Retrait</span>
-      </Button>
+      {/* Withdraw - Only for regular users (removed for agents) */}
+      {!isAgent() && (
+        <Button 
+          variant="outline" 
+          className="flex flex-col items-center justify-center h-20 bg-white"
+          onClick={() => window.location.href = '/withdraw'}
+        >
+          <UserMinus className="h-5 w-5 mb-1" />
+          <span className="text-xs font-medium">Retrait</span>
+        </Button>
+      )}
       
       {/* Bill Payments - For all users */}
       <Link to="/bill-payments" className="contents">
