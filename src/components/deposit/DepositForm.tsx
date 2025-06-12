@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -109,14 +108,14 @@ const DepositForm = () => {
       ? formData.recipientPhone 
       : `${countryCode}${formData.recipientPhone.startsWith('0') ? formData.recipientPhone.substring(1) : formData.recipientPhone}`;
     
-    console.log("🔍 Recherche directe du solde pour:", fullPhone);
+    console.log("🔍 Vérification du destinataire pour:", fullPhone);
     
     try {
       // Récupérer le solde réel directement depuis la table profiles
       const balanceResult = await getUserRealBalance(fullPhone);
       
       if (balanceResult.userId) {
-        console.log("✅ Utilisateur trouvé avec solde:", balanceResult.balance);
+        console.log("✅ Utilisateur trouvé:", balanceResult);
         setRecipientName(balanceResult.fullName);
         setRecipientId(balanceResult.userId);
         setRecipientBalance(balanceResult.balance);
@@ -124,7 +123,7 @@ const DepositForm = () => {
         
         toast({
           title: "Utilisateur trouvé",
-          description: `${balanceResult.fullName} - Solde exact: ${balanceResult.balance} FCFA`
+          description: `${balanceResult.fullName} - Solde: ${balanceResult.balance} FCFA`
         });
         return;
       }
@@ -137,34 +136,20 @@ const DepositForm = () => {
       });
       
       if (result.verified && result.recipientData && result.recipientData.userId) {
-        console.log("✅ Utilisateur trouvé via vérification classique:", result);
+        console.log("✅ Utilisateur trouvé via vérification classique");
         setRecipientName(result.recipientData.fullName);
         setRecipientId(result.recipientData.userId);
         setRecipientVerified(true);
         
-        // Récupérer le solde réel depuis la table profiles
-        const profileResult = await getUserRealBalance(fullPhone);
-        if (profileResult.userId) {
-          setRecipientBalance(profileResult.balance);
-          toast({
-            title: "Utilisateur trouvé",
-            description: `${result.recipientData.fullName} - Solde exact: ${profileResult.balance} FCFA`
-          });
-        } else {
-          // Fallback : récupérer ou créer le profil avec le solde réel
-          const profileData = await getOrCreateUserProfile(result.recipientData.userId, {
-            phone: fullPhone,
-            full_name: result.recipientData.fullName,
-            country: result.recipientData.country || "Congo Brazzaville",
-            address: ""
-          });
-          
-          setRecipientBalance(profileData.balance);
-          toast({
-            title: "Utilisateur trouvé",
-            description: `${profileData.fullName} - Solde exact: ${profileData.balance} FCFA`
-          });
-        }
+        // Récupérer le solde réel avec la nouvelle méthode
+        const updatedBalanceResult = await getUserRealBalance(fullPhone);
+        const finalBalance = updatedBalanceResult.userId ? updatedBalanceResult.balance : (result.recipientData.balance || 0);
+        
+        setRecipientBalance(finalBalance);
+        toast({
+          title: "Utilisateur trouvé",
+          description: `${result.recipientData.fullName} - Solde: ${finalBalance} FCFA`
+        });
         return;
       }
       

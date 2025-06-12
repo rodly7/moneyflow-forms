@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export const useBalanceOperations = () => {
@@ -23,12 +24,27 @@ export const useBalanceOperations = () => {
       }
       
       if (profileData) {
-        const realBalance = Number(profileData.balance) || 0;
-        console.log("✅ Solde trouvé dans profiles:", realBalance, "FCFA pour", profileData.full_name);
+        // Utiliser la fonction RPC pour récupérer le solde le plus à jour
+        const { data: rpcBalance, error: rpcError } = await supabase.rpc('increment_balance', {
+          user_id: profileData.id,
+          amount: 0
+        });
+        
+        const actualBalance = rpcError ? Number(profileData.balance) || 0 : Number(rpcBalance) || 0;
+        console.log("✅ Solde exact récupéré:", actualBalance, "FCFA pour", profileData.full_name);
+        
+        // Mettre à jour le profil avec le solde RPC si différent
+        if (!rpcError && Number(profileData.balance) !== actualBalance) {
+          await supabase
+            .from('profiles')
+            .update({ balance: actualBalance })
+            .eq('id', profileData.id);
+          console.log("🔄 Solde mis à jour dans le profil");
+        }
         
         return {
           userId: profileData.id,
-          balance: realBalance,
+          balance: actualBalance,
           fullName: profileData.full_name || 'Utilisateur',
           foundPhone: profileData.phone
         };
