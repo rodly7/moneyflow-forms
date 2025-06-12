@@ -10,7 +10,7 @@ const RecipientVerificationDisplay = ({
   recipientName, 
   recipientBalance 
 }: RecipientVerificationDisplayProps) => {
-  if (!isVerified || recipientBalance === null) {
+  if (!isVerified) {
     return null;
   }
 
@@ -21,7 +21,7 @@ const RecipientVerificationDisplay = ({
           <strong>Nom:</strong> {recipientName}
         </p>
         <p className="text-lg font-semibold text-green-800">
-          <strong>Solde exact:</strong> {recipientBalance} FCFA
+          <strong>Solde exact:</strong> {recipientBalance ?? 0} FCFA
         </p>
       </div>
     </div>
