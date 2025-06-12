@@ -69,61 +69,28 @@ const DepositForm = () => {
     fetchAgentProfile();
   }, [user]);
 
-  // Fonction pour créer un profil s'il n'existe pas et récupérer le solde
-  const ensureProfileAndGetBalance = async (userId: string, userPhone: string, userFullName: string, userCountry: string = "Congo Brazzaville") => {
+  // Fonction pour récupérer le solde réel via RPC uniquement
+  const getRealUserBalance = async (userId: string) => {
     try {
-      console.log("🔄 Vérification/création du profil et récupération du solde pour:", userId);
+      console.log("🔄 Récupération du solde réel via RPC pour:", userId);
       
-      // D'abord, vérifier si le profil existe
-      const { data: existingProfile, error: checkError } = await supabase
-        .from('profiles')
-        .select('balance, full_name')
-        .eq('id', userId)
-        .maybeSingle();
+      // Utiliser la fonction RPC increment_balance avec un montant de 0 pour obtenir le solde actuel
+      const { data: currentBalance, error: rpcError } = await supabase.rpc('increment_balance', {
+        user_id: userId,
+        amount: 0
+      });
       
-      if (checkError) {
-        console.error("❌ Erreur lors de la vérification du profil:", checkError);
+      if (rpcError) {
+        console.error("❌ Erreur RPC lors de la récupération du solde:", rpcError);
+        return 0;
       }
       
-      if (!existingProfile) {
-        console.log("📝 Profil inexistant, tentative de création...");
-        
-        // Essayer de créer le profil avec les informations disponibles
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert({
-            id: userId,
-            phone: userPhone,
-            full_name: userFullName,
-            country: userCountry,
-            balance: 0
-          });
-        
-        if (insertError) {
-          console.log("⚠️ Impossible de créer le profil (probablement RLS):", insertError.message);
-          // Si on ne peut pas créer le profil, utiliser la fonction RPC pour obtenir le solde
-          const { data: rpcBalance, error: rpcError } = await supabase.rpc('increment_balance', {
-            user_id: userId,
-            amount: 0
-          });
-          
-          if (!rpcError) {
-            console.log("✅ Solde récupéré via RPC:", rpcBalance);
-            return rpcBalance || 0;
-          }
-        } else {
-          console.log("✅ Profil créé avec succès");
-          return 0; // Nouveau profil = solde 0
-        }
-      }
-      
-      // Si le profil existe ou a été créé, récupérer le solde
-      const actualBalance = Number(existingProfile?.balance) || 0;
-      console.log("💰 Solde final récupéré:", actualBalance);
+      const actualBalance = Number(currentBalance) || 0;
+      console.log("✅ Solde réel récupéré via RPC:", actualBalance);
       return actualBalance;
       
     } catch (error) {
-      console.error("❌ Erreur générale:", error);
+      console.error("❌ Erreur générale lors de la récupération du solde:", error);
       return 0;
     }
   };
@@ -178,14 +145,8 @@ const DepositForm = () => {
         setRecipientId(result.recipientData.userId);
         setRecipientVerified(true);
         
-        // Utiliser la nouvelle fonction pour s'assurer que le profil existe et récupérer le solde
-        const actualBalance = await ensureProfileAndGetBalance(
-          result.recipientData.userId,
-          fullPhone,
-          result.recipientData.fullName,
-          result.recipientData.country
-        );
-        
+        // Récupérer le solde réel via RPC uniquement
+        const actualBalance = await getRealUserBalance(result.recipientData.userId);
         setRecipientBalance(actualBalance);
         
         // Afficher un toast avec les informations complètes
