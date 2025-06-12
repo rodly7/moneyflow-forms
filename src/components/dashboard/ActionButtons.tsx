@@ -23,9 +23,20 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
       >
         <ArrowUpRight className="h-5 w-5 mb-1" />
         <span className="text-xs font-medium">
-          {isAgent() ? "Transfert International" : "Transfert"}
+          Transfert
         </span>
       </Button>
+      
+      {/* Bill Payments - For all users - Moved up to same row */}
+      <Link to="/bill-payments" className="contents">
+        <Button 
+          variant="outline" 
+          className="flex flex-col items-center justify-center h-20 bg-white"
+        >
+          <Receipt className="h-5 w-5 mb-1" />
+          <span className="text-xs font-medium">Factures</span>
+        </Button>
+      </Link>
       
       {/* Services Agent - Only for agents - Made larger */}
       {isAgent() && (
@@ -62,17 +73,6 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
           <span className="text-xs font-medium">Retrait</span>
         </Button>
       )}
-      
-      {/* Bill Payments - For all users */}
-      <Link to="/bill-payments" className="contents">
-        <Button 
-          variant="outline" 
-          className="flex flex-col items-center justify-center h-20 bg-white"
-        >
-          <Receipt className="h-5 w-5 mb-1" />
-          <span className="text-xs font-medium">Factures</span>
-        </Button>
-      </Link>
     </div>
   );
 };
