@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -115,67 +116,29 @@ const DepositForm = () => {
       if (result.verified && result.recipientData) {
         console.log("Verification result:", result);
         setRecipientName(result.recipientData.fullName);
-        setRecipientBalance(result.recipientData.balance || null);
+        setRecipientBalance(result.recipientData.balance || 0);
         
         if (result.recipientData.userId) {
           setRecipientId(result.recipientData.userId);
           setRecipientVerified(true);
-          return;
-        }
-        
-        const { data: profileByPhone } = await supabase
-          .from('profiles')
-          .select('id, full_name, balance')
-          .eq('phone', fullPhone)
-          .single();
-        
-        if (profileByPhone) {
-          setRecipientId(profileByPhone.id);
-          setRecipientName(profileByPhone.full_name || result.recipientData.fullName);
-          setRecipientBalance(profileByPhone.balance || 0);
-          setRecipientVerified(true);
-          return;
-        }
-        
-        const lastDigits = fullPhone.replace(/\D/g, '').slice(-8);
-        
-        if (lastDigits.length >= 8) {
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, phone, full_name, balance');
           
-          if (profiles) {
-            for (const profile of profiles) {
-              if (profile.phone) {
-                const profileLastDigits = profile.phone.replace(/\D/g, '').slice(-8);
-                if (profileLastDigits === lastDigits) {
-                  setRecipientId(profile.id);
-                  setRecipientName(profile.full_name || result.recipientData.fullName);
-                  setRecipientBalance(profile.balance || 0);
-                  setRecipientVerified(true);
-                  toast({
-                    title: "Utilisateur trouvé",
-                    description: `${profile.full_name || "Utilisateur"} - Solde: ${profile.balance || 0} FCFA`
-                  });
-                  return;
-                }
-              }
-            }
-          }
+          // Afficher un toast avec les informations complètes
+          toast({
+            title: "Utilisateur trouvé",
+            description: `${result.recipientData.fullName} - Solde exact: ${result.recipientData.balance || 0} FCFA`
+          });
+          return;
         }
-        
-        toast({
-          title: "Utilisateur non trouvé",
-          description: "Ce numéro n'existe pas dans notre base de données",
-          variant: "destructive"
-        });
-        
       } else {
         toast({
           title: "Utilisateur non trouvé",
           description: "Ce numéro n'existe pas dans notre base de données",
           variant: "destructive"
         });
+        setRecipientVerified(false);
+        setRecipientName("");
+        setRecipientId("");
+        setRecipientBalance(null);
       }
     } catch (err) {
       console.error("Error checking recipient:", err);
@@ -306,9 +269,12 @@ const DepositForm = () => {
         console.error('Erreur transaction:', transactionError);
       }
 
+      // Calculer le nouveau solde du destinataire
+      const newRecipientBalance = (recipientBalance || 0) + amount;
+
       toast({
         title: "Dépôt effectué avec succès",
-        description: `Le compte de ${recipientName} a été crédité de ${amount} FCFA. Votre commission: ${agentCommission.toFixed(0)} FCFA`,
+        description: `Le compte de ${recipientName} a été crédité de ${amount} FCFA. Nouveau solde: ${newRecipientBalance} FCFA. Votre commission: ${agentCommission.toFixed(0)} FCFA`,
       });
 
       setFormData({
@@ -363,10 +329,15 @@ const DepositForm = () => {
               />
 
               {isVerified && recipientBalance !== null && (
-                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-sm text-green-700">
-                    <strong>Solde actuel:</strong> {recipientBalance} FCFA
-                  </p>
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex flex-col space-y-2">
+                    <p className="text-sm text-green-700">
+                      <strong>Nom:</strong> {recipientName}
+                    </p>
+                    <p className="text-lg font-semibold text-green-800">
+                      <strong>Solde exact:</strong> {recipientBalance} FCFA
+                    </p>
+                  </div>
                 </div>
               )}
 

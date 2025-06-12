@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -190,29 +191,74 @@ export const useRecipientVerification = () => {
     return false;
   };
 
-  // Fonction pour vérifier le solde d'un utilisateur en toute sécurité
-  const getUserBalance = async (userId: string): Promise<{ balance: number }> => {
+  // Fonction pour récupérer le solde réel d'un utilisateur
+  const getUserBalance = async (userId: string): Promise<{ balance: number; fullName?: string; phone?: string; country?: string }> => {
     try {
       console.log("🔍 Recherche du solde pour l'utilisateur:", userId);
       
-      const { data: profile, error } = await supabase
+      // Première tentative : récupérer depuis la table profiles
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('balance')
+        .select('balance, full_name, phone, country')
         .eq('id', userId)
         .maybeSingle();
 
-      if (error) {
-        console.error("❌ Erreur lors de la récupération du profil:", error);
+      if (profileError) {
+        console.error("❌ Erreur lors de la récupération du profil:", profileError);
+      }
+
+      if (profile) {
+        const balance = Number(profile.balance) || 0;
+        console.log("✅ Solde récupéré depuis profiles:", balance);
+        return { 
+          balance, 
+          fullName: profile.full_name || '',
+          phone: profile.phone || '',
+          country: profile.country || ''
+        };
+      }
+
+      // Deuxième tentative : créer le profil s'il n'existe pas
+      console.log("ℹ️ Profil non trouvé dans profiles, création en cours...");
+      
+      // Récupérer les métadonnées utilisateur depuis auth_users_view
+      const { data: authUser, error: authError } = await supabase
+        .from('auth_users_view')
+        .select('raw_user_meta_data')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (authError || !authUser) {
+        console.error("❌ Erreur lors de la récupération des métadonnées:", authError);
         return { balance: 0 };
       }
 
-      if (!profile) {
-        console.log("ℹ️ Profil non trouvé, retour d'un solde de 0");
-        return { balance: 0 };
+      const metadata = authUser.raw_user_meta_data as any;
+      const userPhone = metadata?.phone || '';
+      const userFullName = extractNameFromMetadata(metadata) || 'Utilisateur';
+      const userCountry = metadata?.country || 'Congo Brazzaville';
+
+      // Créer le profil avec un solde par défaut
+      const { error: createError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          phone: userPhone,
+          full_name: userFullName,
+          country: userCountry,
+          balance: 0 // Solde par défaut
+        }, {
+          onConflict: 'id'
+        });
+
+      if (createError) {
+        console.error("❌ Erreur lors de la création du profil:", createError);
+        return { balance: 0, fullName: userFullName, phone: userPhone, country: userCountry };
       }
 
-      console.log("✅ Solde récupéré:", profile.balance);
-      return { balance: profile.balance || 0 };
+      console.log("✅ Profil créé avec succès");
+      return { balance: 0, fullName: userFullName, phone: userPhone, country: userCountry };
+
     } catch (error) {
       console.error("❌ Erreur lors de la récupération du solde:", error);
       return { balance: 0 };
@@ -304,22 +350,27 @@ export const useRecipientVerification = () => {
               if (phoneNumbersMatch(profile.phone, formattedPhone, countryCode)) {
                 console.log("✓ Correspondance trouvée dans profiles:", profile.phone);
                 console.log("ID utilisateur trouvé directement dans profiles:", profile.id);
-                console.log("Solde de l'utilisateur:", profile.balance);
+                
+                // Récupérer le solde exact
+                const balanceData = await getUserBalance(profile.id);
+                const actualBalance = balanceData.balance;
+                
+                console.log("Solde exact de l'utilisateur:", actualBalance);
                 
                 const finalResult = {
                   verified: true,
                   recipientData: {
                     email: profile.phone,
-                    fullName: profile.full_name || `Utilisateur ${profile.phone}`,
-                    country: profile.country || recipient.country,
+                    fullName: profile.full_name || balanceData.fullName || `Utilisateur ${profile.phone}`,
+                    country: profile.country || balanceData.country || recipient.country,
                     userId: profile.id,
-                    balance: profile.balance || 0
+                    balance: actualBalance
                   }
                 };
                 
                 toast({
                   title: "Bénéficiaire trouvé",
-                  description: `${finalResult.recipientData.fullName} - Solde: ${finalResult.recipientData.balance} FCFA`,
+                  description: `${finalResult.recipientData.fullName} - Solde: ${actualBalance} FCFA`,
                 });
                 
                 setRecipientVerified(true);
@@ -367,28 +418,8 @@ export const useRecipientVerification = () => {
                   console.log("Nom trouvé dans les métadonnées:", displayName);
                   console.log("ID utilisateur trouvé dans auth_users_view:", user.id);
                   
-                  // Récupérer le solde de l'utilisateur
+                  // Récupérer le solde de l'utilisateur et créer le profil si nécessaire
                   const balanceData = await getUserBalance(user.id);
-                  
-                  try {
-                    const { error: profileCreateError } = await supabase
-                      .from('profiles')
-                      .upsert({
-                        id: user.id,
-                        phone: userPhone,
-                        full_name: displayName,
-                        country: metadata.country || recipient.country || 'Congo Brazzaville',
-                        balance: balanceData.balance
-                      }, {
-                        onConflict: 'id'
-                      });
-                    
-                    if (profileCreateError) {
-                      console.log("Impossible de créer le profil, mais on continue:", profileCreateError);
-                    }
-                  } catch (error) {
-                    console.log("Erreur lors de la création du profil:", error);
-                  }
                   
                   const finalResult = {
                     verified: true,
@@ -403,7 +434,7 @@ export const useRecipientVerification = () => {
                   
                   toast({
                     title: "Bénéficiaire trouvé",
-                    description: `${finalResult.recipientData.fullName} - Solde: ${finalResult.recipientData.balance} FCFA`,
+                    description: `${finalResult.recipientData.fullName} - Solde: ${balanceData.balance} FCFA`,
                   });
                   
                   setRecipientVerified(true);
@@ -425,22 +456,27 @@ export const useRecipientVerification = () => {
               const profileLastDigits = normalizePhoneNumber(profile.phone).slice(-8);
               if (profileLastDigits === lastDigits) {
                 console.log("✓ Correspondance trouvée par les 8 derniers chiffres:", profile.id);
-                console.log("Solde de l'utilisateur:", profile.balance);
+                
+                // Récupérer le solde exact
+                const balanceData = await getUserBalance(profile.id);
+                const actualBalance = balanceData.balance;
+                
+                console.log("Solde exact de l'utilisateur (8 derniers chiffres):", actualBalance);
                 
                 const finalResult = {
                   verified: true,
                   recipientData: {
                     email: profile.phone,
-                    fullName: profile.full_name || `Utilisateur ${profile.phone}`,
-                    country: profile.country || recipient.country,
+                    fullName: profile.full_name || balanceData.fullName || `Utilisateur ${profile.phone}`,
+                    country: profile.country || balanceData.country || recipient.country,
                     userId: profile.id,
-                    balance: profile.balance || 0
+                    balance: actualBalance
                   }
                 };
                 
                 toast({
                   title: "Bénéficiaire trouvé",
-                  description: `${finalResult.recipientData.fullName} - Solde: ${finalResult.recipientData.balance} FCFA`,
+                  description: `${finalResult.recipientData.fullName} - Solde: ${actualBalance} FCFA`,
                 });
                 
                 setRecipientVerified(true);
