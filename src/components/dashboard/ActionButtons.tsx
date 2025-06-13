@@ -52,12 +52,12 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
         </Button>
       )}
       
-      {/* Services Agent - Only for agents - Made larger */}
+      {/* Services Agent - Only for agents - Made larger and redirect to unified system */}
       {isAgent() && (
         <Button 
           variant="outline" 
           className="flex flex-col items-center justify-center h-24 bg-white col-span-2"
-          onClick={() => window.location.href = '/deposit'}
+          onClick={() => window.location.href = '/agent-services'}
         >
           <PiggyBank className="h-6 w-6 mb-2" />
           <span className="text-sm font-medium">Services Agent</span>

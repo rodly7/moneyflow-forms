@@ -1,57 +1,66 @@
 
-import React, { useEffect, useState } from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-} from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import { Toaster } from "./components/ui/toaster";
-import Layout from "./components/Layout";
-import QrScanner from "./components/QrScanner";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import Layout from "@/components/Layout";
+import Index from "@/pages/Index";
+import Auth from "@/pages/Auth";
+import Dashboard from "@/pages/Dashboard";
+import Transactions from "@/pages/Transactions";
+import QRCode from "@/pages/QRCode";
+import Receive from "@/pages/Receive";
+import Withdraw from "@/pages/Withdraw";
+import AgentWithdrawal from "@/pages/AgentWithdrawal";
+import AgentWithdrawalSimple from "@/pages/AgentWithdrawalSimple";
+import AgentWithdrawalAdvanced from "@/pages/AgentWithdrawalAdvanced";
+import AgentDeposit from "@/pages/AgentDeposit";
+import UnifiedDepositWithdrawal from "@/pages/UnifiedDepositWithdrawal";
+import MobileRecharge from "@/pages/MobileRecharge";
+import BillPayments from "@/pages/BillPayments";
+import PrepaidCards from "@/pages/PrepaidCards";
+import VerifyIdentity from "@/pages/VerifyIdentity";
+import Commission from "@/pages/Commission";
+import AdminBalanceUpdate from "@/pages/AdminBalanceUpdate";
 
-// Pages
-import Auth from "./pages/Auth";
-import Index from "./pages/Index";
-import QRCode from "./pages/QRCode";
-import Dashboard from "./pages/Dashboard";
-import Withdraw from "./pages/Withdraw";
-import MobileRecharge from "./pages/MobileRecharge";
-import BillPayments from "./pages/BillPayments";
-import PrepaidCards from "./pages/PrepaidCards";
-import Receive from "./pages/Receive";
-import VerifyIdentity from "./pages/VerifyIdentity";
-import Transactions from "./pages/Transactions";
-import Commission from "./pages/Commission";
-import AgentWithdrawal from "./pages/AgentWithdrawal";
-import AgentWithdrawalAdvanced from "./pages/AgentWithdrawalAdvanced";
-import AgentDeposit from "./pages/AgentDeposit";
+const queryClient = new QueryClient();
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <Routes>
-          <Route path="/" element={<Layout><Index /></Layout>} />
-          <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-          <Route path="/withdraw" element={<Layout><Withdraw /></Layout>} />
-          <Route path="/agent-withdrawal" element={<Layout><AgentWithdrawal /></Layout>} />
-          <Route path="/agent-withdrawal-advanced" element={<Layout><AgentWithdrawalAdvanced /></Layout>} />
-          <Route path="/deposit" element={<Layout><AgentDeposit /></Layout>} />
-          <Route path="/verify-identity" element={<VerifyIdentity />} />
-          <Route path="/qrcode" element={<Layout><QRCode /></Layout>} />
-          <Route path="/scan" element={<QrScanner />} />
-          <Route path="/receive" element={<Layout><Receive /></Layout>} />
-          <Route path="/mobile-recharge" element={<Layout><MobileRecharge /></Layout>} />
-          <Route path="/bill-payments" element={<Layout><BillPayments /></Layout>} />
-          <Route path="/prepaid-cards" element={<Layout><PrepaidCards /></Layout>} />
-          <Route path="/transactions" element={<Layout><Transactions /></Layout>} />
-          <Route path="/commission" element={<Layout><Commission /></Layout>} />
-          <Route path="*" element={<Auth />} />
-        </Routes>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
         <Toaster />
-      </AuthProvider>
-    </Router>
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/transactions" element={<Transactions />} />
+                <Route path="/qr-code" element={<QRCode />} />
+                <Route path="/receive" element={<Receive />} />
+                <Route path="/withdraw" element={<Withdraw />} />
+                <Route path="/agent-withdrawal" element={<AgentWithdrawal />} />
+                <Route path="/agent-withdrawal-simple" element={<AgentWithdrawalSimple />} />
+                <Route path="/agent-withdrawal-advanced" element={<AgentWithdrawalAdvanced />} />
+                <Route path="/deposit" element={<AgentDeposit />} />
+                <Route path="/agent-services" element={<UnifiedDepositWithdrawal />} />
+                <Route path="/mobile-recharge" element={<MobileRecharge />} />
+                <Route path="/bill-payments" element={<BillPayments />} />
+                <Route path="/prepaid-cards" element={<PrepaidCards />} />
+                <Route path="/verify-identity" element={<VerifyIdentity />} />
+                <Route path="/commission" element={<Commission />} />
+                <Route path="/admin/balance-update" element={<AdminBalanceUpdate />} />
+              </Route>
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
 
