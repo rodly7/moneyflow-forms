@@ -51,48 +51,41 @@ const DepositWithdrawalForm = () => {
     fetchAgentBalance();
   }, [user]);
 
-  const searchClient = async () => {
-    if (!phoneNumber || phoneNumber.length < 6) {
-      toast({
-        title: "Numéro invalide",
-        description: "Veuillez entrer un numéro de téléphone valide",
-        variant: "destructive"
-      });
+  // Recherche automatique d'utilisateurs comme dans le système de transfert
+  const searchClientAutomatically = async (phone: string) => {
+    if (!phone || phone.length < 6) {
+      setClientData(null);
       return;
     }
 
     try {
-      const client = await searchUserByPhone(phoneNumber);
+      console.log("🔍 Recherche automatique du client:", phone);
+      const client = await searchUserByPhone(phone);
       
       if (client) {
         setClientData(client);
-        toast({
-          title: "Client trouvé",
-          description: `${client.full_name || 'Utilisateur'} - Solde: ${formatCurrency(client.balance || 0, 'XAF')}`,
-        });
+        console.log("✅ Client trouvé automatiquement:", client);
       } else {
         setClientData(null);
-        toast({
-          title: "Client non trouvé",
-          description: "Ce numéro n'existe pas dans notre base de données",
-          variant: "destructive"
-        });
       }
     } catch (error) {
-      console.error("❌ Erreur lors de la recherche:", error);
-      toast({
-        title: "Erreur de recherche",
-        description: "Impossible de rechercher le client",
-        variant: "destructive"
-      });
+      console.error("❌ Erreur lors de la recherche automatique:", error);
       setClientData(null);
     }
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPhoneNumber(e.target.value);
+    const value = e.target.value;
+    setPhoneNumber(value);
+    
+    // Réinitialiser les données client si le numéro change
     if (clientData) {
       setClientData(null);
+    }
+
+    // Recherche automatique quand le numéro semble complet (8 chiffres ou plus)
+    if (value.length >= 8) {
+      searchClientAutomatically(value);
     }
   };
 
@@ -102,7 +95,7 @@ const DepositWithdrawalForm = () => {
     if (!clientData || !amount) {
       toast({
         title: "Formulaire incomplet",
-        description: "Veuillez rechercher un client et entrer un montant",
+        description: "Veuillez saisir un numéro valide pour trouver le client et entrer un montant",
         variant: "destructive"
       });
       return;
@@ -148,7 +141,7 @@ const DepositWithdrawalForm = () => {
     if (!clientData || !amount) {
       toast({
         title: "Formulaire incomplet",
-        description: "Veuillez rechercher un client et entrer un montant",
+        description: "Veuillez saisir un numéro valide pour trouver le client et entrer un montant",
         variant: "destructive"
       });
       return;
@@ -252,12 +245,15 @@ const DepositWithdrawalForm = () => {
                   <Plus className="w-5 h-5" />
                   Dépôt Client
                 </CardTitle>
+                <p className="text-sm text-gray-600">
+                  La recherche se fait automatiquement pendant que vous tapez
+                </p>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleDepositSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone-deposit">Numéro du client</Label>
-                    <div className="flex gap-2">
+                    <div className="relative">
                       <Input
                         id="phone-deposit"
                         type="tel"
@@ -267,19 +263,11 @@ const DepositWithdrawalForm = () => {
                         required
                         className="h-12"
                       />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={searchClient}
-                        disabled={isSearching || !phoneNumber}
-                        className="h-12 px-3"
-                      >
-                        {isSearching ? (
+                      {isSearching && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
-                        ) : (
-                          "Rechercher"
-                        )}
-                      </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -293,6 +281,17 @@ const DepositWithdrawalForm = () => {
                         <Wallet className="w-4 h-4 mr-2" />
                         <span>Solde: {formatCurrency(clientData.balance || 0, 'XAF')}</span>
                       </div>
+                      <div className="text-sm text-green-600">
+                        Pays: {clientData.country || 'Non spécifié'}
+                      </div>
+                    </div>
+                  )}
+
+                  {phoneNumber.length >= 8 && !clientData && !isSearching && (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                      <p className="text-red-700 text-sm">
+                        Aucun client trouvé avec ce numéro
+                      </p>
                     </div>
                   )}
 
@@ -358,12 +357,15 @@ const DepositWithdrawalForm = () => {
                   <Minus className="w-5 h-5" />
                   Retrait Client
                 </CardTitle>
+                <p className="text-sm text-gray-600">
+                  La recherche se fait automatiquement pendant que vous tapez
+                </p>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleWithdrawalSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone-withdrawal">Numéro du client</Label>
-                    <div className="flex gap-2">
+                    <div className="relative">
                       <Input
                         id="phone-withdrawal"
                         type="tel"
@@ -373,19 +375,11 @@ const DepositWithdrawalForm = () => {
                         required
                         className="h-12"
                       />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={searchClient}
-                        disabled={isSearching || !phoneNumber}
-                        className="h-12 px-3"
-                      >
-                        {isSearching ? (
+                      {isSearching && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
-                        ) : (
-                          "Rechercher"
-                        )}
-                      </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -399,6 +393,17 @@ const DepositWithdrawalForm = () => {
                         <Wallet className="w-4 h-4 mr-2" />
                         <span>Solde: {formatCurrency(clientData.balance || 0, 'XAF')}</span>
                       </div>
+                      <div className="text-sm text-green-600">
+                        Pays: {clientData.country || 'Non spécifié'}
+                      </div>
+                    </div>
+                  )}
+
+                  {phoneNumber.length >= 8 && !clientData && !isSearching && (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                      <p className="text-red-700 text-sm">
+                        Aucun client trouvé avec ce numéro
+                      </p>
                     </div>
                   )}
 
