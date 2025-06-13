@@ -78,16 +78,20 @@ export const useSecureAdminOperations = () => {
 
   const checkUserRole = async (userId: string) => {
     try {
-      const { data: isAdmin, error } = await supabase.rpc('is_admin', {
-        user_id_param: userId
-      });
+      // Check if user is admin by phone number
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('phone')
+        .eq('id', userId)
+        .eq('phone', '+221773637752')
+        .maybeSingle();
 
       if (error) {
         console.error("Erreur lors de la vérification du rôle admin:", error);
         return false;
       }
 
-      return Boolean(isAdmin);
+      return Boolean(profile);
     } catch (error) {
       console.error("Erreur lors de la vérification du rôle:", error);
       return false;
