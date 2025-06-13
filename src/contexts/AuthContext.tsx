@@ -1,8 +1,7 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 
 type UserMetadata = {
@@ -32,35 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-
-  // Function to fetch and set user role from user metadata
-  const fetchUserRole = async (userId: string) => {
-    try {
-      // Get user data from current session if available
-      if (session?.user) {
-        const role = session.user.user_metadata?.role || "user";
-        setUserRole(role);
-        return;
-      }
-
-      // Try to get user data directly from auth
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      
-      if (!userError && userData?.user) {
-        const role = userData.user.user_metadata?.role || "user";
-        setUserRole(role);
-        return;
-      }
-      
-      // Fallback to checking if the user is in the profiles table
-      // Since the profiles table doesn't have role or raw_user_meta_data fields directly,
-      // we'll just use the default "user" role if we reach this point
-      setUserRole("user");
-    } catch (error) {
-      console.error("Error in fetchUserRole:", error);
-      setUserRole("user"); // Default to user role
-    }
-  };
+  const location = useLocation();
 
   useEffect(() => {
     // Get initial session
@@ -75,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUserRole(role);
         
         // Only navigate to home if we're on the auth page
-        if (window.location.pathname === "/auth") {
+        if (location.pathname === "/auth") {
           navigate("/");
         }
       } else {
@@ -85,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUserRole(null);
         
         // Only redirect to auth if we're not already there
-        if (window.location.pathname !== "/auth") {
+        if (location.pathname !== "/auth") {
           navigate("/auth");
         }
       }
@@ -107,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUserRole(role);
         
         // Only navigate to home if we're on the auth page
-        if (window.location.pathname === "/auth") {
+        if (location.pathname === "/auth") {
           navigate("/");
         }
       } else {
@@ -115,8 +86,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setUserRole(null);
         
-        // Only redirect to auth if we're not already there
-        if (window.location.pathname !== "/auth") {
+        // Only redirect to auth if we're not already there and not loading
+        if (location.pathname !== "/auth" && !loading) {
           navigate("/auth");
         }
       }
@@ -126,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, location.pathname, loading]);
 
   const formatPhoneToEmail = (phone: string) => {
     // Nettoyer le numéro de téléphone pour ne garder que les chiffres

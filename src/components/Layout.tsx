@@ -1,18 +1,24 @@
 
 import React from 'react';
-import { useNavigate, Outlet } from 'react-router-dom';
+import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Layout = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   React.useEffect(() => {
+    // Don't redirect if we're already on the auth page
+    if (location.pathname === '/auth') {
+      return;
+    }
+
     // If user is not logged in and not currently loading, redirect to auth page
     if (!user && !loading) {
       navigate('/auth');
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, location.pathname]);
 
   // Show loading spinner while checking auth status
   if (loading) {
@@ -21,7 +27,16 @@ const Layout = () => {
     </div>;
   }
 
-  // Don't render anything if user is not logged in
+  // Allow auth page to render even if user is not logged in
+  if (location.pathname === '/auth') {
+    return (
+      <div className="min-h-screen w-full">
+        <Outlet />
+      </div>
+    );
+  }
+
+  // Don't render anything if user is not logged in and we're not on auth page
   if (!user) {
     return null;
   }
