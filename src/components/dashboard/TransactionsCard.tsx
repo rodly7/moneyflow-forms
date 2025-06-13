@@ -127,12 +127,12 @@ const TransactionsCard = ({
   const recentOperations = allOperations.slice(0, 3);
 
   return (
-    <Card className="bg-white shadow-lg mx-4">
-      <CardHeader className="py-3 px-4">
-        <CardTitle className="text-base font-semibold">Historique</CardTitle>
+    <Card className="bg-white shadow-lg mx-2 sm:mx-4">
+      <CardHeader className="py-4 px-4">
+        <CardTitle className="text-lg font-semibold">Historique</CardTitle>
       </CardHeader>
-      <CardContent className="p-4">
-        <div className="space-y-2">
+      <CardContent className="p-4 pt-0">
+        <div className="space-y-3">
           {recentOperations.length > 0 ? (
             <>
               {recentOperations.map((operation) => {
@@ -141,18 +141,18 @@ const TransactionsCard = ({
                   return (
                     <div 
                       key={operation.id} 
-                      className="flex flex-col p-2 rounded-lg border hover:bg-gray-50 transition"
+                      className="flex flex-col p-3 rounded-lg border hover:bg-gray-50 transition-colors w-full"
                     >
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <div className="p-2 rounded-full bg-gray-100">
-                            <Download className="w-5 h-5 text-red-500" />
+                      <div className="flex justify-between items-start w-full">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <div className="p-2 rounded-full bg-gray-100 shrink-0">
+                            <Download className="w-4 h-4 text-red-500" />
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium text-sm">{operation.description}</p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-medium text-sm text-gray-900 truncate">{operation.description}</p>
                               {operation.userType && (
-                                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${
                                   operation.userType === 'agent' 
                                     ? 'bg-purple-100 text-purple-700' 
                                     : 'bg-blue-100 text-blue-700'
@@ -161,20 +161,20 @@ const TransactionsCard = ({
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-gray-500 mt-1">
                               {format(operation.date, 'PPP', { locale: fr })}
                             </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-sm text-red-500">
+                        <div className="text-right shrink-0 ml-2">
+                          <p className="font-semibold text-sm text-red-500 whitespace-nowrap">
                             {new Intl.NumberFormat('fr-FR', {
                               style: 'currency',
                               currency: operation.currency || 'XAF',
                               maximumFractionDigits: 0
                             }).format(operation.amount)}
                           </p>
-                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                          <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap inline-block mt-1 ${
                             operation.status === 'completed' ? 'bg-green-100 text-green-700' : 
                             operation.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
                             'bg-gray-100 text-gray-700'
@@ -186,17 +186,17 @@ const TransactionsCard = ({
                       </div>
                       
                       {withdrawal?.showCode && withdrawal.verification_code && (
-                        <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                        <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200 w-full">
                           <div className="flex justify-between items-center">
-                            <div>
+                            <div className="flex-1 min-w-0">
                               <p className="text-xs text-gray-500 mb-1">Code de vérification (valide 5 min):</p>
-                              <p className="font-mono font-medium tracking-wider text-sm">{withdrawal.verification_code}</p>
+                              <p className="font-mono font-medium tracking-wider text-sm break-all">{withdrawal.verification_code}</p>
                             </div>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => copyToClipboard(withdrawal.verification_code!, withdrawal.id)}
-                              className="h-8 w-8 p-0"
+                              className="h-8 w-8 p-0 shrink-0 ml-2"
                             >
                               {copiedCodes[withdrawal.id] ? (
                                 <Check className="h-4 w-4 text-green-500" />
@@ -221,11 +221,11 @@ const TransactionsCard = ({
               })}
               
               {allOperations.length > 3 && (
-                <div className="text-center pt-2">
+                <div className="text-center pt-3">
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="text-primary"
+                    className="text-primary hover:text-primary/80 font-medium"
                     onClick={() => navigate('/transactions')}
                   >
                     Voir plus <ChevronRight className="h-4 w-4 ml-1" />
@@ -234,9 +234,11 @@ const TransactionsCard = ({
               )}
             </>
           ) : (
-            <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
-              Aucune opération effectuée
-            </p>
+            <div className="text-center py-8 px-4">
+              <p className="text-gray-500 bg-gray-50 rounded-lg p-6">
+                Aucune opération effectuée
+              </p>
+            </div>
           )}
         </div>
       </CardContent>
