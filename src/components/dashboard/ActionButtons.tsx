@@ -1,5 +1,5 @@
 
-import { ArrowUpRight, Banknote, CreditCard, UserMinus, Receipt, PiggyBank, Plus } from "lucide-react";
+import { ArrowUpRight, Banknote, CreditCard, UserMinus, Receipt, PiggyBank } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,17 +28,6 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
           Transfert
         </span>
       </Button>
-      
-      {/* Recharge Balance button - Admin function */}
-      <Link to="/admin-balance-update" className="contents">
-        <Button 
-          variant="outline" 
-          className="flex flex-col items-center justify-center h-20 bg-white"
-        >
-          <Plus className="h-5 w-5 mb-1" />
-          <span className="text-xs font-medium">Recharger</span>
-        </Button>
-      </Link>
       
       {/* Bill Payments - For all users */}
       <Link to="/bill-payments" className="contents">
