@@ -123,6 +123,9 @@ const TransactionsCard = ({
     }))
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
+  // Show only 3 most recent transactions
+  const recentOperations = allOperations.slice(0, 3);
+
   return (
     <Card className="bg-white shadow-lg mx-4">
       <CardHeader className="py-3 px-4">
@@ -130,108 +133,110 @@ const TransactionsCard = ({
       </CardHeader>
       <CardContent className="p-4">
         <div className="space-y-2">
-          {allOperations.length > 0 ? (
-            allOperations.slice(0, 5).map((operation) => {
-              if (operation.type === 'withdrawal') {
-                const withdrawal = processedWithdrawals.find(w => w.id === operation.id);
-                return (
-                  <div 
-                    key={operation.id} 
-                    className="flex flex-col p-2 rounded-lg border hover:bg-gray-50 transition"
-                  >
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-full bg-gray-100">
-                          <Download className="w-5 h-5 text-red-500" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-sm">{operation.description}</p>
-                            {operation.userType && (
-                              <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                                operation.userType === 'agent' 
-                                  ? 'bg-purple-100 text-purple-700' 
-                                  : 'bg-blue-100 text-blue-700'
-                              }`}>
-                                {operation.userType === 'agent' ? 'Agent' : 'Utilisateur'}
-                              </span>
-                            )}
+          {recentOperations.length > 0 ? (
+            <>
+              {recentOperations.map((operation) => {
+                if (operation.type === 'withdrawal') {
+                  const withdrawal = processedWithdrawals.find(w => w.id === operation.id);
+                  return (
+                    <div 
+                      key={operation.id} 
+                      className="flex flex-col p-2 rounded-lg border hover:bg-gray-50 transition"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 rounded-full bg-gray-100">
+                            <Download className="w-5 h-5 text-red-500" />
                           </div>
-                          <p className="text-xs text-gray-500">
-                            {format(operation.date, 'PPP', { locale: fr })}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-sm text-red-500">
-                          {new Intl.NumberFormat('fr-FR', {
-                            style: 'currency',
-                            currency: operation.currency || 'XAF',
-                            maximumFractionDigits: 0
-                          }).format(operation.amount)}
-                        </p>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                          operation.status === 'completed' ? 'bg-green-100 text-green-700' : 
-                          operation.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {operation.status === 'completed' ? 'Complété' : 
-                           operation.status === 'pending' ? 'En attente' : operation.status}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {withdrawal?.showCode && withdrawal.verification_code && (
-                      <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
-                        <div className="flex justify-between items-center">
                           <div>
-                            <p className="text-xs text-gray-500 mb-1">Code de vérification (valide 5 min):</p>
-                            <p className="font-mono font-medium tracking-wider text-sm">{withdrawal.verification_code}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-sm">{operation.description}</p>
+                              {operation.userType && (
+                                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                  operation.userType === 'agent' 
+                                    ? 'bg-purple-100 text-purple-700' 
+                                    : 'bg-blue-100 text-blue-700'
+                                }`}>
+                                  {operation.userType === 'agent' ? 'Agent' : 'Utilisateur'}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500">
+                              {format(operation.date, 'PPP', { locale: fr })}
+                            </p>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copyToClipboard(withdrawal.verification_code!, withdrawal.id)}
-                            className="h-8 w-8 p-0"
-                          >
-                            {copiedCodes[withdrawal.id] ? (
-                              <Check className="h-4 w-4 text-green-500" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </Button>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-sm text-red-500">
+                            {new Intl.NumberFormat('fr-FR', {
+                              style: 'currency',
+                              currency: operation.currency || 'XAF',
+                              maximumFractionDigits: 0
+                            }).format(operation.amount)}
+                          </p>
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                            operation.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                            operation.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {operation.status === 'completed' ? 'Complété' : 
+                             operation.status === 'pending' ? 'En attente' : operation.status}
+                          </span>
                         </div>
                       </div>
-                    )}
-                  </div>
-                );
-              } else {
-                return (
-                  <TransactionItem 
-                    key={operation.id} 
-                    transaction={operation} 
-                    onDelete={onDeleteTransaction}
-                  />
-                );
-              }
-            })
+                      
+                      {withdrawal?.showCode && withdrawal.verification_code && (
+                        <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">Code de vérification (valide 5 min):</p>
+                              <p className="font-mono font-medium tracking-wider text-sm">{withdrawal.verification_code}</p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(withdrawal.verification_code!, withdrawal.id)}
+                              className="h-8 w-8 p-0"
+                            >
+                              {copiedCodes[withdrawal.id] ? (
+                                <Check className="h-4 w-4 text-green-500" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                } else {
+                  return (
+                    <TransactionItem 
+                      key={operation.id} 
+                      transaction={operation} 
+                      onDelete={onDeleteTransaction}
+                    />
+                  );
+                }
+              })}
+              
+              {allOperations.length > 3 && (
+                <div className="text-center pt-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-primary"
+                    onClick={() => navigate('/transactions')}
+                  >
+                    Voir plus <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </>
           ) : (
             <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
               Aucune opération effectuée
             </p>
-          )}
-          
-          {allOperations.length > 0 && (
-            <div className="text-center">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-primary"
-                onClick={() => navigate('/transactions')}
-              >
-                Voir tout <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
           )}
         </div>
       </CardContent>
