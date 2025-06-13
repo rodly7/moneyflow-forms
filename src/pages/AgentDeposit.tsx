@@ -37,6 +37,51 @@ const AgentDeposit = () => {
     setRecipientVerified
   } = useRecipientVerification();
 
+  const ensureUserProfile = async (userId: string, userEmail: string, userPhone: string) => {
+    console.log("🔍 Vérification du profil utilisateur:", userId);
+    
+    // Vérifier si le profil existe
+    const { data: existingProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (profileError) {
+      console.error("❌ Erreur lors de la vérification du profil:", profileError);
+      throw new Error("Erreur lors de la vérification du profil");
+    }
+    
+    if (!existingProfile) {
+      console.log("📝 Création du profil utilisateur manquant...");
+      
+      // Créer le profil manquant
+      const { error: insertError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          phone: userPhone,
+          full_name: "Utilisateur",
+          country: "Congo Brazzaville",
+          balance: 0
+        });
+      
+      if (insertError) {
+        console.error("❌ Erreur lors de la création du profil:", insertError);
+        throw new Error("Erreur lors de la création du profil utilisateur");
+      }
+      
+      console.log("✅ Profil utilisateur créé avec succès");
+      return { balance: 0, fullName: "Utilisateur" };
+    }
+    
+    console.log("✅ Profil utilisateur existant trouvé");
+    return { 
+      balance: Number(existingProfile.balance) || 0, 
+      fullName: existingProfile.full_name || "Utilisateur" 
+    };
+  };
+
   const fetchAgentBalance = async () => {
     if (user?.id) {
       setIsLoadingBalance(true);
@@ -99,20 +144,34 @@ const AgentDeposit = () => {
         if (result.recipientData.userId) {
           setRecipientId(result.recipientData.userId);
           
-          // Get additional client data including balance
-          const clientBalance = await getUserBalance(result.recipientData.userId);
-          setClientData({
-            id: result.recipientData.userId,
-            full_name: result.recipientData.fullName,
-            phone: fullPhone,
-            balance: clientBalance.balance
-          });
-          
-          setRecipientVerified(true);
-          toast({
-            title: "Client trouvé",
-            description: `${result.recipientData.fullName}`,
-          });
+          // Ensure user profile exists and get balance
+          try {
+            const profileData = await ensureUserProfile(
+              result.recipientData.userId, 
+              result.recipientData.email,
+              fullPhone
+            );
+            
+            setClientData({
+              id: result.recipientData.userId,
+              full_name: profileData.fullName,
+              phone: fullPhone,
+              balance: profileData.balance
+            });
+            
+            setRecipientVerified(true);
+            toast({
+              title: "Client trouvé",
+              description: `${profileData.fullName}`,
+            });
+          } catch (profileError) {
+            console.error("❌ Erreur lors de la gestion du profil:", profileError);
+            toast({
+              title: "Erreur de profil",
+              description: "Impossible de créer ou récupérer le profil utilisateur",
+              variant: "destructive"
+            });
+          }
           return;
         }
       }
@@ -205,6 +264,9 @@ const AgentDeposit = () => {
         throw new Error("Agent non connecté");
       }
 
+      // S'assurer que le profil du client existe avant les opérations
+      await ensureUserProfile(clientData.id, "", phoneNumber);
+
       // Traitement du dépôt (agent débité, client crédité)
       // Débiter l'agent
       const { error: debitError } = await supabase.rpc('increment_balance', {
@@ -235,7 +297,7 @@ const AgentDeposit = () => {
 
       toast({
         title: "Dépôt effectué",
-        description: `Dépôt de ${formatCurrency(operationAmount, 'XAF')} effectué pour ${clientData.full_name}. Nouveau solde client: ${formatCurrency(clientData.balance + operationAmount, 'XAF')}`,
+        description: `Dépôt de ${formatCurrency(operationAmount, 'XAF')} effectué pour ${clientData.full_name}`,
       });
 
       // Réinitialiser le formulaire
@@ -293,21 +355,24 @@ const AgentDeposit = () => {
 
     const operationAmount = Number(amount);
 
-    // Pour les retraits, vérifier le solde du client
-    if (operationAmount > clientData.balance) {
-      toast({
-        title: "Solde client insuffisant",
-        description: `Le solde du client (${formatCurrency(clientData.balance, 'XAF')}) est insuffisant pour ce retrait`,
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
       setIsProcessing(true);
 
       if (!user?.id) {
         throw new Error("Agent non connecté");
+      }
+
+      // S'assurer que le profil du client existe et récupérer son solde exact
+      const profileData = await ensureUserProfile(clientData.id, "", phoneNumber);
+
+      // Pour les retraits, vérifier le solde du client
+      if (operationAmount > profileData.balance) {
+        toast({
+          title: "Solde client insuffisant",
+          description: `Le solde du client (${formatCurrency(profileData.balance, 'XAF')}) est insuffisant pour ce retrait`,
+          variant: "destructive"
+        });
+        return;
       }
 
       // Traitement du retrait (client débité, agent crédité)
@@ -355,7 +420,7 @@ const AgentDeposit = () => {
 
       toast({
         title: "Retrait effectué",
-        description: `Retrait de ${formatCurrency(operationAmount, 'XAF')} effectué pour ${clientData.full_name}. Nouveau solde client: ${formatCurrency(clientData.balance - operationAmount, 'XAF')}`,
+        description: `Retrait de ${formatCurrency(operationAmount, 'XAF')} effectué pour ${clientData.full_name}`,
       });
 
       // Réinitialiser le formulaire
@@ -584,7 +649,7 @@ const AgentDeposit = () => {
                       />
                       {isWithdrawalAmountExceedsBalance && (
                         <p className="text-red-600 text-sm">
-                          Le montant dépasse le solde du client ({formatCurrency(clientData.balance, 'XAF')})
+                          Le montant dépasse le solde du client
                         </p>
                       )}
                     </div>
