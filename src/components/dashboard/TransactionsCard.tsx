@@ -1,7 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronRight, Copy, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import TransactionItem from "./TransactionItem";
@@ -62,7 +61,7 @@ const TransactionsCard = ({
       return {
         ...withdrawal,
         showCode,
-        userType: isAgent() ? 'agent' : 'user'
+        userType: (isAgent() ? 'agent' : 'user') as 'agent' | 'user'
       };
     });
     
@@ -106,203 +105,135 @@ const TransactionsCard = ({
   // Add userType to transactions
   const transactionsWithUserType = transactions.map(transaction => ({
     ...transaction,
-    userType: isAgent() ? 'agent' : 'user'
+    userType: (isAgent() ? 'agent' : 'user') as 'agent' | 'user'
   }));
 
-  // Filter transactions by user type
-  const agentTransactions = transactionsWithUserType.filter(t => t.userType === 'agent');
-  const userTransactions = transactionsWithUserType.filter(t => t.userType === 'user');
-  const agentWithdrawals = processedWithdrawals.filter(w => w.userType === 'agent');
-  const userWithdrawals = processedWithdrawals.filter(w => w.userType === 'user');
+  // Combine all transactions and withdrawals for the history view
+  const allOperations = [
+    ...transactionsWithUserType,
+    ...processedWithdrawals.map(withdrawal => ({
+      id: withdrawal.id,
+      type: 'withdrawal' as const,
+      amount: -withdrawal.amount,
+      date: new Date(withdrawal.created_at),
+      description: `Retrait vers ${withdrawal.withdrawal_phone}`,
+      currency: 'XAF',
+      status: withdrawal.status,
+      userType: withdrawal.userType
+    }))
+  ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   return (
     <Card className="bg-white shadow-lg mx-4">
       <CardHeader className="py-3 px-4">
-        <CardTitle className="text-base font-semibold">Opérations récentes</CardTitle>
+        <CardTitle className="text-base font-semibold">Historique</CardTitle>
       </CardHeader>
       <CardContent className="p-4">
-        <Tabs defaultValue="all">
-          <TabsList className="grid grid-cols-4 mb-4">
-            <TabsTrigger value="all">Toutes</TabsTrigger>
-            <TabsTrigger value="withdrawals">Retraits</TabsTrigger>
-            <TabsTrigger value="agents">Agents</TabsTrigger>
-            <TabsTrigger value="users">Utilisateurs</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="all" className="space-y-2">
-            {transactionsWithUserType.length > 0 ? (
-              transactionsWithUserType.map((transaction) => (
-                <TransactionItem 
-                  key={transaction.id} 
-                  transaction={transaction} 
-                  onDelete={onDeleteTransaction}
-                />
-              ))
-            ) : (
-              <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
-                Aucune opération effectuée
-              </p>
-            )}
-            
-            {transactionsWithUserType.length > 0 && (
-              <div className="text-center">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-primary"
-                  onClick={() => navigate('/transactions')}
-                >
-                  Voir tout <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="withdrawals" className="space-y-2">
-            {processedWithdrawals && processedWithdrawals.length > 0 ? (
-              processedWithdrawals.slice(0, 3).map((withdrawal) => (
-                <div 
-                  key={withdrawal.id} 
-                  className="flex flex-col p-2 rounded-lg border hover:bg-gray-50 transition"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-full bg-gray-100">
-                        <Download className="w-5 h-5 text-red-500" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">
-                          Retrait vers {withdrawal.withdrawal_phone}
-                          <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                            {withdrawal.userType === 'agent' ? 'Agent' : 'Utilisateur'}
-                          </span>
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {format(new Date(withdrawal.created_at), 'PPP', { locale: fr })}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-sm text-red-500">
-                        -{new Intl.NumberFormat('fr-FR', {
-                          style: 'currency',
-                          currency: 'XAF',
-                          maximumFractionDigits: 0
-                        }).format(withdrawal.amount)}
-                      </p>
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                        withdrawal.status === 'completed' ? 'bg-green-100 text-green-700' : 
-                        withdrawal.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {withdrawal.status === 'completed' ? 'Complété' : 
-                         withdrawal.status === 'pending' ? 'En attente' : withdrawal.status}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {withdrawal.showCode && withdrawal.verification_code && (
-                    <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="text-xs text-gray-500 mb-1">Code de vérification (valide 5 min):</p>
-                          <p className="font-mono font-medium tracking-wider text-sm">{withdrawal.verification_code}</p>
+        <div className="space-y-2">
+          {allOperations.length > 0 ? (
+            allOperations.slice(0, 5).map((operation) => {
+              if (operation.type === 'withdrawal') {
+                const withdrawal = processedWithdrawals.find(w => w.id === operation.id);
+                return (
+                  <div 
+                    key={operation.id} 
+                    className="flex flex-col p-2 rounded-lg border hover:bg-gray-50 transition"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-full bg-gray-100">
+                          <Download className="w-5 h-5 text-red-500" />
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(withdrawal.verification_code!, withdrawal.id)}
-                          className="h-8 w-8 p-0"
-                        >
-                          {copiedCodes[withdrawal.id] ? (
-                            <Check className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </Button>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm">{operation.description}</p>
+                            {operation.userType && (
+                              <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                operation.userType === 'agent' 
+                                  ? 'bg-purple-100 text-purple-700' 
+                                  : 'bg-blue-100 text-blue-700'
+                              }`}>
+                                {operation.userType === 'agent' ? 'Agent' : 'Utilisateur'}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            {format(operation.date, 'PPP', { locale: fr })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-sm text-red-500">
+                          {new Intl.NumberFormat('fr-FR', {
+                            style: 'currency',
+                            currency: operation.currency || 'XAF',
+                            maximumFractionDigits: 0
+                          }).format(operation.amount)}
+                        </p>
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                          operation.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                          operation.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {operation.status === 'completed' ? 'Complété' : 
+                           operation.status === 'pending' ? 'En attente' : operation.status}
+                        </span>
                       </div>
                     </div>
-                  )}
-                </div>
-              ))
-            ) : (
-              <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
-                Aucun retrait effectué
-              </p>
-            )}
-            
-            {withdrawals && withdrawals.length > 0 && (
-              <div className="text-center">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-primary"
-                  onClick={() => navigate('/transactions', { state: { initialTab: 'withdrawals' }})}
-                >
-                  Voir tout <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="agents" className="space-y-2">
-            {agentTransactions.length > 0 ? (
-              agentTransactions.map((transaction) => (
-                <TransactionItem 
-                  key={transaction.id} 
-                  transaction={transaction} 
-                  onDelete={onDeleteTransaction}
-                />
-              ))
-            ) : (
-              <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
-                Aucune opération d'agent effectuée
-              </p>
-            )}
-            
-            {agentTransactions.length > 0 && (
-              <div className="text-center">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-primary"
-                  onClick={() => navigate('/transactions', { state: { initialTab: 'agents' }})}
-                >
-                  Voir tout <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="users" className="space-y-2">
-            {userTransactions.length > 0 ? (
-              userTransactions.map((transaction) => (
-                <TransactionItem 
-                  key={transaction.id} 
-                  transaction={transaction} 
-                  onDelete={onDeleteTransaction}
-                />
-              ))
-            ) : (
-              <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
-                Aucune opération d'utilisateur effectuée
-              </p>
-            )}
-            
-            {userTransactions.length > 0 && (
-              <div className="text-center">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-primary"
-                  onClick={() => navigate('/transactions', { state: { initialTab: 'users' }})}
-                >
-                  Voir tout <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+                    
+                    {withdrawal?.showCode && withdrawal.verification_code && (
+                      <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Code de vérification (valide 5 min):</p>
+                            <p className="font-mono font-medium tracking-wider text-sm">{withdrawal.verification_code}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(withdrawal.verification_code!, withdrawal.id)}
+                            className="h-8 w-8 p-0"
+                          >
+                            {copiedCodes[withdrawal.id] ? (
+                              <Check className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              } else {
+                return (
+                  <TransactionItem 
+                    key={operation.id} 
+                    transaction={operation} 
+                    onDelete={onDeleteTransaction}
+                  />
+                );
+              }
+            })
+          ) : (
+            <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
+              Aucune opération effectuée
+            </p>
+          )}
+          
+          {allOperations.length > 0 && (
+            <div className="text-center">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-primary"
+                onClick={() => navigate('/transactions')}
+              >
+                Voir tout <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

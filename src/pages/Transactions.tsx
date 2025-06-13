@@ -1,11 +1,10 @@
 
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Download, ArrowRightLeft, Copy, Check } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -28,9 +27,7 @@ interface Transaction {
 
 const Transactions = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { user, isAgent } = useAuth();
-  const initialTab = location.state?.initialTab || "all";
   const { toast } = useToast();
   const [copiedCodes, setCopiedCodes] = useState<{[key: string]: boolean}>({});
 
@@ -165,12 +162,6 @@ const Transactions = () => {
     return transaction;
   });
 
-  // Filter transactions by user type
-  const agentTransactions = processedTransactions.filter(t => t.userType === 'agent');
-  const userTransactions = processedTransactions.filter(t => t.userType === 'user');
-  const agentWithdrawals = processedWithdrawals.filter(w => w.userType === 'agent');
-  const userWithdrawals = processedWithdrawals.filter(w => w.userType === 'user');
-
   const getIcon = (type: string) => {
     switch (type) {
       case 'withdrawal':
@@ -257,76 +248,6 @@ const Transactions = () => {
     </div>
   );
 
-  const renderWithdrawal = (withdrawal: any) => (
-    <div 
-      key={withdrawal.id} 
-      className="flex flex-col p-2 rounded-lg border hover:bg-gray-50 transition mb-2"
-    >
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-full bg-gray-100">
-            <Download className="w-5 h-5 text-red-500" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="font-medium text-sm">Retrait vers {withdrawal.withdrawal_phone}</p>
-              <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                withdrawal.userType === 'agent' 
-                  ? 'bg-purple-100 text-purple-700' 
-                  : 'bg-blue-100 text-blue-700'
-              }`}>
-                {withdrawal.userType === 'agent' ? 'Agent' : 'Utilisateur'}
-              </span>
-            </div>
-            <p className="text-xs text-gray-500">
-              {format(parseISO(withdrawal.created_at), 'PPP', { locale: fr })}
-            </p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="font-semibold text-sm text-red-500">
-            -{new Intl.NumberFormat('fr-FR', {
-              style: 'currency',
-              currency: 'XAF',
-              maximumFractionDigits: 0
-            }).format(withdrawal.amount)}
-          </p>
-          <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-            withdrawal.status === 'completed' ? 'bg-green-100 text-green-700' : 
-            withdrawal.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
-            'bg-gray-100 text-gray-700'
-          }`}>
-            {withdrawal.status === 'completed' ? 'Complété' : 
-             withdrawal.status === 'pending' ? 'En attente' : withdrawal.status}
-          </span>
-        </div>
-      </div>
-      
-      {withdrawal.showCode && withdrawal.verification_code && (
-        <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-xs text-gray-500 mb-1">Code de vérification (valide 5 min):</p>
-              <p className="font-mono font-medium tracking-wider text-sm">{withdrawal.verification_code}</p>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => copyToClipboard(withdrawal.verification_code, withdrawal.id)}
-              className="h-8 w-8 p-0"
-            >
-              {copiedCodes[withdrawal.id] ? (
-                <Check className="h-4 w-4 text-green-500" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-8 px-4">
       <div className="container max-w-2xl mx-auto">
@@ -344,54 +265,15 @@ const Transactions = () => {
             <CardTitle>Historique des transactions</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue={initialTab}>
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="all">Toutes</TabsTrigger>
-                <TabsTrigger value="withdrawals">Retraits</TabsTrigger>
-                <TabsTrigger value="agents">Agents</TabsTrigger>
-                <TabsTrigger value="users">Utilisateurs</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="all">
-                {processedTransactions.length > 0 ? (
-                  processedTransactions.map(renderTransaction)
-                ) : (
-                  <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
-                    Aucune transaction effectuée
-                  </p>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="withdrawals">
-                {processedWithdrawals && processedWithdrawals.length > 0 ? (
-                  processedWithdrawals.map(renderWithdrawal)
-                ) : (
-                  <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
-                    Aucun retrait effectué
-                  </p>
-                )}
-              </TabsContent>
-
-              <TabsContent value="agents">
-                {agentTransactions.length > 0 ? (
-                  agentTransactions.map(renderTransaction)
-                ) : (
-                  <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
-                    Aucune transaction d'agent effectuée
-                  </p>
-                )}
-              </TabsContent>
-
-              <TabsContent value="users">
-                {userTransactions.length > 0 ? (
-                  userTransactions.map(renderTransaction)
-                ) : (
-                  <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
-                    Aucune transaction d'utilisateur effectuée
-                  </p>
-                )}
-              </TabsContent>
-            </Tabs>
+            <div className="space-y-2">
+              {processedTransactions.length > 0 ? (
+                processedTransactions.map(renderTransaction)
+              ) : (
+                <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
+                  Aucune transaction effectuée
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
