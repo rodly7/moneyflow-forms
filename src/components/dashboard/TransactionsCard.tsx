@@ -10,6 +10,7 @@ import { fr } from "date-fns/locale";
 import { Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Transaction {
   id: string;
@@ -19,6 +20,7 @@ interface Transaction {
   description: string;
   currency: string;
   status: string;
+  userType?: 'agent' | 'user';
 }
 
 interface Withdrawal {
@@ -29,6 +31,7 @@ interface Withdrawal {
   status: string;
   verification_code?: string;
   showCode?: boolean;
+  userType?: 'agent' | 'user';
 }
 
 interface TransactionsCardProps {
@@ -44,6 +47,7 @@ const TransactionsCard = ({
 }: TransactionsCardProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAgent } = useAuth();
   const [processedWithdrawals, setProcessedWithdrawals] = useState<Withdrawal[]>([]);
   const [copiedCodes, setCopiedCodes] = useState<{[key: string]: boolean}>({});
 
@@ -57,7 +61,8 @@ const TransactionsCard = ({
       
       return {
         ...withdrawal,
-        showCode
+        showCode,
+        userType: isAgent() ? 'agent' : 'user'
       };
     });
     
@@ -81,7 +86,7 @@ const TransactionsCard = ({
     }, 60000); // Check every minute
     
     return () => clearInterval(timer);
-  }, [withdrawals]);
+  }, [withdrawals, isAgent]);
 
   const copyToClipboard = (code: string, id: string) => {
     navigator.clipboard.writeText(code);
@@ -98,6 +103,18 @@ const TransactionsCard = ({
     }, 2000);
   };
 
+  // Add userType to transactions
+  const transactionsWithUserType = transactions.map(transaction => ({
+    ...transaction,
+    userType: isAgent() ? 'agent' : 'user'
+  }));
+
+  // Filter transactions by user type
+  const agentTransactions = transactionsWithUserType.filter(t => t.userType === 'agent');
+  const userTransactions = transactionsWithUserType.filter(t => t.userType === 'user');
+  const agentWithdrawals = processedWithdrawals.filter(w => w.userType === 'agent');
+  const userWithdrawals = processedWithdrawals.filter(w => w.userType === 'user');
+
   return (
     <Card className="bg-white shadow-lg mx-4">
       <CardHeader className="py-3 px-4">
@@ -105,14 +122,16 @@ const TransactionsCard = ({
       </CardHeader>
       <CardContent className="p-4">
         <Tabs defaultValue="all">
-          <TabsList className="grid grid-cols-2 mb-4">
+          <TabsList className="grid grid-cols-4 mb-4">
             <TabsTrigger value="all">Toutes</TabsTrigger>
             <TabsTrigger value="withdrawals">Retraits</TabsTrigger>
+            <TabsTrigger value="agents">Agents</TabsTrigger>
+            <TabsTrigger value="users">Utilisateurs</TabsTrigger>
           </TabsList>
           
           <TabsContent value="all" className="space-y-2">
-            {transactions.length > 0 ? (
-              transactions.map((transaction) => (
+            {transactionsWithUserType.length > 0 ? (
+              transactionsWithUserType.map((transaction) => (
                 <TransactionItem 
                   key={transaction.id} 
                   transaction={transaction} 
@@ -125,7 +144,7 @@ const TransactionsCard = ({
               </p>
             )}
             
-            {transactions.length > 0 && (
+            {transactionsWithUserType.length > 0 && (
               <div className="text-center">
                 <Button 
                   variant="ghost" 
@@ -152,7 +171,12 @@ const TransactionsCard = ({
                         <Download className="w-5 h-5 text-red-500" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">Retrait vers {withdrawal.withdrawal_phone}</p>
+                        <p className="font-medium text-sm">
+                          Retrait vers {withdrawal.withdrawal_phone}
+                          <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                            {withdrawal.userType === 'agent' ? 'Agent' : 'Utilisateur'}
+                          </span>
+                        </p>
                         <p className="text-xs text-gray-500">
                           {format(new Date(withdrawal.created_at), 'PPP', { locale: fr })}
                         </p>
@@ -214,6 +238,64 @@ const TransactionsCard = ({
                   size="sm" 
                   className="text-primary"
                   onClick={() => navigate('/transactions', { state: { initialTab: 'withdrawals' }})}
+                >
+                  Voir tout <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="agents" className="space-y-2">
+            {agentTransactions.length > 0 ? (
+              agentTransactions.map((transaction) => (
+                <TransactionItem 
+                  key={transaction.id} 
+                  transaction={transaction} 
+                  onDelete={onDeleteTransaction}
+                />
+              ))
+            ) : (
+              <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
+                Aucune opération d'agent effectuée
+              </p>
+            )}
+            
+            {agentTransactions.length > 0 && (
+              <div className="text-center">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-primary"
+                  onClick={() => navigate('/transactions', { state: { initialTab: 'agents' }})}
+                >
+                  Voir tout <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-2">
+            {userTransactions.length > 0 ? (
+              userTransactions.map((transaction) => (
+                <TransactionItem 
+                  key={transaction.id} 
+                  transaction={transaction} 
+                  onDelete={onDeleteTransaction}
+                />
+              ))
+            ) : (
+              <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
+                Aucune opération d'utilisateur effectuée
+              </p>
+            )}
+            
+            {userTransactions.length > 0 && (
+              <div className="text-center">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-primary"
+                  onClick={() => navigate('/transactions', { state: { initialTab: 'users' }})}
                 >
                   Voir tout <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>

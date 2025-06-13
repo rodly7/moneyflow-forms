@@ -13,6 +13,7 @@ interface TransactionItemProps {
     description: string;
     currency: string;
     status: string;
+    userType?: 'agent' | 'user';
   };
   onDelete: (id: string, type: string) => void;
 }
@@ -33,7 +34,18 @@ const TransactionItem = ({ transaction, onDelete }: TransactionItemProps) => {
           {getTransactionIcon(transaction.type)}
         </div>
         <div>
-          <p className="font-medium text-sm">{transaction.description}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-medium text-sm">{transaction.description}</p>
+            {transaction.userType && (
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                transaction.userType === 'agent' 
+                  ? 'bg-purple-100 text-purple-700' 
+                  : 'bg-blue-100 text-blue-700'
+              }`}>
+                {transaction.userType === 'agent' ? 'Agent' : 'Utilisateur'}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-gray-500">
             {format(transaction.date, 'PPP', { locale: fr })}
           </p>
