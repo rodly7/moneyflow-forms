@@ -519,6 +519,10 @@ export type Database = {
         Args: { user_id_param: string }
         Returns: boolean
       }
+      is_verified_agent: {
+        Args: { user_id_param: string }
+        Returns: boolean
+      }
       process_money_transfer: {
         Args: {
           sender_id: string
