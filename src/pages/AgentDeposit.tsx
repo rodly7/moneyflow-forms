@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -112,7 +111,7 @@ const AgentDeposit = () => {
           setRecipientVerified(true);
           toast({
             title: "Client trouvé",
-            description: `${result.recipientData.fullName} - Solde: ${formatCurrency(clientBalance.balance, 'XAF')}`,
+            description: `${result.recipientData.fullName}`,
           });
           return;
         }
@@ -467,9 +466,6 @@ const AgentDeposit = () => {
                         <p className="text-green-800 font-medium">
                           ✓ Client trouvé: {clientData.full_name || 'Nom non disponible'}
                         </p>
-                        <p className="text-green-700 text-sm">
-                          Solde: {formatCurrency(clientData.balance || 0, 'XAF')}
-                        </p>
                       </div>
                     )}
 
@@ -570,9 +566,6 @@ const AgentDeposit = () => {
                       <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                         <p className="text-green-800 font-medium">
                           ✓ Client trouvé: {clientData.full_name || 'Nom non disponible'}
-                        </p>
-                        <p className="text-green-700 text-sm">
-                          Solde: {formatCurrency(clientData.balance || 0, 'XAF')}
                         </p>
                       </div>
                     )}
