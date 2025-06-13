@@ -3,14 +3,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import NotificationBell from "@/components/notifications/NotificationBell";
+import BiometricConfirmation from "@/components/withdrawal/BiometricConfirmation";
 
 const MobileRecharge = () => {
+  const { user, isAgent } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [operator, setOperator] = useState("");
   const { toast } = useToast();
+  const [showBiometricConfirmation, setShowBiometricConfirmation] = useState(false);
+  const [pendingWithdrawals, setPendingWithdrawals] = useState<any[]>([]);
+  const [selectedWithdrawal, setSelectedWithdrawal] = useState<any>(null);
   
   const operators = [
     { id: "orange", name: "Orange", logo: "🟠" },
@@ -20,6 +29,74 @@ const MobileRecharge = () => {
   ];
   
   const amounts = ["500", "1000", "2000", "5000", "10000"];
+
+  // Check for pending withdrawal requests for users
+  const { data: notifications } = useQuery({
+    queryKey: ['pending-withdrawals', user?.id],
+    queryFn: async () => {
+      if (!user?.id || isAgent()) return [];
+      
+      const { data, error } = await supabase
+        .from('withdrawals')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'agent_pending')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && !isAgent(),
+    refetchInterval: 30000, // Check every 30 seconds
+  });
+
+  useEffect(() => {
+    if (notifications && notifications.length > 0) {
+      setPendingWithdrawals(notifications);
+    }
+  }, [notifications]);
+
+  const handleNotificationClick = () => {
+    if (pendingWithdrawals.length > 0) {
+      const firstWithdrawal = pendingWithdrawals[0];
+      setSelectedWithdrawal(firstWithdrawal);
+      setShowBiometricConfirmation(true);
+    }
+  };
+
+  const handleConfirmWithdrawal = async () => {
+    if (!selectedWithdrawal) return;
+    
+    try {
+      // Traiter la confirmation du retrait
+      await supabase
+        .from('withdrawals')
+        .update({ status: 'completed' })
+        .eq('id', selectedWithdrawal.id);
+      
+      // Débiter le compte utilisateur
+      await supabase.rpc('increment_balance', {
+        user_id: user?.id,
+        amount: -selectedWithdrawal.amount
+      });
+
+      toast({
+        title: "Retrait confirmé",
+        description: `Retrait de ${selectedWithdrawal.amount} FCFA effectué avec succès`,
+      });
+
+      setShowBiometricConfirmation(false);
+      setSelectedWithdrawal(null);
+      
+    } catch (error) {
+      console.error("Erreur confirmation retrait:", error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la confirmation du retrait",
+        variant: "destructive"
+      });
+    }
+  };
   
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -41,14 +118,50 @@ const MobileRecharge = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-8 px-4">
       <div className="container max-w-lg mx-auto">
-        <Link to="/">
-          <Button variant="ghost" className="mb-6">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour
-          </Button>
-        </Link>
+        <div className="flex items-center justify-between mb-6">
+          <Link to="/">
+            <Button variant="ghost">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Retour
+            </Button>
+          </Link>
+          
+          {/* Notification Bell - Only for non-agents */}
+          {!isAgent() && (
+            <NotificationBell 
+              notificationCount={pendingWithdrawals.length}
+              onClick={handleNotificationClick}
+            />
+          )}
+        </div>
         
         <h1 className="text-2xl font-bold mb-6">Recharge téléphonique</h1>
+        
+        {/* Withdrawal Confirmation Alert */}
+        {pendingWithdrawals.length > 0 && (
+          <Card className="mb-6 border-orange-200 bg-orange-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-orange-800">Confirmation de retrait requise</h3>
+                  <p className="text-sm text-orange-700">
+                    Un agent souhaite effectuer un retrait de {pendingWithdrawals[0]?.amount} FCFA
+                  </p>
+                  <p className="text-xs text-orange-600 mt-1">
+                    La procédure est en attente de votre confirmation
+                  </p>
+                </div>
+                <Button 
+                  onClick={handleNotificationClick}
+                  variant="outline"
+                  className="border-orange-300 text-orange-700 hover:bg-orange-100"
+                >
+                  Confirmer
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         
         <Card>
           <CardHeader>
@@ -155,6 +268,21 @@ const MobileRecharge = () => {
             </div>
           </CardContent>
         </Card>
+        
+        {/* Biometric Confirmation Modal */}
+        {showBiometricConfirmation && selectedWithdrawal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <BiometricConfirmation 
+              withdrawalData={{
+                id: selectedWithdrawal.id,
+                amount: selectedWithdrawal.amount,
+                agentName: "Agent"
+              }}
+              onClose={() => setShowBiometricConfirmation(false)}
+              onConfirm={handleConfirmWithdrawal}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
