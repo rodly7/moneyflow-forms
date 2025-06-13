@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -223,9 +224,9 @@ export const useRecipientVerification = () => {
         };
       }
 
-      // Si pas de profil, récupérer depuis auth_users_view pour les métadonnées
+      // Si pas de profil, récupérer depuis auth_users_agents_view pour les métadonnées
       const { data: authUser, error: authError } = await supabase
-        .from('auth_users_view')
+        .from('auth_users_agents_view')
         .select('raw_user_meta_data')
         .eq('id', userId)
         .maybeSingle();
@@ -370,11 +371,11 @@ export const useRecipientVerification = () => {
           }
         }
         
-        // Strategy 2: Recherche dans auth_users_view si pas trouvé dans profiles
+        // Strategy 2: Recherche dans auth_users_agents_view si pas trouvé dans profiles
         let authUserData = [];
         try {
           const { data, error: authUserError } = await supabase
-            .from('auth_users_view')
+            .from('auth_users_agents_view')
             .select('id, email, raw_user_meta_data')
             .order('created_at', { ascending: false });
           
@@ -385,7 +386,7 @@ export const useRecipientVerification = () => {
           console.error("Erreur lors de la récupération des utilisateurs auth:", error);
         }
         
-        console.log("Nombre d'utilisateurs trouvés dans auth_users_view:", authUserData?.length);
+        console.log("Nombre d'utilisateurs trouvés dans auth_users_agents_view:", authUserData?.length);
         
         if (authUserData && authUserData.length > 0) {
           for (const user of authUserData) {
@@ -399,13 +400,13 @@ export const useRecipientVerification = () => {
               if (!userPhone) continue;
               
               if (phoneNumbersMatch(userPhone, formattedPhone, countryCode)) {
-                console.log("✓ Correspondance trouvée dans auth_users_view!");
+                console.log("✓ Correspondance trouvée dans auth_users_agents_view!");
                 
                 const displayName = extractNameFromMetadata(metadata) || metadata.full_name || metadata.fullName || "Utilisateur";
                 
                 if (displayName) {
                   console.log("Nom trouvé dans les métadonnées:", displayName);
-                  console.log("ID utilisateur trouvé dans auth_users_view:", user.id);
+                  console.log("ID utilisateur trouvé dans auth_users_agents_view:", user.id);
                   
                   // Récupérer le solde de l'utilisateur et créer le profil si nécessaire
                   const balanceData = await getUserBalance(user.id);
