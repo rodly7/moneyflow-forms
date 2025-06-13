@@ -38,25 +38,41 @@ const AgentDeposit = () => {
   } = useRecipientVerification();
 
   const ensureUserProfile = async (userId: string, userEmail: string, userPhone: string) => {
-    console.log("🔍 Vérification du profil utilisateur:", userId);
+    console.log("🔍 Vérification/création du profil utilisateur pour:", userId);
     
-    // Vérifier si le profil existe
-    const { data: existingProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-    
-    if (profileError) {
-      console.error("❌ Erreur lors de la vérification du profil:", profileError);
-      throw new Error("Erreur lors de la vérification du profil");
-    }
-    
-    if (!existingProfile) {
-      console.log("📝 Création du profil utilisateur manquant...");
+    try {
+      // D'abord, vérifier si le profil existe déjà
+      const { data: existingProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
       
-      // Créer le profil manquant
-      const { error: insertError } = await supabase
+      if (profileError && profileError.code !== 'PGRST116') { // PGRST116 = pas de données trouvées
+        console.error("❌ Erreur lors de la vérification du profil:", profileError);
+        throw new Error("Erreur lors de la vérification du profil existant");
+      }
+      
+      if (existingProfile) {
+        console.log("✅ Profil utilisateur existant trouvé");
+        // Utiliser RPC pour obtenir le solde le plus à jour
+        const { data: currentBalance, error: balanceError } = await supabase.rpc('increment_balance', {
+          user_id: userId,
+          amount: 0
+        });
+        
+        const actualBalance = balanceError ? Number(existingProfile.balance) || 0 : Number(currentBalance) || 0;
+        
+        return { 
+          balance: actualBalance, 
+          fullName: existingProfile.full_name || "Utilisateur" 
+        };
+      }
+      
+      // Le profil n'existe pas, le créer
+      console.log("📝 Création du profil utilisateur...");
+      
+      const { data: insertedProfile, error: insertError } = await supabase
         .from('profiles')
         .insert({
           id: userId,
@@ -64,22 +80,54 @@ const AgentDeposit = () => {
           full_name: "Utilisateur",
           country: "Congo Brazzaville",
           balance: 0
-        });
+        })
+        .select()
+        .single();
       
       if (insertError) {
         console.error("❌ Erreur lors de la création du profil:", insertError);
-        throw new Error("Erreur lors de la création du profil utilisateur");
+        
+        // Si l'insertion échoue, essayer d'utiliser RPC pour initialiser le solde
+        const { data: rpcBalance, error: rpcError } = await supabase.rpc('increment_balance', {
+          user_id: userId,
+          amount: 0
+        });
+        
+        if (rpcError) {
+          console.error("❌ Erreur RPC également:", rpcError);
+          throw new Error("Impossible de créer ou initialiser le profil utilisateur");
+        }
+        
+        console.log("✅ Profil initialisé via RPC");
+        return { balance: Number(rpcBalance) || 0, fullName: "Utilisateur" };
       }
       
-      console.log("✅ Profil utilisateur créé avec succès");
-      return { balance: 0, fullName: "Utilisateur" };
+      console.log("✅ Profil utilisateur créé avec succès:", insertedProfile);
+      return { 
+        balance: Number(insertedProfile.balance) || 0, 
+        fullName: insertedProfile.full_name || "Utilisateur" 
+      };
+      
+    } catch (error) {
+      console.error("❌ Erreur critique lors de la gestion du profil:", error);
+      
+      // Dernière tentative avec RPC seulement
+      try {
+        const { data: fallbackBalance, error: fallbackError } = await supabase.rpc('increment_balance', {
+          user_id: userId,
+          amount: 0
+        });
+        
+        if (!fallbackError) {
+          console.log("✅ Profil récupéré via RPC en dernier recours");
+          return { balance: Number(fallbackBalance) || 0, fullName: "Utilisateur" };
+        }
+      } catch (fallbackErr) {
+        console.error("❌ Échec total:", fallbackErr);
+      }
+      
+      throw new Error("Impossible de créer ou récupérer le profil utilisateur");
     }
-    
-    console.log("✅ Profil utilisateur existant trouvé");
-    return { 
-      balance: Number(existingProfile.balance) || 0, 
-      fullName: existingProfile.full_name || "Utilisateur" 
-    };
   };
 
   const fetchAgentBalance = async () => {
