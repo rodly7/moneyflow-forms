@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -165,9 +164,9 @@ const Transactions = () => {
   const getIcon = (type: string) => {
     switch (type) {
       case 'withdrawal':
-        return <Download className="h-5 w-5 text-red-500" />;
+        return <Download className="h-4 w-4 text-red-500" />;
       case 'transfer':
-        return <ArrowRightLeft className="h-5 w-5 text-blue-500" />;
+        return <ArrowRightLeft className="h-4 w-4 text-blue-500" />;
       default:
         return null;
     }
@@ -176,18 +175,18 @@ const Transactions = () => {
   const renderTransaction = (transaction: Transaction) => (
     <div 
       key={transaction.id} 
-      className="flex flex-col p-2 rounded-lg border hover:bg-gray-50 transition mb-2"
+      className="flex flex-col p-3 rounded-lg border hover:bg-gray-50 transition-colors"
     >
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-full bg-gray-100">
+      <div className="flex justify-between items-start w-full">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="p-2 rounded-full bg-gray-100 shrink-0">
             {getIcon(transaction.type)}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="font-medium text-sm">{transaction.description}</p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-medium text-sm text-gray-900 truncate">{transaction.description}</p>
               {transaction.userType && (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${
                   transaction.userType === 'agent' 
                     ? 'bg-purple-100 text-purple-700' 
                     : 'bg-blue-100 text-blue-700'
@@ -196,13 +195,13 @@ const Transactions = () => {
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 mt-1">
               {format(transaction.date, 'PPP', { locale: fr })}
             </p>
           </div>
         </div>
-        <div className="text-right">
-          <p className={`font-semibold text-sm ${
+        <div className="text-right shrink-0 ml-2">
+          <p className={`font-semibold text-sm whitespace-nowrap ${
             transaction.amount > 0 ? 'text-green-500' : 'text-red-500'
           }`}>
             {transaction.amount > 0 ? '+' : ''}
@@ -212,7 +211,7 @@ const Transactions = () => {
               maximumFractionDigits: 0
             }).format(transaction.amount)}
           </p>
-          <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+          <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap inline-block mt-1 ${
             transaction.status === 'completed' ? 'bg-green-100 text-green-700' : 
             transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
             'bg-gray-100 text-gray-700'
@@ -224,17 +223,17 @@ const Transactions = () => {
       </div>
       
       {transaction.showCode && transaction.verification_code && (
-        <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+        <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200 w-full">
           <div className="flex justify-between items-center">
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-xs text-gray-500 mb-1">Code de vérification (valide 5 min):</p>
-              <p className="font-mono font-medium tracking-wider text-sm">{transaction.verification_code}</p>
+              <p className="font-mono font-medium tracking-wider text-sm break-all">{transaction.verification_code}</p>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => copyToClipboard(transaction.verification_code!, transaction.id)}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 shrink-0 ml-2"
             >
               {copiedCodes[transaction.id] ? (
                 <Check className="h-4 w-4 text-green-500" />
@@ -249,29 +248,31 @@ const Transactions = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 p-4">
       <div className="container max-w-2xl mx-auto">
         <Button
           variant="ghost"
           onClick={() => navigate('/')}
-          className="mb-6"
+          className="mb-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour
         </Button>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Historique des transactions</CardTitle>
+        <Card className="shadow-lg">
+          <CardHeader className="py-4 px-4">
+            <CardTitle className="text-lg font-semibold">Historique des transactions</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
+          <CardContent className="p-4 pt-0">
+            <div className="space-y-3">
               {processedTransactions.length > 0 ? (
                 processedTransactions.map(renderTransaction)
               ) : (
-                <p className="text-center text-gray-500 py-6 bg-gray-50 rounded-lg">
-                  Aucune transaction effectuée
-                </p>
+                <div className="text-center py-8 px-4">
+                  <p className="text-gray-500 bg-gray-50 rounded-lg p-6">
+                    Aucune transaction effectuée
+                  </p>
+                </div>
               )}
             </div>
           </CardContent>
