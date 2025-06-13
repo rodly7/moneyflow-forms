@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,96 +38,47 @@ const AgentDeposit = () => {
     setRecipientVerified
   } = useRecipientVerification();
 
-  const ensureUserProfile = async (userId: string, userEmail: string, userPhone: string) => {
-    console.log("🔍 Vérification/création du profil utilisateur pour:", userId);
+  const findUserByPhone = async (phoneNumber: string) => {
+    console.log("🔍 Recherche d'utilisateur par téléphone:", phoneNumber);
     
     try {
-      // D'abord, vérifier si le profil existe déjà
-      const { data: existingProfile, error: profileError } = await supabase
+      // Rechercher directement dans la table profiles
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('id', userId)
+        .select('id, full_name, phone, balance')
+        .eq('phone', phoneNumber)
         .maybeSingle();
       
-      if (profileError && profileError.code !== 'PGRST116') { // PGRST116 = pas de données trouvées
-        console.error("❌ Erreur lors de la vérification du profil:", profileError);
-        throw new Error("Erreur lors de la vérification du profil existant");
+      if (profileError) {
+        console.error("❌ Erreur lors de la recherche dans profiles:", profileError);
+        return null;
       }
       
-      if (existingProfile) {
-        console.log("✅ Profil utilisateur existant trouvé");
+      if (profileData) {
+        console.log("✅ Utilisateur trouvé dans profiles:", profileData);
+        
         // Utiliser RPC pour obtenir le solde le plus à jour
         const { data: currentBalance, error: balanceError } = await supabase.rpc('increment_balance', {
-          user_id: userId,
+          user_id: profileData.id,
           amount: 0
         });
         
-        const actualBalance = balanceError ? Number(existingProfile.balance) || 0 : Number(currentBalance) || 0;
+        const actualBalance = balanceError ? Number(profileData.balance) || 0 : Number(currentBalance) || 0;
         
-        return { 
-          balance: actualBalance, 
-          fullName: existingProfile.full_name || "Utilisateur" 
+        return {
+          id: profileData.id,
+          full_name: profileData.full_name || "Utilisateur",
+          phone: profileData.phone,
+          balance: actualBalance
         };
       }
       
-      // Le profil n'existe pas, le créer
-      console.log("📝 Création du profil utilisateur...");
-      
-      const { data: insertedProfile, error: insertError } = await supabase
-        .from('profiles')
-        .insert({
-          id: userId,
-          phone: userPhone,
-          full_name: "Utilisateur",
-          country: "Congo Brazzaville",
-          balance: 0
-        })
-        .select()
-        .single();
-      
-      if (insertError) {
-        console.error("❌ Erreur lors de la création du profil:", insertError);
-        
-        // Si l'insertion échoue, essayer d'utiliser RPC pour initialiser le solde
-        const { data: rpcBalance, error: rpcError } = await supabase.rpc('increment_balance', {
-          user_id: userId,
-          amount: 0
-        });
-        
-        if (rpcError) {
-          console.error("❌ Erreur RPC également:", rpcError);
-          throw new Error("Impossible de créer ou initialiser le profil utilisateur");
-        }
-        
-        console.log("✅ Profil initialisé via RPC");
-        return { balance: Number(rpcBalance) || 0, fullName: "Utilisateur" };
-      }
-      
-      console.log("✅ Profil utilisateur créé avec succès:", insertedProfile);
-      return { 
-        balance: Number(insertedProfile.balance) || 0, 
-        fullName: insertedProfile.full_name || "Utilisateur" 
-      };
+      console.log("ℹ️ Aucun utilisateur trouvé avec ce numéro");
+      return null;
       
     } catch (error) {
-      console.error("❌ Erreur critique lors de la gestion du profil:", error);
-      
-      // Dernière tentative avec RPC seulement
-      try {
-        const { data: fallbackBalance, error: fallbackError } = await supabase.rpc('increment_balance', {
-          user_id: userId,
-          amount: 0
-        });
-        
-        if (!fallbackError) {
-          console.log("✅ Profil récupéré via RPC en dernier recours");
-          return { balance: Number(fallbackBalance) || 0, fullName: "Utilisateur" };
-        }
-      } catch (fallbackErr) {
-        console.error("❌ Échec total:", fallbackErr);
-      }
-      
-      throw new Error("Impossible de créer ou récupérer le profil utilisateur");
+      console.error("❌ Erreur lors de la recherche d'utilisateur:", error);
+      return null;
     }
   };
 
@@ -166,7 +118,7 @@ const AgentDeposit = () => {
     }
   };
 
-  // Verify recipient using the hook
+  // Verify recipient using direct database lookup
   const handleVerifyRecipient = async () => {
     if (!phoneNumber || phoneNumber.length < 6) return;
     
@@ -178,50 +130,21 @@ const AgentDeposit = () => {
     console.log("Verifying phone number:", fullPhone);
     
     try {
-      const result = await verifyRecipient(fullPhone, countryCode, {
-        fullName: "",
-        email: fullPhone,
-        country: ""
-      });
+      // Rechercher l'utilisateur par téléphone
+      const userData = await findUserByPhone(fullPhone);
       
-      if (result.verified && result.recipientData) {
-        console.log("Verification result:", result);
-        setRecipientName(result.recipientData.fullName);
+      if (userData) {
+        console.log("✅ Utilisateur trouvé:", userData);
+        setRecipientName(userData.full_name);
+        setRecipientId(userData.id);
+        setClientData(userData);
+        setRecipientVerified(true);
         
-        // Use the userId from recipientData if available
-        if (result.recipientData.userId) {
-          setRecipientId(result.recipientData.userId);
-          
-          // Ensure user profile exists and get balance
-          try {
-            const profileData = await ensureUserProfile(
-              result.recipientData.userId, 
-              result.recipientData.email,
-              fullPhone
-            );
-            
-            setClientData({
-              id: result.recipientData.userId,
-              full_name: profileData.fullName,
-              phone: fullPhone,
-              balance: profileData.balance
-            });
-            
-            setRecipientVerified(true);
-            toast({
-              title: "Client trouvé",
-              description: `${profileData.fullName}`,
-            });
-          } catch (profileError) {
-            console.error("❌ Erreur lors de la gestion du profil:", profileError);
-            toast({
-              title: "Erreur de profil",
-              description: "Impossible de créer ou récupérer le profil utilisateur",
-              variant: "destructive"
-            });
-          }
-          return;
-        }
+        toast({
+          title: "Client trouvé",
+          description: `${userData.full_name} - Solde: ${formatCurrency(userData.balance, 'XAF')}`,
+        });
+        return;
       }
       
       // User not found
@@ -312,9 +235,6 @@ const AgentDeposit = () => {
         throw new Error("Agent non connecté");
       }
 
-      // S'assurer que le profil du client existe avant les opérations
-      await ensureUserProfile(clientData.id, "", phoneNumber);
-
       // Traitement du dépôt (agent débité, client crédité)
       // Débiter l'agent
       const { error: debitError } = await supabase.rpc('increment_balance', {
@@ -403,24 +323,21 @@ const AgentDeposit = () => {
 
     const operationAmount = Number(amount);
 
+    // Pour les retraits, vérifier le solde du client
+    if (operationAmount > clientData.balance) {
+      toast({
+        title: "Solde client insuffisant",
+        description: `Le solde du client (${formatCurrency(clientData.balance, 'XAF')}) est insuffisant pour ce retrait`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setIsProcessing(true);
 
       if (!user?.id) {
         throw new Error("Agent non connecté");
-      }
-
-      // S'assurer que le profil du client existe et récupérer son solde exact
-      const profileData = await ensureUserProfile(clientData.id, "", phoneNumber);
-
-      // Pour les retraits, vérifier le solde du client
-      if (operationAmount > profileData.balance) {
-        toast({
-          title: "Solde client insuffisant",
-          description: `Le solde du client (${formatCurrency(profileData.balance, 'XAF')}) est insuffisant pour ce retrait`,
-          variant: "destructive"
-        });
-        return;
       }
 
       // Traitement du retrait (client débité, agent crédité)
@@ -579,6 +496,9 @@ const AgentDeposit = () => {
                         <p className="text-green-800 font-medium">
                           ✓ Client trouvé: {clientData.full_name || 'Nom non disponible'}
                         </p>
+                        <p className="text-green-700 text-sm">
+                          Solde actuel: {formatCurrency(clientData.balance, 'XAF')}
+                        </p>
                       </div>
                     )}
 
@@ -680,6 +600,9 @@ const AgentDeposit = () => {
                         <p className="text-green-800 font-medium">
                           ✓ Client trouvé: {clientData.full_name || 'Nom non disponible'}
                         </p>
+                        <p className="text-green-700 text-sm">
+                          Solde actuel: {formatCurrency(clientData.balance, 'XAF')}
+                        </p>
                       </div>
                     )}
 
@@ -697,7 +620,7 @@ const AgentDeposit = () => {
                       />
                       {isWithdrawalAmountExceedsBalance && (
                         <p className="text-red-600 text-sm">
-                          Le montant dépasse le solde du client
+                          Le montant dépasse le solde du client ({formatCurrency(clientData.balance, 'XAF')})
                         </p>
                       )}
                     </div>
