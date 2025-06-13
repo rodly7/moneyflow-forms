@@ -6,14 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Banknote, Search, User, Wallet, Phone } from "lucide-react";
+import { ArrowLeft, Banknote, User, Wallet, Phone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, supabase } from "@/integrations/supabase/client";
-import { 
-  findUserByPhoneWithCountryCode, 
-  processAgentWithdrawal, 
-  getCountryCodeForAgent 
-} from "@/services/withdrawalService";
+import { processAgentWithdrawal, getCountryCodeForAgent } from "@/services/withdrawalService";
+import { useUserSearch } from "@/hooks/useUserSearch";
 
 const AgentWithdrawalAdvanced = () => {
   const { user } = useAuth();
@@ -23,10 +20,12 @@ const AgentWithdrawalAdvanced = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [clientData, setClientData] = useState<any>(null);
-  const [isSearching, setIsSearching] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [countryCode, setCountryCode] = useState("+242");
   const [agentCountry, setAgentCountry] = useState("Congo Brazzaville");
+
+  // Use the new user search hook
+  const { searchUserByPhone, isSearching } = useUserSearch();
 
   // Récupérer le pays de l'agent pour définir l'indicatif
   useEffect(() => {
@@ -65,11 +64,16 @@ const AgentWithdrawalAdvanced = () => {
       return;
     }
 
-    setIsSearching(true);
     try {
       console.log("🔍 Recherche automatique avec indicatif:", countryCode, phone);
       
-      const client = await findUserByPhoneWithCountryCode(phone, countryCode);
+      // Format the full phone number with country code
+      const fullPhone = phone.startsWith('+') 
+        ? phone 
+        : `${countryCode}${phone.startsWith('0') ? phone.substring(1) : phone}`;
+      
+      // Utiliser le nouveau système de recherche d'utilisateurs
+      const client = await searchUserByPhone(fullPhone);
       
       if (client) {
         setClientData(client);
@@ -82,7 +86,7 @@ const AgentWithdrawalAdvanced = () => {
         setClientData(null);
         toast({
           title: "Client non trouvé",
-          description: `Aucun utilisateur trouvé avec ${countryCode} ${phone}`,
+          description: `Ce numéro n'existe pas dans notre base de données`,
           variant: "destructive"
         });
       }
@@ -95,7 +99,6 @@ const AgentWithdrawalAdvanced = () => {
       });
       setClientData(null);
     }
-    setIsSearching(false);
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {

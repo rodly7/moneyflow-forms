@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Banknote, Search, User, Wallet } from "lucide-react";
+import { ArrowLeft, Banknote, User, Wallet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/integrations/supabase/client";
-import { findUserByPhone, processAgentWithdrawal } from "@/services/withdrawalService";
+import { processAgentWithdrawal } from "@/services/withdrawalService";
+import { useUserSearch } from "@/hooks/useUserSearch";
 
 const AgentWithdrawalSimple = () => {
   const { user } = useAuth();
@@ -19,8 +20,10 @@ const AgentWithdrawalSimple = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [clientData, setClientData] = useState<any>(null);
-  const [isSearching, setIsSearching] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Use the new user search hook
+  const { searchUserByPhone, isSearching } = useUserSearch();
 
   const searchClient = async () => {
     if (!phoneNumber || phoneNumber.length < 6) {
@@ -32,9 +35,9 @@ const AgentWithdrawalSimple = () => {
       return;
     }
 
-    setIsSearching(true);
     try {
-      const client = await findUserByPhone(phoneNumber);
+      // Utiliser le nouveau système de recherche d'utilisateurs
+      const client = await searchUserByPhone(phoneNumber);
       
       if (client) {
         setClientData(client);
@@ -46,7 +49,7 @@ const AgentWithdrawalSimple = () => {
         setClientData(null);
         toast({
           title: "Client non trouvé",
-          description: "Aucun utilisateur trouvé avec ce numéro de téléphone",
+          description: "Ce numéro n'existe pas dans notre base de données",
           variant: "destructive"
         });
       }
@@ -59,7 +62,6 @@ const AgentWithdrawalSimple = () => {
       });
       setClientData(null);
     }
-    setIsSearching(false);
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -185,7 +187,7 @@ const AgentWithdrawalSimple = () => {
                     {isSearching ? (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
                     ) : (
-                      <Search className="w-4 h-4" />
+                      "Rechercher"
                     )}
                   </Button>
                 </div>

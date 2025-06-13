@@ -9,8 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import PhoneInput from "@/components/transfer-steps/PhoneInput";
 import { useRecipientVerification } from "@/hooks/useRecipientVerification";
-import { useBalanceOperations } from "@/hooks/useBalanceOperations";
 import { useDepositOperations } from "@/hooks/useDepositOperations";
+import { useUserSearch } from "@/hooks/useUserSearch";
 import RecipientVerificationDisplay from "./RecipientVerificationDisplay";
 
 const DepositForm = () => {
@@ -25,17 +25,15 @@ const DepositForm = () => {
   const [recipientName, setRecipientName] = useState("");
   const [recipientId, setRecipientId] = useState("");
   const [recipientBalance, setRecipientBalance] = useState<number | null>(null);
-  const [verificationAttempted, setVerificationAttempted] = useState(false);
 
   const {
     isLoading: isVerifying,
     recipientVerified: isVerified,
-    verifyRecipient,
     setRecipientVerified
   } = useRecipientVerification();
 
-  const { getUserRealBalance, getOrCreateUserProfile } = useBalanceOperations();
   const { isProcessing, processDeposit } = useDepositOperations();
+  const { searchUserByPhone, isSearching } = useUserSearch();
 
   // Fetch agent profile to get their country
   useEffect(() => {
@@ -88,20 +86,17 @@ const DepositForm = () => {
       ...prev,
       recipientPhone: value
     }));
-    if (isVerified || verificationAttempted) {
+    if (isVerified) {
       setRecipientVerified(false);
       setRecipientName("");
       setRecipientId("");
       setRecipientBalance(null);
-      setVerificationAttempted(false);
     }
   };
 
-  // Verify recipient using the direct balance lookup
+  // Verify recipient using the new search system
   const handleVerifyRecipient = async () => {
     if (!formData.recipientPhone || formData.recipientPhone.length < 6) return;
-    
-    setVerificationAttempted(true);
     
     // Format the full phone number with country code
     const fullPhone = formData.recipientPhone.startsWith('+') 
@@ -111,44 +106,19 @@ const DepositForm = () => {
     console.log("🔍 Vérification du destinataire pour:", fullPhone);
     
     try {
-      // Récupérer le solde réel directement depuis la table profiles
-      const balanceResult = await getUserRealBalance(fullPhone);
+      // Utiliser le nouveau système de recherche d'utilisateurs
+      const userData = await searchUserByPhone(fullPhone);
       
-      if (balanceResult.userId) {
-        console.log("✅ Utilisateur trouvé:", balanceResult);
-        setRecipientName(balanceResult.fullName);
-        setRecipientId(balanceResult.userId);
-        setRecipientBalance(balanceResult.balance);
+      if (userData) {
+        console.log("✅ Utilisateur trouvé:", userData);
+        setRecipientName(userData.full_name);
+        setRecipientId(userData.id);
+        setRecipientBalance(userData.balance);
         setRecipientVerified(true);
         
         toast({
           title: "Utilisateur trouvé",
-          description: `${balanceResult.fullName} - Solde: ${balanceResult.balance} FCFA`
-        });
-        return;
-      }
-      
-      // Si pas trouvé par recherche directe, essayer avec la méthode de vérification classique
-      const result = await verifyRecipient(fullPhone, countryCode, {
-        fullName: "",
-        email: fullPhone,
-        country: ""
-      });
-      
-      if (result.verified && result.recipientData && result.recipientData.userId) {
-        console.log("✅ Utilisateur trouvé via vérification classique");
-        setRecipientName(result.recipientData.fullName);
-        setRecipientId(result.recipientData.userId);
-        setRecipientVerified(true);
-        
-        // Récupérer le solde réel avec la nouvelle méthode
-        const updatedBalanceResult = await getUserRealBalance(fullPhone);
-        const finalBalance = updatedBalanceResult.userId ? updatedBalanceResult.balance : (result.recipientData.balance || 0);
-        
-        setRecipientBalance(finalBalance);
-        toast({
-          title: "Utilisateur trouvé",
-          description: `${result.recipientData.fullName} - Solde: ${finalBalance} FCFA`
+          description: `${userData.full_name} - Solde: ${userData.balance} FCFA`
         });
         return;
       }
@@ -252,7 +222,7 @@ const DepositForm = () => {
                 phoneInput={formData.recipientPhone}
                 countryCode={countryCode}
                 onPhoneChange={handlePhoneChange}
-                isLoading={isVerifying}
+                isLoading={isVerifying || isSearching}
                 isVerified={isVerified}
                 recipientName={recipientName}
                 label="Numéro de téléphone de l'utilisateur"
