@@ -1,13 +1,9 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
-
-const Layout = ({ children }: LayoutProps) => {
+const Layout = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -32,7 +28,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className="min-h-screen w-full">
-      {children}
+      <Outlet />
     </div>
   );
 };
