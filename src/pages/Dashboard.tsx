@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,16 +9,18 @@ import ActionButtons from "@/components/dashboard/ActionButtons";
 import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import TransactionsCard from "@/components/dashboard/TransactionsCard";
 import TransferForm from "@/components/TransferForm";
-import WithdrawalConfirmation from "@/components/withdrawal/WithdrawalConfirmation";
-import { Bell } from "lucide-react";
+import NotificationBell from "@/components/notifications/NotificationBell";
+import BiometricConfirmation from "@/components/withdrawal/BiometricConfirmation";
 import { useToast } from "@/hooks/use-toast";
+import { Bell } from "lucide-react";
 
 const Dashboard = () => {
   const { user, isAgent } = useAuth();
   const { toast } = useToast();
   const [showTransferForm, setShowTransferForm] = useState(false);
-  const [showWithdrawalConfirmation, setShowWithdrawalConfirmation] = useState(false);
+  const [showBiometricConfirmation, setShowBiometricConfirmation] = useState(false);
   const [pendingWithdrawals, setPendingWithdrawals] = useState<any[]>([]);
+  const [selectedWithdrawal, setSelectedWithdrawal] = useState<any>(null);
 
   // Check for pending withdrawal requests for users
   const { data: notifications } = useQuery({
@@ -44,24 +45,50 @@ const Dashboard = () => {
   useEffect(() => {
     if (notifications && notifications.length > 0) {
       setPendingWithdrawals(notifications);
+    }
+  }, [notifications]);
+
+  const handleNotificationClick = () => {
+    if (pendingWithdrawals.length > 0) {
+      const firstWithdrawal = pendingWithdrawals[0];
+      setSelectedWithdrawal(firstWithdrawal);
+      setShowBiometricConfirmation(true);
+    }
+  };
+
+  const handleConfirmWithdrawal = async () => {
+    if (!selectedWithdrawal) return;
+    
+    try {
+      // Traiter la confirmation du retrait
+      await supabase
+        .from('withdrawals')
+        .update({ status: 'completed' })
+        .eq('id', selectedWithdrawal.id);
       
-      // Show toast notification for new pending withdrawals
-      notifications.forEach((withdrawal: any) => {
-        toast({
-          title: "Demande de retrait",
-          description: `Un agent souhaite effectuer un retrait de ${withdrawal.amount} FCFA sur votre compte.`,
-          action: (
-            <Button 
-              size="sm" 
-              onClick={() => setShowWithdrawalConfirmation(true)}
-            >
-              Voir
-            </Button>
-          ),
-        });
+      // Débiter le compte utilisateur
+      await supabase.rpc('increment_balance', {
+        user_id: user?.id,
+        amount: -selectedWithdrawal.amount
+      });
+
+      toast({
+        title: "Retrait confirmé",
+        description: `Retrait de ${selectedWithdrawal.amount} FCFA effectué avec succès`,
+      });
+
+      setShowBiometricConfirmation(false);
+      setSelectedWithdrawal(null);
+      
+    } catch (error) {
+      console.error("Erreur confirmation retrait:", error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la confirmation du retrait",
+        variant: "destructive"
       });
     }
-  }, [notifications, toast]);
+  };
 
   const { data: profile } = useQuery({
     queryKey: ['profile', user?.id],
@@ -108,32 +135,17 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-md mx-auto space-y-6">
-        <ProfileHeader profile={profile} />
+        {/* Header avec icône de notification pour les utilisateurs */}
+        <div className="flex items-center justify-between">
+          <ProfileHeader profile={profile} />
+          {!isAgent() && (
+            <NotificationBell 
+              notificationCount={pendingWithdrawals.length}
+              onClick={handleNotificationClick}
+            />
+          )}
+        </div>
         
-        {/* Pending withdrawal notifications for users */}
-        {!isAgent() && pendingWithdrawals.length > 0 && (
-          <Card className="border-orange-200 bg-orange-50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-orange-800 flex items-center text-sm">
-                <Bell className="w-4 h-4 mr-2" />
-                Demandes de retrait en attente
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-orange-700 mb-2">
-                Vous avez {pendingWithdrawals.length} demande(s) de retrait en attente.
-              </p>
-              <Button
-                size="sm"
-                onClick={() => setShowWithdrawalConfirmation(true)}
-                className="bg-orange-600 hover:bg-orange-700 text-white"
-              >
-                Voir les demandes
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
         <BalanceCard balance={profile?.balance || 0} userCountry={profile?.country || "Cameroun"} />
         <ActionButtons onTransferClick={() => setShowTransferForm(true)} />
         <TransactionsCard transactions={transformedTransactions} onDeleteTransaction={() => {}} />
@@ -155,9 +167,17 @@ const Dashboard = () => {
           </div>
         )}
         
-        {showWithdrawalConfirmation && (
+        {showBiometricConfirmation && selectedWithdrawal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <WithdrawalConfirmation onClose={() => setShowWithdrawalConfirmation(false)} />
+            <BiometricConfirmation 
+              withdrawalData={{
+                id: selectedWithdrawal.id,
+                amount: selectedWithdrawal.amount,
+                agentName: "Agent" // Vous pouvez récupérer le nom de l'agent si nécessaire
+              }}
+              onClose={() => setShowBiometricConfirmation(false)}
+              onConfirm={handleConfirmWithdrawal}
+            />
           </div>
         )}
       </div>

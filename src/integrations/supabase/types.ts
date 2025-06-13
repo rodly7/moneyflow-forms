@@ -69,13 +69,6 @@ export type Database = {
             referencedRelation: "auth_users_agents_view"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "agents_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "auth_users_view"
-            referencedColumns: ["id"]
-          },
         ]
       }
       audit_logs: {
@@ -117,14 +110,51 @@ export type Database = {
             referencedRelation: "auth_users_agents_view"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      cities: {
+        Row: {
+          country_id: number
+          id: number
+          name: string
+        }
+        Insert: {
+          country_id: number
+          id?: never
+          name: string
+        }
+        Update: {
+          country_id?: number
+          id?: never
+          name?: string
+        }
+        Relationships: [
           {
-            foreignKeyName: "audit_logs_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "cities_country_id_fkey"
+            columns: ["country_id"]
             isOneToOne: false
-            referencedRelation: "auth_users_view"
+            referencedRelation: "countries"
             referencedColumns: ["id"]
           },
         ]
+      }
+      countries: {
+        Row: {
+          code: string
+          id: number
+          name: string
+        }
+        Insert: {
+          code: string
+          id?: never
+          name: string
+        }
+        Update: {
+          code?: string
+          id?: never
+          name?: string
+        }
+        Relationships: []
       }
       pending_transfers: {
         Row: {
@@ -172,13 +202,6 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "auth_users_agents_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pending_transfers_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "auth_users_view"
             referencedColumns: ["id"]
           },
         ]
@@ -234,13 +257,6 @@ export type Database = {
             referencedRelation: "auth_users_agents_view"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "profiles_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "auth_users_view"
-            referencedColumns: ["id"]
-          },
         ]
       }
       recharges: {
@@ -294,13 +310,6 @@ export type Database = {
             referencedRelation: "auth_users_agents_view"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "recharges_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "auth_users_view"
-            referencedColumns: ["id"]
-          },
         ]
       }
       transfers: {
@@ -351,13 +360,6 @@ export type Database = {
             referencedRelation: "auth_users_agents_view"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "transfers_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "auth_users_view"
-            referencedColumns: ["id"]
-          },
         ]
       }
       withdrawals: {
@@ -402,42 +404,11 @@ export type Database = {
             referencedRelation: "auth_users_agents_view"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "withdrawals_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "auth_users_view"
-            referencedColumns: ["id"]
-          },
         ]
       }
     }
     Views: {
       auth_users_agents_view: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          id: string | null
-          last_sign_in_at: string | null
-          raw_user_meta_data: Json | null
-        }
-        Insert: {
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          last_sign_in_at?: string | null
-          raw_user_meta_data?: Json | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          last_sign_in_at?: string | null
-          raw_user_meta_data?: Json | null
-        }
-        Relationships: []
-      }
-      auth_users_view: {
         Row: {
           created_at: string | null
           email: string | null
@@ -468,8 +439,10 @@ export type Database = {
         Returns: boolean
       }
       claim_pending_transfer: {
-        Args: { claim_code_param: string; recipient_id: string }
-        Returns: boolean
+        Args:
+          | Record<PropertyKey, never>
+          | { claim_code_param: string; recipient_id: string }
+        Returns: undefined
       }
       create_new_agent: {
         Args: {
@@ -524,13 +497,15 @@ export type Database = {
         Returns: boolean
       }
       process_money_transfer: {
-        Args: {
-          sender_id: string
-          recipient_identifier: string
-          transfer_amount: number
-          transfer_fees: number
-        }
-        Returns: string
+        Args:
+          | { sender_id: number; receiver_id: number; amount: number }
+          | {
+              sender_id: string
+              recipient_identifier: string
+              transfer_amount: number
+              transfer_fees: number
+            }
+        Returns: undefined
       }
     }
     Enums: {
