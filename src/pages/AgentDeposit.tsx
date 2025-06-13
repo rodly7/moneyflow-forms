@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +13,7 @@ import { getUserBalance, getCountryCodeForAgent } from "@/services/withdrawalSer
 import { supabase } from "@/integrations/supabase/client";
 import PhoneInput from "@/components/transfer-steps/PhoneInput";
 import { useRecipientVerification } from "@/hooks/useRecipientVerification";
+import { useUserSearch } from "@/hooks/useUserSearch";
 
 const AgentDeposit = () => {
   const { user } = useAuth();
@@ -37,6 +37,9 @@ const AgentDeposit = () => {
     verifyRecipient,
     setRecipientVerified
   } = useRecipientVerification();
+
+  // Use the new user search hook
+  const { searchUserByPhone, isSearching } = useUserSearch();
 
   const findUserByPhone = async (phoneNumber: string) => {
     console.log("🔍 Recherche d'utilisateur par téléphone:", phoneNumber);
@@ -118,7 +121,7 @@ const AgentDeposit = () => {
     }
   };
 
-  // Verify recipient using direct database lookup
+  // Verify recipient using the new search system
   const handleVerifyRecipient = async () => {
     if (!phoneNumber || phoneNumber.length < 6) return;
     
@@ -130,8 +133,8 @@ const AgentDeposit = () => {
     console.log("Verifying phone number:", fullPhone);
     
     try {
-      // Rechercher l'utilisateur par téléphone
-      const userData = await findUserByPhone(fullPhone);
+      // Utiliser le nouveau système de recherche d'utilisateurs
+      const userData = await searchUserByPhone(fullPhone);
       
       if (userData) {
         console.log("✅ Utilisateur trouvé:", userData);
@@ -484,7 +487,7 @@ const AgentDeposit = () => {
                       phoneInput={phoneNumber}
                       countryCode={countryCode}
                       onPhoneChange={handlePhoneChange}
-                      isLoading={isVerifying}
+                      isLoading={isVerifying || isSearching}
                       isVerified={isVerified}
                       recipientName={recipientName}
                       label="Numéro du client"
@@ -588,7 +591,7 @@ const AgentDeposit = () => {
                       phoneInput={phoneNumber}
                       countryCode={countryCode}
                       onPhoneChange={handlePhoneChange}
-                      isLoading={isVerifying}
+                      isLoading={isVerifying || isSearching}
                       isVerified={isVerified}
                       recipientName={recipientName}
                       label="Numéro du client"
