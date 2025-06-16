@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, getCurrencyForCountry, convertCurrency, formatCurrency } from "@/integrations/supabase/client";
@@ -10,7 +9,6 @@ import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import BalanceCard from "@/components/dashboard/BalanceCard";
 import ActionButtons from "@/components/dashboard/ActionButtons";
 import TransactionsCard from "@/components/dashboard/TransactionsCard";
-import WithdrawalNotificationBell from "@/components/notifications/WithdrawalNotificationBell";
 import AutomaticWithdrawalConfirmation from "@/components/withdrawal/AutomaticWithdrawalConfirmation";
 import { useWithdrawalConfirmations } from "@/hooks/useWithdrawalConfirmations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -206,15 +204,9 @@ const Index = () => {
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-0">
       <div className="container max-w-full mx-auto space-y-4">
-        {/* Header avec icône de notification pour les utilisateurs */}
-        <div className="flex items-center justify-between mx-4">
+        {/* Header sans icône de notification */}
+        <div className="mx-4">
           {profile && <ProfileHeader profile={profile} />}
-          {!isAgent() && (
-            <WithdrawalNotificationBell 
-              notificationCount={pendingWithdrawals.length}
-              onClick={handleNotificationClick}
-            />
-          )}
         </div>
 
         {/* Section de confirmation de retrait pour les utilisateurs */}

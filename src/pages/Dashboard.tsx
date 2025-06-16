@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,6 @@ import ActionButtons from "@/components/dashboard/ActionButtons";
 import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import TransactionsCard from "@/components/dashboard/TransactionsCard";
 import TransferForm from "@/components/TransferForm";
-import WithdrawalNotificationBell from "@/components/notifications/WithdrawalNotificationBell";
 import AutomaticWithdrawalConfirmation from "@/components/withdrawal/AutomaticWithdrawalConfirmation";
 import { useWithdrawalConfirmations } from "@/hooks/useWithdrawalConfirmations";
 import { useToast } from "@/hooks/use-toast";
@@ -76,16 +74,8 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-md mx-auto space-y-6">
-        {/* Header avec icône de notification pour les utilisateurs */}
-        <div className="flex items-center justify-between">
-          <ProfileHeader profile={profile} />
-          {!isAgent() && (
-            <WithdrawalNotificationBell 
-              notificationCount={pendingWithdrawals.length}
-              onClick={handleNotificationClick}
-            />
-          )}
-        </div>
+        {/* Header sans icône de notification */}
+        <ProfileHeader profile={profile} />
         
         <BalanceCard balance={profile?.balance || 0} userCountry={profile?.country || "Cameroun"} />
         
