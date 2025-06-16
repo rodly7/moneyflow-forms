@@ -362,6 +362,51 @@ export type Database = {
           },
         ]
       }
+      withdrawal_requests: {
+        Row: {
+          agent_id: string
+          agent_name: string
+          agent_phone: string
+          amount: number
+          approved_at: string | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          rejected_at: string | null
+          status: string
+          user_id: string
+          withdrawal_phone: string
+        }
+        Insert: {
+          agent_id: string
+          agent_name: string
+          agent_phone: string
+          amount: number
+          approved_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          rejected_at?: string | null
+          status?: string
+          user_id: string
+          withdrawal_phone: string
+        }
+        Update: {
+          agent_id?: string
+          agent_name?: string
+          agent_phone?: string
+          amount?: number
+          approved_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          rejected_at?: string | null
+          status?: string
+          user_id?: string
+          withdrawal_phone?: string
+        }
+        Relationships: []
+      }
       withdrawals: {
         Row: {
           amount: number

@@ -12,7 +12,9 @@ interface WithdrawalRequest {
   agent_phone: string;
   created_at: string;
   user_id: string;
+  agent_id: string;
   status: string;
+  withdrawal_phone: string;
 }
 
 export const useWithdrawalRequestNotifications = () => {
