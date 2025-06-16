@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, getCurrencyForCountry, convertCurrency, formatCurrency } from "@/integrations/supabase/client";
@@ -13,6 +12,8 @@ import TransactionsCard from "@/components/dashboard/TransactionsCard";
 import AutomaticWithdrawalConfirmation from "@/components/withdrawal/AutomaticWithdrawalConfirmation";
 import { useWithdrawalConfirmations } from "@/hooks/useWithdrawalConfirmations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import WithdrawalRequestNotification from "@/components/notifications/WithdrawalRequestNotification";
+import { useWithdrawalRequestNotifications } from "@/hooks/useWithdrawalRequestNotifications";
 
 interface Profile {
   id: string;
@@ -49,6 +50,16 @@ const Index = () => {
     handleReject,
     closeConfirmation
   } = useWithdrawalConfirmations();
+
+  // Utiliser le nouveau hook pour les demandes de retrait
+  const {
+    pendingRequests,
+    selectedRequest,
+    showNotification: showRequestNotification,
+    handleConfirm: handleRequestConfirm,
+    handleReject: handleRequestReject,
+    closeNotification: closeRequestNotification
+  } = useWithdrawalRequestNotifications();
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
@@ -236,6 +247,35 @@ const Index = () => {
           </div>
         )}
 
+        {/* Section des demandes de retrait d'agents pour les utilisateurs */}
+        {!isAgent() && pendingRequests.length > 0 && (
+          <div className="px-4">
+            <Card className="bg-blue-50 border-blue-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-blue-800 text-lg flex items-center gap-2">
+                  🔔 Demande de retrait
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-blue-700 text-sm">
+                    Un agent souhaite effectuer un retrait de {pendingRequests[0]?.amount} FCFA.
+                  </p>
+                  <p className="text-blue-600 text-xs">
+                    Agent: {pendingRequests[0]?.agent_name}
+                  </p>
+                  <Button
+                    onClick={() => {}}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Voir la demande
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {profile && (
           <BalanceCard 
             balance={profile.balance} 
@@ -272,6 +312,16 @@ const Index = () => {
             onConfirm={handleConfirm}
             onReject={handleReject}
             onClose={closeConfirmation}
+          />
+        )}
+
+        {/* Modal de demande de retrait d'agent */}
+        {showRequestNotification && selectedRequest && (
+          <WithdrawalRequestNotification
+            request={selectedRequest}
+            onConfirm={handleRequestConfirm}
+            onReject={handleRequestReject}
+            onClose={closeRequestNotification}
           />
         )}
       </div>

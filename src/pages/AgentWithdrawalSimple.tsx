@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Banknote, User, Wallet } from "lucide-react";
+import { ArrowLeft, Send, User, Wallet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/integrations/supabase/client";
-import { processAgentWithdrawal } from "@/services/withdrawalService";
 import { useUserSearch } from "@/hooks/useUserSearch";
+import { useAgentWithdrawalRequest } from "@/hooks/useAgentWithdrawalRequest";
 
 const AgentWithdrawalSimple = () => {
   const { user } = useAuth();
@@ -20,9 +20,9 @@ const AgentWithdrawalSimple = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [clientData, setClientData] = useState<any>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Use the new user search hook
+  // Use the new withdrawal request hook instead of direct withdrawal
+  const { requestWithdrawal, isProcessing } = useAgentWithdrawalRequest();
   const { searchUserByPhone, isSearching } = useUserSearch();
 
   const searchClient = async () => {
@@ -36,7 +36,6 @@ const AgentWithdrawalSimple = () => {
     }
 
     try {
-      // Utiliser le nouveau système de recherche d'utilisateurs
       const client = await searchUserByPhone(phoneNumber);
       
       if (client) {
@@ -112,35 +111,18 @@ const AgentWithdrawalSimple = () => {
       return;
     }
 
-    try {
-      setIsProcessing(true);
+    const result = await requestWithdrawal(
+      clientData.id,
+      clientData.full_name || "Client",
+      withdrawalAmount,
+      phoneNumber
+    );
 
-      const result = await processAgentWithdrawal(
-        user.id,
-        clientData.id,
-        withdrawalAmount,
-        phoneNumber
-      );
-
-      toast({
-        title: "Retrait effectué",
-        description: `Retrait de ${formatCurrency(withdrawalAmount, 'XAF')} effectué pour ${result.clientName}. Nouveau solde client: ${formatCurrency(result.newClientBalance, 'XAF')}`,
-      });
-
+    if (result.success) {
       // Réinitialiser le formulaire
       setPhoneNumber("");
       setAmount("");
       setClientData(null);
-      
-    } catch (error) {
-      console.error("❌ Erreur lors du retrait:", error);
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Erreur lors du retrait",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -154,13 +136,16 @@ const AgentWithdrawalSimple = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
           </Button>
-          <h1 className="text-2xl font-bold">Retrait Agent</h1>
+          <h1 className="text-2xl font-bold">Demande de Retrait</h1>
           <div className="w-10"></div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Effectuer un retrait pour un client</CardTitle>
+            <CardTitle>Demander un retrait pour un client</CardTitle>
+            <p className="text-sm text-gray-600">
+              Le client recevra une notification pour autoriser ce retrait
+            </p>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -234,6 +219,12 @@ const AgentWithdrawalSimple = () => {
                 )}
               </div>
 
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                <p className="text-blue-800 text-sm">
+                  📱 Le client recevra une notification pour autoriser ce retrait. Le retrait ne sera effectué qu'après son approbation.
+                </p>
+              </div>
+
               <Button 
                 type="submit" 
                 className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4 h-12 text-lg"
@@ -242,12 +233,12 @@ const AgentWithdrawalSimple = () => {
                 {isProcessing ? (
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    <span>Traitement...</span>
+                    <span>Envoi en cours...</span>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center">
-                    <Banknote className="mr-2 h-5 w-5" />
-                    <span>Effectuer le retrait</span>
+                    <Send className="mr-2 h-5 w-5" />
+                    <span>Envoyer la demande</span>
                   </div>
                 )}
               </Button>
