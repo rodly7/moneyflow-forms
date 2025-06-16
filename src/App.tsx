@@ -18,7 +18,6 @@ import AgentWithdrawalSimple from "@/pages/AgentWithdrawalSimple";
 import AgentWithdrawalAdvanced from "@/pages/AgentWithdrawalAdvanced";
 import AgentDeposit from "@/pages/AgentDeposit";
 import UnifiedDepositWithdrawal from "@/pages/UnifiedDepositWithdrawal";
-import MobileRecharge from "@/pages/MobileRecharge";
 import BillPayments from "@/pages/BillPayments";
 import PrepaidCards from "@/pages/PrepaidCards";
 import VerifyIdentity from "@/pages/VerifyIdentity";
@@ -48,7 +47,6 @@ function App() {
                 <Route path="agent-withdrawal-advanced" element={<AgentWithdrawalAdvanced />} />
                 <Route path="deposit" element={<AgentDeposit />} />
                 <Route path="agent-services" element={<UnifiedDepositWithdrawal />} />
-                <Route path="mobile-recharge" element={<MobileRecharge />} />
                 <Route path="bill-payments" element={<BillPayments />} />
                 <Route path="prepaid-cards" element={<PrepaidCards />} />
                 <Route path="verify-identity" element={<VerifyIdentity />} />
