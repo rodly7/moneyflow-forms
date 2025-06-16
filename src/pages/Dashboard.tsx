@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,8 +73,8 @@ const Dashboard = () => {
   })) || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-md mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 w-full">
+      <div className="w-full mx-auto space-y-6 px-4 py-4">
         {/* Header sans icône de notification */}
         <ProfileHeader profile={profile} />
         
@@ -108,7 +109,7 @@ const Dashboard = () => {
         
         {showTransferForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
               <TransferForm />
               <div className="p-4">
                 <Button 

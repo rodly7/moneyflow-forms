@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, getCurrencyForCountry, convertCurrency, formatCurrency } from "@/integrations/supabase/client";
@@ -202,16 +203,16 @@ const Index = () => {
   })) || [];
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-0">
-      <div className="container max-w-full mx-auto space-y-4">
+    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20">
+      <div className="w-full mx-auto space-y-4 px-0">
         {/* Header sans icône de notification */}
-        <div className="mx-4">
+        <div className="px-4 pt-4">
           {profile && <ProfileHeader profile={profile} />}
         </div>
 
         {/* Section de confirmation de retrait pour les utilisateurs */}
         {!isAgent() && pendingWithdrawals.length > 0 && (
-          <div className="mx-4">
+          <div className="px-4">
             <Card className="bg-orange-50 border-orange-200">
               <CardHeader className="pb-3">
                 <CardTitle className="text-orange-800 text-lg flex items-center gap-2">
@@ -244,7 +245,7 @@ const Index = () => {
         )}
 
         {showTransfer ? (
-          <div className="space-y-4 mx-4">
+          <div className="space-y-4 px-4">
             <Button
               variant="outline"
               onClick={() => setShowTransfer(false)}

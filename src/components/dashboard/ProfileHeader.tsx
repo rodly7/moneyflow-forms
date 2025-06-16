@@ -36,7 +36,7 @@ const ProfileHeader = ({ profile }: ProfileHeaderProps) => {
   const isAgent = userRole === 'agent' || userRole === 'admin';
 
   return (
-    <Card className="bg-white shadow-lg mx-4">
+    <Card className="bg-white shadow-lg w-full">
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
