@@ -34,16 +34,28 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
           </span>
         </Button>
         
-        {/* Bill Payments - For all users */}
-        <Link to="/bill-payments" className="contents">
-          <Button 
-            variant="outline" 
-            className="flex flex-col items-center justify-center h-20 bg-white"
-          >
-            <Receipt className="h-5 w-5 mb-1" />
-            <span className="text-xs font-medium">Factures</span>
-          </Button>
-        </Link>
+        {/* Commission ou Factures selon le rôle */}
+        {isAgent() ? (
+          <Link to="/commission" className="contents">
+            <Button 
+              variant="outline" 
+              className="flex flex-col items-center justify-center h-20 bg-white"
+            >
+              <Receipt className="h-5 w-5 mb-1" />
+              <span className="text-xs font-medium">Commission</span>
+            </Button>
+          </Link>
+        ) : (
+          <Link to="/bill-payments" className="contents">
+            <Button 
+              variant="outline" 
+              className="flex flex-col items-center justify-center h-20 bg-white"
+            >
+              <Receipt className="h-5 w-5 mb-1" />
+              <span className="text-xs font-medium">Factures</span>
+            </Button>
+          </Link>
+        )}
         
         {/* Withdrawal Request Confirmation - Only for regular users - Same row as factures */}
         {!isAgent() && (

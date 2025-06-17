@@ -4,12 +4,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Star, Receipt } from "lucide-react";
+import { Star, Receipt, TrendingUp, Building2 } from "lucide-react";
 
 interface CommissionData {
-  total_commission: number;
-  transfer_commission: number;
-  withdrawal_commission: number;
+  agent_transfer_commission: number;
+  agent_withdrawal_commission: number;
+  agent_total_commission: number;
+  enterprise_transfer_commission: number;
+  enterprise_withdrawal_commission: number;
+  enterprise_total_commission: number;
   currency: string;
 }
 
@@ -17,9 +20,12 @@ const Commission = () => {
   const { user } = useAuth();
   const [currency, setCurrency] = useState("XAF");
   const [commissionData, setCommissionData] = useState<CommissionData>({
-    total_commission: 0,
-    transfer_commission: 0,
-    withdrawal_commission: 0,
+    agent_transfer_commission: 0,
+    agent_withdrawal_commission: 0,
+    agent_total_commission: 0,
+    enterprise_transfer_commission: 0,
+    enterprise_withdrawal_commission: 0,
+    enterprise_total_commission: 0,
     currency: "XAF"
   });
 
@@ -37,14 +43,19 @@ const Commission = () => {
     },
   });
 
-  // Fetch transfers with agent commission
-  const { data: transfersWithCommission, isLoading: transfersLoading } = useQuery({
-    queryKey: ['transfers-with-commission'],
+  // Récupérer les transferts pour calculer les commissions
+  const { data: transfers, isLoading: transfersLoading } = useQuery({
+    queryKey: ['agent-transfers', user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
+      // Pour les agents, récupérer tous les transferts
+      // Pour les utilisateurs normaux, récupérer leurs propres transferts
       const { data, error } = await supabase
         .from('transfers')
-        .select('amount, created_at')
-        .eq('sender_id', user?.id);
+        .select('amount, fees, created_at')
+        .eq('sender_id', user.id)
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data || [];
@@ -52,14 +63,18 @@ const Commission = () => {
     enabled: !!user?.id,
   });
 
-  // Fetch withdrawals with agent commission
-  const { data: withdrawalsWithCommission, isLoading: withdrawalsLoading } = useQuery({
-    queryKey: ['withdrawals-with-commission'],
+  // Récupérer les retraits pour calculer les commissions
+  const { data: withdrawals, isLoading: withdrawalsLoading } = useQuery({
+    queryKey: ['agent-withdrawals', user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
       const { data, error } = await supabase
         .from('withdrawals')
         .select('amount, created_at')
-        .eq('status', 'completed');
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data || [];
@@ -74,23 +89,32 @@ const Commission = () => {
   }, [profile]);
 
   useEffect(() => {
-    if (transfersWithCommission && withdrawalsWithCommission) {
-      // Calculate transfer commissions (2% for agent on all transfers)
-      const transferTotal = transfersWithCommission.reduce((sum, item) => sum + item.amount, 0);
-      const transferCommission = transferTotal * 0.02; // 2% for agent on transfers
+    if (transfers && withdrawals) {
+      // Calculer les commissions sur les transferts
+      const transferTotalAmount = transfers.reduce((sum, transfer) => sum + transfer.amount, 0);
       
-      // Calculate withdrawal commissions (1% for agent on withdrawals)
-      const withdrawalTotal = withdrawalsWithCommission.reduce((sum, item) => sum + item.amount, 0);
-      const withdrawalCommission = withdrawalTotal * 0.01; // 1% for agent on withdrawals
+      // Commissions transferts : Agent 1,5% et Entreprise 5% du montant
+      const agentTransferCommission = transferTotalAmount * 0.015; // 1,5%
+      const enterpriseTransferCommission = transferTotalAmount * 0.05; // 5%
+      
+      // Calculer les commissions sur les retraits
+      const withdrawalTotalAmount = withdrawals.reduce((sum, withdrawal) => sum + withdrawal.amount, 0);
+      
+      // Commissions retraits : Agent 1% et Entreprise 1,5% du montant
+      const agentWithdrawalCommission = withdrawalTotalAmount * 0.01; // 1%
+      const enterpriseWithdrawalCommission = withdrawalTotalAmount * 0.015; // 1,5%
       
       setCommissionData({
-        transfer_commission: transferCommission,
-        withdrawal_commission: withdrawalCommission,
-        total_commission: transferCommission + withdrawalCommission,
-        currency: "XAF" // Base currency
+        agent_transfer_commission: agentTransferCommission,
+        agent_withdrawal_commission: agentWithdrawalCommission,
+        agent_total_commission: agentTransferCommission + agentWithdrawalCommission,
+        enterprise_transfer_commission: enterpriseTransferCommission,
+        enterprise_withdrawal_commission: enterpriseWithdrawalCommission,
+        enterprise_total_commission: enterpriseTransferCommission + enterpriseWithdrawalCommission,
+        currency: "XAF"
       });
     }
-  }, [transfersWithCommission, withdrawalsWithCommission]);
+  }, [transfers, withdrawals]);
 
   if (profileLoading || transfersLoading || withdrawalsLoading) {
     return <div className="flex justify-center items-center min-h-screen">
@@ -99,9 +123,12 @@ const Commission = () => {
   }
 
   const convertedCommission = {
-    total_commission: convertCurrency(commissionData.total_commission, "XAF", currency),
-    transfer_commission: convertCurrency(commissionData.transfer_commission, "XAF", currency),
-    withdrawal_commission: convertCurrency(commissionData.withdrawal_commission, "XAF", currency),
+    agent_transfer_commission: convertCurrency(commissionData.agent_transfer_commission, "XAF", currency),
+    agent_withdrawal_commission: convertCurrency(commissionData.agent_withdrawal_commission, "XAF", currency),
+    agent_total_commission: convertCurrency(commissionData.agent_total_commission, "XAF", currency),
+    enterprise_transfer_commission: convertCurrency(commissionData.enterprise_transfer_commission, "XAF", currency),
+    enterprise_withdrawal_commission: convertCurrency(commissionData.enterprise_withdrawal_commission, "XAF", currency),
+    enterprise_total_commission: convertCurrency(commissionData.enterprise_total_commission, "XAF", currency),
     currency
   };
 
@@ -111,12 +138,12 @@ const Commission = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-500/20 to-blue-500/20 py-8 px-4">
-      <div className="container max-w-3xl mx-auto space-y-8">
+      <div className="container max-w-4xl mx-auto space-y-8">
         <Card className="bg-white shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-2xl font-bold flex items-center">
               <Receipt className="mr-2 h-6 w-6 text-amber-600" />
-              Commissions
+              Commissions par Transaction
             </CardTitle>
             {isAgent && (
               <div className="flex items-center bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm">
@@ -128,37 +155,83 @@ const Commission = () => {
 
           <CardContent className="pt-6">
             <div className="grid gap-6">
-              <div className="flex flex-col items-center p-6 bg-amber-50 rounded-lg border border-amber-200">
-                <h3 className="text-gray-500 text-sm font-medium mb-1">Commission Totale</h3>
-                <p className="text-4xl font-bold text-amber-600">
-                  {formatCurrency(convertedCommission.total_commission, convertedCommission.currency)}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <h3 className="text-gray-500 text-sm font-medium mb-1">Transferts</h3>
-                  <p className="text-2xl font-bold text-gray-700">
-                    {formatCurrency(convertedCommission.transfer_commission, convertedCommission.currency)}
+              {/* Commission Agent */}
+              <div className="p-6 bg-emerald-50 rounded-lg border border-emerald-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-emerald-800 flex items-center">
+                    <TrendingUp className="h-5 w-5 mr-2" />
+                    Commission Agent
+                  </h3>
+                  <p className="text-2xl font-bold text-emerald-600">
+                    {formatCurrency(convertedCommission.agent_total_commission, convertedCommission.currency)}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Taux: 2% des frais</p>
                 </div>
 
-                <div className="flex flex-col items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <h3 className="text-gray-500 text-sm font-medium mb-1">Retraits</h3>
-                  <p className="text-2xl font-bold text-gray-700">
-                    {formatCurrency(convertedCommission.withdrawal_commission, convertedCommission.currency)}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">Taux: 1% des frais</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col items-center p-4 bg-white rounded-lg border border-emerald-200">
+                    <h4 className="text-emerald-700 text-sm font-medium mb-1">Transferts (1,5%)</h4>
+                    <p className="text-xl font-bold text-emerald-600">
+                      {formatCurrency(convertedCommission.agent_transfer_commission, convertedCommission.currency)}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col items-center p-4 bg-white rounded-lg border border-emerald-200">
+                    <h4 className="text-emerald-700 text-sm font-medium mb-1">Retraits (1%)</h4>
+                    <p className="text-xl font-bold text-emerald-600">
+                      {formatCurrency(convertedCommission.agent_withdrawal_commission, convertedCommission.currency)}
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="font-medium mb-2">Résumé des commissions</h3>
-                <ul className="text-sm space-y-1">
-                  <li>• Sur les transferts: vous recevez 2% (l'entreprise reçoit 4%)</li>
-                  <li>• Sur les retraits: vous recevez 1% (l'entreprise reçoit 1,5%)</li>
-                </ul>
+              {/* Commission Entreprise */}
+              <div className="p-6 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-blue-800 flex items-center">
+                    <Building2 className="h-5 w-5 mr-2" />
+                    Commission Entreprise
+                  </h3>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {formatCurrency(convertedCommission.enterprise_total_commission, convertedCommission.currency)}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col items-center p-4 bg-white rounded-lg border border-blue-200">
+                    <h4 className="text-blue-700 text-sm font-medium mb-1">Transferts (5%)</h4>
+                    <p className="text-xl font-bold text-blue-600">
+                      {formatCurrency(convertedCommission.enterprise_transfer_commission, convertedCommission.currency)}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col items-center p-4 bg-white rounded-lg border border-blue-200">
+                    <h4 className="text-blue-700 text-sm font-medium mb-1">Retraits (1,5%)</h4>
+                    <p className="text-xl font-bold text-blue-600">
+                      {formatCurrency(convertedCommission.enterprise_withdrawal_commission, convertedCommission.currency)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Résumé des taux */}
+              <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                <h3 className="font-semibold mb-4 text-gray-800">Barème des Commissions</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-emerald-700">Agent :</h4>
+                    <ul className="space-y-1 text-gray-600">
+                      <li>• Transferts: 1,5% du montant</li>
+                      <li>• Retraits: 1% du montant</li>
+                    </ul>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-blue-700">Entreprise :</h4>
+                    <ul className="space-y-1 text-gray-600">
+                      <li>• Transferts: 5% du montant</li>
+                      <li>• Retraits: 1,5% du montant</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
