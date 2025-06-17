@@ -15,6 +15,8 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
   
   const isAgent = () => userRole === 'agent';
   
+  console.log("ActionButtons - pendingRequests:", pendingRequests?.length || 0);
+  
   return (
     <div className="w-full px-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-2">
@@ -48,20 +50,27 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
           <Button 
             variant="outline" 
             className={`flex flex-col items-center justify-center h-20 bg-white ${
-              pendingRequests.length > 0 ? "border-blue-300 bg-blue-50" : ""
+              pendingRequests && pendingRequests.length > 0 ? "border-blue-300 bg-blue-50" : ""
             }`}
-            onClick={handleNotificationClick}
+            onClick={() => {
+              console.log("Bouton Confirmer retrait cliqué, pendingRequests:", pendingRequests?.length || 0);
+              if (pendingRequests && pendingRequests.length > 0) {
+                handleNotificationClick();
+              } else {
+                console.log("Aucune demande de retrait en attente");
+              }
+            }}
           >
             <div className="relative">
               <AlertTriangle className={`h-5 w-5 mb-1 ${
-                pendingRequests.length > 0 ? "text-blue-600" : "text-gray-600"
+                pendingRequests && pendingRequests.length > 0 ? "text-blue-600" : "text-gray-600"
               }`} />
-              {pendingRequests.length > 0 && (
+              {pendingRequests && pendingRequests.length > 0 && (
                 <div className="absolute -top-1 -right-1 h-3 w-3 bg-blue-500 rounded-full animate-pulse"></div>
               )}
             </div>
             <span className={`text-xs font-medium ${
-              pendingRequests.length > 0 ? "text-blue-700" : ""
+              pendingRequests && pendingRequests.length > 0 ? "text-blue-700" : ""
             }`}>
               Confirmer retrait
             </span>
