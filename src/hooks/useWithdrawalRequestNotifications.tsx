@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { processApprovedWithdrawal } from "@/services/agentWithdrawalRequestService";
 
 interface WithdrawalRequest {
   id: string;
@@ -44,7 +45,7 @@ export const useWithdrawalRequestNotifications = () => {
       return data || [];
     },
     enabled: !!user?.id,
-    refetchInterval: 5000, // Vérifier toutes les 5 secondes pour plus de réactivité
+    refetchInterval: 3000, // Vérifier toutes les 3 secondes
   });
 
   useEffect(() => {
@@ -82,21 +83,26 @@ export const useWithdrawalRequestNotifications = () => {
         throw new Error("Erreur lors de l'approbation");
       }
 
-      console.log("Demande approuvée avec succès");
+      console.log("Demande approuvée, traitement du retrait...");
+      
+      // Traiter automatiquement le retrait approuvé
+      const result = await processApprovedWithdrawal(requestId);
+      
+      console.log("Retrait traité avec succès:", result);
       setShowNotification(false);
       setSelectedRequest(null);
       refetch();
       
       toast({
-        title: "Retrait autorisé",
-        description: "Vous avez autorisé cette demande de retrait",
+        title: "Retrait autorisé et effectué",
+        description: `Le retrait de ${result.amount} FCFA a été effectué avec succès`,
       });
       
     } catch (error) {
       console.error("Erreur lors de la confirmation:", error);
       toast({
         title: "Erreur",
-        description: "Erreur lors de la confirmation du retrait",
+        description: error instanceof Error ? error.message : "Erreur lors de la confirmation du retrait",
         variant: "destructive"
       });
       throw error;

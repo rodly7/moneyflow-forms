@@ -53,6 +53,23 @@ export const processApprovedWithdrawal = async (requestId: string) => {
     throw new Error("Demande de retrait introuvable ou non approuvée");
   }
 
+  // Vérifier le solde de l'utilisateur
+  const { data: userProfile, error: profileError } = await supabase
+    .from('profiles')
+    .select('balance')
+    .eq('id', request.user_id)
+    .single();
+
+  if (profileError || !userProfile) {
+    console.error("❌ Utilisateur introuvable:", profileError);
+    throw new Error("Utilisateur introuvable");
+  }
+
+  if (userProfile.balance < request.amount) {
+    console.error("❌ Solde insuffisant:", userProfile.balance, "vs", request.amount);
+    throw new Error("Solde insuffisant pour effectuer le retrait");
+  }
+
   // Débiter l'utilisateur
   const { error: debitError } = await supabase.rpc('increment_balance', {
     user_id: request.user_id,
