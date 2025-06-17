@@ -3,7 +3,7 @@ import { ArrowUpRight, Banknote, CreditCard, UserMinus, Receipt, PiggyBank, Aler
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useWithdrawalConfirmations } from "@/hooks/useWithdrawalConfirmations";
+import { useWithdrawalRequestNotifications } from "@/hooks/useWithdrawalRequestNotifications";
 
 type ActionButtonsProps = {
   onTransferClick: () => void;
@@ -11,7 +11,7 @@ type ActionButtonsProps = {
 
 const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
   const { userRole } = useAuth();
-  const { pendingWithdrawals, handleNotificationClick } = useWithdrawalConfirmations();
+  const { pendingRequests, handleNotificationClick } = useWithdrawalRequestNotifications();
   
   const isAgent = () => userRole === 'agent';
   
@@ -43,25 +43,25 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
           </Button>
         </Link>
         
-        {/* Withdrawal Confirmation - Only for regular users - Same row as factures */}
+        {/* Withdrawal Request Confirmation - Only for regular users - Same row as factures */}
         {!isAgent() && (
           <Button 
             variant="outline" 
             className={`flex flex-col items-center justify-center h-20 bg-white ${
-              pendingWithdrawals.length > 0 ? "border-orange-300 bg-orange-50" : ""
+              pendingRequests.length > 0 ? "border-blue-300 bg-blue-50" : ""
             }`}
             onClick={handleNotificationClick}
           >
             <div className="relative">
               <AlertTriangle className={`h-5 w-5 mb-1 ${
-                pendingWithdrawals.length > 0 ? "text-orange-600" : "text-gray-600"
+                pendingRequests.length > 0 ? "text-blue-600" : "text-gray-600"
               }`} />
-              {pendingWithdrawals.length > 0 && (
-                <div className="absolute -top-1 -right-1 h-3 w-3 bg-orange-500 rounded-full"></div>
+              {pendingRequests.length > 0 && (
+                <div className="absolute -top-1 -right-1 h-3 w-3 bg-blue-500 rounded-full animate-pulse"></div>
               )}
             </div>
             <span className={`text-xs font-medium ${
-              pendingWithdrawals.length > 0 ? "text-orange-700" : ""
+              pendingRequests.length > 0 ? "text-blue-700" : ""
             }`}>
               Confirmer retrait
             </span>
