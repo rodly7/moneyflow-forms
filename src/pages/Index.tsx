@@ -58,7 +58,8 @@ const Index = () => {
     showNotification: showRequestNotification,
     handleConfirm: handleRequestConfirm,
     handleReject: handleRequestReject,
-    closeNotification: closeRequestNotification
+    closeNotification: closeRequestNotification,
+    handleNotificationClick: handleRequestNotificationClick
   } = useWithdrawalRequestNotifications();
 
   const { data: profile, isLoading } = useQuery({
@@ -265,7 +266,7 @@ const Index = () => {
                     Agent: {pendingRequests[0]?.agent_name}
                   </p>
                   <Button
-                    onClick={() => {}}
+                    onClick={handleRequestNotificationClick}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     Voir la demande
