@@ -77,7 +77,7 @@ const Index = () => {
     },
   });
 
-  // Récupérer TOUS les retraits au lieu de les limiter
+  // Récupérer seulement les 5 retraits les plus récents pour l'affichage
   const { data: withdrawals } = useQuery({
     queryKey: ['withdrawals'],
     queryFn: async () => {
@@ -85,14 +85,15 @@ const Index = () => {
         .from('withdrawals')
         .select('*')
         .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(5);
       
       if (error) throw error;
       return data;
     },
   });
 
-  // Récupérer TOUS les transferts au lieu de les limiter
+  // Récupérer seulement les 5 transferts les plus récents pour l'affichage
   const { data: transfers } = useQuery({
     queryKey: ['transfers'],
     queryFn: async () => {
@@ -100,14 +101,15 @@ const Index = () => {
         .from('transfers')
         .select('*')
         .eq('sender_id', user?.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(5);
       
       if (error) throw error;
       return data;
     },
   });
 
-  // Récupérer TOUS les transferts reçus au lieu de les limiter
+  // Récupérer seulement les 5 transferts reçus les plus récents pour l'affichage
   const { data: receivedTransfers } = useQuery({
     queryKey: ['receivedTransfers'],
     queryFn: async () => {
@@ -117,7 +119,8 @@ const Index = () => {
         .from('transfers')
         .select('id, amount, created_at, sender_id, status')
         .eq('recipient_phone', profile.phone)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(5);
       
       if (error) throw error;
       
@@ -175,7 +178,7 @@ const Index = () => {
   const userCountry = profile?.country || "Cameroun";
   const userCurrency = getCurrencyForCountry(userCountry);
   
-  // Afficher TOUTES les transactions au lieu de les limiter à 3
+  // Afficher seulement les 3 transactions les plus récentes
   const allTransactions = [
     ...(withdrawals?.map(w => ({
       id: w.id,

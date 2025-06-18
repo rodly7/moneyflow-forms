@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { creditTransactionFees } from "./feeService";
 
 export const debitUserBalance = async (userId: string, amount: number): Promise<number> => {
   const { data: newBalance, error: deductError } = await supabase.rpc('increment_balance', {
@@ -66,4 +67,46 @@ export const getUserBalance = async (userId: string): Promise<number> => {
   }
 
   return Number(balance) || 0;
+};
+
+// Nouvelle fonction pour traiter un transfert avec gestion automatique des frais
+export const processTransferWithFees = async (
+  senderId: string, 
+  recipientId: string, 
+  amount: number
+): Promise<boolean> => {
+  try {
+    // Débiter l'expéditeur
+    await debitUserBalance(senderId, amount);
+    
+    // Créditer le destinataire
+    await creditUserBalance(recipientId, amount);
+    
+    // Créditer automatiquement les frais sur le compte admin
+    await creditTransactionFees('transfer', amount);
+    
+    return true;
+  } catch (error) {
+    console.error("Erreur lors du transfert avec frais:", error);
+    throw error;
+  }
+};
+
+// Nouvelle fonction pour traiter un retrait avec gestion automatique des frais
+export const processWithdrawalWithFees = async (
+  userId: string, 
+  amount: number
+): Promise<boolean> => {
+  try {
+    // Débiter l'utilisateur
+    await debitUserBalance(userId, amount);
+    
+    // Créditer automatiquement les frais sur le compte admin
+    await creditTransactionFees('withdrawal', amount);
+    
+    return true;
+  } catch (error) {
+    console.error("Erreur lors du retrait avec frais:", error);
+    throw error;
+  }
 };
