@@ -123,8 +123,8 @@ const TransactionsCard = ({
     }))
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
-  // Show only 3 most recent transactions
-  const recentOperations = allOperations.slice(0, 3);
+  // Show all transactions instead of limiting to 3
+  const allTransactionsToShow = allOperations;
 
   return (
     <Card className="bg-white shadow-lg mx-2 sm:mx-4">
@@ -133,9 +133,9 @@ const TransactionsCard = ({
       </CardHeader>
       <CardContent className="p-4 pt-0">
         <div className="space-y-3">
-          {recentOperations.length > 0 ? (
+          {allTransactionsToShow.length > 0 ? (
             <>
-              {recentOperations.map((operation) => {
+              {allTransactionsToShow.map((operation) => {
                 if (operation.type === 'withdrawal') {
                   const withdrawal = processedWithdrawals.find(w => w.id === operation.id);
                   return (
@@ -220,18 +220,17 @@ const TransactionsCard = ({
                 }
               })}
               
-              {allOperations.length > 3 && (
-                <div className="text-center pt-3">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="text-primary hover:text-primary/80 font-medium"
-                    onClick={() => navigate('/transactions')}
-                  >
-                    Voir plus <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              )}
+              {/* Link to full transactions page if needed */}
+              <div className="text-center pt-3">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-primary hover:text-primary/80 font-medium"
+                  onClick={() => navigate('/transactions')}
+                >
+                  Voir la page complète <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
             </>
           ) : (
             <div className="text-center py-8 px-4">

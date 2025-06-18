@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, getCurrencyForCountry, convertCurrency, formatCurrency } from "@/integrations/supabase/client";
@@ -76,6 +77,7 @@ const Index = () => {
     },
   });
 
+  // Récupérer TOUS les retraits au lieu de les limiter
   const { data: withdrawals } = useQuery({
     queryKey: ['withdrawals'],
     queryFn: async () => {
@@ -83,14 +85,14 @@ const Index = () => {
         .from('withdrawals')
         .select('*')
         .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data;
     },
   });
 
+  // Récupérer TOUS les transferts au lieu de les limiter
   const { data: transfers } = useQuery({
     queryKey: ['transfers'],
     queryFn: async () => {
@@ -98,14 +100,14 @@ const Index = () => {
         .from('transfers')
         .select('*')
         .eq('sender_id', user?.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data;
     },
   });
 
+  // Récupérer TOUS les transferts reçus au lieu de les limiter
   const { data: receivedTransfers } = useQuery({
     queryKey: ['receivedTransfers'],
     queryFn: async () => {
@@ -115,8 +117,7 @@ const Index = () => {
         .from('transfers')
         .select('id, amount, created_at, sender_id, status')
         .eq('recipient_phone', profile.phone)
-        .order('created_at', { ascending: false })
-        .limit(5);
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       
@@ -174,6 +175,7 @@ const Index = () => {
   const userCountry = profile?.country || "Cameroun";
   const userCurrency = getCurrencyForCountry(userCountry);
   
+  // Afficher TOUTES les transactions au lieu de les limiter à 3
   const allTransactions = [
     ...(withdrawals?.map(w => ({
       id: w.id,
@@ -205,8 +207,7 @@ const Index = () => {
     })) || [])
   ]
   .filter(t => t.status !== 'deleted')
-  .sort((a, b) => b.date.getTime() - a.date.getTime())
-  .slice(0, 3);
+  .sort((a, b) => b.date.getTime() - a.date.getTime());
 
   const processedWithdrawals = withdrawals?.map(w => ({
     ...w,
