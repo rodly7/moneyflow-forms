@@ -215,6 +215,8 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          id_card_number: string | null
+          id_card_photo_url: string | null
           id_card_url: string | null
           is_verified: boolean | null
           phone: string
@@ -229,6 +231,8 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          id_card_number?: string | null
+          id_card_photo_url?: string | null
           id_card_url?: string | null
           is_verified?: boolean | null
           phone: string
@@ -243,6 +247,8 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          id_card_number?: string | null
+          id_card_photo_url?: string | null
           id_card_url?: string | null
           is_verified?: boolean | null
           phone?: string

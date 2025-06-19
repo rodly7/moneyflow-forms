@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useQueryClient } from "@tanstack/react-query";
+import { Upload, FileText } from "lucide-react";
 
 interface ProfileEditFormProps {
   profile: {
@@ -14,14 +15,19 @@ interface ProfileEditFormProps {
     full_name: string;
     phone: string;
     avatar_url?: string;
+    id_card_number?: string;
+    id_card_photo_url?: string;
   };
 }
 
 const ProfileEditForm = ({ profile }: ProfileEditFormProps) => {
   const [fullName, setFullName] = useState(profile?.full_name || "");
+  const [idCardNumber, setIdCardNumber] = useState(profile?.id_card_number || "");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [idCardFile, setIdCardFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(profile?.avatar_url || null);
+  const [idCardPreviewUrl, setIdCardPreviewUrl] = useState<string | null>(profile?.id_card_photo_url || null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -48,12 +54,33 @@ const ProfileEditForm = ({ profile }: ProfileEditFormProps) => {
     setPreviewUrl(objectUrl);
   };
 
+  const handleIdCardFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Fichier trop volumineux",
+        description: "La photo de la pièce d'identité ne doit pas dépasser 5 Mo",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIdCardFile(file);
+    const objectUrl = URL.createObjectURL(file);
+    setIdCardPreviewUrl(objectUrl);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsUploading(true);
 
     try {
-      const updates = { full_name: fullName };
+      const updates: any = { 
+        full_name: fullName,
+        id_card_number: idCardNumber
+      };
       
       // Upload avatar if a new file was selected
       if (avatarFile) {
@@ -89,7 +116,31 @@ const ProfileEditForm = ({ profile }: ProfileEditFormProps) => {
           .getPublicUrl(fileName);
 
         // Add avatar URL to updates
-        Object.assign(updates, { avatar_url: urlData.publicUrl });
+        updates.avatar_url = urlData.publicUrl;
+      }
+
+      // Upload ID card photo if a new file was selected
+      if (idCardFile) {
+        const fileExt = idCardFile.name.split('.').pop();
+        const fileName = `${profile.id}/id-card-${Date.now()}.${fileExt}`;
+        
+        // Upload the file
+        const { data, error } = await supabase.storage
+          .from('id-cards')
+          .upload(fileName, idCardFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (error) throw error;
+
+        // Get the public URL
+        const { data: urlData } = supabase.storage
+          .from('id-cards')
+          .getPublicUrl(fileName);
+
+        // Add ID card photo URL to updates
+        updates.id_card_photo_url = urlData.publicUrl;
       }
 
       // Update user profile
@@ -152,6 +203,54 @@ const ProfileEditForm = ({ profile }: ProfileEditFormProps) => {
           onChange={(e) => setFullName(e.target.value)} 
           placeholder="Votre nom complet"
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="idCardNumber">Numéro de pièce d'identité</Label>
+        <Input 
+          id="idCardNumber"
+          type="text" 
+          value={idCardNumber} 
+          onChange={(e) => setIdCardNumber(e.target.value)} 
+          placeholder="Numéro de votre pièce d'identité"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="idCardPhoto">Photo de la pièce d'identité</Label>
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+          {idCardPreviewUrl ? (
+            <div className="space-y-2">
+              <img 
+                src={idCardPreviewUrl} 
+                alt="Pièce d'identité" 
+                className="w-full h-32 object-cover rounded-md"
+              />
+              <div className="flex items-center justify-center">
+                <Label htmlFor="idCardPhoto" className="cursor-pointer bg-secondary text-secondary-foreground px-3 py-1 rounded-md text-sm hover:bg-secondary/90 flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Changer la photo
+                </Label>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-4">
+              <FileText className="h-8 w-8 text-gray-400 mb-2" />
+              <Label htmlFor="idCardPhoto" className="cursor-pointer bg-secondary text-secondary-foreground px-3 py-1 rounded-md text-sm hover:bg-secondary/90 flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                Ajouter une photo
+              </Label>
+              <p className="text-xs text-gray-500 mt-1">PNG, JPG jusqu'à 5MB</p>
+            </div>
+          )}
+          <Input 
+            id="idCardPhoto" 
+            type="file" 
+            accept="image/*" 
+            className="hidden" 
+            onChange={handleIdCardFileChange}
+          />
+        </div>
       </div>
       
       <div className="space-y-2">
