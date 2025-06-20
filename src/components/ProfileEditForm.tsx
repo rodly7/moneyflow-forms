@@ -36,6 +36,34 @@ const ProfileEditForm = ({ profile }: ProfileEditFormProps) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
+  const ensureBucketsExist = async () => {
+    try {
+      // Vérifier et créer le bucket avatars
+      const { data: avatarBucket } = await supabase.storage.getBucket('avatars');
+      if (!avatarBucket) {
+        console.log('Création du bucket avatars...');
+        await supabase.storage.createBucket('avatars', {
+          public: true,
+          allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+          fileSizeLimit: 2097152 // 2MB
+        });
+      }
+
+      // Vérifier et créer le bucket id-cards
+      const { data: idCardBucket } = await supabase.storage.getBucket('id-cards');
+      if (!idCardBucket) {
+        console.log('Création du bucket id-cards...');
+        await supabase.storage.createBucket('id-cards', {
+          public: false,
+          allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+          fileSizeLimit: 5242880 // 5MB
+        });
+      }
+    } catch (error) {
+      console.log('Les buckets existent déjà ou erreur lors de la création:', error);
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -72,97 +100,123 @@ const ProfileEditForm = ({ profile }: ProfileEditFormProps) => {
     setIdCardPreviewUrl(objectUrl);
   };
 
+  const uploadFile = async (file: File, bucket: string, path: string) => {
+    try {
+      console.log(`Upload du fichier vers ${bucket}/${path}`);
+      
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(path, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (error) {
+        console.error('Erreur upload:', error);
+        throw error;
+      }
+
+      console.log('Upload réussi:', data);
+
+      const { data: urlData } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(path);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error(`Erreur lors de l'upload vers ${bucket}:`, error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!fullName.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Le nom complet est requis",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsUploading(true);
 
     try {
+      console.log('Début de la mise à jour du profil...');
+      
+      // S'assurer que les buckets existent
+      await ensureBucketsExist();
+
       const updates: any = { 
-        full_name: fullName,
-        id_card_number: idCardNumber
+        full_name: fullName.trim(),
+        id_card_number: idCardNumber.trim() || null
       };
       
-      // Upload avatar if a new file was selected
+      // Upload avatar si un nouveau fichier a été sélectionné
       if (avatarFile) {
+        console.log('Upload de l\'avatar...');
         const fileExt = avatarFile.name.split('.').pop();
         const fileName = `${profile.id}-${Date.now()}.${fileExt}`;
         
-        // Create the storage bucket if it doesn't exist
-        const { data: bucketData, error: bucketError } = await supabase
-          .storage
-          .getBucket('avatars');
-
-        if (bucketError && bucketError.message.includes('not found')) {
-          await supabase.storage.createBucket('avatars', {
-            public: true,
-            allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif'],
-            fileSizeLimit: 2097152 // 2MB
-          });
-        }
-        
-        // Upload the file
-        const { data, error } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, avatarFile, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (error) throw error;
-
-        // Get the public URL
-        const { data: urlData } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(fileName);
-
-        // Add avatar URL to updates
-        updates.avatar_url = urlData.publicUrl;
+        const avatarUrl = await uploadFile(avatarFile, 'avatars', fileName);
+        updates.avatar_url = avatarUrl;
+        console.log('Avatar uploadé:', avatarUrl);
       }
 
-      // Upload ID card photo if a new file was selected
+      // Upload photo d'identité si un nouveau fichier a été sélectionné
       if (idCardFile) {
+        console.log('Upload de la photo d\'identité...');
         const fileExt = idCardFile.name.split('.').pop();
         const fileName = `${profile.id}/id-card-${Date.now()}.${fileExt}`;
         
-        // Upload the file
-        const { data, error } = await supabase.storage
-          .from('id-cards')
-          .upload(fileName, idCardFile, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (error) throw error;
-
-        // Get the public URL
-        const { data: urlData } = supabase.storage
-          .from('id-cards')
-          .getPublicUrl(fileName);
-
-        // Add ID card photo URL to updates
-        updates.id_card_photo_url = urlData.publicUrl;
+        const idCardUrl = await uploadFile(idCardFile, 'id-cards', fileName);
+        updates.id_card_photo_url = idCardUrl;
+        console.log('Photo d\'identité uploadée:', idCardUrl);
       }
 
-      // Update user profile
+      console.log('Mise à jour des données du profil...', updates);
+
+      // Mettre à jour le profil utilisateur
       const { error } = await supabase
         .from('profiles')
         .update(updates)
         .eq('id', profile.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur lors de la mise à jour:', error);
+        throw error;
+      }
+
+      console.log('Profil mis à jour avec succès');
 
       toast({
         title: "Profil mis à jour",
         description: "Vos informations ont été mises à jour avec succès"
       });
 
-      // Invalidate profile query to refresh data
+      // Invalider les requêtes pour rafraîchir les données
       queryClient.invalidateQueries({ queryKey: ['profile'] });
+      
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('Erreur complète:', error);
+      
+      let errorMessage = "Impossible de mettre à jour votre profil";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('storage')) {
+          errorMessage = "Erreur lors de l'upload des fichiers";
+        } else if (error.message.includes('profiles')) {
+          errorMessage = "Erreur lors de la sauvegarde des informations";
+        } else if (error.message.includes('permission')) {
+          errorMessage = "Permissions insuffisantes";
+        }
+      }
+      
       toast({
         title: "Erreur",
-        description: "Impossible de mettre à jour votre profil",
+        description: errorMessage + ". Veuillez réessayer.",
         variant: "destructive"
       });
     } finally {
@@ -195,13 +249,14 @@ const ProfileEditForm = ({ profile }: ProfileEditFormProps) => {
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="fullName">Nom complet</Label>
+        <Label htmlFor="fullName">Nom complet *</Label>
         <Input 
           id="fullName"
           type="text" 
           value={fullName} 
           onChange={(e) => setFullName(e.target.value)} 
           placeholder="Votre nom complet"
+          required
         />
       </div>
 
