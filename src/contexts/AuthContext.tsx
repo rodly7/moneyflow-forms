@@ -1,33 +1,11 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-interface Profile {
-  id: string;
-  full_name: string | null;
-  phone: string;
-  country: string | null;
-  address: string | null;
-  balance: number;
-  role: 'user' | 'agent' | 'admin';
-  avatar_url: string | null;
-  is_verified: boolean | null;
-}
-
-interface AuthContextType {
-  user: User | null;
-  profile: Profile | null;
-  userRole: 'user' | 'agent' | 'admin' | null;
-  loading: boolean;
-  signIn: (phone: string, password: string) => Promise<void>;
-  signUp: (phone: string, password: string, metadata: any) => Promise<void>;
-  signOut: () => Promise<void>;
-  isAdmin: () => boolean;
-  isAgent: () => boolean;
-  isAgentOrAdmin: () => boolean;
-  refreshProfile: () => Promise<void>;
-}
+import { Profile, AuthContextType, SignUpMetadata } from '@/types/auth';
+import { authService } from '@/services/authService';
+import { profileService } from '@/services/profileService';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -37,31 +15,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchProfile = async (userId: string) => {
-    try {
-      console.log('🔍 Récupération du profil pour l\'utilisateur:', userId);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('❌ Erreur lors de la récupération du profil:', error);
-        return null;
-      }
-
-      console.log('✅ Profil récupéré:', data);
-      return data;
-    } catch (error) {
-      console.error('❌ Erreur dans fetchProfile:', error);
-      return null;
-    }
-  };
-
   const refreshProfile = async () => {
     if (user?.id) {
-      const profileData = await fetchProfile(user.id);
+      const profileData = await profileService.fetchProfile(user.id);
       setProfile(profileData);
     }
   };
@@ -72,7 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('🔐 Session initiale:', session ? 'Connecté' : 'Non connecté');
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id).then(setProfile);
+        profileService.fetchProfile(session.user.id).then(setProfile);
       }
       setLoading(false);
     });
@@ -85,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        const profileData = await fetchProfile(session.user.id);
+        const profileData = await profileService.fetchProfile(session.user.id);
         setProfile(profileData);
       } else {
         setProfile(null);
@@ -99,63 +55,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (phone: string, password: string) => {
     try {
-      console.log('🔐 Tentative de connexion avec le numéro:', phone);
-      
-      // Utiliser directement le numéro tel qu'entré par l'utilisateur
-      const email = `${phone}@sendflow.app`;
-      
-      console.log('📧 Email de connexion généré:', email);
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password,
-      });
-
-      if (error) {
-        console.error('❌ Erreur de connexion:', error);
-        throw new Error('Numéro de téléphone ou mot de passe incorrect. Vérifiez vos informations.');
-      }
-      
-      console.log('✅ Connexion réussie pour:', data.user?.id);
+      await authService.signIn(phone, password);
     } catch (error) {
       console.error('❌ Erreur dans signIn:', error);
       throw error;
     }
   };
 
-  const signUp = async (phone: string, password: string, metadata: any) => {
+  const signUp = async (phone: string, password: string, metadata: SignUpMetadata) => {
     try {
-      console.log('📝 Tentative d\'inscription avec le numéro:', phone);
-      
-      // Utiliser directement le numéro tel qu'entré par l'utilisateur
-      const email = `${phone}@sendflow.app`;
-      
-      console.log('📧 Email d\'inscription généré:', email);
-      
-      // Déterminer le rôle
-      const userRole = metadata.role === 'agent' ? 'agent' : 'user';
-      
-      const { data, error } = await supabase.auth.signUp({
-        email: email,
-        password,
-        options: {
-          data: {
-            ...metadata,
-            phone: phone,
-            role: userRole,
-          },
-        },
-      });
-
-      if (error) {
-        console.error('❌ Erreur d\'inscription:', error);
-        if (error.message.includes('User already registered')) {
-          throw new Error('Un compte existe déjà avec ce numéro de téléphone. Essayez de vous connecter.');
-        }
-        throw error;
-      }
-      
-      console.log('✅ Inscription réussie:', data.user?.id);
+      await authService.signUp(phone, password, metadata);
     } catch (error) {
       console.error('❌ Erreur dans signUp:', error);
       throw error;
@@ -163,23 +72,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      throw error;
-    }
+    await authService.signOut();
   };
 
-  const isAdmin = () => {
-    return profile?.role === 'admin';
-  };
-
-  const isAgent = () => {
-    return profile?.role === 'agent';
-  };
-
-  const isAgentOrAdmin = () => {
-    return profile?.role === 'agent' || profile?.role === 'admin';
-  };
+  const isAdmin = () => profileService.isAdmin(profile);
+  const isAgent = () => profileService.isAgent(profile);
+  const isAgentOrAdmin = () => profileService.isAgentOrAdmin(profile);
 
   // Compute userRole from profile
   const userRole = profile?.role || null;
