@@ -32,22 +32,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Fonction pour normaliser EXACTEMENT de la même façon partout
-const normalizePhoneNumber = (phone: string): string => {
-  // Nettoyer complètement le numéro
-  let cleanPhone = phone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
-  
-  // Gérer les cas spéciaux
-  if (cleanPhone.startsWith('00')) {
-    cleanPhone = '+' + cleanPhone.substring(2);
-  } else if (!cleanPhone.startsWith('+')) {
-    cleanPhone = '+' + cleanPhone;
-  }
-  
-  console.log('📱 Normalisation:', phone, '->', cleanPhone);
-  return cleanPhone;
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -118,9 +102,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('🔐 Tentative de connexion avec:', phone);
       
-      // Normaliser le numéro de téléphone
-      const normalizedPhone = normalizePhoneNumber(phone);
-      const email = `${normalizedPhone}@sendflow.app`;
+      // Utiliser directement le numéro comme email
+      const email = `${phone}@sendflow.app`;
       
       console.log('📧 Email généré:', email);
       
@@ -145,9 +128,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('📝 Tentative d\'inscription avec:', phone);
       
-      // Normaliser le numéro de téléphone
-      const normalizedPhone = normalizePhoneNumber(phone);
-      const email = `${normalizedPhone}@sendflow.app`;
+      // Utiliser directement le numéro comme email
+      const email = `${phone}@sendflow.app`;
       
       console.log('📧 Email généré pour inscription:', email);
       
@@ -160,7 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         options: {
           data: {
             ...metadata,
-            phone: normalizedPhone,
+            phone: phone,
             role: userRole,
           },
         },

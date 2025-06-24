@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,6 @@ import { Icons } from "@/components/ui/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { countries } from "@/data/countries";
 import { Checkbox } from "@/components/ui/checkbox";
-import { validatePhoneNumber, sanitizeInput } from "@/services/inputValidationService";
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -53,13 +53,6 @@ const Auth = () => {
     setPhone(formatPhoneWithCountryCode(selectedCountryCode, value));
   };
 
-  const handleLoginPhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (/^\+?\d*$/.test(value)) {
-      setLoginPhone(value);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -71,29 +64,22 @@ const Auth = () => {
           throw new Error("Veuillez remplir tous les champs");
         }
         
-        if (!validatePhoneNumber(phone)) {
-          throw new Error("Format de numéro de téléphone invalide");
-        }
-        
-        const sanitizedFullName = sanitizeInput(fullName);
-        const sanitizedAddress = sanitizeInput(address);
-        
-        if (sanitizedFullName.length < 2) {
+        if (fullName.length < 2) {
           throw new Error("Le nom complet doit contenir au moins 2 caractères");
         }
         
         console.log('🔐 Inscription avec:', {
           phone: phone,
-          fullName: sanitizedFullName,
+          fullName: fullName,
           country: country,
-          address: sanitizedAddress,
+          address: address,
           role: isAgentAccount ? "agent" : "user"
         });
         
         await signUp(phone, password, {
-          full_name: sanitizedFullName,
+          full_name: fullName,
           country: country,
-          address: sanitizedAddress,
+          address: address,
           phone: phone,
           role: isAgentAccount ? "agent" : "user",
         });
@@ -262,13 +248,13 @@ const Auth = () => {
                     type="text"
                     placeholder="Exemple: +242XXXXXXXX"
                     value={loginPhone}
-                    onChange={handleLoginPhoneChange}
+                    onChange={(e) => setLoginPhone(e.target.value)}
                     required
                     className="w-full"
                     disabled={loading}
                   />
                   <p className="text-xs text-gray-500">
-                    Entrez votre numéro avec l'indicatif pays (ex: +242XXXXXXXX)
+                    Entrez votre numéro complet avec l'indicatif pays
                   </p>
                 </div>
 
