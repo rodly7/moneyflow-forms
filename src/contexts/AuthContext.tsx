@@ -39,8 +39,6 @@ const normalizePhoneNumber = (phone: string): string => {
   
   // S'assurer que le numéro commence par +
   if (!cleanPhone.startsWith('+')) {
-    // Si le numéro ne commence pas par +, on assume que c'est un numéro local
-    // et on ajoute un code pays par défaut (vous pouvez ajuster selon vos besoins)
     cleanPhone = '+' + cleanPhone;
   }
   

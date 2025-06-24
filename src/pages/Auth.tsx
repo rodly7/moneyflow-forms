@@ -63,19 +63,6 @@ const Auth = () => {
     }
   };
 
-  // Fonction pour normaliser le numéro avant la connexion
-  const normalizePhoneForLogin = (phone: string): string => {
-    // Supprimer tous les espaces et caractères spéciaux sauf le +
-    let cleanPhone = phone.replace(/[^\d+]/g, '');
-    
-    // S'assurer que le numéro commence par +
-    if (!cleanPhone.startsWith('+')) {
-      cleanPhone = '+' + cleanPhone;
-    }
-    
-    return cleanPhone;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -130,11 +117,9 @@ const Auth = () => {
           throw new Error("Numéro de téléphone trop court");
         }
 
-        // Normaliser le numéro pour la connexion
-        const normalizedPhone = normalizePhoneForLogin(loginPhone);
-        console.log('🔐 Tentative de connexion avec le numéro normalisé:', normalizedPhone);
+        console.log('🔐 Tentative de connexion avec le numéro:', loginPhone);
 
-        await signIn(normalizedPhone, loginPassword);
+        await signIn(loginPhone, loginPassword);
         toast.success("Connexion réussie! Redirection...");
       }
     } catch (error: any) {
@@ -142,7 +127,7 @@ const Auth = () => {
       let errorMessage = "Une erreur est survenue";
       
       if (error.message.includes("Invalid login credentials")) {
-        errorMessage = "Numéro de téléphone ou mot de passe incorrect. Vérifiez le format de votre numéro (ex: +242XXXXXXXX)";
+        errorMessage = "Numéro de téléphone ou mot de passe incorrect";
       } else if (error.message.includes("Phone not confirmed")) {
         errorMessage = "Veuillez confirmer votre numéro de téléphone";
       } else if (error.message.includes("User already registered")) {
