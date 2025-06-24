@@ -16,43 +16,55 @@ const Layout = () => {
       currentPath: location.pathname
     });
 
-    // If user is authenticated and on auth page, redirect based on role
-    if (user && profile && location.pathname === '/auth') {
-      console.log('🔄 Redirection depuis /auth - Rôle utilisateur:', profile.role);
-      if (profile.role === 'agent') {
-        console.log('🏢 Redirection vers agent-dashboard');
-        navigate('/agent-dashboard', { replace: true });
-      } else {
-        console.log('👤 Redirection vers dashboard utilisateur');
-        navigate('/', { replace: true });
+    // Don't do anything while loading
+    if (loading) {
+      return;
+    }
+
+    // Allow access to auth pages without being logged in
+    if (location.pathname === '/auth' || location.pathname === '/agent-auth') {
+      // If user is already authenticated and on auth page, redirect based on role
+      if (user && profile) {
+        console.log('🔄 Utilisateur déjà connecté sur page auth - Rôle:', profile.role);
+        if (profile.role === 'agent') {
+          console.log('🏢 Redirection agent vers dashboard');
+          navigate('/agent-dashboard', { replace: true });
+        } else {
+          console.log('👤 Redirection utilisateur vers accueil');
+          navigate('/', { replace: true });
+        }
       }
       return;
     }
 
-    // Don't redirect if we're already on the auth page
-    if (location.pathname === '/auth') {
-      return;
-    }
-
-    // If user is not logged in and not currently loading, redirect to auth page
-    if (!user && !loading) {
+    // If user is not logged in and not on auth pages, redirect to auth
+    if (!user) {
       console.log('🔐 Utilisateur non connecté, redirection vers /auth');
       navigate('/auth');
       return;
     }
 
-    // Redirect agents to their specific dashboard if they're on the regular home page
-    if (user && profile && profile.role === 'agent' && location.pathname === '/') {
-      console.log('🏢 Agent sur page d\'accueil, redirection vers agent-dashboard');
-      navigate('/agent-dashboard', { replace: true });
+    // If user is logged in but profile is not loaded yet, wait
+    if (user && !profile) {
+      console.log('⏳ Utilisateur connecté mais profil en cours de chargement...');
       return;
     }
 
-    // Redirect regular users away from agent dashboard if they're not agents
-    if (user && profile && profile.role !== 'agent' && location.pathname === '/agent-dashboard') {
-      console.log('👤 Utilisateur normal sur page agent, redirection vers accueil');
-      navigate('/', { replace: true });
-      return;
+    // Redirect based on user role and current path
+    if (user && profile) {
+      if (profile.role === 'agent') {
+        // Agent sur page normale → rediriger vers agent-dashboard
+        if (location.pathname === '/') {
+          console.log('🏢 Agent sur page d\'accueil, redirection vers agent-dashboard');
+          navigate('/agent-dashboard', { replace: true });
+        }
+      } else {
+        // Utilisateur normal sur page agent → rediriger vers accueil
+        if (location.pathname === '/agent-dashboard') {
+          console.log('👤 Utilisateur normal sur page agent, redirection vers accueil');
+          navigate('/', { replace: true });
+        }
+      }
     }
   }, [user, profile, loading, navigate, location.pathname]);
 
@@ -63,8 +75,8 @@ const Layout = () => {
     </div>;
   }
 
-  // Allow auth page to render even if user is not logged in
-  if (location.pathname === '/auth') {
+  // Allow auth pages to render even if user is not logged in
+  if (location.pathname === '/auth' || location.pathname === '/agent-auth') {
     return (
       <div className="min-h-screen w-full">
         <Outlet />
@@ -72,7 +84,7 @@ const Layout = () => {
     );
   }
 
-  // Don't render anything if user is not logged in and we're not on auth page
+  // Don't render anything if user is not logged in and we're not on auth pages
   if (!user) {
     return null;
   }

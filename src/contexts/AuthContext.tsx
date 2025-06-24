@@ -56,12 +56,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (session?.user) {
         console.log('👤 Récupération du profil pour:', session.user.id);
-        // Attendre un peu avant de récupérer le profil pour s'assurer que la base de données est à jour
+        
+        // Pour les nouveaux utilisateurs (inscription), attendre plus longtemps
+        const delay = event === 'SIGNED_UP' ? 1000 : 500;
         setTimeout(async () => {
           const profileData = await profileService.fetchProfile(session.user.id);
-          console.log('📊 Profil après connexion:', profileData);
+          console.log('📊 Profil après connexion/inscription:', profileData);
           setProfile(profileData);
-        }, 500);
+        }, delay);
       } else {
         setProfile(null);
       }

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,7 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const isAgentMode = searchParams.get('role') === 'agent';
   
-  const [isSignUp, setIsSignUp] = useState(isAgentMode); // Si c'est agent, on va directement en inscription
+  const [isSignUp, setIsSignUp] = useState(isAgentMode);
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
@@ -92,11 +91,10 @@ const Auth = () => {
         const successMessage = isAgentMode ? "Compte agent créé avec succès!" : "Compte créé avec succès!";
         toast.success(successMessage);
         
+        // Redirection immédiate après inscription pour les agents
         if (isAgentMode) {
-          // Redirection explicite vers le tableau de bord agent
-          setTimeout(() => {
-            navigate('/agent-dashboard', { replace: true });
-          }, 1000);
+          console.log('🏢 Redirection immédiate vers agent-dashboard');
+          navigate('/agent-dashboard', { replace: true });
         } else {
           setIsSignUp(false);
         }
@@ -131,35 +129,35 @@ const Auth = () => {
     }
   };
 
-  const getTitle = () => {
+  function getTitle() {
     if (isAgentMode) {
       return isSignUp ? "Créer un compte Agent" : "Connexion Agent";
     }
     return isSignUp ? "Créer un compte" : "Connexion";
-  };
+  }
 
-  const getDescription = () => {
+  function getDescription() {
     if (isAgentMode) {
       return isSignUp ? "Créez votre compte agent SendFlow" : "Connectez-vous à votre espace agent";
     }
     return isSignUp
       ? "Créez votre compte utilisateur SendFlow"
       : "Connectez-vous à votre compte SendFlow";
-  };
+  }
 
-  const getGradientColors = () => {
+  function getGradientColors() {
     if (isAgentMode) {
       return "from-blue-500/20 to-indigo-500/20";
     }
     return "from-emerald-500/20 to-blue-500/20";
-  };
+  }
 
-  const getButtonColors = () => {
+  function getButtonColors() {
     if (isAgentMode) {
       return "bg-blue-600 hover:bg-blue-700";
     }
     return "bg-emerald-600 hover:bg-emerald-700";
-  };
+  }
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${getGradientColors()} flex items-center justify-center p-4`}>
