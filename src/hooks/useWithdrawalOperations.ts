@@ -2,77 +2,50 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  fetchWithdrawalByCode, 
-  updateWithdrawalStatus,
-  validateUserBalance
-} from "@/services/withdrawalService";
 import { supabase } from "@/integrations/supabase/client";
 
 export const useWithdrawalOperations = (onClose: () => void) => {
+  const [isProcessing, setIsProcessing] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleConfirm = async (verificationCode: string) => {
-    if (!verificationCode || verificationCode.length !== 6) {
-      toast({
-        title: "Code invalide",
-        description: "Veuillez entrer un code de vérification à 6 chiffres",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!user?.id) {
-      toast({
-        title: "Erreur d'authentification",
-        description: "Vous devez être connecté pour confirmer un retrait",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (!user?.id || verificationCode.length !== 6) return;
 
     try {
       setIsProcessing(true);
-      
-      // 1. Trouver le retrait avec le code de vérification
-      const withdrawalData = await fetchWithdrawalByCode(verificationCode, user.id);
-      const withdrawalAmount = Number(withdrawalData.amount) || 0;
 
-      console.log("Données du retrait trouvées:", {
-        id: withdrawalData.id,
-        montant: withdrawalAmount,
-        utilisateur: user.id
-      });
+      // Trouver le retrait avec ce code
+      const { data: withdrawal, error } = await supabase
+        .from('withdrawals')
+        .select('*')
+        .eq('verification_code', verificationCode)
+        .eq('status', 'pending')
+        .single();
 
-      // 2. Valider le solde de l'utilisateur depuis la base de données
-      const balanceValidation = await validateUserBalance(user.id, withdrawalAmount);
-      
-      console.log("Validation du solde réussie:", balanceValidation);
+      if (error || !withdrawal) {
+        throw new Error("Code de vérification invalide ou expiré");
+      }
 
-      // 3. Débiter le montant du compte utilisateur
-      const { error: debitError } = await supabase.rpc('increment_balance', {
-        user_id: user.id,
-        amount: -withdrawalAmount
-      });
+      // Confirmer le retrait
+      const { error: updateError } = await supabase
+        .from('withdrawals')
+        .update({ status: 'completed' })
+        .eq('id', withdrawal.id);
 
-      if (debitError) throw debitError;
-
-      // 4. Mettre à jour le statut du retrait à completed
-      await updateWithdrawalStatus(withdrawalData.id, 'completed');
+      if (updateError) throw updateError;
 
       toast({
         title: "Retrait confirmé",
-        description: `Votre retrait de ${withdrawalAmount} FCFA a été confirmé. Nouveau solde: ${balanceValidation.remainingBalance} FCFA`,
+        description: `Retrait de ${withdrawal.amount} FCFA confirmé avec succès`,
       });
 
       onClose();
     } catch (error) {
-      console.error("Erreur lors de la confirmation du retrait:", error);
+      console.error("Erreur confirmation:", error);
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Une erreur s'est produite lors de la confirmation du retrait",
+        description: error instanceof Error ? error.message : "Erreur lors de la confirmation",
         variant: "destructive"
       });
     } finally {
@@ -81,33 +54,31 @@ export const useWithdrawalOperations = (onClose: () => void) => {
   };
 
   const handleReject = async (verificationCode: string) => {
-    if (!verificationCode || verificationCode.length !== 6) {
-      toast({
-        title: "Code invalide",
-        description: "Veuillez entrer un code de vérification à 6 chiffres",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (!user?.id || verificationCode.length !== 6) return;
 
     try {
       setIsProcessing(true);
-      
+
       // Trouver et rejeter le retrait
-      const withdrawalData = await fetchWithdrawalByCode(verificationCode, user?.id || '');
-      await updateWithdrawalStatus(withdrawalData.id, 'rejected');
+      const { error } = await supabase
+        .from('withdrawals')
+        .update({ status: 'rejected' })
+        .eq('verification_code', verificationCode)
+        .eq('status', 'pending');
+
+      if (error) throw error;
 
       toast({
         title: "Retrait refusé",
-        description: "Vous avez refusé cette demande de retrait.",
+        description: "La demande de retrait a été refusée",
       });
 
       onClose();
     } catch (error) {
-      console.error("Erreur lors du refus du retrait:", error);
+      console.error("Erreur refus:", error);
       toast({
         title: "Erreur",
-        description: "Une erreur s'est produite lors du refus du retrait",
+        description: "Erreur lors du refus du retrait",
         variant: "destructive"
       });
     } finally {
