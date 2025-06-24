@@ -23,6 +23,17 @@ const Layout = () => {
 
     // Allow access to auth pages without being logged in
     if (location.pathname === '/auth' || location.pathname === '/agent-auth') {
+      // Si l'utilisateur est connecté et sur une page d'auth, rediriger
+      if (user && profile) {
+        console.log('🔄 Utilisateur connecté sur page auth, redirection basée sur le rôle:', profile.role);
+        if (profile.role === 'agent') {
+          console.log('🏢 Redirection agent depuis auth vers dashboard');
+          navigate('/agent-dashboard', { replace: true });
+        } else {
+          console.log('👤 Redirection utilisateur depuis auth vers accueil');
+          navigate('/', { replace: true });
+        }
+      }
       return;
     }
 

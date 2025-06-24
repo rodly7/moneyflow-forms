@@ -104,6 +104,22 @@ const Auth = () => {
         console.log('🔐 Connexion avec le numéro exact:', loginPhone);
         await signIn(loginPhone, loginPassword);
         toast.success("Connexion réussie!");
+        
+        // Attendre un peu pour que le profil soit chargé puis rediriger
+        setTimeout(() => {
+          const currentUser = user;
+          const currentProfile = profile;
+          
+          if (currentProfile) {
+            if (currentProfile.role === 'agent') {
+              console.log('🏢 Redirection agent vers dashboard après connexion');
+              navigate('/agent-dashboard', { replace: true });
+            } else {
+              console.log('👤 Redirection utilisateur vers accueil après connexion');
+              navigate('/', { replace: true });
+            }
+          }
+        }, 1500);
       }
     } catch (error: any) {
       console.error("Erreur d'authentification:", error);
