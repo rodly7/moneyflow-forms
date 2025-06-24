@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('👤 Récupération du profil pour:', session.user.id);
         
         // Pour les nouveaux utilisateurs (inscription), attendre plus longtemps
-        const delay = event === 'SIGNED_UP' ? 1000 : 500;
+        const delay = event === 'SIGNED_IN' ? 500 : 1000;
         setTimeout(async () => {
           const profileData = await profileService.fetchProfile(session.user.id);
           console.log('📊 Profil après connexion/inscription:', profileData);
