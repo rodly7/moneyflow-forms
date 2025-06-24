@@ -16,7 +16,7 @@ const Auth = () => {
   
   const [isSignUp, setIsSignUp] = useState(isAgentMode);
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user, profile } = useAuth();
   const navigate = useNavigate();
   
   // Login fields
