@@ -9,7 +9,6 @@ import Layout from "@/components/Layout";
 import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
 import AgentAuth from "@/pages/AgentAuth";
-import AgentSignUp from "@/pages/AgentSignUp";
 import Dashboard from "@/pages/Dashboard";
 import AgentDashboard from "@/pages/AgentDashboard";
 import Transactions from "@/pages/Transactions";
@@ -57,7 +56,6 @@ function App() {
               <Route path="admin/balance-update" element={<AdminBalanceUpdate />} />
               <Route path="auth" element={<Auth />} />
               <Route path="agent-auth" element={<AgentAuth />} />
-              <Route path="agent-signup" element={<AgentSignUp />} />
             </Route>
           </Routes>
         </AuthProvider>

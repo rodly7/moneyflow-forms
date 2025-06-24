@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -8,10 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Icons } from "@/components/ui/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { countries } from "@/data/countries";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const Auth = () => {
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [searchParams] = useSearchParams();
+  const isAgentMode = searchParams.get('role') === 'agent';
+  
+  const [isSignUp, setIsSignUp] = useState(isAgentMode); // Si c'est agent, on va directement en inscription
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
@@ -67,12 +71,14 @@ const Auth = () => {
           throw new Error("Le nom complet doit contenir au moins 2 caractères");
         }
         
+        const userRole = isAgentMode ? "agent" : "user";
+        
         console.log('🔐 Inscription avec:', {
           phone: phone,
           fullName: fullName,
           country: country,
           address: address,
-          role: "user"
+          role: userRole
         });
         
         await signUp(phone, password, {
@@ -80,11 +86,20 @@ const Auth = () => {
           country: country,
           address: address,
           phone: phone,
-          role: "user",
+          role: userRole,
         });
         
-        toast.success("Compte créé avec succès!");
-        setIsSignUp(false);
+        const successMessage = isAgentMode ? "Compte agent créé avec succès!" : "Compte créé avec succès!";
+        toast.success(successMessage);
+        
+        if (isAgentMode) {
+          // Redirection explicite vers le tableau de bord agent
+          setTimeout(() => {
+            navigate('/agent-dashboard', { replace: true });
+          }, 1000);
+        } else {
+          setIsSignUp(false);
+        }
       } else {
         // Connexion simplifiée
         if (!loginPhone || !loginPassword) {
@@ -116,17 +131,45 @@ const Auth = () => {
     }
   };
 
+  const getTitle = () => {
+    if (isAgentMode) {
+      return isSignUp ? "Créer un compte Agent" : "Connexion Agent";
+    }
+    return isSignUp ? "Créer un compte" : "Connexion";
+  };
+
+  const getDescription = () => {
+    if (isAgentMode) {
+      return isSignUp ? "Créez votre compte agent SendFlow" : "Connectez-vous à votre espace agent";
+    }
+    return isSignUp
+      ? "Créez votre compte utilisateur SendFlow"
+      : "Connectez-vous à votre compte SendFlow";
+  };
+
+  const getGradientColors = () => {
+    if (isAgentMode) {
+      return "from-blue-500/20 to-indigo-500/20";
+    }
+    return "from-emerald-500/20 to-blue-500/20";
+  };
+
+  const getButtonColors = () => {
+    if (isAgentMode) {
+      return "bg-blue-600 hover:bg-blue-700";
+    }
+    return "bg-emerald-600 hover:bg-emerald-700";
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 flex items-center justify-center p-4">
+    <div className={`min-h-screen bg-gradient-to-br ${getGradientColors()} flex items-center justify-center p-4`}>
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
-            {isSignUp ? "Créer un compte" : "Connexion"}
+          <CardTitle className={`text-2xl font-bold text-center ${isAgentMode ? 'text-blue-600' : ''}`}>
+            {getTitle()}
           </CardTitle>
           <CardDescription className="text-center">
-            {isSignUp
-              ? "Créez votre compte utilisateur SendFlow"
-              : "Connectez-vous à votre compte SendFlow"}
+            {getDescription()}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -144,6 +187,7 @@ const Auth = () => {
                     disabled={loading}
                     minLength={2}
                     maxLength={100}
+                    placeholder="Votre nom complet"
                   />
                 </div>
 
@@ -220,6 +264,7 @@ const Auth = () => {
                     className="w-full"
                     disabled={loading}
                     minLength={6}
+                    placeholder="Au moins 6 caractères"
                   />
                 </div>
               </>
@@ -260,7 +305,7 @@ const Auth = () => {
 
             <Button
               type="submit"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+              className={`w-full ${getButtonColors()} text-white`}
               disabled={loading}
             >
               {loading && (
@@ -269,54 +314,73 @@ const Auth = () => {
               {loading
                 ? "Chargement..."
                 : isSignUp
-                ? "Créer un compte"
+                ? (isAgentMode ? "Créer mon compte agent" : "Créer un compte")
                 : "Se connecter"}
             </Button>
 
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Ou
-                </span>
-              </div>
-            </div>
+            {!isAgentMode && (
+              <>
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Ou
+                    </span>
+                  </div>
+                </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="w-full"
-              disabled={loading}
-            >
-              {isSignUp
-                ? "Déjà un compte? Se connecter"
-                : "Pas de compte? S'inscrire"}
-            </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsSignUp(!isSignUp)}
+                  className="w-full"
+                  disabled={loading}
+                >
+                  {isSignUp
+                    ? "Déjà un compte? Se connecter"
+                    : "Pas de compte? S'inscrire"}
+                </Button>
+              </>
+            )}
 
-            <div className="mt-4 text-center space-y-2">
-              <Button
-                type="button"
-                variant="link"
-                onClick={() => navigate('/agent-signup')}
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Créer un compte agent
-              </Button>
-              
-              <div className="text-sm text-gray-500">
+            {!isAgentMode && (
+              <div className="mt-4 text-center space-y-2">
                 <Button
                   type="button"
                   variant="link"
-                  onClick={() => navigate('/agent-auth')}
-                  className="text-blue-600 hover:text-blue-700 text-sm"
+                  onClick={() => navigate('/auth?role=agent')}
+                  className="text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  Déjà agent? Se connecter ici
+                  Créer un compte agent
+                </Button>
+                
+                <div className="text-sm text-gray-500">
+                  <Button
+                    type="button"
+                    variant="link"
+                    onClick={() => navigate('/agent-auth')}
+                    className="text-blue-600 hover:text-blue-700 text-sm"
+                  >
+                    Déjà agent? Se connecter ici
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {isAgentMode && (
+              <div className="mt-4 text-center">
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => navigate('/auth')}
+                  className="text-gray-600 hover:text-gray-700"
+                >
+                  Retour à la connexion normale
                 </Button>
               </div>
-            </div>
+            )}
           </form>
         </CardContent>
       </Card>
