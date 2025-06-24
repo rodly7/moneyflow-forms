@@ -3,8 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { Routes, Route } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
@@ -32,31 +31,27 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              <Route path="/" element={<Layout />}>
-                <Route index element={<Index />} />
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="transactions" element={<Transactions />} />
-                <Route path="qr-code" element={<QRCode />} />
-                <Route path="receive" element={<Receive />} />
-                <Route path="withdraw" element={<Withdraw />} />
-                <Route path="agent-withdrawal" element={<AgentWithdrawal />} />
-                <Route path="agent-withdrawal-simple" element={<AgentWithdrawalSimple />} />
-                <Route path="agent-withdrawal-advanced" element={<AgentWithdrawalAdvanced />} />
-                <Route path="deposit" element={<AgentDeposit />} />
-                <Route path="agent-services" element={<UnifiedDepositWithdrawal />} />
-                <Route path="bill-payments" element={<BillPayments />} />
-                <Route path="prepaid-cards" element={<PrepaidCards />} />
-                <Route path="verify-identity" element={<VerifyIdentity />} />
-                <Route path="commission" element={<Commission />} />
-                <Route path="admin/balance-update" element={<AdminBalanceUpdate />} />
-                <Route path="auth" element={<Auth />} />
-              </Route>
-            </Routes>
-          </AuthProvider>
-        </BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Index />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="transactions" element={<Transactions />} />
+            <Route path="qr-code" element={<QRCode />} />
+            <Route path="receive" element={<Receive />} />
+            <Route path="withdraw" element={<Withdraw />} />
+            <Route path="agent-withdrawal" element={<AgentWithdrawal />} />
+            <Route path="agent-withdrawal-simple" element={<AgentWithdrawalSimple />} />
+            <Route path="agent-withdrawal-advanced" element={<AgentWithdrawalAdvanced />} />
+            <Route path="deposit" element={<AgentDeposit />} />
+            <Route path="agent-services" element={<UnifiedDepositWithdrawal />} />
+            <Route path="bill-payments" element={<BillPayments />} />
+            <Route path="prepaid-cards" element={<PrepaidCards />} />
+            <Route path="verify-identity" element={<VerifyIdentity />} />
+            <Route path="commission" element={<Commission />} />
+            <Route path="admin/balance-update" element={<AdminBalanceUpdate />} />
+            <Route path="auth" element={<Auth />} />
+          </Route>
+        </Routes>
       </TooltipProvider>
     </QueryClientProvider>
   );
