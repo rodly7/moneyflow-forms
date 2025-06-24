@@ -11,9 +11,12 @@ const Layout = () => {
   React.useEffect(() => {
     // If user is authenticated and on auth page, redirect based on role
     if (user && profile && location.pathname === '/auth') {
+      console.log('🔄 Redirection depuis /auth - Rôle utilisateur:', profile.role);
       if (profile.role === 'agent') {
+        console.log('🏢 Redirection vers agent-dashboard');
         navigate('/agent-dashboard');
       } else {
+        console.log('👤 Redirection vers dashboard utilisateur');
         navigate('/');
       }
       return;
@@ -26,12 +29,23 @@ const Layout = () => {
 
     // If user is not logged in and not currently loading, redirect to auth page
     if (!user && !loading) {
+      console.log('🔐 Utilisateur non connecté, redirection vers /auth');
       navigate('/auth');
+      return;
     }
 
     // Redirect agents to their specific dashboard if they're on the regular home page
     if (user && profile && profile.role === 'agent' && location.pathname === '/') {
+      console.log('🏢 Agent sur page d\'accueil, redirection vers agent-dashboard');
       navigate('/agent-dashboard');
+      return;
+    }
+
+    // Redirect regular users away from agent dashboard if they're not agents
+    if (user && profile && profile.role !== 'agent' && location.pathname === '/agent-dashboard') {
+      console.log('👤 Utilisateur normal sur page agent, redirection vers accueil');
+      navigate('/');
+      return;
     }
   }, [user, profile, loading, navigate, location.pathname]);
 

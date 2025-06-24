@@ -17,7 +17,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = async () => {
     if (user?.id) {
+      console.log('🔄 Rafraîchissement du profil pour:', user.id);
       const profileData = await profileService.fetchProfile(user.id);
+      console.log('📊 Profil récupéré:', profileData);
       setProfile(profileData);
     }
   };
@@ -28,7 +30,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('🔐 Session initiale:', session ? 'Connecté' : 'Non connecté');
       setUser(session?.user ?? null);
       if (session?.user) {
-        profileService.fetchProfile(session.user.id).then(setProfile);
+        profileService.fetchProfile(session.user.id).then((profileData) => {
+          console.log('📊 Profil initial récupéré:', profileData);
+          setProfile(profileData);
+        });
       }
       setLoading(false);
     });
@@ -41,7 +46,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        console.log('👤 Récupération du profil pour:', session.user.id);
         const profileData = await profileService.fetchProfile(session.user.id);
+        console.log('📊 Profil après connexion:', profileData);
         setProfile(profileData);
       } else {
         setProfile(null);
@@ -55,6 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (phone: string, password: string) => {
     try {
+      console.log('🔐 Tentative de connexion:', phone);
       await authService.signIn(phone, password);
     } catch (error) {
       console.error('❌ Erreur dans signIn:', error);
@@ -64,6 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (phone: string, password: string, metadata: SignUpMetadata) => {
     try {
+      console.log('📝 Tentative d\'inscription:', { phone, role: metadata.role });
       await authService.signUp(phone, password, metadata);
     } catch (error) {
       console.error('❌ Erreur dans signUp:', error);
@@ -72,6 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
+    console.log('🚪 Déconnexion');
     await authService.signOut();
   };
 
