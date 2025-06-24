@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
 import { Eye, EyeOff, RefreshCw } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,7 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter
 } from "@/components/ui/dialog";
 import {
   InputOTP,
@@ -22,7 +20,7 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { Button } from "@/components/ui/button";
-import { useTransferForm } from "@/hooks/useTransferForm";
+import { useWithdrawalConfirmation } from "@/hooks/useWithdrawalConfirmation";
 
 interface BalanceCardProps {
   balance: number;
@@ -37,18 +35,21 @@ const BalanceCard = ({
 }: BalanceCardProps) => {
   const [showBalance, setShowBalance] = useState(false);
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
   const [commissionDetails, setCommissionDetails] = useState<{
     agentCommission: number;
     moneyFlowCommission: number;
     totalFee: number;
   } | null>(null);
-  const navigate = useNavigate();
-  const { confirmWithdrawal } = useTransferForm();
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  
+  const { 
+    verificationCode, 
+    setVerificationCode, 
+    isProcessing, 
+    confirmWithdrawal 
+  } = useWithdrawalConfirmation(() => setShowVerificationDialog(false));
   
   // Déterminer la devise basée sur le pays de l'utilisateur
   const userCurrency = currency || getCurrencyForCountry(userCountry);
@@ -75,8 +76,8 @@ const BalanceCard = ({
       console.log("✅ Solde en temps réel:", currentBalance, "FCFA");
       return currentBalance;
     },
-    refetchInterval: 30000, // Actualise toutes les 30 secondes
-    staleTime: 10000, // Considère les données comme périmées après 10 secondes
+    refetchInterval: 30000,
+    staleTime: 10000,
   });
 
   // Utilise le solde en temps réel si disponible, sinon le solde passé en props
@@ -94,7 +95,6 @@ const BalanceCard = ({
     try {
       console.log("🔄 Actualisation manuelle du solde...");
       await refetchBalance();
-      // Invalide aussi le cache du profil principal
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       toast({
         title: "Solde actualisé",
@@ -120,34 +120,20 @@ const BalanceCard = ({
       return;
     }
 
-    setIsProcessing(true);
-    
-    try {
-      const result = await confirmWithdrawal(verificationCode);
-      if (result.success) {
-        setCommissionDetails({
-          agentCommission: result.agentCommission || 0,
-          moneyFlowCommission: result.moneyFlowCommission || 0,
-          totalFee: result.totalFee || 0
-        });
-        // Ne pas fermer le dialogue immédiatement, afficher les détails de commission
-      } else {
-        setVerificationCode("");
-        toast({
-          title: "Erreur",
-          description: result.message || "Une erreur est survenue lors du traitement du retrait",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error("Error processing withdrawal:", error);
+    const result = await confirmWithdrawal(verificationCode);
+    if (result.success && result.agentCommission !== undefined) {
+      setCommissionDetails({
+        agentCommission: result.agentCommission || 0,
+        moneyFlowCommission: result.moneyFlowCommission || 0,
+        totalFee: result.totalFee || 0
+      });
+    } else if (!result.success) {
+      setVerificationCode("");
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue lors du traitement du retrait",
+        description: result.message || "Une erreur est survenue lors du traitement du retrait",
         variant: "destructive"
       });
-    } finally {
-      setIsProcessing(false);
     }
   };
 

@@ -17,7 +17,7 @@ export const useWithdrawalConfirmation = (onClose: () => void) => {
         description: "Vous devez être connecté pour confirmer un retrait",
         variant: "destructive"
       });
-      return { success: false };
+      return { success: false, message: "Utilisateur non connecté" };
     }
 
     try {
@@ -43,8 +43,8 @@ export const useWithdrawalConfirmation = (onClose: () => void) => {
       // Calculer les frais avec la nouvelle fonction
       const { fee, agentCommission, moneyFlowCommission } = calculateFee(
         withdrawalData.amount,
-        "Cameroun", // Pays par défaut
-        "Cameroun", // Retrait national par défaut
+        "Cameroun",
+        "Cameroun",
         "agent"
       );
 
@@ -59,7 +59,7 @@ export const useWithdrawalConfirmation = (onClose: () => void) => {
 
       if (updateError) throw updateError;
 
-      // Ajouter les fonds (montant moins les frais plus la commission de l'agent) au compte de l'agent
+      // Ajouter les fonds au compte de l'agent
       const { error: balanceError } = await supabase
         .rpc('increment_balance', { 
           user_id: user.id, 
@@ -76,15 +76,25 @@ export const useWithdrawalConfirmation = (onClose: () => void) => {
       });
 
       onClose();
-      return { success: true };
+      return { 
+        success: true,
+        agentCommission,
+        moneyFlowCommission,
+        totalFee: fee,
+        message: "Retrait confirmé avec succès"
+      };
     } catch (error) {
       console.error("Erreur lors de la confirmation du retrait:", error);
+      const errorMessage = error instanceof Error ? error.message : "Une erreur s'est produite lors de la confirmation du retrait";
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Une erreur s'est produite lors de la confirmation du retrait",
+        description: errorMessage,
         variant: "destructive"
       });
-      return { success: false };
+      return { 
+        success: false,
+        message: errorMessage
+      };
     } finally {
       setIsProcessing(false);
     }

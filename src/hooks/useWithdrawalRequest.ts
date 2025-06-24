@@ -65,16 +65,25 @@ export const useWithdrawalRequest = () => {
       return { 
         success: true, 
         withdrawalId: withdrawal.id,
-        verificationCode: verificationCode
+        verificationCode: verificationCode,
+        agentCommission: 0,
+        moneyFlowCommission: 0,
+        totalFee: 0,
+        message: "Demande de retrait créée avec succès"
       };
     } catch (error) {
       console.error("❌ Erreur lors de la demande de retrait:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors de la demande de retrait";
       toast({
         title: "Erreur de demande",
-        description: error instanceof Error ? error.message : "Erreur lors de la demande de retrait",
+        description: errorMessage,
         variant: "destructive"
       });
-      return { success: false, error };
+      return { 
+        success: false, 
+        error,
+        message: errorMessage
+      };
     } finally {
       setIsProcessing(false);
     }
