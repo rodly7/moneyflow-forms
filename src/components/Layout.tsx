@@ -9,15 +9,22 @@ const Layout = () => {
   const location = useLocation();
 
   React.useEffect(() => {
+    console.log('🔍 Layout useEffect - État actuel:', {
+      user: !!user,
+      profile: profile,
+      loading,
+      currentPath: location.pathname
+    });
+
     // If user is authenticated and on auth page, redirect based on role
     if (user && profile && location.pathname === '/auth') {
       console.log('🔄 Redirection depuis /auth - Rôle utilisateur:', profile.role);
       if (profile.role === 'agent') {
         console.log('🏢 Redirection vers agent-dashboard');
-        navigate('/agent-dashboard');
+        navigate('/agent-dashboard', { replace: true });
       } else {
         console.log('👤 Redirection vers dashboard utilisateur');
-        navigate('/');
+        navigate('/', { replace: true });
       }
       return;
     }
@@ -37,14 +44,14 @@ const Layout = () => {
     // Redirect agents to their specific dashboard if they're on the regular home page
     if (user && profile && profile.role === 'agent' && location.pathname === '/') {
       console.log('🏢 Agent sur page d\'accueil, redirection vers agent-dashboard');
-      navigate('/agent-dashboard');
+      navigate('/agent-dashboard', { replace: true });
       return;
     }
 
     // Redirect regular users away from agent dashboard if they're not agents
     if (user && profile && profile.role !== 'agent' && location.pathname === '/agent-dashboard') {
       console.log('👤 Utilisateur normal sur page agent, redirection vers accueil');
-      navigate('/');
+      navigate('/', { replace: true });
       return;
     }
   }, [user, profile, loading, navigate, location.pathname]);

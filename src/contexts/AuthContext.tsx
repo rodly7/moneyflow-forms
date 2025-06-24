@@ -28,6 +28,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('🔐 Session initiale:', session ? 'Connecté' : 'Non connecté');
+      if (session?.user) {
+        console.log('👤 Métadonnées utilisateur session:', session.user.user_metadata);
+      }
+      
       setUser(session?.user ?? null);
       if (session?.user) {
         profileService.fetchProfile(session.user.id).then((profileData) => {
@@ -43,13 +47,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 Changement d\'authentification:', event, session ? 'Utilisateur connecté' : 'Utilisateur déconnecté');
+      
+      if (session?.user) {
+        console.log('👤 Métadonnées utilisateur auth change:', session.user.user_metadata);
+      }
+      
       setUser(session?.user ?? null);
       
       if (session?.user) {
         console.log('👤 Récupération du profil pour:', session.user.id);
-        const profileData = await profileService.fetchProfile(session.user.id);
-        console.log('📊 Profil après connexion:', profileData);
-        setProfile(profileData);
+        // Attendre un peu avant de récupérer le profil pour s'assurer que la base de données est à jour
+        setTimeout(async () => {
+          const profileData = await profileService.fetchProfile(session.user.id);
+          console.log('📊 Profil après connexion:', profileData);
+          setProfile(profileData);
+        }, 500);
       } else {
         setProfile(null);
       }

@@ -24,11 +24,13 @@ export const authService = {
 
   async signUp(phone: string, password: string, metadata: SignUpMetadata) {
     console.log('📝 Tentative d\'inscription avec le numéro:', phone);
+    console.log('🎯 Rôle demandé:', metadata.role);
     
     const email = `${phone}@sendflow.app`;
     console.log('📧 Email d\'inscription généré:', email);
     
     const userRole = metadata.role === 'agent' ? 'agent' : 'user';
+    console.log('👥 Rôle final assigné:', userRole);
     
     const { data, error } = await supabase.auth.signUp({
       email: email,
@@ -51,6 +53,7 @@ export const authService = {
     }
     
     console.log('✅ Inscription réussie:', data.user?.id);
+    console.log('📋 Métadonnées utilisateur:', data.user?.user_metadata);
   },
 
   async signOut() {
