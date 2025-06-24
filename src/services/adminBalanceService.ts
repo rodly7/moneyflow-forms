@@ -1,11 +1,12 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { secureCreditUserBalance } from "@/services/secureBalanceService";
 
 export const updateUserBalance = async (phone: string, amount: number) => {
   try {
     console.log("🔍 Recherche du profil pour le téléphone:", phone);
     
-    // Rechercher l'utilisateur par téléphone
+    // Find user by phone
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, full_name, phone, balance')
@@ -24,16 +25,12 @@ export const updateUserBalance = async (phone: string, amount: number) => {
     
     console.log("✅ Profil trouvé:", profile.full_name, "- Solde actuel:", profile.balance);
     
-    // Utiliser la fonction RPC pour créditer le compte
-    const { data: newBalance, error: creditError } = await supabase.rpc('increment_balance', {
-      user_id: profile.id,
-      amount: amount
-    });
-    
-    if (creditError) {
-      console.error("❌ Erreur lors du crédit:", creditError);
-      throw new Error("Erreur lors de la mise à jour du solde: " + creditError.message);
-    }
+    // Use secure credit function instead of direct RPC call
+    const newBalance = await secureCreditUserBalance(
+      profile.id,
+      amount,
+      'admin_credit'
+    );
     
     console.log("✅ Solde mis à jour avec succès. Nouveau solde:", newBalance);
     

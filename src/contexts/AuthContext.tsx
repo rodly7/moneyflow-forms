@@ -1,64 +1,75 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
-import { useNavigate, useLocation } from "react-router-dom";
-import { toast } from "sonner";
 
-type UserMetadata = {
-  full_name?: string;
-  country?: string;
-  address?: string;
-  phone?: string;
-  role?: "user" | "agent" | "admin";
-};
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { User } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
-type AuthContextType = {
-  session: Session | null;
+interface Profile {
+  id: string;
+  full_name: string | null;
+  phone: string;
+  country: string | null;
+  address: string | null;
+  balance: number;
+  role: 'user' | 'agent' | 'admin';
+  avatar_url: string | null;
+  is_verified: boolean | null;
+}
+
+interface AuthContextType {
   user: User | null;
-  userRole: string | null;
+  profile: Profile | null;
   loading: boolean;
   signIn: (phone: string, password: string) => Promise<void>;
-  signUp: (phone: string, password: string, metadata?: UserMetadata) => Promise<void>;
+  signUp: (phone: string, password: string, metadata: any) => Promise<void>;
   signOut: () => Promise<void>;
+  isAdmin: () => boolean;
   isAgent: () => boolean;
-};
+  isAgentOrAdmin: () => boolean;
+  refreshProfile: () => Promise<void>;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { toast } = useToast();
+
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error in fetchProfile:', error);
+      return null;
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (user?.id) {
+      const profileData = await fetchProfile(user.id);
+      setProfile(profileData);
+    }
+  };
 
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("Initial session:", session);
-      if (session) {
-        setSession(session);
-        setUser(session.user);
-        
-        // Get role from user metadata
-        const role = session.user.user_metadata?.role || "user";
-        setUserRole(role);
-        
-        // Only navigate to home if we're on the auth page
-        if (location.pathname === "/auth") {
-          navigate("/");
-        }
-      } else {
-        // Clear session and user state
-        setSession(null);
-        setUser(null);
-        setUserRole(null);
-        
-        // Only redirect to auth if we're not already there
-        if (location.pathname !== "/auth") {
-          navigate("/auth");
-        }
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id).then(setProfile);
       }
       setLoading(false);
     });
@@ -66,135 +77,96 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log("Auth state changed:", _event, session);
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setUser(session?.user ?? null);
       
-      if (session) {
-        setSession(session);
-        setUser(session.user);
-        
-        // Get role from user metadata
-        const role = session.user.user_metadata?.role || "user";
-        setUserRole(role);
-        
-        // Only navigate to home if we're on the auth page
-        if (location.pathname === "/auth") {
-          navigate("/");
-        }
+      if (session?.user) {
+        const profileData = await fetchProfile(session.user.id);
+        setProfile(profileData);
       } else {
-        setSession(null);
-        setUser(null);
-        setUserRole(null);
-        
-        // Only redirect to auth if we're not already there and not loading
-        if (location.pathname !== "/auth" && !loading) {
-          navigate("/auth");
-        }
+        setProfile(null);
       }
+      
       setLoading(false);
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [navigate, location.pathname, loading]);
-
-  const formatPhoneToEmail = (phone: string) => {
-    // Nettoyer le numéro de téléphone pour ne garder que les chiffres
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    return `${cleanPhone}@sendflow.com`;
-  };
+    return () => subscription.unsubscribe();
+  }, []);
 
   const signIn = async (phone: string, password: string) => {
-    const email = formatPhoneToEmail(phone);
-    console.log("Trying to sign in with email:", email);
-    
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) throw error;
-      
-      toast.success("Connexion réussie");
-    } catch (error: any) {
-      console.error("Sign in error:", error);
-      toast.error(error.message);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: `${phone}@sendflow.app`,
+      password,
+    });
+
+    if (error) {
       throw error;
     }
   };
 
-  const signUp = async (phone: string, password: string, metadata?: UserMetadata) => {
-    const email = formatPhoneToEmail(phone);
-    console.log("Trying to sign up with email:", email);
+  const signUp = async (phone: string, password: string, metadata: any) => {
+    // Determine role based on metadata
+    const userRole = metadata.role === 'agent' ? 'agent' : 'user';
     
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            ...metadata,
-            phone: phone,
-            role: metadata?.role || "user", // Default to user role if not provided
-          }
-        }
-      });
-      
-      if (error) throw error;
-      
-      toast.success("Compte créé avec succès");
-      navigate("/auth");
-    } catch (error: any) {
-      console.error("Sign up error:", error);
-      toast.error(error.message);
+    const { error } = await supabase.auth.signUp({
+      email: `${phone}@sendflow.app`,
+      password,
+      options: {
+        data: {
+          ...metadata,
+          role: userRole,
+        },
+      },
+    });
+
+    if (error) {
       throw error;
     }
   };
 
   const signOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      setSession(null);
-      setUser(null);
-      setUserRole(null);
-      
-      toast.success("Déconnexion réussie");
-    } catch (error: any) {
-      console.error("Sign out error:", error);
-      toast.error(error.message);
+    const { error } = await supabase.auth.signOut();
+    if (error) {
       throw error;
     }
   };
 
-  // Helper function to check if the user is an agent
+  const isAdmin = () => {
+    return profile?.role === 'admin';
+  };
+
   const isAgent = () => {
-    return userRole === "agent" || userRole === "admin";
+    return profile?.role === 'agent';
+  };
+
+  const isAgentOrAdmin = () => {
+    return profile?.role === 'agent' || profile?.role === 'admin';
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      session, 
-      user, 
-      userRole, 
-      loading, 
-      signIn, 
-      signUp, 
-      signOut,
-      isAgent
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+        isAdmin,
+        isAgent,
+        isAgentOrAdmin,
+        refreshProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+};

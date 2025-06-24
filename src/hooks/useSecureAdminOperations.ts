@@ -1,20 +1,27 @@
 
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { secureCreditUserBalance, checkTransactionLimit } from "@/services/secureBalanceService";
+import { secureCreditUserBalance } from "@/services/secureBalanceService";
 
 export const useSecureAdminOperations = () => {
   const { toast } = useToast();
+  const { isAdmin, user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const secureUpdateUserBalance = async (phone: string, amount: number) => {
     setIsProcessing(true);
     
     try {
+      // Check if current user is admin
+      if (!isAdmin()) {
+        throw new Error("Unauthorized: Admin access required");
+      }
+
       console.log("🔍 Recherche sécurisée du profil pour le téléphone:", phone);
       
-      // Rechercher l'utilisateur par téléphone
+      // Find user by phone
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id, full_name, phone, balance')
@@ -31,21 +38,14 @@ export const useSecureAdminOperations = () => {
         throw new Error("Aucun utilisateur trouvé avec ce numéro de téléphone");
       }
 
-      // Vérifier les limites de transaction pour les crédits importants
-      if (amount > 500000) {
-        const isWithinLimits = await checkTransactionLimit(profile.id, amount, 'admin_credit');
-        if (!isWithinLimits) {
-          console.warn("⚠️ Montant important détecté, vérification manuelle requise");
-        }
-      }
-      
       console.log("✅ Profil trouvé:", profile.full_name, "- Solde actuel:", profile.balance);
       
-      // Utiliser la fonction sécurisée pour créditer le compte
+      // Use secure credit function with admin privileges
       const newBalance = await secureCreditUserBalance(
         profile.id, 
         amount, 
-        'admin_credit'
+        'admin_credit',
+        user?.id
       );
       
       console.log("✅ Solde mis à jour avec succès via fonction sécurisée. Nouveau solde:", newBalance);
@@ -78,20 +78,19 @@ export const useSecureAdminOperations = () => {
 
   const checkUserRole = async (userId: string) => {
     try {
-      // Check if user is admin by phone number
+      // Use the new role-based system
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('phone')
+        .select('role')
         .eq('id', userId)
-        .eq('phone', '+221773637752')
         .maybeSingle();
 
       if (error) {
-        console.error("Erreur lors de la vérification du rôle admin:", error);
+        console.error("Erreur lors de la vérification du rôle:", error);
         return false;
       }
 
-      return Boolean(profile);
+      return profile?.role === 'admin';
     } catch (error) {
       console.error("Erreur lors de la vérification du rôle:", error);
       return false;

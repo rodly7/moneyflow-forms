@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { checkTransactionLimit } from "./secureRoleService";
 
 export const secureDebitUserBalance = async (
   userId: string, 
@@ -7,18 +8,31 @@ export const secureDebitUserBalance = async (
   operationType: string = 'debit',
   performedBy?: string
 ): Promise<number> => {
-  // Use the existing increment_balance function with negative amount
-  const { data: newBalance, error: debitError } = await supabase.rpc('increment_balance', {
-    user_id: userId,
-    amount: -amount
-  });
+  try {
+    // Check transaction limits
+    const isWithinLimits = await checkTransactionLimit(userId, amount, operationType);
+    if (!isWithinLimits) {
+      throw new Error(`Transaction amount ${amount} exceeds limits for operation ${operationType}`);
+    }
 
-  if (debitError) {
-    console.error("Erreur lors du débit sécurisé:", debitError);
-    throw new Error("Erreur lors du débit de votre compte");
+    // Use the secure balance update function
+    const { data: newBalance, error } = await supabase.rpc('secure_increment_balance', {
+      target_user_id: userId,
+      amount: -amount,
+      operation_type: operationType,
+      performed_by: performedBy || null
+    });
+
+    if (error) {
+      console.error("Secure debit error:", error);
+      throw new Error(error.message || "Error during secure balance debit");
+    }
+
+    return Number(newBalance) || 0;
+  } catch (error) {
+    console.error("Secure debit failed:", error);
+    throw error;
   }
-
-  return Number(newBalance) || 0;
 };
 
 export const secureCreditUserBalance = async (
@@ -27,67 +41,62 @@ export const secureCreditUserBalance = async (
   operationType: string = 'credit',
   performedBy?: string
 ): Promise<number> => {
-  // Use the existing increment_balance function
-  const { data: newBalance, error: creditError } = await supabase.rpc('increment_balance', {
-    user_id: userId,
-    amount: amount
-  });
+  try {
+    // Check transaction limits for large amounts
+    if (amount > 100000) {
+      const isWithinLimits = await checkTransactionLimit(performedBy || userId, amount, operationType);
+      if (!isWithinLimits) {
+        throw new Error(`Transaction amount ${amount} exceeds limits for operation ${operationType}`);
+      }
+    }
 
-  if (creditError) {
-    console.error("Erreur lors du crédit sécurisé:", creditError);
-    throw new Error("Erreur lors du crédit du compte");
+    // Use the secure balance update function
+    const { data: newBalance, error } = await supabase.rpc('secure_increment_balance', {
+      target_user_id: userId,
+      amount: amount,
+      operation_type: operationType,
+      performed_by: performedBy || null
+    });
+
+    if (error) {
+      console.error("Secure credit error:", error);
+      throw new Error(error.message || "Error during secure balance credit");
+    }
+
+    return Number(newBalance) || 0;
+  } catch (error) {
+    console.error("Secure credit failed:", error);
+    throw error;
   }
-
-  return Number(newBalance) || 0;
-};
-
-export const checkTransactionLimit = async (
-  userId: string,
-  amount: number,
-  operationType: string
-): Promise<boolean> => {
-  // For now, implement basic validation limits
-  const basicLimits = {
-    transfer: 500000,
-    withdrawal: 200000,
-    deposit: 2000000,
-    agent_deposit: 2000000,
-    agent_withdrawal: 2000000,
-    admin_credit: 10000000
-  };
-
-  const limit = basicLimits[operationType as keyof typeof basicLimits] || 500000;
-  
-  if (amount > limit) {
-    console.warn(`Transaction amount ${amount} exceeds limit ${limit} for ${operationType}`);
-    return false;
-  }
-
-  return true;
 };
 
 export const secureCreditPlatformCommission = async (commission: number): Promise<number | null> => {
-  // Find admin user by hardcoded phone number and credit them
-  const { data: adminProfile, error: profileError } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('phone', '+221773637752')
-    .maybeSingle();
+  try {
+    // Find admin user by role (no more hardcoded phone)
+    const { data: adminProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('role', 'admin')
+      .limit(1)
+      .maybeSingle();
 
-  if (profileError || !adminProfile) {
-    console.error("Erreur lors de la recherche du profil admin:", profileError);
+    if (profileError || !adminProfile) {
+      console.error("Error finding admin profile:", profileError);
+      return null;
+    }
+
+    const newBalance = await secureCreditUserBalance(
+      adminProfile.id, 
+      commission, 
+      'platform_commission'
+    );
+
+    return newBalance;
+  } catch (error) {
+    console.error("Error crediting platform commission:", error);
     return null;
   }
-
-  const { data: newBalance, error } = await supabase.rpc('increment_balance', {
-    user_id: adminProfile.id,
-    amount: commission
-  });
-
-  if (error) {
-    console.error("Erreur lors du crédit de la commission plateforme:", error);
-    return null;
-  }
-
-  return Number(newBalance) || 0;
 };
+
+// Legacy function for backward compatibility - now uses secure functions
+export { checkTransactionLimit };

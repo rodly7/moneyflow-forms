@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { Icons } from "@/components/ui/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { countries } from "@/data/countries";
 import { Checkbox } from "@/components/ui/checkbox";
+import { validatePhoneNumber, sanitizeInput } from "@/services/inputValidationService";
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -69,14 +69,28 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
+        // Validate inputs
         if (!country || !address || !phone || !password || !fullName) {
           throw new Error("Veuillez remplir tous les champs");
         }
         
+        // Validate phone number format
+        if (!validatePhoneNumber(phone)) {
+          throw new Error("Format de numéro de téléphone invalide");
+        }
+        
+        // Sanitize inputs
+        const sanitizedFullName = sanitizeInput(fullName);
+        const sanitizedAddress = sanitizeInput(address);
+        
+        if (sanitizedFullName.length < 2) {
+          throw new Error("Le nom complet doit contenir au moins 2 caractères");
+        }
+        
         await signUp(phone, password, {
-          full_name: fullName,
+          full_name: sanitizedFullName,
           country: country,
-          address: address,
+          address: sanitizedAddress,
           phone: phone,
           role: isAgentAccount ? "agent" : "user",
         });
@@ -88,6 +102,11 @@ const Auth = () => {
       } else {
         if (!loginPhone || !loginPassword) {
           throw new Error("Veuillez remplir tous les champs");
+        }
+
+        // Basic validation for login phone
+        if (loginPhone.length < 8) {
+          throw new Error("Numéro de téléphone trop court");
         }
 
         await signIn(loginPhone, loginPassword);
@@ -103,6 +122,10 @@ const Auth = () => {
         errorMessage = "Veuillez confirmer votre numéro de téléphone";
       } else if (error.message.includes("User already registered")) {
         errorMessage = "Un compte existe déjà avec ce numéro";
+      } else if (error.message.includes("Password should be at least 6 characters")) {
+        errorMessage = "Le mot de passe doit contenir au moins 6 caractères";
+      } else {
+        errorMessage = error.message;
       }
       
       toast.error(errorMessage);
@@ -137,6 +160,8 @@ const Auth = () => {
                     required
                     className="w-full"
                     disabled={loading}
+                    minLength={2}
+                    maxLength={100}
                   />
                 </div>
 

@@ -220,6 +220,7 @@ export type Database = {
           id_card_url: string | null
           is_verified: boolean | null
           phone: string
+          role: Database["public"]["Enums"]["user_role"]
           selfie_url: string | null
           verified_at: string | null
         }
@@ -236,6 +237,7 @@ export type Database = {
           id_card_url?: string | null
           is_verified?: boolean | null
           phone: string
+          role?: Database["public"]["Enums"]["user_role"]
           selfie_url?: string | null
           verified_at?: string | null
         }
@@ -252,6 +254,7 @@ export type Database = {
           id_card_url?: string | null
           is_verified?: boolean | null
           phone?: string
+          role?: Database["public"]["Enums"]["user_role"]
           selfie_url?: string | null
           verified_at?: string | null
         }
@@ -317,6 +320,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      transaction_limits: {
+        Row: {
+          created_at: string | null
+          daily_limit: number
+          id: string
+          operation_type: string
+          single_limit: number
+          updated_at: string | null
+          user_role: Database["public"]["Enums"]["user_role"]
+        }
+        Insert: {
+          created_at?: string | null
+          daily_limit?: number
+          id?: string
+          operation_type: string
+          single_limit?: number
+          updated_at?: string | null
+          user_role: Database["public"]["Enums"]["user_role"]
+        }
+        Update: {
+          created_at?: string | null
+          daily_limit?: number
+          id?: string
+          operation_type?: string
+          single_limit?: number
+          updated_at?: string | null
+          user_role?: Database["public"]["Enums"]["user_role"]
+        }
+        Relationships: []
       }
       transfers: {
         Row: {
@@ -535,11 +568,23 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_user_role: {
+        Args: { user_id_param: string }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
       increment_balance: {
         Args: { user_id: string; amount: number }
         Returns: number
       }
+      is_admin: {
+        Args: { user_id_param: string }
+        Returns: boolean
+      }
       is_agent: {
+        Args: { user_id_param: string }
+        Returns: boolean
+      }
+      is_agent_or_admin: {
         Args: { user_id_param: string }
         Returns: boolean
       }
@@ -558,9 +603,19 @@ export type Database = {
             }
         Returns: undefined
       }
+      secure_increment_balance: {
+        Args: {
+          target_user_id: string
+          amount: number
+          operation_type?: string
+          performed_by?: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       agent_status: "pending" | "active" | "suspended" | "rejected"
+      user_role: "user" | "agent" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -677,6 +732,7 @@ export const Constants = {
   public: {
     Enums: {
       agent_status: ["pending", "active", "suspended", "rejected"],
+      user_role: ["user", "agent", "admin"],
     },
   },
 } as const
