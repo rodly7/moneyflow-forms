@@ -4,9 +4,16 @@ import { TransferData, INITIAL_TRANSFER_DATA } from "@/types/transfer";
 import { useTransferOperations } from "./useTransferOperations";
 import { useWithdrawalRequest } from "./useWithdrawalRequest";
 
+type PendingTransferInfo = {
+  recipientEmail: string;
+  claimCode: string;
+  amount: number;
+};
+
 export const useTransferForm = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [data, setData] = useState(INITIAL_TRANSFER_DATA);
+  const [pendingTransferInfo, setPendingTransferInfo] = useState<PendingTransferInfo | null>(null);
 
   const { processTransfer, isLoading } = useTransferOperations();
   const { createWithdrawalRequest } = useWithdrawalRequest();
@@ -40,7 +47,16 @@ export const useTransferForm = () => {
       });
       
       if (result.success) {
-        resetForm();
+        // Si le transfert génère un code de réclamation (transfert en attente)
+        if (result.claimCode) {
+          setPendingTransferInfo({
+            recipientEmail: data.recipient.email,
+            claimCode: result.claimCode,
+            amount: data.transfer.amount
+          });
+        } else {
+          resetForm();
+        }
       }
     } else {
       next();
@@ -50,12 +66,14 @@ export const useTransferForm = () => {
   const resetForm = useCallback(() => {
     setData(INITIAL_TRANSFER_DATA);
     setCurrentStep(0);
+    setPendingTransferInfo(null);
   }, []);
 
   return {
     currentStep,
     data,
     isLoading,
+    pendingTransferInfo,
     updateFields,
     back,
     handleSubmit,

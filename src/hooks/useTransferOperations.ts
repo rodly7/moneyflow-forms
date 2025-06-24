@@ -103,6 +103,46 @@ export const useTransferOperations = () => {
 
       if (transferProcessError) {
         console.error("Erreur lors du transfert:", transferProcessError);
+        
+        // Si le destinataire n'existe pas, créer un transfert en attente
+        if (transferProcessError.message.includes('Recipient not found')) {
+          const claimCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+          
+          // Créer le transfert en attente
+          const { error: pendingError } = await supabase
+            .from('pending_transfers')
+            .insert({
+              sender_id: user.id,
+              recipient_email: transferData.recipient.email,
+              recipient_phone: transferData.recipient.phone || '',
+              amount: transferData.amount,
+              fees: fees,
+              claim_code: claimCode,
+              currency: 'XAF'
+            });
+
+          if (pendingError) {
+            throw pendingError;
+          }
+
+          // Déduire le montant du solde de l'expéditeur
+          const { error: balanceError } = await supabase
+            .rpc('decrement_balance', {
+              user_id: user.id,
+              amount: totalAmount
+            });
+
+          if (balanceError) {
+            throw balanceError;
+          }
+
+          return { 
+            success: true, 
+            claimCode: claimCode,
+            isPending: true 
+          };
+        }
+        
         toast({
           title: "Erreur",
           description: "Une erreur est survenue lors du transfert: " + transferProcessError.message,
