@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -38,27 +37,24 @@ const Auth = () => {
       setCountry(value);
       setSelectedCountryCode(selectedCountry.code);
       setAvailableCities(selectedCountry.cities.map(city => city.name));
-      setAddress(""); // Reset city when country changes
-      // Reset phone number but keep the country code
+      setAddress("");
       setPhone(selectedCountry.code);
       setPhoneNumber("");
     }
   };
 
-  // Function to format phone number with country code
   const formatPhoneWithCountryCode = (countryCode: string, number: string) => {
     return `${countryCode}${number.replace(/\D/g, '')}`;
   };
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    const value = e.target.value.replace(/\D/g, '');
     setPhoneNumber(value);
     setPhone(formatPhoneWithCountryCode(selectedCountryCode, value));
   };
 
   const handleLoginPhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Allow + at the start and only digits after
     if (/^\+?\d*$/.test(value)) {
       setLoginPhone(value);
     }
@@ -70,17 +66,15 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
-        // Validate inputs
+        // Validation des champs
         if (!country || !address || !phone || !password || !fullName) {
           throw new Error("Veuillez remplir tous les champs");
         }
         
-        // Validate phone number format
         if (!validatePhoneNumber(phone)) {
           throw new Error("Format de numéro de téléphone invalide");
         }
         
-        // Sanitize inputs
         const sanitizedFullName = sanitizeInput(fullName);
         const sanitizedAddress = sanitizeInput(address);
         
@@ -88,7 +82,7 @@ const Auth = () => {
           throw new Error("Le nom complet doit contenir au moins 2 caractères");
         }
         
-        console.log('🔐 Tentative d\'inscription avec:', {
+        console.log('🔐 Inscription avec:', {
           phone: phone,
           fullName: sanitizedFullName,
           country: country,
@@ -104,36 +98,31 @@ const Auth = () => {
           role: isAgentAccount ? "agent" : "user",
         });
         
-        toast.success("Compte créé avec succès!", {
-          duration: 6000,
-        });
+        toast.success("Compte créé avec succès!");
         setIsSignUp(false);
       } else {
+        // Connexion
         if (!loginPhone || !loginPassword) {
           throw new Error("Veuillez remplir tous les champs");
         }
 
-        console.log('🔐 Tentative de connexion avec le numéro:', loginPhone);
-
+        console.log('🔐 Connexion avec:', loginPhone);
         await signIn(loginPhone, loginPassword);
-        toast.success("Connexion réussie! Redirection...");
+        toast.success("Connexion réussie!");
       }
     } catch (error: any) {
       console.error("Erreur d'authentification:", error);
+      
       let errorMessage = "Une erreur est survenue";
       
       if (error.message.includes("Invalid login credentials")) {
         errorMessage = "Numéro de téléphone ou mot de passe incorrect";
-      } else if (error.message.includes("Phone not confirmed")) {
-        errorMessage = "Veuillez confirmer votre numéro de téléphone";
       } else if (error.message.includes("User already registered")) {
         errorMessage = "Un compte existe déjà avec ce numéro";
-      } else if (error.message.includes("Un compte existe déjà avec ce numéro de téléphone")) {
-        errorMessage = "Un compte existe déjà avec ce numéro de téléphone. Essayez de vous connecter.";
       } else if (error.message.includes("Password should be at least 6 characters")) {
         errorMessage = "Le mot de passe doit contenir au moins 6 caractères";
       } else if (error.message.includes("Database error saving new user")) {
-        errorMessage = "Ce numéro de téléphone est déjà utilisé. Essayez de vous connecter.";
+        errorMessage = "Erreur lors de la création du compte. Veuillez réessayer.";
       } else {
         errorMessage = error.message;
       }
@@ -273,7 +262,7 @@ const Auth = () => {
                     type="text"
                     placeholder="Exemple: +242XXXXXXXX"
                     value={loginPhone}
-                    onChange={(e) => setLoginPhone(e.target.value)}
+                    onChange={handleLoginPhoneChange}
                     required
                     className="w-full"
                     disabled={loading}

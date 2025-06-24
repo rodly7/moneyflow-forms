@@ -32,21 +32,19 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Fonction pour normaliser le numéro de téléphone de manière cohérente
+// Fonction pour normaliser EXACTEMENT de la même façon partout
 const normalizePhoneNumber = (phone: string): string => {
-  // Supprimer tous les espaces, tirets, parenthèses et autres caractères non-numériques sauf le +
-  let cleanPhone = phone.replace(/[^\d+]/g, '');
+  // Nettoyer complètement le numéro
+  let cleanPhone = phone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
   
-  // Si le numéro commence par 00, le remplacer par +
+  // Gérer les cas spéciaux
   if (cleanPhone.startsWith('00')) {
     cleanPhone = '+' + cleanPhone.substring(2);
-  }
-  // Si le numéro ne commence pas par +, l'ajouter
-  else if (!cleanPhone.startsWith('+')) {
+  } else if (!cleanPhone.startsWith('+')) {
     cleanPhone = '+' + cleanPhone;
   }
   
-  console.log('📱 Numéro original:', phone, '-> Numéro normalisé:', cleanPhone);
+  console.log('📱 Normalisation:', phone, '->', cleanPhone);
   return cleanPhone;
 };
 
@@ -118,13 +116,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (phone: string, password: string) => {
     try {
-      console.log('🔐 Tentative de connexion avec le numéro:', phone);
+      console.log('🔐 Tentative de connexion avec:', phone);
       
       // Normaliser le numéro de téléphone
       const normalizedPhone = normalizePhoneNumber(phone);
       const email = `${normalizedPhone}@sendflow.app`;
       
-      console.log('📧 Email généré pour la connexion:', email);
+      console.log('📧 Email généré:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
@@ -136,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
       
-      console.log('✅ Connexion réussie:', data.user?.id);
+      console.log('✅ Connexion réussie pour:', data.user?.id);
     } catch (error) {
       console.error('❌ Erreur dans signIn:', error);
       throw error;
@@ -145,27 +143,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (phone: string, password: string, metadata: any) => {
     try {
-      console.log('📝 Inscription avec le numéro:', phone);
-      console.log('📋 Métadonnées:', metadata);
+      console.log('📝 Tentative d\'inscription avec:', phone);
       
       // Normaliser le numéro de téléphone
       const normalizedPhone = normalizePhoneNumber(phone);
       const email = `${normalizedPhone}@sendflow.app`;
       
-      console.log('📧 Email généré pour l\'inscription:', email);
+      console.log('📧 Email généré pour inscription:', email);
       
-      // Vérifier d'abord si un utilisateur avec ce numéro existe déjà
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('phone')
-        .eq('phone', normalizedPhone)
-        .single();
-      
-      if (existingProfile) {
-        throw new Error('Un compte existe déjà avec ce numéro de téléphone');
-      }
-      
-      // Déterminer le rôle basé sur les métadonnées
+      // Déterminer le rôle
       const userRole = metadata.role === 'agent' ? 'agent' : 'user';
       
       const { data, error } = await supabase.auth.signUp({
@@ -174,7 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         options: {
           data: {
             ...metadata,
-            phone: normalizedPhone, // Stocker le numéro normalisé
+            phone: normalizedPhone,
             role: userRole,
           },
         },
