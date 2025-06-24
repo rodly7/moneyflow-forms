@@ -9,6 +9,12 @@ const Layout = () => {
   const location = useLocation();
 
   React.useEffect(() => {
+    // If user is authenticated and on auth page, redirect to home
+    if (user && location.pathname === '/auth') {
+      navigate('/');
+      return;
+    }
+
     // Don't redirect if we're already on the auth page
     if (location.pathname === '/auth') {
       return;
