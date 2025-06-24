@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -8,14 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Icons } from "@/components/ui/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { countries } from "@/data/countries";
-import { useNavigate } from "react-router-dom";
-import { Checkbox } from "@/components/ui/checkbox";
 
-const Auth = () => {
+const AgentAuthForm = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
-  const navigate = useNavigate();
   
   // Login fields
   const [loginPhone, setLoginPhone] = useState("");
@@ -30,7 +28,6 @@ const Auth = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [availableCities, setAvailableCities] = useState<string[]>([]);
-  const [isAgentAccount, setIsAgentAccount] = useState(false);
 
   const handleCountryChange = (value: string) => {
     const selectedCountry = countries.find(c => c.name === value);
@@ -69,12 +66,12 @@ const Auth = () => {
           throw new Error("Le nom complet doit contenir au moins 2 caractères");
         }
         
-        console.log('🔐 Inscription avec:', {
+        console.log('🏢 Inscription AGENT avec:', {
           phone: phone,
           fullName: fullName,
           country: country,
           address: address,
-          role: "user" // Toujours utilisateur normal pour ce formulaire
+          role: "agent"
         });
         
         await signUp(phone, password, {
@@ -82,10 +79,10 @@ const Auth = () => {
           country: country,
           address: address,
           phone: phone,
-          role: "user", // Toujours utilisateur normal
+          role: "agent", // Toujours agent pour ce formulaire
         });
         
-        toast.success("Compte créé avec succès!");
+        toast.success("Compte agent créé avec succès!");
         setIsSignUp(false);
       } else {
         // Connexion simplifiée
@@ -93,12 +90,12 @@ const Auth = () => {
           throw new Error("Veuillez remplir tous les champs");
         }
 
-        console.log('🔐 Connexion avec le numéro exact:', loginPhone);
+        console.log('🏢 Connexion AGENT avec le numéro:', loginPhone);
         await signIn(loginPhone, loginPassword);
-        toast.success("Connexion réussie!");
+        toast.success("Connexion agent réussie!");
       }
     } catch (error: any) {
-      console.error("Erreur d'authentification:", error);
+      console.error("Erreur d'authentification agent:", error);
       
       let errorMessage = "Une erreur est survenue";
       
@@ -119,16 +116,16 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-500/20 to-indigo-500/20 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
-            {isSignUp ? "Créer un compte" : "Connexion"}
+          <CardTitle className="text-2xl font-bold text-center text-blue-600">
+            {isSignUp ? "Créer un compte Agent" : "Connexion Agent"}
           </CardTitle>
           <CardDescription className="text-center">
             {isSignUp
-              ? "Créez votre compte pour commencer à utiliser SendFlow"
-              : "Connectez-vous à votre compte SendFlow"}
+              ? "Créez votre compte agent SendFlow"
+              : "Connectez-vous à votre espace agent"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -262,7 +259,7 @@ const Auth = () => {
 
             <Button
               type="submit"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
               disabled={loading}
             >
               {loading && (
@@ -271,7 +268,7 @@ const Auth = () => {
               {loading
                 ? "Chargement..."
                 : isSignUp
-                ? "Créer un compte"
+                ? "Créer un compte agent"
                 : "Se connecter"}
             </Button>
 
@@ -294,20 +291,9 @@ const Auth = () => {
               disabled={loading}
             >
               {isSignUp
-                ? "Déjà un compte? Se connecter"
-                : "Pas de compte? S'inscrire"}
+                ? "Déjà un compte agent? Se connecter"
+                : "Pas de compte agent? S'inscrire"}
             </Button>
-
-            <div className="mt-4 text-center">
-              <Button
-                type="button"
-                variant="link"
-                onClick={() => navigate('/agent-auth')}
-                className="text-blue-600 hover:text-blue-700"
-              >
-                Vous êtes un agent? Connectez-vous ici
-              </Button>
-            </div>
           </form>
         </CardContent>
       </Card>
@@ -315,4 +301,4 @@ const Auth = () => {
   );
 };
 
-export default Auth;
+export default AgentAuthForm;

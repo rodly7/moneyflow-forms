@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Layout from "@/components/Layout";
 import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
+import AgentAuth from "@/pages/AgentAuth";
 import Dashboard from "@/pages/Dashboard";
 import AgentDashboard from "@/pages/AgentDashboard";
 import Transactions from "@/pages/Transactions";
@@ -54,6 +54,7 @@ function App() {
               <Route path="commission" element={<Commission />} />
               <Route path="admin/balance-update" element={<AdminBalanceUpdate />} />
               <Route path="auth" element={<Auth />} />
+              <Route path="agent-auth" element={<AgentAuth />} />
             </Route>
           </Routes>
         </AuthProvider>
