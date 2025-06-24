@@ -91,11 +91,8 @@ const Auth = () => {
         const successMessage = isAgentMode ? "Compte agent créé avec succès!" : "Compte créé avec succès!";
         toast.success(successMessage);
         
-        // Redirection immédiate après inscription pour les agents
-        if (isAgentMode) {
-          console.log('🏢 Redirection immédiate vers agent-dashboard');
-          navigate('/agent-dashboard', { replace: true });
-        } else {
+        // Pas de redirection immédiate ici, on laisse le AuthContext et Layout gérer
+        if (!isAgentMode) {
           setIsSignUp(false);
         }
       } else {

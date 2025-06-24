@@ -23,17 +23,6 @@ const Layout = () => {
 
     // Allow access to auth pages without being logged in
     if (location.pathname === '/auth' || location.pathname === '/agent-auth') {
-      // If user is already authenticated and on auth page, redirect based on role
-      if (user && profile) {
-        console.log('🔄 Utilisateur déjà connecté sur page auth - Rôle:', profile.role);
-        if (profile.role === 'agent') {
-          console.log('🏢 Redirection agent vers dashboard');
-          navigate('/agent-dashboard', { replace: true });
-        } else {
-          console.log('👤 Redirection utilisateur vers accueil');
-          navigate('/', { replace: true });
-        }
-      }
       return;
     }
 
@@ -52,14 +41,16 @@ const Layout = () => {
 
     // Redirect based on user role and current path
     if (user && profile) {
+      console.log('👤 Profil chargé:', profile.role);
+      
       if (profile.role === 'agent') {
-        // Agent sur page normale → rediriger vers agent-dashboard
-        if (location.pathname === '/') {
-          console.log('🏢 Agent sur page d\'accueil, redirection vers agent-dashboard');
+        // Agent on regular page → redirect to agent-dashboard
+        if (location.pathname === '/' || location.pathname === '/dashboard') {
+          console.log('🏢 Agent sur page normale, redirection vers agent-dashboard');
           navigate('/agent-dashboard', { replace: true });
         }
       } else {
-        // Utilisateur normal sur page agent → rediriger vers accueil
+        // Regular user on agent page → redirect to home
         if (location.pathname === '/agent-dashboard') {
           console.log('👤 Utilisateur normal sur page agent, redirection vers accueil');
           navigate('/', { replace: true });
@@ -85,7 +76,7 @@ const Layout = () => {
   }
 
   // Don't render anything if user is not logged in and we're not on auth pages
-  if (!user) {
+  if (!user || !profile) {
     return null;
   }
 
