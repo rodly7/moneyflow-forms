@@ -32,20 +32,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Fonction pour normaliser le numéro de téléphone
+// Fonction pour normaliser le numéro de téléphone de manière cohérente
 const normalizePhoneNumber = (phone: string): string => {
-  // Supprimer tous les espaces et caractères non-numériques sauf le +
+  // Supprimer tous les espaces, tirets, parenthèses et autres caractères non-numériques sauf le +
   let cleanPhone = phone.replace(/[^\d+]/g, '');
   
-  // S'assurer que le numéro commence par +
-  if (!cleanPhone.startsWith('+')) {
-    // Si le numéro commence par 00, le remplacer par +
-    if (cleanPhone.startsWith('00')) {
-      cleanPhone = '+' + cleanPhone.substring(2);
-    } else {
-      // Sinon, ajouter + au début
-      cleanPhone = '+' + cleanPhone;
-    }
+  // Si le numéro commence par 00, le remplacer par +
+  if (cleanPhone.startsWith('00')) {
+    cleanPhone = '+' + cleanPhone.substring(2);
+  }
+  // Si le numéro ne commence pas par +, l'ajouter
+  else if (!cleanPhone.startsWith('+')) {
+    cleanPhone = '+' + cleanPhone;
   }
   
   console.log('📱 Numéro original:', phone, '-> Numéro normalisé:', cleanPhone);
@@ -155,6 +153,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const email = `${normalizedPhone}@sendflow.app`;
       
       console.log('📧 Email généré pour l\'inscription:', email);
+      
+      // Vérifier d'abord si un utilisateur avec ce numéro existe déjà
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('phone')
+        .eq('phone', normalizedPhone)
+        .single();
+      
+      if (existingProfile) {
+        throw new Error('Un compte existe déjà avec ce numéro de téléphone');
+      }
       
       // Déterminer le rôle basé sur les métadonnées
       const userRole = metadata.role === 'agent' ? 'agent' : 'user';

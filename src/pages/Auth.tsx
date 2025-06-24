@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -127,8 +128,12 @@ const Auth = () => {
         errorMessage = "Veuillez confirmer votre numéro de téléphone";
       } else if (error.message.includes("User already registered")) {
         errorMessage = "Un compte existe déjà avec ce numéro";
+      } else if (error.message.includes("Un compte existe déjà avec ce numéro de téléphone")) {
+        errorMessage = "Un compte existe déjà avec ce numéro de téléphone. Essayez de vous connecter.";
       } else if (error.message.includes("Password should be at least 6 characters")) {
         errorMessage = "Le mot de passe doit contenir au moins 6 caractères";
+      } else if (error.message.includes("Database error saving new user")) {
+        errorMessage = "Ce numéro de téléphone est déjà utilisé. Essayez de vous connecter.";
       } else {
         errorMessage = error.message;
       }
