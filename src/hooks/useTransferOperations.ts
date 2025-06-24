@@ -114,7 +114,7 @@ export const useTransferOperations = () => {
             .insert({
               sender_id: user.id,
               recipient_email: transferData.recipient.email,
-              recipient_phone: transferData.recipient.phone || '',
+              recipient_phone: '',
               amount: transferData.amount,
               fees: fees,
               claim_code: claimCode,
@@ -125,11 +125,13 @@ export const useTransferOperations = () => {
             throw pendingError;
           }
 
-          // Déduire le montant du solde de l'expéditeur
+          // Déduire le montant du solde de l'expéditeur en utilisant secure_increment_balance avec un montant négatif
           const { error: balanceError } = await supabase
-            .rpc('decrement_balance', {
-              user_id: user.id,
-              amount: totalAmount
+            .rpc('secure_increment_balance', {
+              target_user_id: user.id,
+              amount: -totalAmount,
+              operation_type: 'transfer_debit',
+              performed_by: user.id
             });
 
           if (balanceError) {
