@@ -4,14 +4,18 @@ import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Layout = () => {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   React.useEffect(() => {
-    // If user is authenticated and on auth page, redirect to home
-    if (user && location.pathname === '/auth') {
-      navigate('/');
+    // If user is authenticated and on auth page, redirect based on role
+    if (user && profile && location.pathname === '/auth') {
+      if (profile.role === 'agent') {
+        navigate('/agent-dashboard');
+      } else {
+        navigate('/');
+      }
       return;
     }
 
@@ -24,7 +28,12 @@ const Layout = () => {
     if (!user && !loading) {
       navigate('/auth');
     }
-  }, [user, loading, navigate, location.pathname]);
+
+    // Redirect agents to their specific dashboard if they're on the regular home page
+    if (user && profile && profile.role === 'agent' && location.pathname === '/') {
+      navigate('/agent-dashboard');
+    }
+  }, [user, profile, loading, navigate, location.pathname]);
 
   // Show loading spinner while checking auth status
   if (loading) {

@@ -9,6 +9,7 @@ import Layout from "@/components/Layout";
 import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
+import AgentDashboard from "@/pages/AgentDashboard";
 import Transactions from "@/pages/Transactions";
 import QRCode from "@/pages/QRCode";
 import Receive from "@/pages/Receive";
@@ -37,6 +38,7 @@ function App() {
             <Route path="/" element={<Layout />}>
               <Route index element={<Index />} />
               <Route path="dashboard" element={<Dashboard />} />
+              <Route path="agent-dashboard" element={<AgentDashboard />} />
               <Route path="transactions" element={<Transactions />} />
               <Route path="qr-code" element={<QRCode />} />
               <Route path="receive" element={<Receive />} />
