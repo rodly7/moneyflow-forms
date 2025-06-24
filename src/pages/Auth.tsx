@@ -63,6 +63,19 @@ const Auth = () => {
     }
   };
 
+  // Fonction pour normaliser le numéro avant la connexion
+  const normalizePhoneForLogin = (phone: string): string => {
+    // Supprimer tous les espaces et caractères spéciaux sauf le +
+    let cleanPhone = phone.replace(/[^\d+]/g, '');
+    
+    // S'assurer que le numéro commence par +
+    if (!cleanPhone.startsWith('+')) {
+      cleanPhone = '+' + cleanPhone;
+    }
+    
+    return cleanPhone;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -87,6 +100,14 @@ const Auth = () => {
           throw new Error("Le nom complet doit contenir au moins 2 caractères");
         }
         
+        console.log('🔐 Tentative d\'inscription avec:', {
+          phone: phone,
+          fullName: sanitizedFullName,
+          country: country,
+          address: sanitizedAddress,
+          role: isAgentAccount ? "agent" : "user"
+        });
+        
         await signUp(phone, password, {
           full_name: sanitizedFullName,
           country: country,
@@ -109,7 +130,11 @@ const Auth = () => {
           throw new Error("Numéro de téléphone trop court");
         }
 
-        await signIn(loginPhone, loginPassword);
+        // Normaliser le numéro pour la connexion
+        const normalizedPhone = normalizePhoneForLogin(loginPhone);
+        console.log('🔐 Tentative de connexion avec le numéro normalisé:', normalizedPhone);
+
+        await signIn(normalizedPhone, loginPassword);
         toast.success("Connexion réussie! Redirection...");
       }
     } catch (error: any) {
@@ -117,7 +142,7 @@ const Auth = () => {
       let errorMessage = "Une erreur est survenue";
       
       if (error.message.includes("Invalid login credentials")) {
-        errorMessage = "Numéro de téléphone ou mot de passe incorrect";
+        errorMessage = "Numéro de téléphone ou mot de passe incorrect. Vérifiez le format de votre numéro (ex: +242XXXXXXXX)";
       } else if (error.message.includes("Phone not confirmed")) {
         errorMessage = "Veuillez confirmer votre numéro de téléphone";
       } else if (error.message.includes("User already registered")) {
@@ -268,6 +293,9 @@ const Auth = () => {
                     className="w-full"
                     disabled={loading}
                   />
+                  <p className="text-xs text-gray-500">
+                    Format attendu: +242XXXXXXXX (avec l'indicatif pays)
+                  </p>
                 </div>
 
                 <div className="space-y-2">

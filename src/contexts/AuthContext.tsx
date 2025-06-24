@@ -32,6 +32,22 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Fonction pour normaliser le format du numéro de téléphone
+const normalizePhoneNumber = (phone: string): string => {
+  // Supprimer tous les espaces et caractères spéciaux sauf le +
+  let cleanPhone = phone.replace(/[^\d+]/g, '');
+  
+  // S'assurer que le numéro commence par +
+  if (!cleanPhone.startsWith('+')) {
+    // Si le numéro ne commence pas par +, on assume que c'est un numéro local
+    // et on ajoute un code pays par défaut (vous pouvez ajuster selon vos besoins)
+    cleanPhone = '+' + cleanPhone;
+  }
+  
+  console.log('📱 Numéro normalisé:', cleanPhone);
+  return cleanPhone;
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -40,6 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('🔍 Récupération du profil pour l\'utilisateur:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -47,13 +64,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error('❌ Erreur lors de la récupération du profil:', error);
         return null;
       }
 
+      console.log('✅ Profil récupéré:', data);
       return data;
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
+      console.error('❌ Erreur dans fetchProfile:', error);
       return null;
     }
   };
@@ -68,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('🔐 Session initiale:', session ? 'Connecté' : 'Non connecté');
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id).then(setProfile);
@@ -79,6 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔐 Changement d\'authentification:', event, session ? 'Utilisateur connecté' : 'Utilisateur déconnecté');
       setUser(session?.user ?? null);
       
       if (session?.user) {
@@ -95,32 +115,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (phone: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: `${phone}@sendflow.app`,
-      password,
-    });
+    try {
+      console.log('🔐 Tentative de connexion avec le numéro:', phone);
+      
+      // Normaliser le numéro de téléphone
+      const normalizedPhone = normalizePhoneNumber(phone);
+      const email = `${normalizedPhone}@sendflow.app`;
+      
+      console.log('📧 Email généré pour la connexion:', email);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password,
+      });
 
-    if (error) {
+      if (error) {
+        console.error('❌ Erreur de connexion:', error);
+        throw error;
+      }
+      
+      console.log('✅ Connexion réussie:', data.user?.id);
+    } catch (error) {
+      console.error('❌ Erreur dans signIn:', error);
       throw error;
     }
   };
 
   const signUp = async (phone: string, password: string, metadata: any) => {
-    // Determine role based on metadata
-    const userRole = metadata.role === 'agent' ? 'agent' : 'user';
-    
-    const { error } = await supabase.auth.signUp({
-      email: `${phone}@sendflow.app`,
-      password,
-      options: {
-        data: {
-          ...metadata,
-          role: userRole,
+    try {
+      console.log('📝 Inscription avec le numéro:', phone);
+      console.log('📋 Métadonnées:', metadata);
+      
+      // Normaliser le numéro de téléphone
+      const normalizedPhone = normalizePhoneNumber(phone);
+      const email = `${normalizedPhone}@sendflow.app`;
+      
+      console.log('📧 Email généré pour l\'inscription:', email);
+      
+      // Déterminer le rôle basé sur les métadonnées
+      const userRole = metadata.role === 'agent' ? 'agent' : 'user';
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password,
+        options: {
+          data: {
+            ...metadata,
+            phone: normalizedPhone, // Stocker le numéro normalisé
+            role: userRole,
+          },
         },
-      },
-    });
+      });
 
-    if (error) {
+      if (error) {
+        console.error('❌ Erreur d\'inscription:', error);
+        throw error;
+      }
+      
+      console.log('✅ Inscription réussie:', data.user?.id);
+    } catch (error) {
+      console.error('❌ Erreur dans signUp:', error);
       throw error;
     }
   };
