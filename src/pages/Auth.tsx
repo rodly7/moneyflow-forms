@@ -112,11 +112,6 @@ const Auth = () => {
           throw new Error("Veuillez remplir tous les champs");
         }
 
-        // Basic validation for login phone
-        if (loginPhone.length < 8) {
-          throw new Error("Numéro de téléphone trop court");
-        }
-
         console.log('🔐 Tentative de connexion avec le numéro:', loginPhone);
 
         await signIn(loginPhone, loginPassword);
@@ -270,16 +265,16 @@ const Auth = () => {
                   <Label htmlFor="loginPhone">Numéro de téléphone</Label>
                   <Input
                     id="loginPhone"
-                    type="tel"
-                    placeholder="+242XXXXXXXX"
+                    type="text"
+                    placeholder="Exemple: +242XXXXXXXX"
                     value={loginPhone}
-                    onChange={handleLoginPhoneChange}
+                    onChange={(e) => setLoginPhone(e.target.value)}
                     required
                     className="w-full"
                     disabled={loading}
                   />
                   <p className="text-xs text-gray-500">
-                    Format attendu: +242XXXXXXXX (avec l'indicatif pays)
+                    Entrez votre numéro avec l'indicatif pays (ex: +242XXXXXXXX)
                   </p>
                 </div>
 

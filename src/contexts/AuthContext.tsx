@@ -32,20 +32,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Fonction pour normaliser le format du numéro de téléphone
-const normalizePhoneNumber = (phone: string): string => {
-  // Supprimer tous les espaces et caractères spéciaux sauf le +
-  let cleanPhone = phone.replace(/[^\d+]/g, '');
-  
-  // S'assurer que le numéro commence par +
-  if (!cleanPhone.startsWith('+')) {
-    cleanPhone = '+' + cleanPhone;
-  }
-  
-  console.log('📱 Numéro normalisé:', cleanPhone);
-  return cleanPhone;
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -116,9 +102,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('🔐 Tentative de connexion avec le numéro:', phone);
       
-      // Normaliser le numéro de téléphone
-      const normalizedPhone = normalizePhoneNumber(phone);
-      const email = `${normalizedPhone}@sendflow.app`;
+      // Créer l'email à partir du numéro de téléphone
+      const email = `${phone}@sendflow.app`;
       
       console.log('📧 Email généré pour la connexion:', email);
       
@@ -144,9 +129,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('📝 Inscription avec le numéro:', phone);
       console.log('📋 Métadonnées:', metadata);
       
-      // Normaliser le numéro de téléphone
-      const normalizedPhone = normalizePhoneNumber(phone);
-      const email = `${normalizedPhone}@sendflow.app`;
+      // Créer l'email à partir du numéro de téléphone
+      const email = `${phone}@sendflow.app`;
       
       console.log('📧 Email généré pour l\'inscription:', email);
       
@@ -159,7 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         options: {
           data: {
             ...metadata,
-            phone: normalizedPhone, // Stocker le numéro normalisé
+            phone: phone,
             role: userRole,
           },
         },
