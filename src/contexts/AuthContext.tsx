@@ -19,6 +19,7 @@ interface Profile {
 interface AuthContextType {
   user: User | null;
   profile: Profile | null;
+  userRole: 'user' | 'agent' | 'admin' | null;
   loading: boolean;
   signIn: (phone: string, password: string) => Promise<void>;
   signUp: (phone: string, password: string, metadata: any) => Promise<void>;
@@ -143,11 +144,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return profile?.role === 'agent' || profile?.role === 'admin';
   };
 
+  // Compute userRole from profile
+  const userRole = profile?.role || null;
+
   return (
     <AuthContext.Provider
       value={{
         user,
         profile,
+        userRole,
         loading,
         signIn,
         signUp,
