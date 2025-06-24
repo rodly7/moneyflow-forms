@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -87,12 +86,12 @@ const Auth = () => {
         toast.success("Compte créé avec succès!");
         setIsSignUp(false);
       } else {
-        // Connexion
+        // Connexion simplifiée
         if (!loginPhone || !loginPassword) {
           throw new Error("Veuillez remplir tous les champs");
         }
 
-        console.log('🔐 Connexion avec:', loginPhone);
+        console.log('🔐 Connexion avec le numéro exact:', loginPhone);
         await signIn(loginPhone, loginPassword);
         toast.success("Connexion réussie!");
       }
@@ -102,7 +101,7 @@ const Auth = () => {
       let errorMessage = "Une erreur est survenue";
       
       if (error.message.includes("Numéro de téléphone ou mot de passe incorrect")) {
-        errorMessage = "Numéro de téléphone ou mot de passe incorrect. Vérifiez vos informations.";
+        errorMessage = "Numéro de téléphone ou mot de passe incorrect. Vérifiez que vous utilisez exactement le même numéro qu'à l'inscription.";
       } else if (error.message.includes("Un compte existe déjà")) {
         errorMessage = "Un compte existe déjà avec ce numéro. Essayez de vous connecter.";
       } else if (error.message.includes("Password should be at least 6 characters")) {
@@ -244,7 +243,7 @@ const Auth = () => {
                   <Input
                     id="loginPhone"
                     type="text"
-                    placeholder="Entrez votre numéro (ex: +242XXXXXXXX)"
+                    placeholder="Entrez exactement votre numéro (ex: +242XXXXXXXX)"
                     value={loginPhone}
                     onChange={(e) => setLoginPhone(e.target.value)}
                     required
@@ -252,7 +251,7 @@ const Auth = () => {
                     disabled={loading}
                   />
                   <p className="text-xs text-gray-500">
-                    Entrez exactement le même numéro utilisé lors de l'inscription
+                    ⚠️ Utilisez exactement le même format de numéro que lors de l'inscription
                   </p>
                 </div>
 

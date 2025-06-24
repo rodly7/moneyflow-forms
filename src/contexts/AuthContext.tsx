@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -102,9 +101,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('🔐 Tentative de connexion avec le numéro:', phone);
       
-      // Nettoyer le numéro de base (supprimer espaces uniquement)
-      const cleanPhone = phone.trim();
-      const email = `${cleanPhone}@sendflow.app`;
+      // Utiliser directement le numéro tel qu'entré par l'utilisateur
+      const email = `${phone}@sendflow.app`;
       
       console.log('📧 Email de connexion généré:', email);
       
@@ -115,10 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('❌ Erreur de connexion:', error);
-        if (error.message.includes('Invalid login credentials')) {
-          throw new Error('Numéro de téléphone ou mot de passe incorrect. Vérifiez vos informations ou créez un compte.');
-        }
-        throw error;
+        throw new Error('Numéro de téléphone ou mot de passe incorrect. Vérifiez vos informations.');
       }
       
       console.log('✅ Connexion réussie pour:', data.user?.id);
@@ -132,21 +127,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('📝 Tentative d\'inscription avec le numéro:', phone);
       
-      // Nettoyer le numéro de base (supprimer espaces uniquement)
-      const cleanPhone = phone.trim();
-      const email = `${cleanPhone}@sendflow.app`;
+      // Utiliser directement le numéro tel qu'entré par l'utilisateur
+      const email = `${phone}@sendflow.app`;
       
       console.log('📧 Email d\'inscription généré:', email);
-      
-      // Vérifier d'abord si un utilisateur avec ce numéro existe déjà
-      const { data: existingUser } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: 'test'
-      });
-      
-      if (existingUser?.user) {
-        throw new Error('Un compte existe déjà avec ce numéro de téléphone. Essayez de vous connecter.');
-      }
       
       // Déterminer le rôle
       const userRole = metadata.role === 'agent' ? 'agent' : 'user';
@@ -157,7 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         options: {
           data: {
             ...metadata,
-            phone: cleanPhone,
+            phone: phone,
             role: userRole,
           },
         },
