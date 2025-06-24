@@ -101,14 +101,12 @@ const Auth = () => {
       
       let errorMessage = "Une erreur est survenue";
       
-      if (error.message.includes("Invalid login credentials")) {
-        errorMessage = "Numéro de téléphone ou mot de passe incorrect";
-      } else if (error.message.includes("User already registered")) {
-        errorMessage = "Un compte existe déjà avec ce numéro";
+      if (error.message.includes("Numéro de téléphone ou mot de passe incorrect")) {
+        errorMessage = "Numéro de téléphone ou mot de passe incorrect. Vérifiez vos informations.";
+      } else if (error.message.includes("Un compte existe déjà")) {
+        errorMessage = "Un compte existe déjà avec ce numéro. Essayez de vous connecter.";
       } else if (error.message.includes("Password should be at least 6 characters")) {
         errorMessage = "Le mot de passe doit contenir au moins 6 caractères";
-      } else if (error.message.includes("Database error saving new user")) {
-        errorMessage = "Erreur lors de la création du compte. Veuillez réessayer.";
       } else {
         errorMessage = error.message;
       }
@@ -246,7 +244,7 @@ const Auth = () => {
                   <Input
                     id="loginPhone"
                     type="text"
-                    placeholder="Exemple: +242XXXXXXXX"
+                    placeholder="Entrez votre numéro (ex: +242XXXXXXXX)"
                     value={loginPhone}
                     onChange={(e) => setLoginPhone(e.target.value)}
                     required
@@ -254,7 +252,7 @@ const Auth = () => {
                     disabled={loading}
                   />
                   <p className="text-xs text-gray-500">
-                    Entrez votre numéro complet avec l'indicatif pays
+                    Entrez exactement le même numéro utilisé lors de l'inscription
                   </p>
                 </div>
 

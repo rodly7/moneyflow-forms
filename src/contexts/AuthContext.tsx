@@ -100,12 +100,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (phone: string, password: string) => {
     try {
-      console.log('🔐 Tentative de connexion avec:', phone);
+      console.log('🔐 Tentative de connexion avec le numéro:', phone);
       
-      // Utiliser directement le numéro comme email
-      const email = `${phone}@sendflow.app`;
+      // Nettoyer le numéro de base (supprimer espaces uniquement)
+      const cleanPhone = phone.trim();
+      const email = `${cleanPhone}@sendflow.app`;
       
-      console.log('📧 Email généré:', email);
+      console.log('📧 Email de connexion généré:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
@@ -114,6 +115,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('❌ Erreur de connexion:', error);
+        if (error.message.includes('Invalid login credentials')) {
+          throw new Error('Numéro de téléphone ou mot de passe incorrect. Vérifiez vos informations ou créez un compte.');
+        }
         throw error;
       }
       
@@ -126,12 +130,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (phone: string, password: string, metadata: any) => {
     try {
-      console.log('📝 Tentative d\'inscription avec:', phone);
+      console.log('📝 Tentative d\'inscription avec le numéro:', phone);
       
-      // Utiliser directement le numéro comme email
-      const email = `${phone}@sendflow.app`;
+      // Nettoyer le numéro de base (supprimer espaces uniquement)
+      const cleanPhone = phone.trim();
+      const email = `${cleanPhone}@sendflow.app`;
       
-      console.log('📧 Email généré pour inscription:', email);
+      console.log('📧 Email d\'inscription généré:', email);
+      
+      // Vérifier d'abord si un utilisateur avec ce numéro existe déjà
+      const { data: existingUser } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: 'test'
+      });
+      
+      if (existingUser?.user) {
+        throw new Error('Un compte existe déjà avec ce numéro de téléphone. Essayez de vous connecter.');
+      }
       
       // Déterminer le rôle
       const userRole = metadata.role === 'agent' ? 'agent' : 'user';
@@ -142,7 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         options: {
           data: {
             ...metadata,
-            phone: phone,
+            phone: cleanPhone,
             role: userRole,
           },
         },
@@ -150,6 +165,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('❌ Erreur d\'inscription:', error);
+        if (error.message.includes('User already registered')) {
+          throw new Error('Un compte existe déjà avec ce numéro de téléphone. Essayez de vous connecter.');
+        }
         throw error;
       }
       
