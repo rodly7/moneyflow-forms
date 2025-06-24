@@ -9,7 +9,6 @@ import { Icons } from "@/components/ui/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { countries } from "@/data/countries";
 import { useNavigate } from "react-router-dom";
-import { Checkbox } from "@/components/ui/checkbox";
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -30,7 +29,6 @@ const Auth = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [availableCities, setAvailableCities] = useState<string[]>([]);
-  const [isAgentAccount, setIsAgentAccount] = useState(false);
 
   const handleCountryChange = (value: string) => {
     const selectedCountry = countries.find(c => c.name === value);
@@ -74,7 +72,7 @@ const Auth = () => {
           fullName: fullName,
           country: country,
           address: address,
-          role: "user" // Toujours utilisateur normal pour ce formulaire
+          role: "user"
         });
         
         await signUp(phone, password, {
@@ -82,7 +80,7 @@ const Auth = () => {
           country: country,
           address: address,
           phone: phone,
-          role: "user", // Toujours utilisateur normal
+          role: "user",
         });
         
         toast.success("Compte créé avec succès!");
@@ -127,7 +125,7 @@ const Auth = () => {
           </CardTitle>
           <CardDescription className="text-center">
             {isSignUp
-              ? "Créez votre compte pour commencer à utiliser SendFlow"
+              ? "Créez votre compte utilisateur SendFlow"
               : "Connectez-vous à votre compte SendFlow"}
           </CardDescription>
         </CardHeader>
@@ -298,15 +296,26 @@ const Auth = () => {
                 : "Pas de compte? S'inscrire"}
             </Button>
 
-            <div className="mt-4 text-center">
+            <div className="mt-4 text-center space-y-2">
               <Button
                 type="button"
                 variant="link"
-                onClick={() => navigate('/agent-auth')}
-                className="text-blue-600 hover:text-blue-700"
+                onClick={() => navigate('/agent-signup')}
+                className="text-blue-600 hover:text-blue-700 font-medium"
               >
-                Vous êtes un agent? Connectez-vous ici
+                Créer un compte agent
               </Button>
+              
+              <div className="text-sm text-gray-500">
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => navigate('/agent-auth')}
+                  className="text-blue-600 hover:text-blue-700 text-sm"
+                >
+                  Déjà agent? Se connecter ici
+                </Button>
+              </div>
             </div>
           </form>
         </CardContent>
