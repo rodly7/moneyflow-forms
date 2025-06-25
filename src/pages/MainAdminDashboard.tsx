@@ -360,7 +360,7 @@ const MainAdminDashboard = () => {
           </div>
         )}
 
-        {/* Quick Actions - Removed individual deposit */}
+        {/* Quick Actions */}
         {!selectedOperation && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Card 
@@ -572,7 +572,7 @@ const MainAdminDashboard = () => {
                   <div 
                     key={user.id}
                     className="flex justify-between items-center p-2 bg-gray-50 rounded cursor-pointer hover:bg-gray-100"
-                    onClick={() => setTargetPhone(user.phone)}
+                    onClick={() => handleViewUser(user)}
                   >
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 text-blue-600" />
