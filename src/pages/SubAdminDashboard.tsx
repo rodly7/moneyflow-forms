@@ -1,17 +1,15 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Wallet, Plus, TrendingUp, Building2, ArrowLeft, Settings, User, Eye, Activity, Users } from "lucide-react";
+import { Wallet, TrendingUp, Building2, ArrowLeft, Settings, User, Eye, Activity, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import ProfileHeader from "@/components/dashboard/ProfileHeader";
-import { useUserSearch } from "@/hooks/useUserSearch";
 import SubAdminUsersTable from "@/components/admin/SubAdminUsersTable";
 import BatchAgentDeposit from "@/components/admin/BatchAgentDeposit";
 
@@ -28,13 +26,7 @@ const SubAdminDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [selectedOperation, setSelectedOperation] = useState<'deposit' | 'batch-deposit' | 'view-data' | 'view-users' | null>(null);
-  const [targetPhone, setTargetPhone] = useState("");
-  const [amount, setAmount] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [foundUser, setFoundUser] = useState<any>(null);
-
-  const { searchUserByPhone } = useUserSearch();
+  const [selectedOperation, setSelectedOperation] = useState<'batch-deposit' | 'view-data' | 'view-users' | null>(null);
 
   // Récupérer les utilisateurs (lecture seule pour les sous-admins)
   const { data: users } = useQuery({
@@ -98,131 +90,6 @@ const SubAdminDashboard = () => {
       };
     },
   });
-
-  // Recherche automatique lors de la saisie du numéro (pour les dépôts agent)
-  const handlePhoneSearch = async (phoneNumber: string) => {
-    setTargetPhone(phoneNumber);
-    
-    if (phoneNumber.length >= 8) {
-      const user = await searchUserByPhone(phoneNumber);
-      if (user && user.role === 'agent') {
-        setFoundUser(user);
-        toast({
-          title: "Agent trouvé",
-          description: `${user.full_name} - Solde: ${formatCurrency(user.balance, 'XAF')}`,
-        });
-      } else if (user && user.role !== 'agent') {
-        toast({
-          title: "Utilisateur non-agent",
-          description: "Cette fonction est réservée aux agents uniquement",
-          variant: "destructive"
-        });
-        setFoundUser(null);
-      } else {
-        setFoundUser(null);
-      }
-    } else {
-      setFoundUser(null);
-    }
-  };
-
-  // Dépôt automatique pour les agents (fonctionnalité limitée)
-  const handleAgentDeposit = async () => {
-    if (!targetPhone || !amount) {
-      toast({
-        title: "Formulaire incomplet",
-        description: "Veuillez saisir un numéro de téléphone et un montant",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!foundUser || foundUser.role !== 'agent') {
-      toast({
-        title: "Agent non trouvé",
-        description: "Veuillez sélectionner un agent valide",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      const depositAmount = Number(amount);
-      
-      // Vérifier si le sous-admin a assez de solde
-      if (profile && profile.balance < depositAmount) {
-        throw new Error("Solde insuffisant pour effectuer ce dépôt");
-      }
-
-      // Débiter le sous-admin
-      const { error: debitError } = await supabase.rpc('increment_balance', {
-        user_id: user?.id,
-        amount: -depositAmount
-      });
-
-      if (debitError) {
-        throw new Error("Erreur lors du débit du compte sous-admin");
-      }
-
-      // Créditer automatiquement l'agent
-      const { error: creditError } = await supabase.rpc('increment_balance', {
-        user_id: foundUser.id,
-        amount: depositAmount
-      });
-
-      if (creditError) {
-        // Annuler le débit en cas d'erreur
-        await supabase.rpc('increment_balance', {
-          user_id: user?.id,
-          amount: depositAmount
-        });
-        throw new Error("Erreur lors du crédit du compte agent");
-      }
-
-      // Créer l'enregistrement de la transaction
-      const transactionReference = `SUB-ADMIN-AGENT-DEP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      
-      const { error: transactionError } = await supabase
-        .from('recharges')
-        .insert({
-          user_id: foundUser.id,
-          amount: depositAmount,
-          country: profile?.country || "Congo Brazzaville",
-          payment_method: 'sub_admin_agent_deposit',
-          payment_phone: foundUser.phone,
-          payment_provider: 'sub_admin',
-          transaction_reference: transactionReference,
-          status: 'completed',
-          provider_transaction_id: user?.id
-        });
-
-      if (transactionError) {
-        console.error('Erreur transaction:', transactionError);
-      }
-
-      toast({
-        title: "Dépôt agent effectué",
-        description: `Le compte de l'agent ${foundUser.full_name} a été rechargé de ${formatCurrency(depositAmount, 'XAF')}`,
-      });
-
-      setTargetPhone("");
-      setAmount("");
-      setFoundUser(null);
-      setSelectedOperation(null);
-
-    } catch (error) {
-      console.error('Erreur lors du dépôt agent:', error);
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Erreur lors du dépôt agent",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   // Vérifier les permissions
   if (!profile || profile.role !== 'sub_admin') {
@@ -319,19 +186,9 @@ const SubAdminDashboard = () => {
           </div>
         )}
 
-        {/* Quick Actions - Updated with Batch Deposit */}
+        {/* Quick Actions - Removed individual deposit, kept batch deposit */}
         {!selectedOperation && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Card 
-              className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-green-500"
-              onClick={() => setSelectedOperation('deposit')}
-            >
-              <CardContent className="pt-4 pb-4 text-center">
-                <Plus className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-900">Dépôt Agent</p>
-              </CardContent>
-            </Card>
-
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Card 
               className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-emerald-500"
               onClick={() => setSelectedOperation('batch-deposit')}
@@ -367,66 +224,6 @@ const SubAdminDashboard = () => {
         {/* Batch Agent Deposit */}
         {selectedOperation === 'batch-deposit' && (
           <BatchAgentDeposit onBack={() => setSelectedOperation(null)} />
-        )}
-
-        {/* Agent Deposit Form */}
-        {selectedOperation === 'deposit' && (
-          <Card className="bg-white">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-gray-900">
-                  <Plus className="w-5 h-5 text-green-600" />
-                  Dépôt Agent (Sous-Admin)
-                </CardTitle>
-                <Button onClick={() => setSelectedOperation(null)} variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="targetPhone">Numéro de téléphone Agent</Label>
-                  <Input
-                    id="targetPhone"
-                    type="tel"
-                    placeholder="Ex: +242061043340"
-                    value={targetPhone}
-                    onChange={(e) => handlePhoneSearch(e.target.value)}
-                  />
-                  {foundUser && (
-                    <div className="mt-2 p-2 bg-green-50 rounded-lg">
-                      <p className="text-sm text-green-800">
-                        <strong>Agent: {foundUser.full_name}</strong> - Solde: {formatCurrency(foundUser.balance, 'XAF')}
-                      </p>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="amount">Montant (FCFA)</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    placeholder="Montant à déposer"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="bg-orange-50 p-3 rounded-lg">
-                <p className="text-sm text-orange-800">
-                  <strong>Note:</strong> Le montant sera débité de votre solde de sous-admin et crédité automatiquement à l'agent.
-                </p>
-              </div>
-              <Button
-                onClick={handleAgentDeposit}
-                disabled={isProcessing}
-                className="w-full bg-green-600 hover:bg-green-700"
-              >
-                {isProcessing ? "Dépôt en cours..." : "Déposer"}
-              </Button>
-            </CardContent>
-          </Card>
         )}
 
         {/* View Users (Lecture seule) */}
