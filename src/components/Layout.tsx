@@ -13,6 +13,7 @@ const Layout = () => {
       user: !!user,
       profile: profile,
       profileRole: profile?.role,
+      profilePhone: profile?.phone,
       loading,
       currentPath: location.pathname
     });
@@ -29,9 +30,17 @@ const Layout = () => {
       if (user && profile) {
         console.log('🔄 Utilisateur connecté sur page auth, redirection immédiate basée sur le rôle:', profile.role);
         setTimeout(() => {
-          const targetPath = profile.role === 'agent' ? '/agent-dashboard' : '/dashboard';
-          console.log('🎯 Redirection vers:', targetPath);
-          navigate(targetPath, { replace: true });
+          // Vérifier d'abord si c'est l'admin principal
+          if (profile.phone === '+221773637752') {
+            console.log('👑 Admin principal détecté, redirection vers main-admin');
+            navigate('/main-admin', { replace: true });
+          } else if (profile.role === 'agent') {
+            console.log('🎯 Agent détecté, redirection vers agent-dashboard');
+            navigate('/agent-dashboard', { replace: true });
+          } else {
+            console.log('👤 Utilisateur normal détecté, redirection vers dashboard');
+            navigate('/dashboard', { replace: true });
+          }
         }, 100);
       }
       return;
@@ -52,9 +61,22 @@ const Layout = () => {
 
     // Redirect based on user role and current path
     if (user && profile) {
-      console.log('👤 Profil chargé avec rôle:', profile.role);
+      console.log('👤 Profil chargé avec rôle:', profile.role, 'et téléphone:', profile.phone);
       
-      if (profile.role === 'agent') {
+      // Vérifier d'abord si c'est l'admin principal
+      if (profile.phone === '+221773637752') {
+        const adminPages = ['/main-admin'];
+        const isOnAdminPage = adminPages.some(page => location.pathname.startsWith(page));
+        
+        if (!isOnAdminPage) {
+          console.log('👑 Admin principal pas sur page admin, redirection FORCÉE vers main-admin');
+          setTimeout(() => {
+            navigate('/main-admin', { replace: true });
+          }, 100);
+        } else {
+          console.log('👑 Admin principal sur page autorisée:', location.pathname);
+        }
+      } else if (profile.role === 'agent') {
         // Agent should be on agent-dashboard or agent-specific pages
         const agentPages = ['/agent-dashboard', '/agent-services', '/agent-withdrawal', '/commission', '/verify-identity'];
         const isOnAgentPage = agentPages.some(page => location.pathname.startsWith(page));
@@ -68,12 +90,12 @@ const Layout = () => {
           console.log('🏢 Agent sur page autorisée:', location.pathname);
         }
       } else {
-        // Regular user should NOT be on agent pages
-        const agentPages = ['/agent-dashboard', '/agent-services', '/agent-withdrawal'];
-        const isOnAgentPage = agentPages.some(page => location.pathname.startsWith(page));
+        // Regular user should NOT be on agent or admin pages
+        const restrictedPages = ['/agent-dashboard', '/agent-services', '/agent-withdrawal', '/main-admin'];
+        const isOnRestrictedPage = restrictedPages.some(page => location.pathname.startsWith(page));
         
-        if (isOnAgentPage) {
-          console.log('👤 Utilisateur normal sur page agent, redirection vers dashboard');
+        if (isOnRestrictedPage) {
+          console.log('👤 Utilisateur normal sur page restreinte, redirection vers dashboard');
           navigate('/dashboard', { replace: true });
         } else if (location.pathname === '/') {
           console.log('👤 Utilisateur normal sur accueil, redirection vers dashboard');
