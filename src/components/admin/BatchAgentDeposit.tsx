@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Plus, ArrowLeft } from 'lucide-react';
+import { Users, Plus, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Agent {
@@ -39,17 +39,24 @@ const BatchAgentDeposit = ({ onBack }: BatchAgentDepositProps) => {
   const [individualAmounts, setIndividualAmounts] = useState<Record<string, string>>({});
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Fetch all agents
-  const { data: agents, isLoading } = useQuery({
+  // Fetch all agents with better error handling
+  const { data: agents, isLoading, error } = useQuery({
     queryKey: ['agents-for-batch-deposit'],
     queryFn: async () => {
+      console.log('Fetching agents for batch deposit...');
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, phone, balance, country')
         .eq('role', 'agent')
         .order('full_name');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching agents:', error);
+        throw error;
+      }
+      
+      console.log('Agents fetched:', data);
       return data as Agent[];
     },
   });
@@ -243,7 +250,52 @@ const BatchAgentDeposit = ({ onBack }: BatchAgentDepositProps) => {
     return (
       <Card className="bg-white">
         <CardContent className="pt-6">
-          <div className="text-center">Chargement des agents...</div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p>Chargement des agents...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="bg-white">
+        <CardContent className="pt-6">
+          <div className="text-center">
+            <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-4" />
+            <p className="text-red-600 mb-4">Erreur lors du chargement des agents</p>
+            <p className="text-sm text-gray-600 mb-4">{error.message}</p>
+            <Button onClick={() => window.location.reload()}>
+              Recharger la page
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!agents || agents.length === 0) {
+    return (
+      <Card className="bg-white">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-gray-900">
+              <Users className="w-5 h-5 text-blue-600" />
+              Dépôt en Lot pour Agents
+            </CardTitle>
+            <Button onClick={onBack} variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-lg font-medium text-gray-900 mb-2">Aucun agent trouvé</p>
+            <p className="text-gray-600">Il n'y a actuellement aucun agent dans le système.</p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -271,7 +323,9 @@ const BatchAgentDeposit = ({ onBack }: BatchAgentDepositProps) => {
         {/* Agent Selection */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <Label className="text-sm font-medium">Sélection des agents ({selectedAgents.size} sélectionné(s))</Label>
+            <Label className="text-sm font-medium">
+              Sélection des agents ({selectedAgents.size} sur {agents.length} sélectionné(s))
+            </Label>
             <Button
               onClick={handleSelectAll}
               variant="outline"
@@ -282,7 +336,7 @@ const BatchAgentDeposit = ({ onBack }: BatchAgentDepositProps) => {
           </div>
           
           <div className="max-h-64 overflow-y-auto border rounded-lg p-3 space-y-2">
-            {agents?.map((agent) => (
+            {agents.map((agent) => (
               <div key={agent.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                 <div className="flex items-center gap-3">
                   <Checkbox
