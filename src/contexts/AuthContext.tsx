@@ -30,12 +30,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('🔐 Session initiale:', session ? 'Connecté' : 'Non connecté');
       if (session?.user) {
         console.log('👤 Métadonnées utilisateur session:', session.user.user_metadata);
+        console.log('🎯 Rôle dans métadonnées:', session.user.user_metadata?.role);
       }
       
       setUser(session?.user ?? null);
       if (session?.user) {
         profileService.fetchProfile(session.user.id).then((profileData) => {
           console.log('📊 Profil initial récupéré:', profileData);
+          console.log('🎯 Rôle du profil:', profileData?.role);
           setProfile(profileData);
         });
       }
@@ -50,6 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (session?.user) {
         console.log('👤 Métadonnées utilisateur auth change:', session.user.user_metadata);
+        console.log('🎯 Rôle dans métadonnées:', session.user.user_metadata?.role);
       }
       
       setUser(session?.user ?? null);
@@ -57,11 +60,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (session?.user) {
         console.log('👤 Récupération du profil pour:', session.user.id);
         
-        // Attendre plus longtemps pour les nouveaux utilisateurs
-        const delay = 1000;
+        // Attendre plus longtemps pour les nouveaux utilisateurs et agents
+        const delay = session.user.user_metadata?.role === 'agent' ? 2000 : 1000;
+        console.log('⏱️ Délai d\'attente pour le profil:', delay + 'ms');
+        
         setTimeout(async () => {
           const profileData = await profileService.fetchProfile(session.user.id);
           console.log('📊 Profil après connexion/inscription:', profileData);
+          console.log('🎯 Rôle final du profil:', profileData?.role);
           setProfile(profileData);
         }, delay);
       } else {

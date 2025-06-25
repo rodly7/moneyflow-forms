@@ -12,12 +12,14 @@ const Layout = () => {
     console.log('🔍 Layout useEffect - État actuel:', {
       user: !!user,
       profile: profile,
+      profileRole: profile?.role,
       loading,
       currentPath: location.pathname
     });
 
     // Don't do anything while loading
     if (loading) {
+      console.log('⏳ Chargement en cours, attente...');
       return;
     }
 
@@ -52,13 +54,17 @@ const Layout = () => {
 
     // Redirect based on user role and current path
     if (user && profile) {
-      console.log('👤 Profil chargé:', profile.role);
+      console.log('👤 Profil chargé avec rôle:', profile.role);
       
       if (profile.role === 'agent') {
-        // Agent on regular page → redirect to agent-dashboard
+        // Agent should be redirected to agent dashboard if on regular pages
         if (location.pathname === '/' || location.pathname === '/dashboard') {
           console.log('🏢 Agent sur page normale, redirection vers agent-dashboard');
           navigate('/agent-dashboard', { replace: true });
+        }
+        // If agent is already on agent-dashboard, don't redirect
+        if (location.pathname === '/agent-dashboard') {
+          console.log('🏢 Agent déjà sur son dashboard');
         }
       } else {
         // Regular user on agent page → redirect to home

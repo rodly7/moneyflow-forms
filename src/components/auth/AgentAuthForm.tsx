@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -9,11 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Icons } from "@/components/ui/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { countries } from "@/data/countries";
+import { useNavigate } from "react-router-dom";
 
 const AgentAuthForm = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
+  const navigate = useNavigate();
   
   // Login fields
   const [loginPhone, setLoginPhone] = useState("");
@@ -83,7 +84,13 @@ const AgentAuthForm = () => {
         });
         
         toast.success("Compte agent créé avec succès!");
-        setIsSignUp(false);
+        
+        // Redirection immédiate vers agent-dashboard après inscription
+        console.log('🏢 Redirection agent vers dashboard après inscription');
+        setTimeout(() => {
+          navigate('/agent-dashboard', { replace: true });
+        }, 2000);
+        
       } else {
         // Connexion simplifiée
         if (!loginPhone || !loginPassword) {
@@ -93,6 +100,12 @@ const AgentAuthForm = () => {
         console.log('🏢 Connexion AGENT avec le numéro:', loginPhone);
         await signIn(loginPhone, loginPassword);
         toast.success("Connexion agent réussie!");
+        
+        // Redirection immédiate vers agent-dashboard après connexion
+        console.log('🏢 Redirection agent vers dashboard après connexion');
+        setTimeout(() => {
+          navigate('/agent-dashboard', { replace: true });
+        }, 2000);
       }
     } catch (error: any) {
       console.error("Erreur d'authentification agent:", error);
@@ -132,6 +145,7 @@ const AgentAuthForm = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp ? (
               <>
+                
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Nom complet</Label>
                   <Input
@@ -224,6 +238,7 @@ const AgentAuthForm = () => {
               </>
             ) : (
               <>
+                
                 <div className="space-y-2">
                   <Label htmlFor="loginPhone">Numéro de téléphone</Label>
                   <Input
@@ -272,6 +287,7 @@ const AgentAuthForm = () => {
                 : "Se connecter"}
             </Button>
 
+            
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
