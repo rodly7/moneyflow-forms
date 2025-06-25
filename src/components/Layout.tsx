@@ -28,9 +28,11 @@ const Layout = () => {
       // Si l'utilisateur est connecté et sur une page d'auth, rediriger immédiatement
       if (user && profile) {
         console.log('🔄 Utilisateur connecté sur page auth, redirection immédiate basée sur le rôle:', profile.role);
-        const targetPath = profile.role === 'agent' ? '/agent-dashboard' : '/';
-        console.log('🎯 Redirection vers:', targetPath);
-        navigate(targetPath, { replace: true });
+        setTimeout(() => {
+          const targetPath = profile.role === 'agent' ? '/agent-dashboard' : '/dashboard';
+          console.log('🎯 Redirection vers:', targetPath);
+          navigate(targetPath, { replace: true });
+        }, 100);
       }
       return;
     }
@@ -59,7 +61,9 @@ const Layout = () => {
         
         if (!isOnAgentPage) {
           console.log('🏢 Agent pas sur page agent, redirection FORCÉE vers agent-dashboard');
-          navigate('/agent-dashboard', { replace: true });
+          setTimeout(() => {
+            navigate('/agent-dashboard', { replace: true });
+          }, 100);
         } else {
           console.log('🏢 Agent sur page autorisée:', location.pathname);
         }
@@ -69,8 +73,11 @@ const Layout = () => {
         const isOnAgentPage = agentPages.some(page => location.pathname.startsWith(page));
         
         if (isOnAgentPage) {
-          console.log('👤 Utilisateur normal sur page agent, redirection vers accueil');
-          navigate('/', { replace: true });
+          console.log('👤 Utilisateur normal sur page agent, redirection vers dashboard');
+          navigate('/dashboard', { replace: true });
+        } else if (location.pathname === '/') {
+          console.log('👤 Utilisateur normal sur accueil, redirection vers dashboard');
+          navigate('/dashboard', { replace: true });
         }
       }
     }

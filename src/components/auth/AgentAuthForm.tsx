@@ -103,7 +103,7 @@ const AgentAuthForm = () => {
           role: "agent",
         });
         
-        toast.success("Compte agent créé avec succès!");
+        toast.success("Compte agent créé avec succès! Redirection en cours...");
         console.log('✅ Inscription agent réussie avec numéro:', normalizedPhone);
         
       } else {
@@ -121,7 +121,7 @@ const AgentAuthForm = () => {
         });
 
         await signIn(normalizedLoginPhone, loginPassword);
-        toast.success("Connexion agent réussie!");
+        toast.success("Connexion agent réussie! Redirection en cours...");
         console.log('✅ Connexion agent réussie avec numéro:', normalizedLoginPhone);
       }
     } catch (error: any) {

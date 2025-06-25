@@ -25,8 +25,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    let mounted = true;
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      
       console.log('🔐 Session initiale:', session ? 'Connecté' : 'Non connecté');
       if (session?.user) {
         console.log('👤 Métadonnées utilisateur session:', session.user.user_metadata);
@@ -36,18 +40,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       if (session?.user) {
         profileService.fetchProfile(session.user.id).then((profileData) => {
+          if (!mounted) return;
           console.log('📊 Profil initial récupéré:', profileData);
           console.log('🎯 Rôle du profil:', profileData?.role);
           setProfile(profileData);
+          setLoading(false);
         });
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      
       console.log('🔐 Changement d\'authentification:', event, session ? 'Utilisateur connecté' : 'Utilisateur déconnecté');
       
       if (session?.user) {
@@ -61,23 +70,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('👤 Récupération du profil pour:', session.user.id);
         
         // Pour les agents, attendre plus longtemps car la création du profil peut prendre du temps
-        const delay = session.user.user_metadata?.role === 'agent' ? 3000 : 1000;
+        const delay = session.user.user_metadata?.role === 'agent' ? 2000 : 1000;
         console.log('⏱️ Délai d\'attente pour le profil:', delay + 'ms');
         
         setTimeout(async () => {
+          if (!mounted) return;
           const profileData = await profileService.fetchProfile(session.user.id);
           console.log('📊 Profil après connexion/inscription:', profileData);
           console.log('🎯 Rôle final du profil:', profileData?.role);
           setProfile(profileData);
+          setLoading(false);
         }, delay);
       } else {
         setProfile(null);
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (phone: string, password: string) => {
