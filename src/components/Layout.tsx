@@ -53,12 +53,12 @@ const Layout = () => {
       console.log('👤 Profil chargé avec rôle:', profile.role);
       
       if (profile.role === 'agent') {
-        // Agent should ONLY be on agent-dashboard or agent-specific pages
+        // Agent should be on agent-dashboard or agent-specific pages
         const agentPages = ['/agent-dashboard', '/agent-services', '/agent-withdrawal', '/commission', '/verify-identity'];
         const isOnAgentPage = agentPages.some(page => location.pathname.startsWith(page));
         
         if (!isOnAgentPage) {
-          console.log('🏢 Agent sur page non-agent, redirection FORCÉE vers agent-dashboard');
+          console.log('🏢 Agent pas sur page agent, redirection FORCÉE vers agent-dashboard');
           navigate('/agent-dashboard', { replace: true });
         } else {
           console.log('🏢 Agent sur page autorisée:', location.pathname);

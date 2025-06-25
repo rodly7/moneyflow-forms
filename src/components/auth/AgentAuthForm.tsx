@@ -82,8 +82,8 @@ const AgentAuthForm = () => {
           role: "agent",
         });
         
-        toast.success("Compte agent créé avec succès! Redirection en cours...");
-        // La redirection sera gérée automatiquement par le Layout
+        toast.success("Compte agent créé avec succès!");
+        console.log('✅ Inscription agent réussie - la redirection sera gérée par Layout');
         
       } else {
         // Connexion simplifiée
@@ -93,8 +93,8 @@ const AgentAuthForm = () => {
 
         console.log('🏢 Connexion AGENT avec le numéro:', loginPhone);
         await signIn(loginPhone, loginPassword);
-        toast.success("Connexion agent réussie! Redirection en cours...");
-        // La redirection sera gérée automatiquement par le Layout
+        toast.success("Connexion agent réussie!");
+        console.log('✅ Connexion agent réussie - la redirection sera gérée par Layout');
       }
     } catch (error: any) {
       console.error("Erreur d'authentification agent:", error);
