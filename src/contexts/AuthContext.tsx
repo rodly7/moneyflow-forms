@@ -60,8 +60,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (session?.user) {
         console.log('👤 Récupération du profil pour:', session.user.id);
         
-        // Attendre plus longtemps pour les nouveaux utilisateurs et agents
-        const delay = session.user.user_metadata?.role === 'agent' ? 2000 : 1000;
+        // Pour les agents, attendre plus longtemps car la création du profil peut prendre du temps
+        const delay = session.user.user_metadata?.role === 'agent' ? 3000 : 1000;
         console.log('⏱️ Délai d\'attente pour le profil:', delay + 'ms');
         
         setTimeout(async () => {
@@ -83,9 +83,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (phone: string, password: string) => {
     try {
       console.log('🔐 Tentative de connexion:', phone);
+      setLoading(true);
       await authService.signIn(phone, password);
+      // La redirection sera gérée par le Layout après que le profil soit chargé
     } catch (error) {
       console.error('❌ Erreur dans signIn:', error);
+      setLoading(false);
       throw error;
     }
   };
@@ -93,9 +96,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (phone: string, password: string, metadata: SignUpMetadata) => {
     try {
       console.log('📝 Tentative d\'inscription:', { phone, role: metadata.role });
+      setLoading(true);
       await authService.signUp(phone, password, metadata);
+      // La redirection sera gérée par le Layout après que le profil soit chargé
     } catch (error) {
       console.error('❌ Erreur dans signUp:', error);
+      setLoading(false);
       throw error;
     }
   };

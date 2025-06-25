@@ -25,16 +25,12 @@ const Layout = () => {
 
     // Allow access to auth pages without being logged in
     if (location.pathname === '/auth' || location.pathname === '/agent-auth') {
-      // Si l'utilisateur est connecté et sur une page d'auth, rediriger
+      // Si l'utilisateur est connecté et sur une page d'auth, rediriger immédiatement
       if (user && profile) {
-        console.log('🔄 Utilisateur connecté sur page auth, redirection basée sur le rôle:', profile.role);
-        if (profile.role === 'agent') {
-          console.log('🏢 Redirection agent depuis auth vers dashboard');
-          navigate('/agent-dashboard', { replace: true });
-        } else {
-          console.log('👤 Redirection utilisateur depuis auth vers accueil');
-          navigate('/', { replace: true });
-        }
+        console.log('🔄 Utilisateur connecté sur page auth, redirection immédiate basée sur le rôle:', profile.role);
+        const targetPath = profile.role === 'agent' ? '/agent-dashboard' : '/';
+        console.log('🎯 Redirection vers:', targetPath);
+        navigate(targetPath, { replace: true });
       }
       return;
     }
@@ -57,18 +53,22 @@ const Layout = () => {
       console.log('👤 Profil chargé avec rôle:', profile.role);
       
       if (profile.role === 'agent') {
-        // Agent should be redirected to agent dashboard if on regular pages
-        if (location.pathname === '/' || location.pathname === '/dashboard') {
-          console.log('🏢 Agent sur page normale, redirection vers agent-dashboard');
+        // Agent should ONLY be on agent-dashboard or agent-specific pages
+        const agentPages = ['/agent-dashboard', '/agent-services', '/agent-withdrawal', '/commission', '/verify-identity'];
+        const isOnAgentPage = agentPages.some(page => location.pathname.startsWith(page));
+        
+        if (!isOnAgentPage) {
+          console.log('🏢 Agent sur page non-agent, redirection FORCÉE vers agent-dashboard');
           navigate('/agent-dashboard', { replace: true });
-        }
-        // If agent is already on agent-dashboard, don't redirect
-        if (location.pathname === '/agent-dashboard') {
-          console.log('🏢 Agent déjà sur son dashboard');
+        } else {
+          console.log('🏢 Agent sur page autorisée:', location.pathname);
         }
       } else {
-        // Regular user on agent page → redirect to home
-        if (location.pathname === '/agent-dashboard') {
+        // Regular user should NOT be on agent pages
+        const agentPages = ['/agent-dashboard', '/agent-services', '/agent-withdrawal'];
+        const isOnAgentPage = agentPages.some(page => location.pathname.startsWith(page));
+        
+        if (isOnAgentPage) {
           console.log('👤 Utilisateur normal sur page agent, redirection vers accueil');
           navigate('/', { replace: true });
         }
