@@ -1,11 +1,10 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Wallet, Plus, Minus, Search, TrendingUp, Building2, ArrowLeft, Settings, User, UserCheck, Eye, Activity } from "lucide-react";
+import { Wallet, Plus, TrendingUp, Building2, ArrowLeft, Settings, User, UserCheck, Eye, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/integrations/supabase/client";
@@ -13,7 +12,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import { Badge } from "@/components/ui/badge";
-import { useSecureDepositWithdrawalOperations } from "@/hooks/useSecureDepositWithdrawalOperations";
 import { useUserSearch } from "@/hooks/useUserSearch";
 
 interface CommissionData {
@@ -29,16 +27,13 @@ const MainAdminDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [selectedOperation, setSelectedOperation] = useState<'deposit' | 'withdrawal' | 'recharge' | 'manage-users' | 'view-data' | 'balance-search' | null>(null);
+  const [selectedOperation, setSelectedOperation] = useState<'deposit' | 'recharge' | 'manage-users' | 'view-data' | null>(null);
   const [targetPhone, setTargetPhone] = useState("");
   const [amount, setAmount] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [searchPhone, setSearchPhone] = useState("");
-  const [searchedUser, setSearchedUser] = useState<any>(null);
   const [foundUser, setFoundUser] = useState<any>(null);
 
-  const { processSecureDeposit, processSecureWithdrawal } = useSecureDepositWithdrawalOperations();
-  const { searchUserByPhone, isSearching } = useUserSearch();
+  const { searchUserByPhone } = useUserSearch();
 
   // Récupérer les utilisateurs
   const { data: users, refetch: refetchUsers } = useQuery({
@@ -104,18 +99,25 @@ const MainAdminDashboard = () => {
     },
   });
 
-  // Recherche automatique lors de la saisie du numéro
+  // Recherche automatique lors de la saisie du numéro (pour les dépôts agent)
   const handlePhoneSearch = async (phoneNumber: string) => {
     setTargetPhone(phoneNumber);
     
     if (phoneNumber.length >= 8) {
       const user = await searchUserByPhone(phoneNumber);
-      if (user) {
+      if (user && user.role === 'agent') {
         setFoundUser(user);
         toast({
-          title: "Utilisateur trouvé",
+          title: "Agent trouvé",
           description: `${user.full_name} - Solde: ${formatCurrency(user.balance, 'XAF')}`,
         });
+      } else if (user && user.role !== 'agent') {
+        toast({
+          title: "Utilisateur non-agent",
+          description: "Cette fonction est réservée aux agents uniquement",
+          variant: "destructive"
+        });
+        setFoundUser(null);
       } else {
         setFoundUser(null);
       }
@@ -124,35 +126,7 @@ const MainAdminDashboard = () => {
     }
   };
 
-  // Rechercher un utilisateur par téléphone (pour l'onglet recherche)
-  const handleSearchUser = async () => {
-    if (!searchPhone) {
-      toast({
-        title: "Numéro requis",
-        description: "Veuillez saisir un numéro de téléphone",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const user = await searchUserByPhone(searchPhone);
-    if (user) {
-      setSearchedUser(user);
-      toast({
-        title: "Utilisateur trouvé",
-        description: `${user.full_name} - Solde: ${formatCurrency(user.balance, 'XAF')}`,
-      });
-    } else {
-      toast({
-        title: "Utilisateur non trouvé",
-        description: "Aucun utilisateur trouvé avec ce numéro",
-        variant: "destructive"
-      });
-      setSearchedUser(null);
-    }
-  };
-
-  // Recharger le solde admin
+  // Recharge automatique du solde admin
   const handleAdminRecharge = async () => {
     if (!amount) {
       toast({
@@ -168,13 +142,14 @@ const MainAdminDashboard = () => {
     try {
       const rechargeAmount = Number(amount);
       
+      // Augmenter automatiquement le solde admin
       const { error: creditError } = await supabase.rpc('increment_balance', {
         user_id: user?.id,
         amount: rechargeAmount
       });
 
       if (creditError) {
-        throw new Error("Erreur lors de la recharge");
+        throw new Error("Erreur lors de la recharge automatique");
       }
 
       // Créer un enregistrement de recharge
@@ -184,10 +159,10 @@ const MainAdminDashboard = () => {
           user_id: user?.id,
           amount: rechargeAmount,
           country: profile?.country || "Congo Brazzaville",
-          payment_method: 'admin_recharge',
+          payment_method: 'admin_auto_recharge',
           payment_phone: profile?.phone || '',
           payment_provider: 'admin',
-          transaction_reference: `ADMIN-RECHARGE-${Date.now()}`,
+          transaction_reference: `ADMIN-AUTO-RECHARGE-${Date.now()}`,
           status: 'completed',
           provider_transaction_id: user?.id
         });
@@ -197,18 +172,18 @@ const MainAdminDashboard = () => {
       }
 
       toast({
-        title: "Recharge effectuée",
-        description: `Votre solde a été rechargé de ${formatCurrency(rechargeAmount, 'XAF')}`,
+        title: "Recharge automatique effectuée",
+        description: `Votre solde a été automatiquement augmenté de ${formatCurrency(rechargeAmount, 'XAF')}`,
       });
 
       setAmount("");
       setSelectedOperation(null);
 
     } catch (error) {
-      console.error('Erreur lors de la recharge:', error);
+      console.error('Erreur lors de la recharge automatique:', error);
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Erreur lors de la recharge",
+        description: error instanceof Error ? error.message : "Erreur lors de la recharge automatique",
         variant: "destructive"
       });
     } finally {
@@ -216,8 +191,8 @@ const MainAdminDashboard = () => {
     }
   };
 
-  // Gérer les opérations de dépôt et retrait avec le système des agents
-  const handleSecureOperation = async (operationType: 'deposit' | 'withdrawal') => {
+  // Dépôt automatique pour les agents
+  const handleAgentDeposit = async () => {
     if (!targetPhone || !amount) {
       toast({
         title: "Formulaire incomplet",
@@ -227,31 +202,85 @@ const MainAdminDashboard = () => {
       return;
     }
 
-    const targetUser = foundUser || users?.find(u => u.phone === targetPhone);
-    if (!targetUser) {
+    if (!foundUser || foundUser.role !== 'agent') {
       toast({
-        title: "Utilisateur non trouvé",
-        description: "Aucun utilisateur trouvé avec ce numéro",
+        title: "Agent non trouvé",
+        description: "Veuillez sélectionner un agent valide",
         variant: "destructive"
       });
       return;
     }
 
-    const operationAmount = Number(amount);
-    let success = false;
+    setIsProcessing(true);
 
-    if (operationType === 'deposit') {
-      success = await processSecureDeposit(operationAmount, targetUser.id, targetUser.full_name, targetUser.phone);
-    } else {
-      success = await processSecureWithdrawal(operationAmount, targetUser.id, targetUser.full_name, targetUser.phone);
-    }
+    try {
+      const depositAmount = Number(amount);
+      
+      // Débiter l'admin
+      const { error: debitError } = await supabase.rpc('increment_balance', {
+        user_id: user?.id,
+        amount: -depositAmount
+      });
 
-    if (success) {
+      if (debitError) {
+        throw new Error("Erreur lors du débit du compte admin");
+      }
+
+      // Créditer automatiquement l'agent
+      const { error: creditError } = await supabase.rpc('increment_balance', {
+        user_id: foundUser.id,
+        amount: depositAmount
+      });
+
+      if (creditError) {
+        // Annuler le débit admin en cas d'erreur
+        await supabase.rpc('increment_balance', {
+          user_id: user?.id,
+          amount: depositAmount
+        });
+        throw new Error("Erreur lors du crédit du compte agent");
+      }
+
+      // Créer l'enregistrement de la transaction
+      const transactionReference = `ADMIN-AGENT-DEP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      
+      const { error: transactionError } = await supabase
+        .from('recharges')
+        .insert({
+          user_id: foundUser.id,
+          amount: depositAmount,
+          country: profile?.country || "Congo Brazzaville",
+          payment_method: 'admin_agent_deposit',
+          payment_phone: foundUser.phone,
+          payment_provider: 'admin',
+          transaction_reference: transactionReference,
+          status: 'completed',
+          provider_transaction_id: user?.id
+        });
+
+      if (transactionError) {
+        console.error('Erreur transaction:', transactionError);
+      }
+
+      toast({
+        title: "Dépôt agent effectué",
+        description: `Le compte de l'agent ${foundUser.full_name} a été automatiquement rechargé de ${formatCurrency(depositAmount, 'XAF')}`,
+      });
+
       setTargetPhone("");
       setAmount("");
       setFoundUser(null);
       setSelectedOperation(null);
-      refetchUsers();
+
+    } catch (error) {
+      console.error('Erreur lors du dépôt agent:', error);
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Erreur lors du dépôt agent",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -374,26 +403,16 @@ const MainAdminDashboard = () => {
           </div>
         )}
 
-        {/* Quick Actions */}
+        {/* Quick Actions - Simplified */}
         {!selectedOperation && (
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Card 
               className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-green-500"
               onClick={() => setSelectedOperation('deposit')}
             >
               <CardContent className="pt-4 pb-4 text-center">
                 <Plus className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-900">Dépôt</p>
-              </CardContent>
-            </Card>
-
-            <Card 
-              className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-red-500"
-              onClick={() => setSelectedOperation('withdrawal')}
-            >
-              <CardContent className="pt-4 pb-4 text-center">
-                <Minus className="w-6 h-6 text-red-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-900">Retrait</p>
+                <p className="text-sm font-medium text-gray-900">Dépôt Agent</p>
               </CardContent>
             </Card>
 
@@ -403,17 +422,7 @@ const MainAdminDashboard = () => {
             >
               <CardContent className="pt-4 pb-4 text-center">
                 <Wallet className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-900">Recharge</p>
-              </CardContent>
-            </Card>
-
-            <Card 
-              className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-orange-500"
-              onClick={() => setSelectedOperation('balance-search')}
-            >
-              <CardContent className="pt-4 pb-4 text-center">
-                <Search className="w-6 h-6 text-orange-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-900">Recherche</p>
+                <p className="text-sm font-medium text-gray-900">Recharge Auto</p>
               </CardContent>
             </Card>
 
@@ -439,73 +448,14 @@ const MainAdminDashboard = () => {
           </div>
         )}
 
-        {/* Balance Search */}
-        {selectedOperation === 'balance-search' && (
-          <Card className="bg-white">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-gray-900">
-                  <Search className="w-5 h-5 text-orange-600" />
-                  Recherche de solde
-                </CardTitle>
-                <Button onClick={() => setSelectedOperation(null)} variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <Label htmlFor="searchPhone">Numéro de téléphone</Label>
-                  <Input
-                    id="searchPhone"
-                    type="tel"
-                    placeholder="Ex: +242061043340"
-                    value={searchPhone}
-                    onChange={(e) => setSearchPhone(e.target.value)}
-                  />
-                </div>
-                <Button onClick={handleSearchUser} className="mt-6 bg-orange-600 hover:bg-orange-700" disabled={isSearching}>
-                  <Search className="w-4 h-4 mr-2" />
-                  {isSearching ? "Recherche..." : "Rechercher"}
-                </Button>
-              </div>
-              
-              {searchedUser && (
-                <Card className="bg-gray-50">
-                  <CardContent className="pt-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <User className="w-8 h-8 text-blue-600" />
-                        <div>
-                          <p className="font-medium text-gray-900">{searchedUser.full_name || 'Nom non disponible'}</p>
-                          <p className="text-sm text-gray-600">{searchedUser.phone}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xl font-bold text-blue-600">
-                          {formatCurrency(searchedUser.balance, 'XAF')}
-                        </p>
-                        <Badge variant={searchedUser.role === 'agent' ? 'default' : 'secondary'}>
-                          {searchedUser.role === 'agent' ? 'Agent' : 'Utilisateur'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Admin Recharge */}
+        {/* Admin Auto Recharge */}
         {selectedOperation === 'recharge' && (
           <Card className="bg-white">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-gray-900">
                   <Wallet className="w-5 h-5 text-blue-600" />
-                  Recharge Admin
+                  Recharge Automatique Admin
                 </CardTitle>
                 <Button onClick={() => setSelectedOperation(null)} variant="ghost" size="sm">
                   <ArrowLeft className="w-4 h-4" />
@@ -518,14 +468,14 @@ const MainAdminDashboard = () => {
                 <Input
                   id="rechargeAmount"
                   type="number"
-                  placeholder="Montant à recharger"
+                  placeholder="Montant à recharger automatiquement"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                 />
               </div>
               <div className="bg-blue-50 p-3 rounded-lg">
                 <p className="text-sm text-blue-800">
-                  <strong>Recharge administrative:</strong> Cette opération permet de recharger votre solde administrateur.
+                  <strong>Recharge automatique:</strong> Votre solde sera automatiquement augmenté du montant saisi.
                 </p>
               </div>
               <Button
@@ -533,21 +483,20 @@ const MainAdminDashboard = () => {
                 disabled={isProcessing}
                 className="w-full bg-blue-600 hover:bg-blue-700"
               >
-                {isProcessing ? "Traitement..." : "Confirmer Recharge"}
+                {isProcessing ? "Recharge automatique..." : "Recharger Automatiquement"}
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {/* Operation Forms - Using Agent System */}
-        {(selectedOperation === 'deposit' || selectedOperation === 'withdrawal') && (
+        {/* Agent Deposit Form */}
+        {selectedOperation === 'deposit' && (
           <Card className="bg-white">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-gray-900">
-                  {selectedOperation === 'deposit' && <Plus className="w-5 h-5 text-green-600" />}
-                  {selectedOperation === 'withdrawal' && <Minus className="w-5 h-5 text-red-600" />}
-                  {selectedOperation === 'deposit' ? 'Dépôt Sécurisé' : 'Retrait Sécurisé'}
+                  <Plus className="w-5 h-5 text-green-600" />
+                  Dépôt Agent Automatique
                 </CardTitle>
                 <Button onClick={() => setSelectedOperation(null)} variant="ghost" size="sm">
                   <ArrowLeft className="w-4 h-4" />
@@ -557,7 +506,7 @@ const MainAdminDashboard = () => {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="targetPhone">Numéro de téléphone</Label>
+                  <Label htmlFor="targetPhone">Numéro de téléphone Agent</Label>
                   <Input
                     id="targetPhone"
                     type="tel"
@@ -568,7 +517,7 @@ const MainAdminDashboard = () => {
                   {foundUser && (
                     <div className="mt-2 p-2 bg-green-50 rounded-lg">
                       <p className="text-sm text-green-800">
-                        <strong>{foundUser.full_name}</strong> - Solde: {formatCurrency(foundUser.balance, 'XAF')}
+                        <strong>Agent: {foundUser.full_name}</strong> - Solde: {formatCurrency(foundUser.balance, 'XAF')}
                       </p>
                     </div>
                   )}
@@ -578,25 +527,23 @@ const MainAdminDashboard = () => {
                   <Input
                     id="amount"
                     type="number"
-                    placeholder="Montant"
+                    placeholder="Montant à déposer"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                   />
                 </div>
               </div>
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>Système sécurisé:</strong> Cette opération utilise le même système que les agents avec toutes les vérifications de sécurité.
+              <div className="bg-green-50 p-3 rounded-lg">
+                <p className="text-sm text-green-800">
+                  <strong>Dépôt automatique:</strong> Le compte de l'agent sera automatiquement rechargé du montant saisi.
                 </p>
               </div>
               <Button
-                onClick={() => handleSecureOperation(selectedOperation)}
+                onClick={handleAgentDeposit}
                 disabled={isProcessing}
-                className={`w-full ${
-                  selectedOperation === 'deposit' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
-                }`}
+                className="w-full bg-green-600 hover:bg-green-700"
               >
-                {isProcessing ? "Traitement sécurisé..." : `Confirmer ${selectedOperation === 'deposit' ? 'Dépôt' : 'Retrait'}`}
+                {isProcessing ? "Dépôt automatique..." : "Déposer Automatiquement"}
               </Button>
             </CardContent>
           </Card>
