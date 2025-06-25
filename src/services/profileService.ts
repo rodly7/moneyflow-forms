@@ -29,11 +29,19 @@ export const profileService = {
     return profile?.role === 'admin';
   },
 
+  isSubAdmin(profile: Profile | null): boolean {
+    return profile?.role === 'sub_admin';
+  },
+
   isAgent(profile: Profile | null): boolean {
     return profile?.role === 'agent';
   },
 
   isAgentOrAdmin(profile: Profile | null): boolean {
-    return profile?.role === 'agent' || profile?.role === 'admin';
+    return profile?.role === 'agent' || profile?.role === 'admin' || profile?.role === 'sub_admin';
+  },
+
+  isAdminOrSubAdmin(profile: Profile | null): boolean {
+    return profile?.role === 'admin' || profile?.role === 'sub_admin';
   }
 };

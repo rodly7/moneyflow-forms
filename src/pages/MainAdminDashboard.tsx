@@ -317,7 +317,7 @@ const MainAdminDashboard = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ role: newRole })
+        .update({ role: newRole as 'user' | 'agent' | 'admin' | 'sub_admin' })
         .eq('id', userId);
 
       if (error) throw error;

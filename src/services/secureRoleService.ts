@@ -2,10 +2,10 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export interface UserRole {
-  role: 'user' | 'agent' | 'admin';
+  role: 'user' | 'agent' | 'admin' | 'sub_admin';
 }
 
-export const getUserRole = async (userId: string): Promise<'user' | 'agent' | 'admin'> => {
+export const getUserRole = async (userId: string): Promise<'user' | 'agent' | 'admin' | 'sub_admin'> => {
   try {
     const { data, error } = await supabase.rpc('get_user_role', {
       user_id_param: userId
@@ -37,6 +37,42 @@ export const isAdmin = async (userId: string): Promise<boolean> => {
     return data || false;
   } catch (error) {
     console.error("Error in isAdmin:", error);
+    return false;
+  }
+};
+
+export const isSubAdmin = async (userId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.rpc('is_sub_admin', {
+      user_id_param: userId
+    });
+
+    if (error) {
+      console.error("Error checking sub-admin status:", error);
+      return false;
+    }
+
+    return data || false;
+  } catch (error) {
+    console.error("Error in isSubAdmin:", error);
+    return false;
+  }
+};
+
+export const isAdminOrSubAdmin = async (userId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.rpc('is_admin_or_sub_admin', {
+      user_id_param: userId
+    });
+
+    if (error) {
+      console.error("Error checking admin/sub-admin status:", error);
+      return false;
+    }
+
+    return data || false;
+  } catch (error) {
+    console.error("Error in isAdminOrSubAdmin:", error);
     return false;
   }
 };
@@ -84,7 +120,8 @@ export const checkTransactionLimit = async (
       const defaultLimits = {
         user: 500000,
         agent: 2000000,
-        admin: 10000000
+        admin: 10000000,
+        sub_admin: 5000000
       };
       return amount <= defaultLimits[userRole];
     }
