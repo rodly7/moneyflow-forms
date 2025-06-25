@@ -1,11 +1,10 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Wallet, Plus, Minus, Percent, User, ArrowLeft, Settings, Eye, UserCheck, Activity } from "lucide-react";
+import { Wallet, Plus, Minus, Percent, User, ArrowLeft, Settings, Eye, UserCheck, Activity, Search, TrendingUp, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/integrations/supabase/client";
@@ -13,15 +12,29 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import { Badge } from "@/components/ui/badge";
+import { useSecureDepositWithdrawalOperations } from "@/hooks/useSecureDepositWithdrawalOperations";
+
+interface CommissionData {
+  agent_transfer_commission: number;
+  agent_withdrawal_commission: number;
+  agent_total_commission: number;
+  enterprise_transfer_commission: number;
+  enterprise_withdrawal_commission: number;
+  enterprise_total_commission: number;
+}
 
 const MainAdminDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [selectedOperation, setSelectedOperation] = useState<'deposit' | 'withdrawal' | 'commission' | 'manage-users' | 'view-data' | null>(null);
+  const [selectedOperation, setSelectedOperation] = useState<'deposit' | 'withdrawal' | 'commission' | 'manage-users' | 'view-data' | 'balance-search' | null>(null);
   const [targetPhone, setTargetPhone] = useState("");
   const [amount, setAmount] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [searchPhone, setSearchPhone] = useState("");
+  const [searchedUser, setSearchedUser] = useState<any>(null);
+
+  const { processSecureDeposit, processSecureWithdrawal } = useSecureDepositWithdrawalOperations();
 
   // Récupérer les utilisateurs
   const { data: users, refetch: refetchUsers } = useQuery({
@@ -34,6 +47,38 @@ const MainAdminDashboard = () => {
       
       if (error) throw error;
       return data;
+    },
+  });
+
+  // Récupérer les commissions calculées automatiquement
+  const { data: commissions } = useQuery({
+    queryKey: ['admin-commissions'],
+    queryFn: async () => {
+      const [transfersRes, withdrawalsRes] = await Promise.all([
+        supabase.from('transfers').select('amount, created_at').eq('status', 'completed'),
+        supabase.from('withdrawals').select('amount, created_at').eq('status', 'completed')
+      ]);
+
+      const transfers = transfersRes.data || [];
+      const withdrawals = withdrawalsRes.data || [];
+
+      // Calculer les commissions selon les taux définis
+      const transferTotalAmount = transfers.reduce((sum, transfer) => sum + transfer.amount, 0);
+      const withdrawalTotalAmount = withdrawals.reduce((sum, withdrawal) => sum + withdrawal.amount, 0);
+
+      const agentTransferCommission = transferTotalAmount * 0.015; // 1,5% pour les agents
+      const enterpriseTransferCommission = transferTotalAmount * 0.05; // 5% pour l'entreprise
+      const agentWithdrawalCommission = withdrawalTotalAmount * 0.01; // 1% pour les agents
+      const enterpriseWithdrawalCommission = withdrawalTotalAmount * 0.015; // 1,5% pour l'entreprise
+
+      return {
+        agent_transfer_commission: agentTransferCommission,
+        agent_withdrawal_commission: agentWithdrawalCommission,
+        agent_total_commission: agentTransferCommission + agentWithdrawalCommission,
+        enterprise_transfer_commission: enterpriseTransferCommission,
+        enterprise_withdrawal_commission: enterpriseWithdrawalCommission,
+        enterprise_total_commission: enterpriseTransferCommission + enterpriseWithdrawalCommission,
+      } as CommissionData;
     },
   });
 
@@ -54,6 +99,87 @@ const MainAdminDashboard = () => {
       };
     },
   });
+
+  // Rechercher un utilisateur par téléphone
+  const handleSearchUser = async () => {
+    if (!searchPhone) {
+      toast({
+        title: "Numéro requis",
+        description: "Veuillez saisir un numéro de téléphone",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('phone', searchPhone)
+        .single();
+
+      if (error || !data) {
+        toast({
+          title: "Utilisateur non trouvé",
+          description: "Aucun utilisateur trouvé avec ce numéro",
+          variant: "destructive"
+        });
+        setSearchedUser(null);
+        return;
+      }
+
+      setSearchedUser(data);
+      toast({
+        title: "Utilisateur trouvé",
+        description: `${data.full_name} - Solde: ${formatCurrency(data.balance, 'XAF')}`,
+      });
+    } catch (error) {
+      console.error('Erreur lors de la recherche:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la recherche",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Gérer les opérations de dépôt et retrait avec le système des agents
+  const handleSecureOperation = async (operationType: 'deposit' | 'withdrawal') => {
+    if (!targetPhone || !amount) {
+      toast({
+        title: "Formulaire incomplet",
+        description: "Veuillez saisir un numéro de téléphone et un montant",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const targetUser = users?.find(u => u.phone === targetPhone);
+    if (!targetUser) {
+      toast({
+        title: "Utilisateur non trouvé",
+        description: "Aucun utilisateur trouvé avec ce numéro",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const operationAmount = Number(amount);
+    let success = false;
+
+    if (operationType === 'deposit') {
+      success = await processSecureDeposit(operationAmount, targetUser.id, targetUser.full_name, targetUser.phone);
+    } else {
+      success = await processSecureWithdrawal(operationAmount, targetUser.id, targetUser.full_name, targetUser.phone);
+    }
+
+    if (success) {
+      setTargetPhone("");
+      setAmount("");
+      setSelectedOperation(null);
+      refetchUsers();
+    }
+  };
 
   const handleOperation = async (operationType: 'deposit' | 'withdrawal' | 'commission') => {
     if (!targetPhone || !amount) {
@@ -182,7 +308,7 @@ const MainAdminDashboard = () => {
         {/* Profile Header */}
         <ProfileHeader profile={profile} />
 
-        {/* Admin Badge & Balance - Compact */}
+        {/* Admin Badge & Balance */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
             <CardContent className="pt-4 pb-4">
@@ -211,9 +337,50 @@ const MainAdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Quick Actions - Compact */}
+        {/* Commissions Display */}
+        {!selectedOperation && commissions && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-emerald-600" />
+                    <h3 className="font-semibold text-emerald-800">Commission Agents</h3>
+                  </div>
+                  <p className="text-xl font-bold text-emerald-600">
+                    {formatCurrency(commissions.agent_total_commission, 'XAF')}
+                  </p>
+                </div>
+                <div className="mt-2 text-sm text-emerald-700">
+                  <p>Transferts: {formatCurrency(commissions.agent_transfer_commission, 'XAF')}</p>
+                  <p>Retraits: {formatCurrency(commissions.agent_withdrawal_commission, 'XAF')}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-blue-600" />
+                    <h3 className="font-semibold text-blue-800">Commission Entreprise</h3>
+                  </div>
+                  <p className="text-xl font-bold text-blue-600">
+                    {formatCurrency(commissions.enterprise_total_commission, 'XAF')}
+                  </p>
+                </div>
+                <div className="mt-2 text-sm text-blue-700">
+                  <p>Transferts: {formatCurrency(commissions.enterprise_transfer_commission, 'XAF')}</p>
+                  <p>Retraits: {formatCurrency(commissions.enterprise_withdrawal_commission, 'XAF')}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Quick Actions */}
         {!selectedOperation && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <Card 
               className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-green-500"
               onClick={() => setSelectedOperation('deposit')}
@@ -236,11 +403,11 @@ const MainAdminDashboard = () => {
 
             <Card 
               className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-orange-500"
-              onClick={() => setSelectedOperation('commission')}
+              onClick={() => setSelectedOperation('balance-search')}
             >
               <CardContent className="pt-4 pb-4 text-center">
-                <Percent className="w-6 h-6 text-orange-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-900">Commission</p>
+                <Search className="w-6 h-6 text-orange-600 mx-auto mb-2" />
+                <p className="text-sm font-medium text-gray-900">Recherche</p>
               </CardContent>
             </Card>
 
@@ -263,20 +430,142 @@ const MainAdminDashboard = () => {
                 <p className="text-sm font-medium text-gray-900">Données</p>
               </CardContent>
             </Card>
+
+            <Card 
+              className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-amber-500"
+              onClick={() => setSelectedOperation('commission')}
+            >
+              <CardContent className="pt-4 pb-4 text-center">
+                <Percent className="w-6 h-6 text-amber-600 mx-auto mb-2" />
+                <p className="text-sm font-medium text-gray-900">Commission</p>
+              </CardContent>
+            </Card>
           </div>
         )}
 
-        {/* Operation Forms */}
-        {(selectedOperation === 'deposit' || selectedOperation === 'withdrawal' || selectedOperation === 'commission') && (
+        {/* Balance Search */}
+        {selectedOperation === 'balance-search' && (
+          <Card className="bg-white">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-gray-900">
+                  <Search className="w-5 h-5 text-orange-600" />
+                  Recherche de solde
+                </CardTitle>
+                <Button onClick={() => setSelectedOperation(null)} variant="ghost" size="sm">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <Label htmlFor="searchPhone">Numéro de téléphone</Label>
+                  <Input
+                    id="searchPhone"
+                    type="tel"
+                    placeholder="Ex: +242061043340"
+                    value={searchPhone}
+                    onChange={(e) => setSearchPhone(e.target.value)}
+                  />
+                </div>
+                <Button onClick={handleSearchUser} className="mt-6 bg-orange-600 hover:bg-orange-700">
+                  <Search className="w-4 h-4 mr-2" />
+                  Rechercher
+                </Button>
+              </div>
+              
+              {searchedUser && (
+                <Card className="bg-gray-50">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <User className="w-8 h-8 text-blue-600" />
+                        <div>
+                          <p className="font-medium text-gray-900">{searchedUser.full_name || 'Nom non disponible'}</p>
+                          <p className="text-sm text-gray-600">{searchedUser.phone}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-bold text-blue-600">
+                          {formatCurrency(searchedUser.balance, 'XAF')}
+                        </p>
+                        <Badge variant={searchedUser.role === 'agent' ? 'default' : 'secondary'}>
+                          {searchedUser.role === 'agent' ? 'Agent' : 'Utilisateur'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Operation Forms - Using Agent System */}
+        {(selectedOperation === 'deposit' || selectedOperation === 'withdrawal') && (
           <Card className="bg-white">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-gray-900">
                   {selectedOperation === 'deposit' && <Plus className="w-5 h-5 text-green-600" />}
                   {selectedOperation === 'withdrawal' && <Minus className="w-5 h-5 text-red-600" />}
-                  {selectedOperation === 'commission' && <Percent className="w-5 h-5 text-orange-600" />}
-                  {selectedOperation === 'deposit' ? 'Dépôt' : 
-                   selectedOperation === 'withdrawal' ? 'Retrait' : 'Commission'}
+                  {selectedOperation === 'deposit' ? 'Dépôt Sécurisé' : 'Retrait Sécurisé'}
+                </CardTitle>
+                <Button onClick={() => setSelectedOperation(null)} variant="ghost" size="sm">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="targetPhone">Numéro de téléphone</Label>
+                  <Input
+                    id="targetPhone"
+                    type="tel"
+                    placeholder="Ex: +242061043340"
+                    value={targetPhone}
+                    onChange={(e) => setTargetPhone(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="amount">Montant (FCFA)</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    placeholder="Montant"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Système sécurisé:</strong> Cette opération utilise le même système que les agents avec toutes les vérifications de sécurité.
+                </p>
+              </div>
+              <Button
+                onClick={() => handleSecureOperation(selectedOperation)}
+                disabled={isProcessing}
+                className={`w-full ${
+                  selectedOperation === 'deposit' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                {isProcessing ? "Traitement sécurisé..." : `Confirmer ${selectedOperation === 'deposit' ? 'Dépôt' : 'Retrait'}`}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Commission Form */}
+        {selectedOperation === 'commission' && (
+          <Card className="bg-white">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-gray-900">
+                  <Percent className="w-5 h-5 text-amber-600" />
+                  Commission
                 </CardTitle>
                 <Button onClick={() => setSelectedOperation(null)} variant="ghost" size="sm">
                   <ArrowLeft className="w-4 h-4" />
@@ -307,15 +596,11 @@ const MainAdminDashboard = () => {
                 </div>
               </div>
               <Button
-                onClick={() => handleOperation(selectedOperation)}
+                onClick={() => handleOperation('commission')}
                 disabled={isProcessing}
-                className={`w-full ${
-                  selectedOperation === 'deposit' ? 'bg-green-600 hover:bg-green-700' :
-                  selectedOperation === 'withdrawal' ? 'bg-red-600 hover:bg-red-700' :
-                  'bg-orange-600 hover:bg-orange-700'
-                }`}
+                className="w-full bg-amber-600 hover:bg-amber-700"
               >
-                {isProcessing ? "Traitement..." : "Confirmer"}
+                {isProcessing ? "Traitement..." : "Confirmer Commission"}
               </Button>
             </CardContent>
           </Card>
@@ -432,7 +717,7 @@ const MainAdminDashboard = () => {
           </Card>
         )}
 
-        {/* Quick Users List - Only when no operation selected */}
+        {/* Quick Users List */}
         {!selectedOperation && (
           <Card className="bg-white">
             <CardHeader className="pb-4">
