@@ -1,11 +1,10 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Wallet, Plus, TrendingUp, Building2, ArrowLeft, Settings, User, Eye, Activity } from "lucide-react";
+import { Wallet, Plus, TrendingUp, Building2, ArrowLeft, Settings, User, Eye, Activity, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/integrations/supabase/client";
@@ -14,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import { useUserSearch } from "@/hooks/useUserSearch";
 import SubAdminUsersTable from "@/components/admin/SubAdminUsersTable";
+import BatchAgentDeposit from "@/components/admin/BatchAgentDeposit";
 
 interface CommissionData {
   agent_transfer_commission: number;
@@ -28,7 +28,7 @@ const SubAdminDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [selectedOperation, setSelectedOperation] = useState<'deposit' | 'view-data' | 'view-users' | null>(null);
+  const [selectedOperation, setSelectedOperation] = useState<'deposit' | 'batch-deposit' | 'view-data' | 'view-users' | null>(null);
   const [targetPhone, setTargetPhone] = useState("");
   const [amount, setAmount] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -319,9 +319,9 @@ const SubAdminDashboard = () => {
           </div>
         )}
 
-        {/* Quick Actions (Limités pour sous-admin) */}
+        {/* Quick Actions - Updated with Batch Deposit */}
         {!selectedOperation && (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Card 
               className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-green-500"
               onClick={() => setSelectedOperation('deposit')}
@@ -329,6 +329,16 @@ const SubAdminDashboard = () => {
               <CardContent className="pt-4 pb-4 text-center">
                 <Plus className="w-6 h-6 text-green-600 mx-auto mb-2" />
                 <p className="text-sm font-medium text-gray-900">Dépôt Agent</p>
+              </CardContent>
+            </Card>
+
+            <Card 
+              className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-emerald-500"
+              onClick={() => setSelectedOperation('batch-deposit')}
+            >
+              <CardContent className="pt-4 pb-4 text-center">
+                <Users className="w-6 h-6 text-emerald-600 mx-auto mb-2" />
+                <p className="text-sm font-medium text-gray-900">Dépôt en Lot</p>
               </CardContent>
             </Card>
 
@@ -352,6 +362,11 @@ const SubAdminDashboard = () => {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {/* Batch Agent Deposit */}
+        {selectedOperation === 'batch-deposit' && (
+          <BatchAgentDeposit onBack={() => setSelectedOperation(null)} />
         )}
 
         {/* Agent Deposit Form */}
