@@ -1,10 +1,11 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Wallet, Plus, Minus, Percent, User, ArrowLeft, Settings, Eye, UserCheck, Activity, Search, TrendingUp, Building2 } from "lucide-react";
+import { Wallet, Plus, Minus, Search, TrendingUp, Building2, ArrowLeft, Settings, User, UserCheck, Eye, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/integrations/supabase/client";
@@ -13,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import { Badge } from "@/components/ui/badge";
 import { useSecureDepositWithdrawalOperations } from "@/hooks/useSecureDepositWithdrawalOperations";
+import { useUserSearch } from "@/hooks/useUserSearch";
 
 interface CommissionData {
   agent_transfer_commission: number;
@@ -27,14 +29,16 @@ const MainAdminDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [selectedOperation, setSelectedOperation] = useState<'deposit' | 'withdrawal' | 'commission' | 'manage-users' | 'view-data' | 'balance-search' | null>(null);
+  const [selectedOperation, setSelectedOperation] = useState<'deposit' | 'withdrawal' | 'recharge' | 'manage-users' | 'view-data' | 'balance-search' | null>(null);
   const [targetPhone, setTargetPhone] = useState("");
   const [amount, setAmount] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchPhone, setSearchPhone] = useState("");
   const [searchedUser, setSearchedUser] = useState<any>(null);
+  const [foundUser, setFoundUser] = useState<any>(null);
 
   const { processSecureDeposit, processSecureWithdrawal } = useSecureDepositWithdrawalOperations();
+  const { searchUserByPhone, isSearching } = useUserSearch();
 
   // Récupérer les utilisateurs
   const { data: users, refetch: refetchUsers } = useQuery({
@@ -100,7 +104,27 @@ const MainAdminDashboard = () => {
     },
   });
 
-  // Rechercher un utilisateur par téléphone
+  // Recherche automatique lors de la saisie du numéro
+  const handlePhoneSearch = async (phoneNumber: string) => {
+    setTargetPhone(phoneNumber);
+    
+    if (phoneNumber.length >= 8) {
+      const user = await searchUserByPhone(phoneNumber);
+      if (user) {
+        setFoundUser(user);
+        toast({
+          title: "Utilisateur trouvé",
+          description: `${user.full_name} - Solde: ${formatCurrency(user.balance, 'XAF')}`,
+        });
+      } else {
+        setFoundUser(null);
+      }
+    } else {
+      setFoundUser(null);
+    }
+  };
+
+  // Rechercher un utilisateur par téléphone (pour l'onglet recherche)
   const handleSearchUser = async () => {
     if (!searchPhone) {
       toast({
@@ -111,35 +135,84 @@ const MainAdminDashboard = () => {
       return;
     }
 
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('phone', searchPhone)
-        .single();
-
-      if (error || !data) {
-        toast({
-          title: "Utilisateur non trouvé",
-          description: "Aucun utilisateur trouvé avec ce numéro",
-          variant: "destructive"
-        });
-        setSearchedUser(null);
-        return;
-      }
-
-      setSearchedUser(data);
+    const user = await searchUserByPhone(searchPhone);
+    if (user) {
+      setSearchedUser(user);
       toast({
         title: "Utilisateur trouvé",
-        description: `${data.full_name} - Solde: ${formatCurrency(data.balance, 'XAF')}`,
+        description: `${user.full_name} - Solde: ${formatCurrency(user.balance, 'XAF')}`,
       });
-    } catch (error) {
-      console.error('Erreur lors de la recherche:', error);
+    } else {
       toast({
-        title: "Erreur",
-        description: "Erreur lors de la recherche",
+        title: "Utilisateur non trouvé",
+        description: "Aucun utilisateur trouvé avec ce numéro",
         variant: "destructive"
       });
+      setSearchedUser(null);
+    }
+  };
+
+  // Recharger le solde admin
+  const handleAdminRecharge = async () => {
+    if (!amount) {
+      toast({
+        title: "Montant requis",
+        description: "Veuillez saisir un montant",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const rechargeAmount = Number(amount);
+      
+      const { error: creditError } = await supabase.rpc('increment_balance', {
+        user_id: user?.id,
+        amount: rechargeAmount
+      });
+
+      if (creditError) {
+        throw new Error("Erreur lors de la recharge");
+      }
+
+      // Créer un enregistrement de recharge
+      const { error: transactionError } = await supabase
+        .from('recharges')
+        .insert({
+          user_id: user?.id,
+          amount: rechargeAmount,
+          country: profile?.country || "Congo Brazzaville",
+          payment_method: 'admin_recharge',
+          payment_phone: profile?.phone || '',
+          payment_provider: 'admin',
+          transaction_reference: `ADMIN-RECHARGE-${Date.now()}`,
+          status: 'completed',
+          provider_transaction_id: user?.id
+        });
+
+      if (transactionError) {
+        console.error('Erreur transaction:', transactionError);
+      }
+
+      toast({
+        title: "Recharge effectuée",
+        description: `Votre solde a été rechargé de ${formatCurrency(rechargeAmount, 'XAF')}`,
+      });
+
+      setAmount("");
+      setSelectedOperation(null);
+
+    } catch (error) {
+      console.error('Erreur lors de la recharge:', error);
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Erreur lors de la recharge",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -154,7 +227,7 @@ const MainAdminDashboard = () => {
       return;
     }
 
-    const targetUser = users?.find(u => u.phone === targetPhone);
+    const targetUser = foundUser || users?.find(u => u.phone === targetPhone);
     if (!targetUser) {
       toast({
         title: "Utilisateur non trouvé",
@@ -176,86 +249,9 @@ const MainAdminDashboard = () => {
     if (success) {
       setTargetPhone("");
       setAmount("");
+      setFoundUser(null);
       setSelectedOperation(null);
       refetchUsers();
-    }
-  };
-
-  const handleOperation = async (operationType: 'deposit' | 'withdrawal' | 'commission') => {
-    if (!targetPhone || !amount) {
-      toast({
-        title: "Formulaire incomplet",
-        description: "Veuillez saisir un numéro de téléphone et un montant",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      const targetUser = users?.find(u => u.phone === targetPhone);
-      
-      if (!targetUser) {
-        throw new Error("Utilisateur non trouvé avec ce numéro");
-      }
-
-      const operationAmount = Number(amount);
-      let finalAmount = operationAmount;
-
-      if (operationType === 'withdrawal') {
-        finalAmount = -operationAmount;
-      }
-
-      const { error: balanceError } = await supabase.rpc('increment_balance', {
-        user_id: targetUser.id,
-        amount: finalAmount
-      });
-
-      if (balanceError) {
-        throw new Error("Erreur lors de la mise à jour du solde");
-      }
-
-      // Créer un enregistrement selon le type d'opération
-      if (operationType === 'deposit') {
-        await supabase.from('recharges').insert({
-          user_id: targetUser.id,
-          amount: operationAmount,
-          country: targetUser.country || "Congo Brazzaville",
-          payment_method: 'admin_credit',
-          payment_phone: targetPhone,
-          payment_provider: 'admin',
-          transaction_reference: `ADMIN-${Date.now()}`,
-          status: 'completed',
-          provider_transaction_id: user?.id
-        });
-      } else if (operationType === 'withdrawal') {
-        await supabase.from('withdrawals').insert({
-          user_id: targetUser.id,
-          amount: operationAmount,
-          withdrawal_phone: targetPhone,
-          status: 'completed'
-        });
-      }
-
-      toast({
-        title: "Opération réussie",
-        description: `${operationType === 'deposit' ? 'Dépôt' : operationType === 'withdrawal' ? 'Retrait' : 'Commission'} de ${formatCurrency(operationAmount, 'XAF')} effectué pour ${targetUser.full_name}`,
-      });
-
-      setTargetPhone("");
-      setAmount("");
-      setSelectedOperation(null);
-
-    } catch (error) {
-      console.error('Erreur lors de l\'opération:', error);
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Erreur lors de l'opération",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -402,6 +398,16 @@ const MainAdminDashboard = () => {
             </Card>
 
             <Card 
+              className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-blue-500"
+              onClick={() => setSelectedOperation('recharge')}
+            >
+              <CardContent className="pt-4 pb-4 text-center">
+                <Wallet className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                <p className="text-sm font-medium text-gray-900">Recharge</p>
+              </CardContent>
+            </Card>
+
+            <Card 
               className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-orange-500"
               onClick={() => setSelectedOperation('balance-search')}
             >
@@ -428,16 +434,6 @@ const MainAdminDashboard = () => {
               <CardContent className="pt-4 pb-4 text-center">
                 <Eye className="w-6 h-6 text-indigo-600 mx-auto mb-2" />
                 <p className="text-sm font-medium text-gray-900">Données</p>
-              </CardContent>
-            </Card>
-
-            <Card 
-              className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-amber-500"
-              onClick={() => setSelectedOperation('commission')}
-            >
-              <CardContent className="pt-4 pb-4 text-center">
-                <Percent className="w-6 h-6 text-amber-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-900">Commission</p>
               </CardContent>
             </Card>
           </div>
@@ -469,9 +465,9 @@ const MainAdminDashboard = () => {
                     onChange={(e) => setSearchPhone(e.target.value)}
                   />
                 </div>
-                <Button onClick={handleSearchUser} className="mt-6 bg-orange-600 hover:bg-orange-700">
+                <Button onClick={handleSearchUser} className="mt-6 bg-orange-600 hover:bg-orange-700" disabled={isSearching}>
                   <Search className="w-4 h-4 mr-2" />
-                  Rechercher
+                  {isSearching ? "Recherche..." : "Rechercher"}
                 </Button>
               </div>
               
@@ -502,6 +498,47 @@ const MainAdminDashboard = () => {
           </Card>
         )}
 
+        {/* Admin Recharge */}
+        {selectedOperation === 'recharge' && (
+          <Card className="bg-white">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-gray-900">
+                  <Wallet className="w-5 h-5 text-blue-600" />
+                  Recharge Admin
+                </CardTitle>
+                <Button onClick={() => setSelectedOperation(null)} variant="ghost" size="sm">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="rechargeAmount">Montant (FCFA)</Label>
+                <Input
+                  id="rechargeAmount"
+                  type="number"
+                  placeholder="Montant à recharger"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                />
+              </div>
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Recharge administrative:</strong> Cette opération permet de recharger votre solde administrateur.
+                </p>
+              </div>
+              <Button
+                onClick={handleAdminRecharge}
+                disabled={isProcessing}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                {isProcessing ? "Traitement..." : "Confirmer Recharge"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Operation Forms - Using Agent System */}
         {(selectedOperation === 'deposit' || selectedOperation === 'withdrawal') && (
           <Card className="bg-white">
@@ -526,8 +563,15 @@ const MainAdminDashboard = () => {
                     type="tel"
                     placeholder="Ex: +242061043340"
                     value={targetPhone}
-                    onChange={(e) => setTargetPhone(e.target.value)}
+                    onChange={(e) => handlePhoneSearch(e.target.value)}
                   />
+                  {foundUser && (
+                    <div className="mt-2 p-2 bg-green-50 rounded-lg">
+                      <p className="text-sm text-green-800">
+                        <strong>{foundUser.full_name}</strong> - Solde: {formatCurrency(foundUser.balance, 'XAF')}
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="amount">Montant (FCFA)</Label>
@@ -553,54 +597,6 @@ const MainAdminDashboard = () => {
                 }`}
               >
                 {isProcessing ? "Traitement sécurisé..." : `Confirmer ${selectedOperation === 'deposit' ? 'Dépôt' : 'Retrait'}`}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Commission Form */}
-        {selectedOperation === 'commission' && (
-          <Card className="bg-white">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-gray-900">
-                  <Percent className="w-5 h-5 text-amber-600" />
-                  Commission
-                </CardTitle>
-                <Button onClick={() => setSelectedOperation(null)} variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="targetPhone">Numéro de téléphone</Label>
-                  <Input
-                    id="targetPhone"
-                    type="tel"
-                    placeholder="Ex: +242061043340"
-                    value={targetPhone}
-                    onChange={(e) => setTargetPhone(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="amount">Montant (FCFA)</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    placeholder="Montant"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                  />
-                </div>
-              </div>
-              <Button
-                onClick={() => handleOperation('commission')}
-                disabled={isProcessing}
-                className="w-full bg-amber-600 hover:bg-amber-700"
-              >
-                {isProcessing ? "Traitement..." : "Confirmer Commission"}
               </Button>
             </CardContent>
           </Card>
