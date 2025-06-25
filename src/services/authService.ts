@@ -6,7 +6,9 @@ export const authService = {
   async signIn(phone: string, password: string) {
     console.log('🔐 Tentative de connexion avec le numéro:', phone);
     
-    const email = `${phone}@sendflow.app`;
+    // Normaliser le numéro de téléphone pour la connexion
+    const normalizedPhone = phone.replace(/[^\d+]/g, '');
+    const email = `${normalizedPhone}@sendflow.app`;
     console.log('📧 Email de connexion généré:', email);
     
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -16,6 +18,11 @@ export const authService = {
 
     if (error) {
       console.error('❌ Erreur de connexion:', error);
+      
+      if (error.message.includes('Invalid login credentials')) {
+        throw new Error('Numéro de téléphone ou mot de passe incorrect. Vérifiez que vous utilisez le même format qu\'à l\'inscription.');
+      }
+      
       throw new Error('Numéro de téléphone ou mot de passe incorrect. Vérifiez vos informations.');
     }
     
@@ -26,7 +33,9 @@ export const authService = {
     console.log('📝 Tentative d\'inscription avec le numéro:', phone);
     console.log('🎯 Rôle demandé:', metadata.role);
     
-    const email = `${phone}@sendflow.app`;
+    // Normaliser le numéro de téléphone pour l'inscription
+    const normalizedPhone = phone.replace(/[^\d+]/g, '');
+    const email = `${normalizedPhone}@sendflow.app`;
     console.log('📧 Email d\'inscription généré:', email);
     
     const userRole = metadata.role === 'agent' ? 'agent' : 'user';
@@ -38,7 +47,7 @@ export const authService = {
       options: {
         data: {
           ...metadata,
-          phone: phone,
+          phone: normalizedPhone,  // Utiliser le numéro normalisé
           role: userRole,
         },
       },

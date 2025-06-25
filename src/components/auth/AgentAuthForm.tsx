@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -41,14 +40,32 @@ const AgentAuthForm = () => {
     }
   };
 
+  // Fonction pour normaliser les numéros de téléphone
+  const normalizePhoneNumber = (phoneInput: string, countryCode?: string) => {
+    // Supprimer tous les espaces et caractères non numériques sauf le +
+    let cleanPhone = phoneInput.replace(/[^\d+]/g, '');
+    
+    // Si pas de +, ajouter le code pays si disponible
+    if (!cleanPhone.startsWith('+') && countryCode) {
+      cleanPhone = countryCode + cleanPhone;
+    }
+    
+    console.log('📱 Numéro normalisé:', cleanPhone, 'depuis:', phoneInput);
+    return cleanPhone;
+  };
+
   const formatPhoneWithCountryCode = (countryCode: string, number: string) => {
-    return `${countryCode}${number.replace(/\D/g, '')}`;
+    const cleanNumber = number.replace(/\D/g, '');
+    const fullPhone = `${countryCode}${cleanNumber}`;
+    console.log('📱 Formatage complet:', fullPhone);
+    return fullPhone;
   };
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '');
     setPhoneNumber(value);
-    setPhone(formatPhoneWithCountryCode(selectedCountryCode, value));
+    const formattedPhone = formatPhoneWithCountryCode(selectedCountryCode, value);
+    setPhone(formattedPhone);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,44 +82,56 @@ const AgentAuthForm = () => {
         if (fullName.length < 2) {
           throw new Error("Le nom complet doit contenir au moins 2 caractères");
         }
+
+        // Normaliser le numéro pour l'inscription
+        const normalizedPhone = normalizePhoneNumber(phone);
         
-        console.log('🏢 Inscription AGENT avec:', {
-          phone: phone,
+        console.log('🏢 Inscription AGENT avec numéro normalisé:', {
+          phone: normalizedPhone,
+          originalPhone: phone,
           fullName: fullName,
           country: country,
           address: address,
           role: "agent"
         });
         
-        await signUp(phone, password, {
+        await signUp(normalizedPhone, password, {
           full_name: fullName,
           country: country,
           address: address,
-          phone: phone,
+          phone: normalizedPhone,
           role: "agent",
         });
         
         toast.success("Compte agent créé avec succès!");
-        console.log('✅ Inscription agent réussie - la redirection sera gérée par Layout');
+        console.log('✅ Inscription agent réussie avec numéro:', normalizedPhone);
         
       } else {
-        // Connexion simplifiée
+        // Connexion - normaliser le numéro de téléphone
         if (!loginPhone || !loginPassword) {
           throw new Error("Veuillez remplir tous les champs");
         }
 
-        console.log('🏢 Connexion AGENT avec le numéro:', loginPhone);
-        await signIn(loginPhone, loginPassword);
+        // Normaliser le numéro pour la connexion
+        const normalizedLoginPhone = normalizePhoneNumber(loginPhone);
+
+        console.log('🏢 Tentative de connexion AGENT:', {
+          original: loginPhone,
+          normalized: normalizedLoginPhone
+        });
+
+        await signIn(normalizedLoginPhone, loginPassword);
         toast.success("Connexion agent réussie!");
-        console.log('✅ Connexion agent réussie - la redirection sera gérée par Layout');
+        console.log('✅ Connexion agent réussie avec numéro:', normalizedLoginPhone);
       }
     } catch (error: any) {
       console.error("Erreur d'authentification agent:", error);
       
       let errorMessage = "Une erreur est survenue";
       
-      if (error.message.includes("Numéro de téléphone ou mot de passe incorrect")) {
-        errorMessage = "Numéro de téléphone ou mot de passe incorrect. Vérifiez que vous utilisez exactement le même numéro qu'à l'inscription.";
+      if (error.message.includes("Numéro de téléphone ou mot de passe incorrect") || 
+          error.message.includes("Invalid login credentials")) {
+        errorMessage = "Numéro de téléphone ou mot de passe incorrect. Assurez-vous d'utiliser le même format de numéro qu'à l'inscription (avec le code pays).";
       } else if (error.message.includes("Un compte existe déjà")) {
         errorMessage = "Un compte existe déjà avec ce numéro. Essayez de vous connecter.";
       } else if (error.message.includes("Password should be at least 6 characters")) {
@@ -208,6 +237,9 @@ const AgentAuthForm = () => {
                       disabled={loading || !selectedCountryCode}
                     />
                   </div>
+                  <p className="text-xs text-blue-600">
+                    📱 Votre numéro sera: {phone}
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -231,15 +263,15 @@ const AgentAuthForm = () => {
                   <Input
                     id="loginPhone"
                     type="text"
-                    placeholder="Entrez exactement votre numéro (ex: +242XXXXXXXX)"
+                    placeholder="Exemple: +242061043340 ou +221773637752"
                     value={loginPhone}
                     onChange={(e) => setLoginPhone(e.target.value)}
                     required
                     className="w-full"
                     disabled={loading}
                   />
-                  <p className="text-xs text-gray-500">
-                    ⚠️ Utilisez exactement le même format de numéro que lors de l'inscription
+                  <p className="text-xs text-blue-600">
+                    💡 Utilisez le format complet avec le code pays (ex: +242...)
                   </p>
                 </div>
 
