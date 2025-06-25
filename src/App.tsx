@@ -12,6 +12,7 @@ import AgentAuth from "@/pages/AgentAuth";
 import Dashboard from "@/pages/Dashboard";
 import NewAgentDashboard from "@/pages/NewAgentDashboard";
 import MainAdminDashboard from "@/pages/MainAdminDashboard";
+import SubAdminDashboard from "@/pages/SubAdminDashboard";
 import Transactions from "@/pages/Transactions";
 import QRCode from "@/pages/QRCode";
 import Receive from "@/pages/Receive";
@@ -42,6 +43,7 @@ function App() {
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="agent-dashboard" element={<NewAgentDashboard />} />
               <Route path="main-admin" element={<MainAdminDashboard />} />
+              <Route path="sub-admin" element={<SubAdminDashboard />} />
               <Route path="transactions" element={<Transactions />} />
               <Route path="qr-code" element={<QRCode />} />
               <Route path="receive" element={<Receive />} />

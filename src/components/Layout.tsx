@@ -34,6 +34,9 @@ const Layout = () => {
           if (profile.phone === '+221773637752') {
             console.log('👑 Admin principal détecté, redirection vers main-admin');
             navigate('/main-admin', { replace: true });
+          } else if (profile.role === 'sub_admin') {
+            console.log('🔶 Sous-Admin détecté, redirection vers sub-admin');
+            navigate('/sub-admin', { replace: true });
           } else if (profile.role === 'agent') {
             console.log('🎯 Agent détecté, redirection vers agent-dashboard');
             navigate('/agent-dashboard', { replace: true });
@@ -76,6 +79,19 @@ const Layout = () => {
         } else {
           console.log('👑 Admin principal sur page autorisée:', location.pathname);
         }
+      } else if (profile.role === 'sub_admin') {
+        // Sub-admin should be on sub-admin pages
+        const subAdminPages = ['/sub-admin'];
+        const isOnSubAdminPage = subAdminPages.some(page => location.pathname.startsWith(page));
+        
+        if (!isOnSubAdminPage) {
+          console.log('🔶 Sous-Admin pas sur page sous-admin, redirection FORCÉE vers sub-admin');
+          setTimeout(() => {
+            navigate('/sub-admin', { replace: true });
+          }, 100);
+        } else {
+          console.log('🔶 Sous-Admin sur page autorisée:', location.pathname);
+        }
       } else if (profile.role === 'agent') {
         // Agent should be on agent-dashboard or agent-specific pages
         const agentPages = ['/agent-dashboard', '/agent-services', '/agent-withdrawal', '/commission', '/verify-identity'];
@@ -90,8 +106,8 @@ const Layout = () => {
           console.log('🏢 Agent sur page autorisée:', location.pathname);
         }
       } else {
-        // Regular user should NOT be on agent or admin pages
-        const restrictedPages = ['/agent-dashboard', '/agent-services', '/agent-withdrawal', '/main-admin'];
+        // Regular user should NOT be on agent, admin or sub-admin pages
+        const restrictedPages = ['/agent-dashboard', '/agent-services', '/agent-withdrawal', '/main-admin', '/sub-admin'];
         const isOnRestrictedPage = restrictedPages.some(page => location.pathname.startsWith(page));
         
         if (isOnRestrictedPage) {
