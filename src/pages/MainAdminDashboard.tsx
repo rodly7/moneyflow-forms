@@ -13,6 +13,8 @@ import { useNavigate } from "react-router-dom";
 import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import { Badge } from "@/components/ui/badge";
 import { useUserSearch } from "@/hooks/useUserSearch";
+import UserManagementModal from "@/components/admin/UserManagementModal";
+import UsersDataTable from "@/components/admin/UsersDataTable";
 
 interface CommissionData {
   agent_transfer_commission: number;
@@ -32,16 +34,18 @@ const MainAdminDashboard = () => {
   const [amount, setAmount] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [foundUser, setFoundUser] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [showUserModal, setShowUserModal] = useState(false);
 
   const { searchUserByPhone } = useUserSearch();
 
-  // Récupérer les utilisateurs
+  // Récupérer les utilisateurs avec les nouvelles colonnes
   const { data: users, refetch: refetchUsers } = useQuery({
     queryKey: ['all-users'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, is_banned, banned_reason, banned_at')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -309,6 +313,74 @@ const MainAdminDashboard = () => {
     }
   };
 
+  const handleQuickRoleChange = async (userId: string, newRole: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Rôle mis à jour",
+        description: `Le rôle a été changé en ${newRole === 'sub_admin' ? 'Sous-Administrateur' : newRole === 'agent' ? 'Agent' : 'Utilisateur'}`,
+      });
+
+      refetchUsers();
+    } catch (error) {
+      console.error('Erreur lors du changement de rôle:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors du changement de rôle",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleQuickBanToggle = async (userId: string, currentBanStatus: boolean) => {
+    try {
+      const updateData = currentBanStatus 
+        ? { is_banned: false, banned_at: null, banned_reason: null }
+        : { is_banned: true, banned_at: new Date().toISOString(), banned_reason: 'Bannissement rapide' };
+
+      const { error } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast({
+        title: currentBanStatus ? "Utilisateur débanni" : "Utilisateur banni",
+        description: `L'utilisateur a été ${currentBanStatus ? 'débanni' : 'banni'} avec succès`,
+      });
+
+      refetchUsers();
+    } catch (error) {
+      console.error('Erreur lors du bannissement:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la modification du statut",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleViewUser = (user: any) => {
+    setSelectedUser(user);
+    setShowUserModal(true);
+  };
+
+  const handleCloseUserModal = () => {
+    setShowUserModal(false);
+    setSelectedUser(null);
+  };
+
+  const handleUserUpdated = () => {
+    refetchUsers();
+  };
+
   if (!profile || profile.phone !== '+221773637752') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -403,7 +475,7 @@ const MainAdminDashboard = () => {
           </div>
         )}
 
-        {/* Quick Actions - Simplified */}
+        {/* Quick Actions - Updated */}
         {!selectedOperation && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Card 
@@ -432,7 +504,7 @@ const MainAdminDashboard = () => {
             >
               <CardContent className="pt-4 pb-4 text-center">
                 <UserCheck className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-900">Gestion</p>
+                <p className="text-sm font-medium text-gray-900">Gestion Avancée</p>
               </CardContent>
             </Card>
 
@@ -549,14 +621,14 @@ const MainAdminDashboard = () => {
           </Card>
         )}
 
-        {/* User Management */}
+        {/* Advanced User Management */}
         {selectedOperation === 'manage-users' && (
           <Card className="bg-white">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-gray-900">
                   <UserCheck className="w-5 h-5 text-purple-600" />
-                  Gestion des utilisateurs
+                  Gestion Avancée des Utilisateurs
                 </CardTitle>
                 <Button onClick={() => setSelectedOperation(null)} variant="ghost" size="sm">
                   <ArrowLeft className="w-4 h-4" />
@@ -564,35 +636,30 @@ const MainAdminDashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {users?.map((user) => (
-                  <div key={user.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <User className="w-8 h-8 text-blue-600" />
-                      <div>
-                        <p className="font-medium text-gray-900">{user.full_name || 'Nom non disponible'}</p>
-                        <p className="text-sm text-gray-600">{user.phone}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge variant={user.role === 'agent' ? 'default' : 'secondary'}>
-                        {user.role === 'agent' ? 'Agent' : 'Utilisateur'}
-                      </Badge>
-                      <p className="text-sm font-semibold text-blue-600">
-                        {formatCurrency(user.balance, 'XAF')}
-                      </p>
-                      {user.role === 'user' && (
-                        <Button
-                          size="sm"
-                          onClick={() => promoteToAgent(user.id, user.phone)}
-                          className="bg-purple-600 hover:bg-purple-700"
-                        >
-                          Promouvoir Agent
-                        </Button>
-                      )}
-                    </div>
+              <div className="space-y-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h3 className="font-semibold text-blue-800 mb-2">Fonctionnalités disponibles:</h3>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• Modifier les informations d'un utilisateur</li>
+                    <li>• Changer le rôle (Utilisateur ↔ Agent ↔ Sous-Admin)</li>
+                    <li>• Bannir/Débannir l'accès</li>
+                    <li>• Supprimer définitivement un compte</li>
+                    <li>• Voir toutes les informations détaillées</li>
+                  </ul>
+                </div>
+                
+                {users && users.length > 0 ? (
+                  <UsersDataTable
+                    users={users}
+                    onViewUser={handleViewUser}
+                    onQuickRoleChange={handleQuickRoleChange}
+                    onQuickBanToggle={handleQuickBanToggle}
+                  />
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Aucun utilisateur trouvé</p>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -699,6 +766,14 @@ const MainAdminDashboard = () => {
           </Card>
         )}
       </div>
+
+      {/* User Management Modal */}
+      <UserManagementModal
+        isOpen={showUserModal}
+        onClose={handleCloseUserModal}
+        user={selectedUser}
+        onUserUpdated={handleUserUpdated}
+      />
     </div>
   );
 };

@@ -211,6 +211,8 @@ export type Database = {
           address: string | null
           avatar_url: string | null
           balance: number
+          banned_at: string | null
+          banned_reason: string | null
           country: string | null
           created_at: string
           full_name: string | null
@@ -218,6 +220,7 @@ export type Database = {
           id_card_number: string | null
           id_card_photo_url: string | null
           id_card_url: string | null
+          is_banned: boolean | null
           is_verified: boolean | null
           phone: string
           role: Database["public"]["Enums"]["user_role"]
@@ -228,6 +231,8 @@ export type Database = {
           address?: string | null
           avatar_url?: string | null
           balance?: number
+          banned_at?: string | null
+          banned_reason?: string | null
           country?: string | null
           created_at?: string
           full_name?: string | null
@@ -235,6 +240,7 @@ export type Database = {
           id_card_number?: string | null
           id_card_photo_url?: string | null
           id_card_url?: string | null
+          is_banned?: boolean | null
           is_verified?: boolean | null
           phone: string
           role?: Database["public"]["Enums"]["user_role"]
@@ -245,6 +251,8 @@ export type Database = {
           address?: string | null
           avatar_url?: string | null
           balance?: number
+          banned_at?: string | null
+          banned_reason?: string | null
           country?: string | null
           created_at?: string
           full_name?: string | null
@@ -252,6 +260,7 @@ export type Database = {
           id_card_number?: string | null
           id_card_photo_url?: string | null
           id_card_url?: string | null
+          is_banned?: boolean | null
           is_verified?: boolean | null
           phone?: string
           role?: Database["public"]["Enums"]["user_role"]
@@ -580,11 +589,23 @@ export type Database = {
         Args: { user_id_param: string }
         Returns: boolean
       }
+      is_admin_or_sub_admin: {
+        Args: { user_id_param: string }
+        Returns: boolean
+      }
       is_agent: {
         Args: { user_id_param: string }
         Returns: boolean
       }
       is_agent_or_admin: {
+        Args: { user_id_param: string }
+        Returns: boolean
+      }
+      is_sub_admin: {
+        Args: { user_id_param: string }
+        Returns: boolean
+      }
+      is_user_banned: {
         Args: { user_id_param: string }
         Returns: boolean
       }
@@ -615,7 +636,7 @@ export type Database = {
     }
     Enums: {
       agent_status: "pending" | "active" | "suspended" | "rejected"
-      user_role: "user" | "agent" | "admin"
+      user_role: "user" | "agent" | "admin" | "sub_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -732,7 +753,7 @@ export const Constants = {
   public: {
     Enums: {
       agent_status: ["pending", "active", "suspended", "rejected"],
-      user_role: ["user", "agent", "admin"],
+      user_role: ["user", "agent", "admin", "sub_admin"],
     },
   },
 } as const
