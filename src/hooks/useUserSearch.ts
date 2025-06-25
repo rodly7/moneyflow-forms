@@ -9,6 +9,7 @@ interface UserSearchResult {
   phone: string;
   balance: number;
   country?: string;
+  role: 'user' | 'agent' | 'admin';
 }
 
 export const useUserSearch = () => {
@@ -36,21 +37,33 @@ export const useUserSearch = () => {
         const userData = data[0];
         console.log("✅ Utilisateur trouvé via find_recipient:", userData);
         
-        // Récupérer le solde exact via RPC
-        const { data: currentBalance, error: balanceError } = await supabase.rpc('increment_balance', {
-          user_id: userData.id,
-          amount: 0
-        });
+        // Récupérer le profil complet avec le rôle
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, full_name, phone, balance, country, role')
+          .eq('id', userData.id)
+          .single();
         
-        const actualBalance = balanceError ? 0 : Number(currentBalance) || 0;
-        
-        return {
-          id: userData.id,
-          full_name: userData.full_name || "Utilisateur",
-          phone: userData.phone,
-          balance: actualBalance,
-          country: userData.country
-        };
+        if (profileError) {
+          console.error("Erreur lors de la récupération du profil:", profileError);
+        } else if (profileData) {
+          // Récupérer le solde exact via RPC
+          const { data: currentBalance, error: balanceError } = await supabase.rpc('increment_balance', {
+            user_id: profileData.id,
+            amount: 0
+          });
+          
+          const actualBalance = balanceError ? Number(profileData.balance) || 0 : Number(currentBalance) || 0;
+          
+          return {
+            id: profileData.id,
+            full_name: profileData.full_name || "Utilisateur",
+            phone: profileData.phone,
+            balance: actualBalance,
+            country: profileData.country,
+            role: profileData.role
+          };
+        }
       }
 
       // Si find_recipient ne trouve rien, essayer une recherche directe plus flexible
@@ -62,7 +75,7 @@ export const useUserSearch = () => {
       // Recherche directe dans la table profiles
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id, full_name, phone, balance, country')
+        .select('id, full_name, phone, balance, country, role')
         .or(`phone.eq.${phoneNumber},phone.eq.${normalizedPhone}`);
 
       if (profileError) {
@@ -84,7 +97,8 @@ export const useUserSearch = () => {
           full_name: userData.full_name || "Utilisateur",
           phone: userData.phone,
           balance: actualBalance,
-          country: userData.country
+          country: userData.country,
+          role: userData.role
         };
       }
 
@@ -93,7 +107,7 @@ export const useUserSearch = () => {
       
       const { data: allProfiles, error: allProfilesError } = await supabase
         .from('profiles')
-        .select('id, full_name, phone, balance, country');
+        .select('id, full_name, phone, balance, country, role');
 
       if (!allProfilesError && allProfiles) {
         const lastDigits = normalizedPhone.slice(-8); // Prendre les 8 derniers chiffres
@@ -119,7 +133,8 @@ export const useUserSearch = () => {
                 full_name: profile.full_name || "Utilisateur",
                 phone: profile.phone,
                 balance: actualBalance,
-                country: profile.country
+                country: profile.country,
+                role: profile.role
               };
             }
           }
