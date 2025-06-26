@@ -138,8 +138,8 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           </SelectContent>
         </Select>
         {userRole === 'agent' && (
-          <p className="text-xs text-muted-foreground">
-            Note: Les transferts nationaux ne sont pas autorisés pour les agents
+          <p className="text-xs text-blue-600">
+            💼 Mode Agent: Seuls les transferts internationaux sont autorisés
           </p>
         )}
       </div>
@@ -172,6 +172,11 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
               })
             }
           />
+          {userRole === 'agent' && (
+            <p className="text-xs text-gray-500">
+              💡 En tant qu'agent, le solde du destinataire n'est pas affiché pour des raisons de sécurité
+            </p>
+          )}
         </div>
       )}
     </div>

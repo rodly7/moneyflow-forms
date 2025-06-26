@@ -9,7 +9,7 @@ export const useTransferOperations = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
 
   const processTransfer = async (transferData: {
     amount: number;
@@ -17,6 +17,7 @@ export const useTransferOperations = () => {
       email: string;
       fullName: string;
       country: string;
+      phone?: string;
     };
   }) => {
     if (!user?.id) {
@@ -59,14 +60,28 @@ export const useTransferOperations = () => {
 
       // Utiliser le pays de l'utilisateur pour calculer les frais
       const userCountry = profileData.country || "Cameroun";
+      
+      // Pour les agents, utiliser le type "agent" pour le calcul des frais
+      const feeType = userRole === 'agent' ? 'agent' : 'user';
+      
       const { fee: fees, rate, agentCommission, moneyFlowCommission } = calculateFee(
         transferData.amount, 
         userCountry, 
         transferData.recipient.country,
-        "user"
+        feeType
       );
       
       const totalAmount = transferData.amount + fees;
+      
+      // Vérification spéciale pour les agents - ils ne peuvent faire que des transferts internationaux
+      if (userRole === 'agent' && userCountry === transferData.recipient.country) {
+        toast({
+          title: "Transfert non autorisé",
+          description: "En tant qu'agent, vous ne pouvez effectuer que des transferts internationaux",
+          variant: "destructive"
+        });
+        return { success: false };
+      }
       
       if (profileData.balance < totalAmount) {
         toast({
@@ -78,6 +93,7 @@ export const useTransferOperations = () => {
       }
 
       console.log("Données du transfert:", {
+        typeUtilisateur: userRole,
         beneficiaire: transferData.recipient.fullName,
         identifiant: transferData.recipient.email,
         montant: transferData.amount,
@@ -90,7 +106,7 @@ export const useTransferOperations = () => {
       });
 
       // Utiliser l'identifiant du destinataire (téléphone ou email)
-      const recipientIdentifier = transferData.recipient.email;
+      const recipientIdentifier = transferData.recipient.phone || transferData.recipient.email;
       
       // Utiliser la procédure stockée pour traiter le transfert d'argent
       const { data: result, error: transferProcessError } = await supabase
@@ -114,7 +130,7 @@ export const useTransferOperations = () => {
             .insert({
               sender_id: user.id,
               recipient_email: transferData.recipient.email,
-              recipient_phone: '',
+              recipient_phone: transferData.recipient.phone || '',
               amount: transferData.amount,
               fees: fees,
               claim_code: claimCode,
@@ -162,15 +178,26 @@ export const useTransferOperations = () => {
       });
 
       const isNational = userCountry === transferData.recipient.country;
-      const rateText = isNational ? "2,5%" : "6,5%";
+      const rateText = userRole === 'agent' 
+        ? (isNational ? "2,5%" : "6,5%") 
+        : (isNational ? "2,5%" : "6,5%");
+
+      const successMessage = userRole === 'agent'
+        ? `Transfert agent de ${transferData.amount} XAF vers ${transferData.recipient.fullName} effectué avec succès. Frais: ${rateText}`
+        : `Votre transfert de ${transferData.amount} XAF vers ${transferData.recipient.fullName} a été effectué avec succès. Frais: ${rateText}`;
 
       toast({
         title: "Transfert Réussi",
-        description: `Votre transfert de ${transferData.amount} XAF vers ${transferData.recipient.fullName} a été effectué avec succès. Frais: ${rateText}`,
+        description: successMessage,
       });
       
-      // Naviguer vers la page d'accueil après un transfert réussi
-      navigate('/');
+      // Naviguer vers la page appropriée selon le type d'utilisateur
+      if (userRole === 'agent') {
+        navigate('/agent-services');
+      } else {
+        navigate('/');
+      }
+      
       return { success: true };
     } catch (error) {
       console.error('Erreur lors du transfert:', error);

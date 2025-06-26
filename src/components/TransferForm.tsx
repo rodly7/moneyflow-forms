@@ -8,8 +8,10 @@ import TransferStepper from "./transfer/TransferStepper";
 import { useTransferForm } from "@/hooks/useTransferForm";
 import { useState } from "react";
 import { CheckCircle, Copy } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const TransferForm = () => {
+  const { userRole } = useAuth();
   const {
     currentStep,
     data,
@@ -95,6 +97,15 @@ const TransferForm = () => {
     <div className="w-full px-2 sm:px-0">
       <Card className="backdrop-blur-md bg-white/80 shadow-xl rounded-xl border-0 overflow-hidden">
         <div className="p-4 md:p-6">
+          {/* En-tête adapté pour les agents */}
+          {userRole === 'agent' && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-blue-700 text-sm font-medium">
+                💼 Mode Agent: Transferts internationaux uniquement
+              </p>
+            </div>
+          )}
+
           <div className="mb-6">
             <TransferStepper steps={steps} currentStep={currentStep} />
           </div>
@@ -116,9 +127,11 @@ const TransferForm = () => {
               )}
               <Button
                 type="submit"
-                className={`w-full sm:w-auto order-1 sm:order-2 bg-emerald-600 hover:bg-emerald-700 ${
-                  currentStep === 0 ? "sm:ml-auto" : ""
-                }`}
+                className={`w-full sm:w-auto order-1 sm:order-2 ${
+                  userRole === 'agent' 
+                    ? 'bg-blue-600 hover:bg-blue-700' 
+                    : 'bg-emerald-600 hover:bg-emerald-700'
+                } ${currentStep === 0 ? "sm:ml-auto" : ""}`}
                 disabled={isLoading}
               >
                 {isLoading 
