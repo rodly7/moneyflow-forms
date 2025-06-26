@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
   Wallet, 
-  ArrowUpDown,
   DollarSign,
   LogOut,
   Eye,
@@ -129,21 +128,13 @@ const NewAgentDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Button 
                 onClick={() => navigate('/deposit-withdrawal')}
                 className="h-20 flex-col space-y-2 bg-blue-600 hover:bg-blue-700 text-white shadow-md"
               >
                 <Wallet className="h-6 w-6" />
                 <span className="text-sm font-medium">Dépôt & Retrait</span>
-              </Button>
-
-              <Button 
-                onClick={() => navigate('/dashboard')}
-                className="h-20 flex-col space-y-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md"
-              >
-                <ArrowUpDown className="h-6 w-6" />
-                <span className="text-sm font-medium">Transfert Client</span>
               </Button>
 
               <Button 
