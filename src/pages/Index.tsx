@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, getCurrencyForCountry, convertCurrency, formatCurrency } from "@/integrations/supabase/client";
@@ -10,6 +9,8 @@ import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import BalanceCard from "@/components/dashboard/BalanceCard";
 import ActionButtons from "@/components/dashboard/ActionButtons";
 import TransactionsCard from "@/components/dashboard/TransactionsCard";
+import { useWithdrawalRequestNotifications } from "@/hooks/useWithdrawalRequestNotifications";
+import WithdrawalRequestNotification from "@/components/notifications/WithdrawalRequestNotification";
 
 interface Profile {
   id: string;
@@ -35,6 +36,15 @@ const Index = () => {
   const { user, isAgent } = useAuth();
   const [showTransfer, setShowTransfer] = useState(false);
   const { toast } = useToast();
+  
+  // Notifications de retrait
+  const {
+    selectedRequest,
+    showNotification,
+    handleConfirm,
+    handleReject,
+    closeNotification
+  } = useWithdrawalRequestNotifications();
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
@@ -225,6 +235,15 @@ const Index = () => {
           transactions={allTransactions}
           withdrawals={processedWithdrawals}
           onDeleteTransaction={handleDeleteTransaction}
+        />
+        
+        {/* Notification de retrait */}
+        <WithdrawalRequestNotification
+          isOpen={showNotification}
+          onClose={closeNotification}
+          onConfirm={() => selectedRequest && handleConfirm(selectedRequest.id)}
+          onReject={() => selectedRequest && handleReject(selectedRequest.id)}
+          requestData={selectedRequest}
         />
       </div>
     </div>

@@ -2,7 +2,6 @@
 export type TransferData = {
   recipient: {
     fullName: string;
-    email: string;
     country: string;
     phone: string;
   };
@@ -15,8 +14,7 @@ export type TransferData = {
 export const INITIAL_TRANSFER_DATA: TransferData = {
   recipient: {
     fullName: "",
-    email: "",
-    country: "Cameroun", // Default to Cameroun
+    country: "", // Will be set by default to user's country
     phone: "",
   },
   transfer: {

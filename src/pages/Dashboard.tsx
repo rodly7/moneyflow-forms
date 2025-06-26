@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,11 +10,22 @@ import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import TransactionsCard from "@/components/dashboard/TransactionsCard";
 import TransferForm from "@/components/TransferForm";
 import { useToast } from "@/hooks/use-toast";
+import { useWithdrawalRequestNotifications } from "@/hooks/useWithdrawalRequestNotifications";
+import WithdrawalRequestNotification from "@/components/notifications/WithdrawalRequestNotification";
 
 const Dashboard = () => {
   const { user, isAgent } = useAuth();
   const { toast } = useToast();
   const [showTransferForm, setShowTransferForm] = useState(false);
+  
+  // Notifications de retrait
+  const {
+    selectedRequest,
+    showNotification,
+    handleConfirm,
+    handleReject,
+    closeNotification
+  } = useWithdrawalRequestNotifications();
 
   const { data: profile } = useQuery({
     queryKey: ['profile', user?.id],
@@ -85,6 +95,15 @@ const Dashboard = () => {
             </div>
           </div>
         )}
+        
+        {/* Notification de retrait */}
+        <WithdrawalRequestNotification
+          isOpen={showNotification}
+          onClose={closeNotification}
+          onConfirm={() => selectedRequest && handleConfirm(selectedRequest.id)}
+          onReject={() => selectedRequest && handleReject(selectedRequest.id)}
+          requestData={selectedRequest}
+        />
       </div>
     </div>
   );

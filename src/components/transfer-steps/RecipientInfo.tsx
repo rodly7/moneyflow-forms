@@ -22,6 +22,18 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   
   const userCountry = profile?.country || "Cameroun";
   
+  // Set default country on component mount
+  useEffect(() => {
+    if (!recipient.country && userCountry) {
+      updateFields({
+        recipient: { 
+          ...recipient, 
+          country: userCountry
+        }
+      });
+    }
+  }, [userCountry, recipient, updateFields]);
+  
   // Get country code based on selected country
   const getCountryCode = (countryName: string) => {
     const country = countries.find(c => c.name === countryName);
@@ -168,27 +180,6 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           />
           <p className="text-sm text-amber-600">
             ⚠️ Destinataire non trouvé - Veuillez saisir le nom manuellement
-          </p>
-        </div>
-      )}
-
-      {/* Email field - only if user not found or for pending transfers */}
-      {((phoneInput.length >= 8 && !isVerified) || !phoneInput) && (
-        <div className="space-y-2">
-          <Label htmlFor="email">Email du Bénéficiaire</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="example@email.com"
-            value={recipient.email}
-            onChange={(e) =>
-              updateFields({
-                recipient: { ...recipient, email: e.target.value },
-              })
-            }
-          />
-          <p className="text-xs text-gray-500">
-            Requis si le destinataire n'a pas de compte
           </p>
         </div>
       )}
