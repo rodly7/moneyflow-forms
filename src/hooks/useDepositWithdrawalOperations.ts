@@ -7,7 +7,7 @@ import { calculateDepositFees, calculateWithdrawalFees } from "@/utils/depositWi
 import { getUserBalance } from "@/services/withdrawalService";
 
 export const useDepositWithdrawalOperations = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -24,6 +24,22 @@ export const useDepositWithdrawalOperations = () => {
     setIsProcessing(true);
 
     try {
+      // Vérifier le pays du destinataire
+      const { data: recipientData, error: recipientError } = await supabase
+        .from('profiles')
+        .select('country')
+        .eq('id', recipientId)
+        .single();
+
+      if (recipientError || !recipientData) {
+        throw new Error("Impossible de vérifier les informations du destinataire");
+      }
+
+      // Vérifier que l'agent et le client sont dans le même pays
+      if (profile?.country && recipientData.country !== profile.country) {
+        throw new Error(`Vous ne pouvez effectuer des dépôts que pour des clients de ${profile.country}`);
+      }
+
       // Calculer les frais (0 pour les dépôts)
       const { agentCommission } = calculateDepositFees(amount);
 
@@ -74,7 +90,7 @@ export const useDepositWithdrawalOperations = () => {
         .insert({
           user_id: recipientId,
           amount: amount,
-          country: agentBalanceData.country || "Congo Brazzaville",
+          country: profile?.country || "Congo Brazzaville",
           payment_method: 'agent_deposit',
           payment_phone: recipientPhone,
           payment_provider: 'agent',
@@ -119,6 +135,22 @@ export const useDepositWithdrawalOperations = () => {
     setIsProcessing(true);
 
     try {
+      // Vérifier le pays du client
+      const { data: clientData, error: clientError } = await supabase
+        .from('profiles')
+        .select('country')
+        .eq('id', clientId)
+        .single();
+
+      if (clientError || !clientData) {
+        throw new Error("Impossible de vérifier les informations du client");
+      }
+
+      // Vérifier que l'agent et le client sont dans le même pays
+      if (profile?.country && clientData.country !== profile.country) {
+        throw new Error(`Vous ne pouvez effectuer des retraits que pour des clients de ${profile.country}`);
+      }
+
       // Calculer les frais (1,5% pour les retraits)
       const { totalFee, agentCommission, platformCommission } = calculateWithdrawalFees(amount);
       const totalAmount = amount + totalFee;

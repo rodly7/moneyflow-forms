@@ -13,7 +13,7 @@ import { useUserSearch } from "@/hooks/useUserSearch";
 import { useAgentWithdrawalRequest } from "@/hooks/useAgentWithdrawalRequest";
 
 const AgentWithdrawalSimple = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -21,8 +21,7 @@ const AgentWithdrawalSimple = () => {
   const [amount, setAmount] = useState("");
   const [clientData, setClientData] = useState<any>(null);
 
-  // Use the new withdrawal request hook instead of direct withdrawal
-  const { requestWithdrawal, isProcessing } = useAgentWithdrawalRequest();
+  const { createWithdrawalRequest, isLoading } = useAgentWithdrawalRequest();
   const { searchUserByPhone, isSearching } = useUserSearch();
 
   const searchClient = async () => {
@@ -39,6 +38,17 @@ const AgentWithdrawalSimple = () => {
       const client = await searchUserByPhone(phoneNumber);
       
       if (client) {
+        // Vérifier si le client est dans le même pays que l'agent
+        if (profile?.country && client.country !== profile.country) {
+          toast({
+            title: "Client non autorisé",
+            description: `Vous ne pouvez effectuer des opérations que pour des clients de ${profile.country}`,
+            variant: "destructive"
+          });
+          setClientData(null);
+          return;
+        }
+
         setClientData(client);
         toast({
           title: "Client trouvé",
@@ -111,12 +121,7 @@ const AgentWithdrawalSimple = () => {
       return;
     }
 
-    const result = await requestWithdrawal(
-      clientData.id,
-      clientData.full_name || "Client",
-      withdrawalAmount,
-      phoneNumber
-    );
+    const result = await createWithdrawalRequest(withdrawalAmount, clientData.id);
 
     if (result.success) {
       // Réinitialiser le formulaire
@@ -132,7 +137,7 @@ const AgentWithdrawalSimple = () => {
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-4">
       <div className="container max-w-lg mx-auto space-y-6">
         <div className="flex items-center justify-between mb-4">
-          <Button variant="ghost" onClick={() => navigate('/dashboard')} className="text-gray-700">
+          <Button variant="ghost" onClick={() => navigate('/agent-dashboard')} className="text-gray-700">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
           </Button>
@@ -145,6 +150,9 @@ const AgentWithdrawalSimple = () => {
             <CardTitle>Demander un retrait pour un client</CardTitle>
             <p className="text-sm text-gray-600">
               Le client recevra une notification pour autoriser ce retrait
+            </p>
+            <p className="text-sm text-orange-600 font-medium">
+              Uniquement pour les clients de {profile?.country || 'votre pays'}
             </p>
           </CardHeader>
           <CardContent>
@@ -228,9 +236,9 @@ const AgentWithdrawalSimple = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4 h-12 text-lg"
-                disabled={isProcessing || isAmountExceedsBalance || !clientData || !amount}
+                disabled={isLoading || isAmountExceedsBalance || !clientData || !amount}
               >
-                {isProcessing ? (
+                {isLoading ? (
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     <span>Envoi en cours...</span>

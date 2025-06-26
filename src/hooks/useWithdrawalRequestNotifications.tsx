@@ -52,7 +52,7 @@ export const useWithdrawalRequestNotifications = () => {
   };
 
   return {
-    pendingRequests,
+    pendingRequests: pendingRequests || [],
     handleNotificationClick,
     markAsRead,
     refetch
