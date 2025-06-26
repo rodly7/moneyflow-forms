@@ -210,13 +210,13 @@ const Index = () => {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
-      <div className="w-full mx-auto space-y-4 px-0 pb-8">
-        {/* Enhanced Header Section */}
-        <div className="bg-white/70 backdrop-blur-sm border-b border-gray-100 px-4 pt-6 pb-4 shadow-sm">
+      <div className="w-full mx-auto space-y-2 px-0 pb-8">
+        {/* Enhanced Header Section - espacement réduit */}
+        <div className="bg-white/70 backdrop-blur-sm border-b border-gray-100 px-4 pt-6 pb-2 shadow-sm">
           {profile && <ProfileHeader profile={profile} />}
         </div>
 
-        {/* Enhanced Balance Card */}
+        {/* Enhanced Balance Card - espacement réduit */}
         {profile && (
           <div className="px-4">
             <BalanceCard 
@@ -227,7 +227,7 @@ const Index = () => {
           </div>
         )}
 
-        {/* Enhanced Transfer Form or Action Buttons */}
+        {/* Enhanced Transfer Form or Action Buttons - espacement réduit */}
         {showTransfer ? (
           <div className="px-4">
             <div className="bg-white rounded-2xl shadow-lg p-6">
@@ -250,7 +250,7 @@ const Index = () => {
           </div>
         )}
 
-        {/* Enhanced Transactions Card */}
+        {/* Enhanced Transactions Card - espacement réduit */}
         <div className="px-4">
           <TransactionsCard 
             transactions={allTransactions}
