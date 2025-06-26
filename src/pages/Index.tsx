@@ -154,9 +154,14 @@ const Index = () => {
   };
 
   if (isLoading) {
-    return <div className="flex justify-center items-center min-h-screen">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
-    </div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent shadow-lg" />
+          <p className="text-gray-600 font-medium">Chargement en cours...</p>
+        </div>
+      </div>
+    );
   }
   
   const userCountry = profile?.country || "Cameroun";
@@ -203,40 +208,55 @@ const Index = () => {
   })) || [];
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20">
-      <div className="w-full mx-auto space-y-4 px-0">
-        <div className="px-4 pt-4">
+    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
+      <div className="w-full mx-auto space-y-6 px-0 pb-8">
+        {/* Enhanced Header Section */}
+        <div className="bg-white/70 backdrop-blur-sm border-b border-gray-100 px-4 pt-6 pb-4 shadow-sm">
           {profile && <ProfileHeader profile={profile} />}
         </div>
 
+        {/* Enhanced Balance Card */}
         {profile && (
-          <BalanceCard 
-            balance={profile.balance} 
-            userCountry={userCountry}
-            currency={userCurrency}
-          />
+          <div className="px-4">
+            <BalanceCard 
+              balance={profile.balance} 
+              userCountry={userCountry}
+              currency={userCurrency}
+            />
+          </div>
         )}
 
+        {/* Enhanced Transfer Form or Action Buttons */}
         {showTransfer ? (
           <div className="space-y-4 px-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowTransfer(false)}
-              className="mb-4"
-            >
-              ← Retour
-            </Button>
-            <TransferForm />
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-800">Nouveau transfert</h2>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowTransfer(false)}
+                  className="rounded-full px-6 hover:bg-gray-50 transition-all duration-200"
+                >
+                  ← Retour
+                </Button>
+              </div>
+              <TransferForm />
+            </div>
           </div>
         ) : (
-          <ActionButtons onTransferClick={() => setShowTransfer(true)} />
+          <div className="px-4">
+            <ActionButtons onTransferClick={() => setShowTransfer(true)} />
+          </div>
         )}
 
-        <TransactionsCard 
-          transactions={allTransactions}
-          withdrawals={processedWithdrawals}
-          onDeleteTransaction={handleDeleteTransaction}
-        />
+        {/* Enhanced Transactions Card */}
+        <div className="px-2">
+          <TransactionsCard 
+            transactions={allTransactions}
+            withdrawals={processedWithdrawals}
+            onDeleteTransaction={handleDeleteTransaction}
+          />
+        </div>
         
         {/* Notification de retrait sécurisée */}
         <WithdrawalRequestNotification

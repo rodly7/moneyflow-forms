@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Copy, Check } from "lucide-react";
+import { ChevronRight, Copy, Check, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import TransactionItem from "./TransactionItem";
 import { format } from "date-fns";
@@ -127,12 +127,17 @@ const TransactionsCard = ({
   const recentOperations = allOperations.slice(0, 3);
 
   return (
-    <Card className="bg-white shadow-lg mx-2 sm:mx-4">
-      <CardHeader className="py-4 px-4">
-        <CardTitle className="text-lg font-semibold">Historique</CardTitle>
+    <Card className="bg-white/90 backdrop-blur-sm shadow-xl border-0 rounded-2xl overflow-hidden mx-2 sm:mx-4">
+      <CardHeader className="py-6 px-6 bg-gradient-to-r from-gray-50 to-gray-100">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-emerald-500 rounded-full">
+            <Activity className="h-5 w-5 text-white" />
+          </div>
+          <CardTitle className="text-xl font-bold text-gray-800">Historique des transactions</CardTitle>
+        </div>
       </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <div className="space-y-3">
+      <CardContent className="p-6">
+        <div className="space-y-4">
           {recentOperations.length > 0 ? (
             <>
               {recentOperations.map((operation) => {
@@ -141,18 +146,18 @@ const TransactionsCard = ({
                   return (
                     <div 
                       key={operation.id} 
-                      className="flex flex-col p-3 rounded-lg border hover:bg-gray-50 transition-colors w-full"
+                      className="flex flex-col p-4 rounded-xl border border-gray-100 hover:bg-gray-50/50 transition-all duration-300 w-full shadow-sm hover:shadow-md"
                     >
                       <div className="flex justify-between items-start w-full">
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <div className="p-2 rounded-full bg-gray-100 shrink-0">
-                            <Download className="w-4 h-4 text-red-500" />
+                        <div className="flex items-start gap-4 flex-1 min-w-0">
+                          <div className="p-3 rounded-xl bg-gradient-to-r from-red-100 to-pink-100 shrink-0">
+                            <Download className="w-5 h-5 text-red-600" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-medium text-sm text-gray-900 truncate">{operation.description}</p>
+                              <p className="font-semibold text-gray-900 truncate">{operation.description}</p>
                               {operation.userType && (
-                                <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${
+                                <span className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap ${
                                   operation.userType === 'agent' 
                                     ? 'bg-purple-100 text-purple-700' 
                                     : 'bg-blue-100 text-blue-700'
@@ -161,20 +166,20 @@ const TransactionsCard = ({
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-sm text-gray-600 mt-1 font-medium">
                               {format(operation.date, 'PPP', { locale: fr })}
                             </p>
                           </div>
                         </div>
-                        <div className="text-right shrink-0 ml-2">
-                          <p className="font-semibold text-sm text-red-500 whitespace-nowrap">
+                        <div className="text-right shrink-0 ml-3">
+                          <p className="font-bold text-red-600 whitespace-nowrap text-lg">
                             {new Intl.NumberFormat('fr-FR', {
                               style: 'currency',
                               currency: operation.currency || 'XAF',
                               maximumFractionDigits: 0
                             }).format(operation.amount)}
                           </p>
-                          <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap inline-block mt-1 ${
+                          <span className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap inline-block mt-2 ${
                             operation.status === 'completed' ? 'bg-green-100 text-green-700' : 
                             operation.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
                             'bg-gray-100 text-gray-700'
@@ -186,22 +191,22 @@ const TransactionsCard = ({
                       </div>
                       
                       {withdrawal?.showCode && withdrawal.verification_code && (
-                        <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200 w-full">
+                        <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100 w-full">
                           <div className="flex justify-between items-center">
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs text-gray-500 mb-1">Code de vérification (valide 5 min):</p>
-                              <p className="font-mono font-medium tracking-wider text-sm break-all">{withdrawal.verification_code}</p>
+                              <p className="text-sm text-blue-700 mb-2 font-medium">Code de vérification (valide 5 min):</p>
+                              <p className="font-mono font-bold tracking-widest text-lg text-blue-900 break-all">{withdrawal.verification_code}</p>
                             </div>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => copyToClipboard(withdrawal.verification_code!, withdrawal.id)}
-                              className="h-8 w-8 p-0 shrink-0 ml-2"
+                              className="h-10 w-10 p-0 shrink-0 ml-3 rounded-full hover:bg-blue-100"
                             >
                               {copiedCodes[withdrawal.id] ? (
-                                <Check className="h-4 w-4 text-green-500" />
+                                <Check className="h-5 w-5 text-green-600" />
                               ) : (
-                                <Copy className="h-4 w-4" />
+                                <Copy className="h-5 w-5 text-blue-600" />
                               )}
                             </Button>
                           </div>
@@ -221,23 +226,25 @@ const TransactionsCard = ({
               })}
               
               {allOperations.length > 3 && (
-                <div className="text-center pt-3">
+                <div className="text-center pt-4">
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="text-primary hover:text-primary/80 font-medium"
+                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 font-semibold rounded-full px-6 py-2 transition-all duration-300"
                     onClick={() => navigate('/transactions')}
                   >
-                    Voir plus <ChevronRight className="h-4 w-4 ml-1" />
+                    Voir toutes les transactions <ChevronRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
               )}
             </>
           ) : (
-            <div className="text-center py-8 px-4">
-              <p className="text-gray-500 bg-gray-50 rounded-lg p-6">
-                Aucune opération effectuée
-              </p>
+            <div className="text-center py-12 px-4">
+              <div className="p-4 bg-gray-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <Activity className="h-8 w-8 text-gray-400" />
+              </div>
+              <p className="text-gray-600 font-medium text-lg mb-2">Aucune transaction</p>
+              <p className="text-gray-500 text-sm">Vos transactions apparaîtront ici</p>
             </div>
           )}
         </div>
