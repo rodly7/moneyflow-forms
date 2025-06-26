@@ -18,7 +18,7 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
   
   const handleTransferClick = () => {
     if (isAgent()) {
-      // Pour les agents, rediriger vers les services agent
+      // Pour les agents, rediriger vers les services agent avec transfert
       navigate('/agent-services');
     } else {
       // Pour les utilisateurs normaux, utiliser la fonction onTransferClick
@@ -26,22 +26,24 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
     }
   };
   
-  console.log("ActionButtons - pendingRequests:", pendingRequests?.length || 0);
-  
   return (
     <div className="w-full px-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-2">
-        {/* Transfer button - Made larger for regular users */}
+        {/* Transfer button - Plus grand pour les utilisateurs normaux */}
         <Button 
           variant="outline" 
           className={`flex flex-col items-center justify-center bg-white ${
             !isAgent() ? "h-24 col-span-2" : "h-20"
-          }`}
+          } ${isAgent() ? "border-blue-200 hover:bg-blue-50" : ""}`}
           onClick={handleTransferClick}
         >
-          <ArrowUpRight className={`mb-1 ${!isAgent() ? "h-6 w-6" : "h-5 w-5"}`} />
-          <span className={`font-medium ${!isAgent() ? "text-sm" : "text-xs"}`}>
-            Transfert
+          <ArrowUpRight className={`mb-1 ${!isAgent() ? "h-6 w-6" : "h-5 w-5"} ${
+            isAgent() ? "text-blue-600" : ""
+          }`} />
+          <span className={`font-medium ${!isAgent() ? "text-sm" : "text-xs"} ${
+            isAgent() ? "text-blue-600" : ""
+          }`}>
+            {isAgent() ? "Transfert Agent" : "Transfert"}
           </span>
         </Button>
         
@@ -50,10 +52,10 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
           <Link to="/commission" className="contents">
             <Button 
               variant="outline" 
-              className="flex flex-col items-center justify-center h-20 bg-white"
+              className="flex flex-col items-center justify-center h-20 bg-white border-blue-200 hover:bg-blue-50"
             >
-              <Receipt className="h-5 w-5 mb-1" />
-              <span className="text-xs font-medium">Commission</span>
+              <Receipt className="h-5 w-5 mb-1 text-blue-600" />
+              <span className="text-xs font-medium text-blue-600">Commission</span>
             </Button>
           </Link>
         ) : (
@@ -68,7 +70,7 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
           </Link>
         )}
         
-        {/* Withdrawal Request Confirmation - Only for regular users - Same row as factures */}
+        {/* Confirmation de retrait - Seulement pour les utilisateurs normaux */}
         {!isAgent() && (
           <Button 
             variant="outline" 
@@ -76,11 +78,8 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
               pendingRequests && pendingRequests.length > 0 ? "border-blue-300 bg-blue-50" : ""
             }`}
             onClick={() => {
-              console.log("Bouton Confirmer retrait cliqué, pendingRequests:", pendingRequests?.length || 0);
               if (pendingRequests && pendingRequests.length > 0) {
                 handleNotificationClick();
-              } else {
-                console.log("Aucune demande de retrait en attente");
               }
             }}
           >
@@ -100,15 +99,15 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
           </Button>
         )}
         
-        {/* Services Agent - Only for agents - Made larger and redirect to unified system */}
+        {/* Services Agent - Seulement pour les agents */}
         {isAgent() && (
           <Button 
             variant="outline" 
-            className="flex flex-col items-center justify-center h-24 bg-white col-span-2"
+            className="flex flex-col items-center justify-center h-24 bg-white col-span-2 border-blue-200 hover:bg-blue-50"
             onClick={() => navigate('/agent-services')}
           >
-            <PiggyBank className="h-6 w-6 mb-2" />
-            <span className="text-sm font-medium">Services Agent</span>
+            <PiggyBank className="h-6 w-6 mb-2 text-blue-600" />
+            <span className="text-sm font-medium text-blue-600">Services Complets</span>
           </Button>
         )}
       </div>

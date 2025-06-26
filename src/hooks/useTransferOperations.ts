@@ -9,7 +9,7 @@ export const useTransferOperations = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, userRole } = useAuth();
+  const { user, userRole, profile } = useAuth();
 
   const processTransfer = async (transferData: {
     amount: number;
@@ -32,7 +32,7 @@ export const useTransferOperations = () => {
     try {
       setIsLoading(true);
 
-      // Vérifier que nous avons bien les données du bénéficiaire
+      // Vérifier les données du bénéficiaire
       if (!transferData.recipient.email || !transferData.recipient.fullName) {
         toast({
           title: "Informations incomplètes",
@@ -42,28 +42,11 @@ export const useTransferOperations = () => {
         return { success: false };
       }
 
-      // Récupérer le pays de l'utilisateur depuis son profil
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('balance, country')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError || !profileData) {
-        toast({
-          title: "Erreur",
-          description: "Impossible de vérifier votre solde ou pays",
-          variant: "destructive"
-        });
-        return { success: false };
-      }
-
-      // Utiliser le pays de l'utilisateur pour calculer les frais
-      const userCountry = profileData.country || "Cameroun";
+      // Utiliser le pays du profil directement
+      const userCountry = profile?.country || "Cameroun";
       
-      // Pour les agents, utiliser le type "agent" pour le calcul des frais
+      // Calculer les frais selon le rôle
       const feeType = userRole === 'agent' ? 'agent' : 'user';
-      
       const { fee: fees, rate, agentCommission, moneyFlowCommission } = calculateFee(
         transferData.amount, 
         userCountry, 
@@ -71,34 +54,33 @@ export const useTransferOperations = () => {
         feeType
       );
       
-      const totalAmount = transferData.amount + fees;
+      const total = transferData.amount + fees;
       
-      if (profileData.balance < totalAmount) {
+      // Vérifier le solde
+      if (profile && profile.balance < total) {
         toast({
           title: "Solde insuffisant",
-          description: "Vous n'avez pas assez de fonds pour effectuer ce transfert",
+          description: `Vous n'avez pas assez de fonds. Solde: ${profile.balance} XAF, Requis: ${total} XAF`,
           variant: "destructive"
         });
         return { success: false };
       }
 
-      console.log("Données du transfert:", {
+      console.log("🔄 Traitement du transfert:", {
         typeUtilisateur: userRole,
+        paysSources: userCountry,
+        paysDestination: transferData.recipient.country,
         beneficiaire: transferData.recipient.fullName,
-        identifiant: transferData.recipient.email,
         montant: transferData.amount,
         frais: fees,
-        tauxCommission: rate + "%",
-        commissionAgent: agentCommission,
-        commissionMoneyFlow: moneyFlowCommission,
-        userCountry: userCountry,
-        recipientCountry: transferData.recipient.country
+        total: total,
+        taux: rate + "%"
       });
 
-      // Utiliser l'identifiant du destinataire (téléphone ou email)
+      // Utiliser l'identifiant du destinataire
       const recipientIdentifier = transferData.recipient.phone || transferData.recipient.email;
       
-      // Utiliser la procédure stockée pour traiter le transfert d'argent
+      // Traiter le transfert via la procédure stockée
       const { data: result, error: transferProcessError } = await supabase
         .rpc('process_money_transfer', {
           sender_id: user.id,
@@ -108,7 +90,7 @@ export const useTransferOperations = () => {
         });
 
       if (transferProcessError) {
-        console.error("Erreur lors du transfert:", transferProcessError);
+        console.error("❌ Erreur lors du transfert:", transferProcessError);
         
         // Si le destinataire n'existe pas, créer un transfert en attente
         if (transferProcessError.message.includes('Recipient not found')) {
@@ -131,11 +113,11 @@ export const useTransferOperations = () => {
             throw pendingError;
           }
 
-          // Déduire le montant du solde de l'expéditeur en utilisant secure_increment_balance avec un montant négatif
+          // Déduire le montant du solde
           const { error: balanceError } = await supabase
             .rpc('secure_increment_balance', {
               target_user_id: user.id,
-              amount: -totalAmount,
+              amount: -total,
               operation_type: 'transfer_debit',
               performed_by: user.id
             });
@@ -143,6 +125,11 @@ export const useTransferOperations = () => {
           if (balanceError) {
             throw balanceError;
           }
+
+          toast({
+            title: "Transfert en attente",
+            description: `Le destinataire recevra un code: ${claimCode}`,
+          });
 
           return { 
             success: true, 
@@ -152,36 +139,25 @@ export const useTransferOperations = () => {
         }
         
         toast({
-          title: "Erreur",
-          description: "Une erreur est survenue lors du transfert: " + transferProcessError.message,
+          title: "Erreur de transfert",
+          description: transferProcessError.message,
           variant: "destructive"
         });
         return { success: false };
       }
 
-      // Enregistrer les informations de commission en console uniquement
-      console.log("Commissions pour le transfert", {
-        transferId: result,
-        agentCommission: agentCommission,
-        moneyFlowCommission: moneyFlowCommission,
-        totalFee: fees
-      });
-
+      // Succès du transfert
       const isNational = userCountry === transferData.recipient.country;
-      const rateText = userRole === 'agent' 
-        ? (isNational ? "2,5%" : "6,5%") 
-        : (isNational ? "2,5%" : "6,5%");
-
       const successMessage = userRole === 'agent'
-        ? `Transfert agent de ${transferData.amount} XAF vers ${transferData.recipient.fullName} effectué avec succès. Frais: ${rateText}`
-        : `Votre transfert de ${transferData.amount} XAF vers ${transferData.recipient.fullName} a été effectué avec succès. Frais: ${rateText}`;
+        ? `Transfert agent effectué: ${transferData.amount} XAF vers ${transferData.recipient.fullName} (${rate}%)`
+        : `Transfert réussi: ${transferData.amount} XAF vers ${transferData.recipient.fullName} (${rate}%)`;
 
       toast({
         title: "Transfert Réussi",
         description: successMessage,
       });
       
-      // Naviguer vers la page appropriée selon le type d'utilisateur
+      // Navigation selon le rôle
       if (userRole === 'agent') {
         navigate('/agent-services');
       } else {
@@ -190,10 +166,10 @@ export const useTransferOperations = () => {
       
       return { success: true };
     } catch (error) {
-      console.error('Erreur lors du transfert:', error);
+      console.error('❌ Erreur critique:', error);
       toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors du transfert.",
+        title: "Erreur système",
+        description: "Une erreur inattendue s'est produite",
         variant: "destructive"
       });
       return { success: false };

@@ -1,15 +1,15 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, ArrowRight } from "lucide-react";
+import { ArrowLeft, Plus, ArrowRight, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AgentBalanceCard } from "@/components/agent/AgentBalanceCard";
 import TransferForm from "@/components/TransferForm";
-import { getUserBalance } from "@/services/withdrawalService";
+import { supabase } from "@/integrations/supabase/client";
 
 const AgentServices = () => {
   const { user, profile } = useAuth();
@@ -22,8 +22,14 @@ const AgentServices = () => {
     if (user?.id) {
       setIsLoadingBalance(true);
       try {
-        const balanceData = await getUserBalance(user.id);
-        setAgentBalance(balanceData.balance);
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('balance')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) throw error;
+        setAgentBalance(data.balance || 0);
       } catch (error) {
         console.error("❌ Erreur lors du chargement du solde agent:", error);
         toast({
@@ -35,6 +41,10 @@ const AgentServices = () => {
       setIsLoadingBalance(false);
     }
   };
+
+  useEffect(() => {
+    fetchAgentBalance();
+  }, [user?.id]);
 
   if (!profile || profile.role !== 'agent') {
     return (
@@ -55,24 +65,38 @@ const AgentServices = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-4">
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50/50 to-indigo-100/50 py-4 px-0 sm:py-8 sm:px-4">
       <div className="container max-w-lg mx-auto space-y-6">
         <div className="flex items-center justify-between mb-4">
           <Button variant="ghost" onClick={() => navigate('/agent-dashboard')} className="text-gray-700">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
           </Button>
-          <h1 className="text-2xl font-bold">Services Agent</h1>
-          <div className="w-10"></div>
+          <h1 className="text-2xl font-bold text-blue-700">Services Agent</h1>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={fetchAgentBalance}
+            disabled={isLoadingBalance}
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoadingBalance ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
 
         {/* Solde Agent */}
-        <AgentBalanceCard 
-          balance={agentBalance}
-          isLoading={isLoadingBalance}
-          onRefresh={fetchAgentBalance}
-          userCountry={profile.country}
-        />
+        <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-xl">
+          <CardContent className="p-6">
+            <div className="text-center">
+              <h3 className="text-blue-100 mb-2">Solde Agent</h3>
+              <div className="text-3xl font-bold mb-2">
+                {agentBalance.toLocaleString('fr-FR')} XAF
+              </div>
+              <p className="text-blue-100 text-sm">
+                Pays: {profile.country}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         <Tabs defaultValue="transfer" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
@@ -82,32 +106,42 @@ const AgentServices = () => {
             </TabsTrigger>
             <TabsTrigger value="deposit" className="flex items-center gap-2">
               <Plus className="w-4 h-4" />
-              Dépôt
+              Dépôt/Retrait
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="transfer">
-            <TransferForm />
+            <div className="space-y-4">
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-4">
+                  <h3 className="font-medium text-blue-800 mb-2">Mode Agent Activé</h3>
+                  <p className="text-blue-600 text-sm">
+                    Vous pouvez effectuer des transferts pour vos clients vers tous les pays disponibles.
+                  </p>
+                </CardContent>
+              </Card>
+              <TransferForm />
+            </div>
           </TabsContent>
 
           <TabsContent value="deposit">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-emerald-600">
+                <CardTitle className="flex items-center gap-2 text-blue-600">
                   <Plus className="w-5 h-5" />
-                  Dépôt Client
+                  Services de Dépôt et Retrait
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8">
+                <div className="text-center py-8 space-y-4">
                   <p className="text-gray-600 mb-4">
-                    Les dépôts sont gérés via l'interface principale
+                    Gérez les dépôts et retraits de vos clients
                   </p>
                   <Button 
                     onClick={() => navigate('/deposit-withdrawal')}
-                    className="bg-emerald-600 hover:bg-emerald-700"
+                    className="bg-blue-600 hover:bg-blue-700"
                   >
-                    Aller aux dépôts/retraits
+                    Accéder aux services de dépôt/retrait
                   </Button>
                 </div>
               </CardContent>

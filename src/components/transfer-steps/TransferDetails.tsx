@@ -12,28 +12,12 @@ type TransferDetailsProps = TransferData & {
 };
 
 const TransferDetails = ({ transfer, recipient, updateFields }: TransferDetailsProps) => {
-  const { user, userRole } = useAuth();
+  const { user, userRole, profile } = useAuth();
   
-  // Récupérer le profil de l'utilisateur pour connaître son pays
-  const { data: userProfile } = useQuery({
-    queryKey: ['userProfile', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('country')
-        .eq('id', user.id)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id,
-  });
-
-  const userCountry = userProfile?.country || "Cameroun";
+  // Utiliser le pays du profil directement
+  const userCountry = profile?.country || "Cameroun";
   
-  // Calculer les frais automatiquement en utilisant le pays de l'utilisateur
+  // Calculer les frais automatiquement
   const { fee: fees, rate: feeRate } = calculateFee(
     transfer.amount, 
     userCountry,
@@ -91,16 +75,25 @@ const TransferDetails = ({ transfer, recipient, updateFields }: TransferDetailsP
               {total.toLocaleString('fr-FR')} {transfer.currency}
             </span>
           </div>
-          {isNational && (
-            <div className="text-sm text-emerald-600 bg-emerald-50 p-2 rounded">
-              💰 Transfert national - Taux préférentiel de 2,5%
-            </div>
-          )}
-          {userRole === 'agent' && (
-            <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
-              🏢 Mode Agent - Transferts nationaux et internationaux disponibles
-            </div>
-          )}
+          
+          {/* Informations contextuelles */}
+          <div className="space-y-2 pt-2">
+            {isNational && (
+              <div className="text-sm text-emerald-600 bg-emerald-50 p-2 rounded">
+                💰 Transfert national - Taux préférentiel de {feeRate}%
+              </div>
+            )}
+            {!isNational && (
+              <div className="text-sm text-orange-600 bg-orange-50 p-2 rounded">
+                🌍 Transfert international - Taux de {feeRate}%
+              </div>
+            )}
+            {userRole === 'agent' && (
+              <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
+                🏢 Mode Agent - Depuis {userCountry} vers {recipient.country}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

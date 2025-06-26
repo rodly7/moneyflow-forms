@@ -11,7 +11,7 @@ import { CheckCircle, Copy } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const TransferForm = () => {
-  const { userRole } = useAuth();
+  const { userRole, profile } = useAuth();
   const {
     currentStep,
     data,
@@ -82,7 +82,11 @@ const TransferForm = () => {
             <div className="flex justify-center mt-6">
               <Button 
                 onClick={resetForm} 
-                className="bg-emerald-600 hover:bg-emerald-700"
+                className={`${
+                  userRole === 'agent' 
+                    ? 'bg-blue-600 hover:bg-blue-700' 
+                    : 'bg-emerald-600 hover:bg-emerald-700'
+                }`}
               >
                 Faire un autre transfert
               </Button>
@@ -97,11 +101,11 @@ const TransferForm = () => {
     <div className="w-full px-2 sm:px-0">
       <Card className="backdrop-blur-md bg-white/80 shadow-xl rounded-xl border-0 overflow-hidden">
         <div className="p-4 md:p-6">
-          {/* En-tête adapté pour les agents */}
+          {/* En-tête adapté selon le rôle */}
           {userRole === 'agent' && (
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
               <p className="text-blue-700 text-sm font-medium">
-                💼 Mode Agent: Transferts nationaux et internationaux disponibles
+                💼 Mode Agent: Transferts disponibles pour {profile?.country || 'votre pays'}
               </p>
             </div>
           )}

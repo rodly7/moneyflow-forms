@@ -11,7 +11,8 @@ type RecipientInfoProps = TransferData & {
 };
 
 const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
-  const { userRole } = useAuth();
+  const { userRole, profile } = useAuth();
+  const userCountry = profile?.country || "Cameroun";
   
   return (
     <div className="space-y-6">
@@ -84,9 +85,14 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
           </SelectContent>
         </Select>
         {userRole === 'agent' && (
-          <p className="text-xs text-blue-600">
-            En tant qu'agent, vous pouvez effectuer des transferts vers tous les pays
-          </p>
+          <div className="text-xs space-y-1">
+            <p className="text-blue-600">
+              🏢 Mode Agent: Tous les pays disponibles
+            </p>
+            <p className="text-gray-500">
+              Pays d'origine: {userCountry}
+            </p>
+          </div>
         )}
       </div>
     </div>
