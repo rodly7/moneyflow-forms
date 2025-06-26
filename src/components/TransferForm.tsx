@@ -101,7 +101,7 @@ const TransferForm = () => {
           {userRole === 'agent' && (
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
               <p className="text-blue-700 text-sm font-medium">
-                💼 Mode Agent: Transferts internationaux uniquement
+                💼 Mode Agent: Transferts nationaux et internationaux disponibles
               </p>
             </div>
           )}
