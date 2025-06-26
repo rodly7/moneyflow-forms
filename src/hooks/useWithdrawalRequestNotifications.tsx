@@ -166,8 +166,8 @@ export const useWithdrawalRequestNotifications = () => {
       }
       
       toast({
-        title: "✅ Retrait autorisé",
-        description: `Vous avez autorisé le retrait de ${selectedRequest.amount} FCFA par ${selectedRequest.agent_name}. Frais: ${totalFee} FCFA`,
+        title: "✅ Retrait effectué avec succès",
+        description: `Le retrait de ${selectedRequest.amount} FCFA a été effectué avec succès. Frais: ${totalFee} FCFA`,
       });
       
       setShowNotification(false);
@@ -178,7 +178,7 @@ export const useWithdrawalRequestNotifications = () => {
       console.error("Erreur lors de la confirmation:", error);
       toast({
         title: "❌ Erreur",
-        description: "Impossible d'autoriser le retrait. Veuillez réessayer.",
+        description: "Impossible d'effectuer le retrait. Veuillez réessayer.",
         variant: "destructive"
       });
     }
@@ -197,7 +197,7 @@ export const useWithdrawalRequestNotifications = () => {
       
       toast({
         title: "🚫 Retrait refusé",
-        description: `Vous avez refusé la demande de retrait de ${selectedRequest.agent_name}`,
+        description: `La demande de retrait de ${selectedRequest.agent_name} reste en attente de votre décision`,
       });
       
       setShowNotification(false);
