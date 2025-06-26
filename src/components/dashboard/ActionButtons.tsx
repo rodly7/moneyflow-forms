@@ -17,13 +17,8 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
   const isAgent = () => userRole === 'agent';
   
   const handleTransferClick = () => {
-    if (isAgent()) {
-      // Pour les agents, rediriger vers les services agent avec transfert
-      navigate('/agent-services');
-    } else {
-      // Pour les utilisateurs normaux, utiliser la fonction onTransferClick
-      onTransferClick();
-    }
+    // Toujours utiliser onTransferClick pour afficher le formulaire de transfert
+    onTransferClick();
   };
   
   return (
@@ -43,7 +38,7 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
           <span className={`font-medium ${!isAgent() ? "text-sm" : "text-xs"} ${
             isAgent() ? "text-blue-600" : ""
           }`}>
-            {isAgent() ? "Transfert Agent" : "Transfert"}
+            {isAgent() ? "Transfert Client" : "Transfert"}
           </span>
         </Button>
         
@@ -103,11 +98,11 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
         {isAgent() && (
           <Button 
             variant="outline" 
-            className="flex flex-col items-center justify-center h-24 bg-white col-span-2 border-blue-200 hover:bg-blue-50"
+            className="flex flex-col items-center justify-center h-20 bg-white border-blue-200 hover:bg-blue-50"
             onClick={() => navigate('/agent-services')}
           >
-            <PiggyBank className="h-6 w-6 mb-2 text-blue-600" />
-            <span className="text-sm font-medium text-blue-600">Services Complets</span>
+            <PiggyBank className="h-5 w-5 mb-1 text-blue-600" />
+            <span className="text-xs font-medium text-blue-600">Dépôt/Retrait</span>
           </Button>
         )}
       </div>

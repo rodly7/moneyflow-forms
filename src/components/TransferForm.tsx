@@ -39,6 +39,7 @@ const TransferForm = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Écran de confirmation pour transfert en attente
   if (pendingTransferInfo) {
     return (
       <div className="w-full px-2 sm:px-0">
@@ -97,6 +98,7 @@ const TransferForm = () => {
     );
   }
 
+  // Formulaire de transfert principal
   return (
     <div className="w-full px-2 sm:px-0">
       <Card className="backdrop-blur-md bg-white/80 shadow-xl rounded-xl border-0 overflow-hidden">
@@ -105,7 +107,7 @@ const TransferForm = () => {
           {userRole === 'agent' && (
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
               <p className="text-blue-700 text-sm font-medium">
-                💼 Mode Agent: Transferts disponibles pour {profile?.country || 'votre pays'}
+                💼 Mode Agent: Effectuez des transferts pour vos clients depuis {profile?.country || 'votre pays'}
               </p>
             </div>
           )}
