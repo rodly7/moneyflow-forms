@@ -1,7 +1,7 @@
 
 import { ArrowUpRight, Banknote, CreditCard, UserMinus, Receipt, PiggyBank, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWithdrawalRequestNotifications } from "@/hooks/useWithdrawalRequestNotifications";
 
@@ -11,9 +11,20 @@ type ActionButtonsProps = {
 
 const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
   const { userRole } = useAuth();
+  const navigate = useNavigate();
   const { pendingRequests, handleNotificationClick } = useWithdrawalRequestNotifications();
   
   const isAgent = () => userRole === 'agent';
+  
+  const handleTransferClick = () => {
+    if (isAgent()) {
+      // Pour les agents, rediriger vers les services agent
+      navigate('/agent-services');
+    } else {
+      // Pour les utilisateurs normaux, utiliser la fonction onTransferClick
+      onTransferClick();
+    }
+  };
   
   console.log("ActionButtons - pendingRequests:", pendingRequests?.length || 0);
   
@@ -26,7 +37,7 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
           className={`flex flex-col items-center justify-center bg-white ${
             !isAgent() ? "h-24 col-span-2" : "h-20"
           }`}
-          onClick={onTransferClick}
+          onClick={handleTransferClick}
         >
           <ArrowUpRight className={`mb-1 ${!isAgent() ? "h-6 w-6" : "h-5 w-5"}`} />
           <span className={`font-medium ${!isAgent() ? "text-sm" : "text-xs"}`}>
@@ -94,7 +105,7 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
           <Button 
             variant="outline" 
             className="flex flex-col items-center justify-center h-24 bg-white col-span-2"
-            onClick={() => window.location.href = '/agent-services'}
+            onClick={() => navigate('/agent-services')}
           >
             <PiggyBank className="h-6 w-6 mb-2" />
             <span className="text-sm font-medium">Services Agent</span>
