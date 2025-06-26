@@ -5,10 +5,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, Minus, Shield } from "lucide-react";
+import { ArrowLeft, Plus, Shield, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SecureAgentWithdrawalForm } from "@/components/agent/SecureAgentWithdrawalForm";
 import { AgentBalanceCard } from "@/components/agent/AgentBalanceCard";
+import { AgentTransferForm } from "@/components/agent/AgentTransferForm";
 import { getUserBalance } from "@/services/withdrawalService";
 
 const AgentServices = () => {
@@ -74,17 +75,25 @@ const AgentServices = () => {
           userCountry={profile.country}
         />
 
-        <Tabs defaultValue="withdrawal" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="transfer" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="transfer" className="flex items-center gap-2">
+              <ArrowRight className="w-4 h-4" />
+              Transfert
+            </TabsTrigger>
             <TabsTrigger value="deposit" className="flex items-center gap-2">
               <Plus className="w-4 h-4" />
               Dépôt
             </TabsTrigger>
             <TabsTrigger value="withdrawal" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
-              Retrait Sécurisé
+              Retrait
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="transfer">
+            <AgentTransferForm />
+          </TabsContent>
 
           <TabsContent value="deposit">
             <Card>
@@ -97,7 +106,7 @@ const AgentServices = () => {
               <CardContent>
                 <div className="text-center py-8">
                   <p className="text-gray-600 mb-4">
-                    Les dépôts sont maintenant gérés via l'interface principale
+                    Les dépôts sont gérés via l'interface principale
                   </p>
                   <Button 
                     onClick={() => navigate('/deposit-withdrawal')}
