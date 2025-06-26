@@ -22,12 +22,14 @@ interface SecureWithdrawalConfirmationProps {
   request: WithdrawalRequest;
   onClose: () => void;
   onConfirmed: () => void;
+  onRejected: () => void;
 }
 
 export const SecureWithdrawalConfirmation = ({ 
   request, 
   onClose, 
-  onConfirmed 
+  onConfirmed,
+  onRejected
 }: SecureWithdrawalConfirmationProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -64,7 +66,7 @@ export const SecureWithdrawalConfirmation = ({
         return;
       }
 
-      await processWithdrawal(true);
+      onConfirmed();
     } catch (error) {
       console.error("❌ Erreur d'authentification:", error);
       toast({
@@ -81,26 +83,28 @@ export const SecureWithdrawalConfirmation = ({
     setIsProcessing(true);
 
     try {
-      // Simuler l'authentification biométrique
-      // Dans une vraie application, vous utiliseriez l'API WebAuthn
-      if (navigator.credentials) {
-        toast({
-          title: "Authentification biométrique",
-          description: "Utilisez votre empreinte digitale ou Face ID",
-        });
-        
-        // Simulation d'une authentification biométrique réussie
-        setTimeout(async () => {
-          await processWithdrawal(true);
-        }, 2000);
-      } else {
+      // Vérifier si l'authentification biométrique est supportée
+      if (!navigator.credentials || !window.PublicKeyCredential) {
         toast({
           title: "Biométrie non supportée",
           description: "Veuillez utiliser votre mot de passe",
           variant: "destructive"
         });
         setAuthMethod('password');
+        return;
       }
+
+      toast({
+        title: "Authentification biométrique",
+        description: "Utilisez votre empreinte digitale ou Face ID",
+      });
+      
+      // Simulation d'une authentification biométrique réussie
+      // Dans une vraie application, vous utiliseriez l'API WebAuthn
+      setTimeout(() => {
+        onConfirmed();
+      }, 2000);
+      
     } catch (error) {
       console.error("❌ Erreur biométrique:", error);
       toast({
@@ -114,58 +118,8 @@ export const SecureWithdrawalConfirmation = ({
     }
   };
 
-  const processWithdrawal = async (approved: boolean) => {
-    try {
-      const status = approved ? 'approved' : 'rejected';
-      const timestamp = approved ? 'approved_at' : 'rejected_at';
-
-      // Mettre à jour le statut de la demande
-      const { error: updateError } = await supabase
-        .from('withdrawal_requests')
-        .update({
-          status: status,
-          [timestamp]: new Date().toISOString()
-        })
-        .eq('id', request.id);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      if (approved) {
-        // Débiter le compte utilisateur
-        const { error: debitError } = await supabase.rpc('increment_balance', {
-          user_id: user?.id,
-          amount: -request.amount
-        });
-
-        if (debitError) {
-          throw debitError;
-        }
-
-        // Créditer le compte agent (si nécessaire)
-        // Cette logique peut être ajoutée selon vos besoins
-
-        toast({
-          title: "Retrait confirmé",
-          description: `Retrait de ${formatCurrency(request.amount, 'XAF')} approuvé avec succès`,
-        });
-      } else {
-        toast({
-          title: "Retrait refusé",
-          description: "La demande de retrait a été refusée",
-        });
-      }
-
-      onConfirmed();
-    } catch (error) {
-      console.error("❌ Erreur lors du traitement:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de traiter la demande",
-        variant: "destructive"
-      });
-    }
+  const handleReject = () => {
+    onRejected();
   };
 
   return (
@@ -267,7 +221,7 @@ export const SecureWithdrawalConfirmation = ({
           </Button>
           
           <Button
-            onClick={() => processWithdrawal(false)}
+            onClick={handleReject}
             disabled={isProcessing}
             variant="destructive"
             className="flex-1"

@@ -26,7 +26,7 @@ export const useWithdrawalRequestNotifications = () => {
   const { toast } = useToast();
   
   const [selectedRequest, setSelectedRequest] = useState<WithdrawalRequest | null>(null);
-  const [showNotification, setShowNotification] = useState(false);
+  const [showSecureConfirmation, setShowSecureConfirmation] = useState(false);
 
   // Récupérer les demandes de retrait en attente
   const { data: pendingRequests, refetch } = useQuery({
@@ -54,25 +54,23 @@ export const useWithdrawalRequestNotifications = () => {
   const handleNotificationClick = () => {
     if (pendingRequests && pendingRequests.length > 0) {
       setSelectedRequest(pendingRequests[0]);
-      setShowNotification(true);
+      setShowSecureConfirmation(true);
       
       toast({
         title: "💰 Demande de retrait",
         description: `Un agent souhaite retirer ${pendingRequests[0].amount} FCFA de votre compte`,
       });
-    } else {
-      navigate('/withdraw');
     }
   };
 
-  const handleConfirm = async (requestId: string) => {
+  const handleSecureConfirm = async () => {
     if (!selectedRequest) return;
     
     try {
       const { totalFee, agentCommission, platformCommission } = calculateWithdrawalFees(selectedRequest.amount);
       const totalAmount = selectedRequest.amount + totalFee;
 
-      // Vérifier le solde de l'utilisateur en utilisant increment_balance avec amount 0
+      // Vérifier le solde de l'utilisateur
       const { data: userBalance, error: balanceError } = await supabase
         .rpc('increment_balance', { 
           user_id: user?.id, 
@@ -159,7 +157,7 @@ export const useWithdrawalRequestNotifications = () => {
       const { error: updateError } = await supabase
         .from('withdrawal_requests')
         .update({ status: 'confirmed' })
-        .eq('id', requestId);
+        .eq('id', selectedRequest.id);
       
       if (updateError) {
         console.error("Erreur lors de la mise à jour:", updateError);
@@ -170,7 +168,7 @@ export const useWithdrawalRequestNotifications = () => {
         description: `Le retrait de ${selectedRequest.amount} FCFA a été effectué avec succès. Frais: ${totalFee} FCFA`,
       });
       
-      setShowNotification(false);
+      setShowSecureConfirmation(false);
       setSelectedRequest(null);
       queryClient.invalidateQueries({ queryKey: ['withdrawalRequests'] });
       refetch();
@@ -184,23 +182,23 @@ export const useWithdrawalRequestNotifications = () => {
     }
   };
 
-  const handleReject = async (requestId: string) => {
+  const handleSecureReject = async () => {
     if (!selectedRequest) return;
     
     try {
       const { error } = await supabase
         .from('withdrawal_requests')
         .update({ status: 'rejected' })
-        .eq('id', requestId);
+        .eq('id', selectedRequest.id);
       
       if (error) throw error;
       
       toast({
         title: "🚫 Retrait refusé",
-        description: `La demande de retrait de ${selectedRequest.agent_name} reste en attente de votre décision`,
+        description: `La demande de retrait de ${selectedRequest.agent_name} a été refusée`,
       });
       
-      setShowNotification(false);
+      setShowSecureConfirmation(false);
       setSelectedRequest(null);
       queryClient.invalidateQueries({ queryKey: ['withdrawalRequests'] });
       refetch();
@@ -214,33 +212,19 @@ export const useWithdrawalRequestNotifications = () => {
     }
   };
 
-  const closeNotification = () => {
-    setShowNotification(false);
+  const closeSecureConfirmation = () => {
+    setShowSecureConfirmation(false);
     setSelectedRequest(null);
-  };
-
-  const markAsRead = async (requestId: string) => {
-    try {
-      await supabase
-        .from('withdrawal_requests')
-        .update({ status: 'confirmed' })
-        .eq('id', requestId);
-      
-      queryClient.invalidateQueries({ queryKey: ['withdrawalRequests'] });
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour:", error);
-    }
   };
 
   return {
     pendingRequests: pendingRequests || [],
     selectedRequest,
-    showNotification,
+    showSecureConfirmation,
     handleNotificationClick,
-    handleConfirm,
-    handleReject,
-    closeNotification,
-    markAsRead,
+    handleSecureConfirm,
+    handleSecureReject,
+    closeSecureConfirmation,
     refetch
   };
 };
