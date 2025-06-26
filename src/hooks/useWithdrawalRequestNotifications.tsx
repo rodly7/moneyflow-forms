@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { calculateWithdrawalFees } from "@/utils/depositWithdrawalCalculations";
 
 interface WithdrawalRequest {
   id: string;
@@ -47,7 +48,7 @@ export const useWithdrawalRequestNotifications = () => {
       return data || [];
     },
     enabled: !!user?.id && userRole !== 'agent',
-    refetchInterval: 15000, // Refresh toutes les 15 secondes pour plus de réactivité
+    refetchInterval: 15000,
   });
 
   const handleNotificationClick = () => {
@@ -55,13 +56,11 @@ export const useWithdrawalRequestNotifications = () => {
       setSelectedRequest(pendingRequests[0]);
       setShowNotification(true);
       
-      // Afficher un toast informatif
       toast({
         title: "💰 Demande de retrait",
         description: `Un agent souhaite retirer ${pendingRequests[0].amount} FCFA de votre compte`,
       });
     } else {
-      // Si pas de demandes en attente, rediriger vers la page de retrait
       navigate('/withdraw');
     }
   };
@@ -70,17 +69,102 @@ export const useWithdrawalRequestNotifications = () => {
     if (!selectedRequest) return;
     
     try {
+      const { totalFee, agentCommission, platformCommission } = calculateWithdrawalFees(selectedRequest.amount);
+      const totalAmount = selectedRequest.amount + totalFee;
+
+      // Vérifier le solde de l'utilisateur
+      const { data: userBalance, error: balanceError } = await supabase
+        .rpc('get_user_balance', { user_id: user?.id });
+
+      if (balanceError || !userBalance || userBalance < totalAmount) {
+        toast({
+          title: "❌ Solde insuffisant",
+          description: `Vous n'avez pas assez de fonds pour ce retrait (${totalAmount} FCFA requis incluant les frais)`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Débiter l'utilisateur (montant + frais)
+      const { error: debitError } = await supabase.rpc('increment_balance', {
+        user_id: user?.id,
+        amount: -totalAmount
+      });
+
+      if (debitError) {
+        console.error("Erreur lors du débit:", debitError);
+        toast({
+          title: "❌ Erreur",
+          description: "Erreur lors du débit de votre compte",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Créditer l'agent (montant + commission)
+      const { error: creditError } = await supabase.rpc('increment_balance', {
+        user_id: selectedRequest.agent_id,
+        amount: selectedRequest.amount + agentCommission
+      });
+
+      if (creditError) {
+        console.error("Erreur lors du crédit agent:", creditError);
+        // Annuler le débit de l'utilisateur
+        await supabase.rpc('increment_balance', {
+          user_id: user?.id,
+          amount: totalAmount
+        });
+        toast({
+          title: "❌ Erreur",
+          description: "Erreur lors du crédit de l'agent",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Créditer la commission plateforme
+      if (platformCommission > 0) {
+        const { data: adminData } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('phone', '+221773637752')
+          .maybeSingle();
+          
+        if (adminData) {
+          await supabase.rpc('increment_balance', {
+            user_id: adminData.id,
+            amount: platformCommission
+          });
+        }
+      }
+
+      // Créer l'enregistrement du retrait
+      const { error: withdrawalError } = await supabase
+        .from('withdrawals')
+        .insert({
+          user_id: user?.id,
+          amount: selectedRequest.amount,
+          withdrawal_phone: selectedRequest.withdrawal_phone,
+          status: 'completed'
+        });
+
+      if (withdrawalError) {
+        console.error("❌ Erreur lors de l'enregistrement du retrait:", withdrawalError);
+      }
+
       // Mettre à jour le statut de la demande
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('withdrawal_requests')
         .update({ status: 'confirmed' })
         .eq('id', requestId);
       
-      if (error) throw error;
+      if (updateError) {
+        console.error("Erreur lors de la mise à jour:", updateError);
+      }
       
       toast({
         title: "✅ Retrait autorisé",
-        description: `Vous avez autorisé le retrait de ${selectedRequest.amount} FCFA par ${selectedRequest.agent_name}`,
+        description: `Vous avez autorisé le retrait de ${selectedRequest.amount} FCFA par ${selectedRequest.agent_name}. Frais: ${totalFee} FCFA`,
       });
       
       setShowNotification(false);
@@ -139,7 +223,6 @@ export const useWithdrawalRequestNotifications = () => {
         .update({ status: 'confirmed' })
         .eq('id', requestId);
       
-      // Rafraîchir les données
       queryClient.invalidateQueries({ queryKey: ['withdrawalRequests'] });
     } catch (error) {
       console.error("Erreur lors de la mise à jour:", error);

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Banknote, AlertCircle, Loader2, Search, User, Wallet } from "lucide-react";
+import { Send, AlertCircle, Loader2, Search, User, Wallet } from "lucide-react";
 import { formatCurrency } from "@/integrations/supabase/client";
 import { useAgentAutomaticWithdrawal } from "@/hooks/useAgentAutomaticWithdrawal";
 import { findUserByPhone } from "@/services/withdrawalService";
@@ -112,9 +112,12 @@ export const AgentAutomaticWithdrawalForm = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Banknote className="w-5 h-5 text-emerald-500" />
-          Retrait automatique pour client
+          <Send className="w-5 h-5 text-emerald-500" />
+          Demande de retrait pour client
         </CardTitle>
+        <p className="text-sm text-gray-600">
+          Le client recevra une notification pour autoriser ce retrait
+        </p>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -192,7 +195,7 @@ export const AgentAutomaticWithdrawalForm = () => {
 
           <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
             <p className="text-blue-800 text-sm">
-              💰 Le retrait sera traité automatiquement - Le compte du client sera débité et votre compte agent sera crédité
+              📱 Le client recevra une notification pour autoriser ce retrait. Le retrait ne sera effectué qu'après son approbation.
             </p>
           </div>
 
@@ -204,12 +207,12 @@ export const AgentAutomaticWithdrawalForm = () => {
             {isProcessing ? (
               <div className="flex items-center">
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                <span>Traitement en cours...</span>
+                <span>Envoi de la demande...</span>
               </div>
             ) : (
               <div className="flex items-center justify-center">
-                <Banknote className="mr-2 h-5 w-5" />
-                <span>Effectuer le retrait automatique</span>
+                <Send className="mr-2 h-5 w-5" />
+                <span>Envoyer la demande de retrait</span>
               </div>
             )}
           </Button>

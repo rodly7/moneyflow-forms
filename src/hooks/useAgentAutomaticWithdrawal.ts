@@ -1,116 +1,85 @@
 
 import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "./use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { validateUserBalance } from "@/services/withdrawalService";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const useAgentAutomaticWithdrawal = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
+  const { user, profile } = useAuth();
 
   const processAgentAutomaticWithdrawal = async (
     clientId: string,
     amount: number,
-    phoneNumber: string,
+    clientPhone: string,
     clientName: string,
     clientBalance: number
   ) => {
-    if (!user?.id) {
+    if (!user?.id || !profile) {
       toast({
-        title: "Erreur",
-        description: "Vous devez être connecté pour effectuer un retrait",
+        title: "Erreur d'authentification",
+        description: "Vous devez être connecté pour effectuer cette opération",
         variant: "destructive"
       });
-      return;
+      return { success: false };
+    }
+
+    if (amount > clientBalance) {
+      toast({
+        title: "Solde insuffisant",
+        description: `Le client n'a que ${clientBalance} FCFA dans son compte`,
+        variant: "destructive"
+      });
+      return { success: false };
     }
 
     try {
       setIsProcessing(true);
 
-      // Vérifier le solde du client
-      console.log("🔍 Vérification du solde du client...");
-      await validateUserBalance(clientId, amount);
-
-      // Créer la demande de retrait automatique pour le client
-      const { data: withdrawal, error: withdrawalError } = await supabase
-        .from('withdrawals')
+      // Créer une demande de retrait au lieu d'effectuer le retrait directement
+      const { data, error } = await supabase
+        .from('withdrawal_requests')
         .insert({
           user_id: clientId,
+          agent_id: user.id,
+          agent_name: profile.full_name || 'Agent',
+          agent_phone: profile.phone || '',
+          withdrawal_phone: clientPhone,
           amount: amount,
-          withdrawal_phone: phoneNumber,
-          status: 'completed' // Retrait automatique - traité immédiatement
+          status: 'pending'
         })
         .select()
         .single();
 
-      if (withdrawalError) {
-        console.error("❌ Erreur lors de la création du retrait:", withdrawalError);
-        throw new Error("Erreur lors de la création de la demande de retrait");
-      }
-
-      // Débiter le compte du client
-      const { error: debitError } = await supabase.rpc('increment_balance', {
-        user_id: clientId,
-        amount: -amount
-      });
-
-      if (debitError) {
-        console.error("❌ Erreur lors du débit du client:", debitError);
-        
-        // Annuler la demande de retrait en cas d'erreur
-        await supabase
-          .from('withdrawals')
-          .delete()
-          .eq('id', withdrawal.id);
-          
-        throw new Error("Erreur lors du débit du compte client");
-      }
-
-      // Créditer l'agent avec le montant retiré
-      const { error: creditError } = await supabase.rpc('increment_balance', {
-        user_id: user.id,
-        amount: amount
-      });
-
-      if (creditError) {
-        console.error("❌ Erreur lors du crédit de l'agent:", creditError);
-        
-        // En cas d'erreur, remettre l'argent au client et annuler le retrait
-        await supabase.rpc('increment_balance', {
-          user_id: clientId,
-          amount: amount
+      if (error) {
+        console.error("Erreur lors de la création de la demande:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de créer la demande de retrait",
+          variant: "destructive"
         });
-        
-        await supabase
-          .from('withdrawals')
-          .delete()
-          .eq('id', withdrawal.id);
-          
-        throw new Error("Erreur lors du crédit de votre compte agent");
+        return { success: false };
       }
-
-      console.log("✅ Retrait automatique agent effectué avec succès");
 
       toast({
-        title: "Retrait effectué",
-        description: `Retrait de ${amount.toLocaleString()} FCFA effectué pour ${clientName}`,
+        title: "Demande de retrait créée",
+        description: `Demande de retrait de ${amount} FCFA envoyée à ${clientName}. En attente de confirmation.`,
       });
 
       return { 
         success: true, 
-        newClientBalance: clientBalance - amount,
-        clientName 
+        data,
+        message: "Demande de retrait créée avec succès" 
       };
     } catch (error) {
-      console.error("❌ Erreur lors du retrait automatique agent:", error);
+      console.error("Erreur lors de la création de la demande:", error);
       toast({
-        title: "Erreur de retrait",
-        description: error instanceof Error ? error.message : "Erreur lors du retrait automatique",
+        title: "Erreur",
+        description: "Une erreur inattendue s'est produite",
         variant: "destructive"
       });
-      return { success: false, error };
+      return { success: false };
     } finally {
       setIsProcessing(false);
     }

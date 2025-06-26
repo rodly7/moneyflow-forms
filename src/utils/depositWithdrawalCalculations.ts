@@ -1,18 +1,9 @@
 
-export const calculateDepositFees = (depositAmount: number) => {
-  // Les dépôts sont sans frais
-  return {
-    totalFee: 0,
-    agentCommission: 0,
-    platformCommission: 0
-  };
-};
-
-export const calculateWithdrawalFees = (withdrawalAmount: number) => {
-  const totalFeeRate = 0.015; // 1,5%
-  const totalFee = withdrawalAmount * totalFeeRate;
-  const agentCommission = totalFee / 3; // 1/3 pour l'agent (0,5%)
-  const platformCommission = totalFee - agentCommission; // 2/3 pour la plateforme (1%)
+export const calculateDepositFees = (amount: number) => {
+  // Pas de frais pour les dépôts
+  const totalFee = 0;
+  const agentCommission = 0;
+  const platformCommission = 0;
 
   return {
     totalFee,
@@ -21,8 +12,21 @@ export const calculateWithdrawalFees = (withdrawalAmount: number) => {
   };
 };
 
-export const validateSufficientBalance = (currentBalance: number, amount: number) => {
-  if (currentBalance < amount) {
-    throw new Error(`Solde insuffisant. Solde actuel: ${currentBalance} FCFA, montant demandé: ${amount} FCFA`);
-  }
+export const calculateWithdrawalFees = (amount: number) => {
+  // 1,5% de frais total pour les retraits
+  const feeRate = 0.015;
+  const totalFee = Math.round(amount * feeRate);
+  
+  // L'agent reçoit 0,5% de commission
+  const agentCommissionRate = 0.005;
+  const agentCommission = Math.round(amount * agentCommissionRate);
+  
+  // La plateforme reçoit le reste (1%)
+  const platformCommission = totalFee - agentCommission;
+
+  return {
+    totalFee,
+    agentCommission,
+    platformCommission
+  };
 };
