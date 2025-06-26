@@ -16,31 +16,20 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
   
   const isAgent = () => userRole === 'agent';
   
-  const handleTransferClick = () => {
-    // Toujours utiliser onTransferClick pour afficher le formulaire de transfert
-    onTransferClick();
-  };
-  
   return (
     <div className="w-full px-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-2">
-        {/* Transfer button - Plus grand pour les utilisateurs normaux */}
-        <Button 
-          variant="outline" 
-          className={`flex flex-col items-center justify-center bg-white ${
-            !isAgent() ? "h-24 col-span-2" : "h-20"
-          } ${isAgent() ? "border-blue-200 hover:bg-blue-50" : ""}`}
-          onClick={handleTransferClick}
-        >
-          <ArrowUpRight className={`mb-1 ${!isAgent() ? "h-6 w-6" : "h-5 w-5"} ${
-            isAgent() ? "text-blue-600" : ""
-          }`} />
-          <span className={`font-medium ${!isAgent() ? "text-sm" : "text-xs"} ${
-            isAgent() ? "text-blue-600" : ""
-          }`}>
-            {isAgent() ? "Transfert Client" : "Transfert"}
-          </span>
-        </Button>
+        {/* Transfer button - Seulement pour les utilisateurs normaux */}
+        {!isAgent() && (
+          <Button 
+            variant="outline" 
+            className="flex flex-col items-center justify-center bg-white h-24 col-span-2"
+            onClick={onTransferClick}
+          >
+            <ArrowUpRight className="mb-1 h-6 w-6" />
+            <span className="font-medium text-sm">Transfert</span>
+          </Button>
+        )}
         
         {/* Commission ou Factures selon le rôle */}
         {isAgent() ? (
