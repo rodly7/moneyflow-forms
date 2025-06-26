@@ -19,10 +19,10 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
   
   return (
     <div className="w-full">
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Actions rapides</h3>
+      <div className="bg-white rounded-2xl shadow-lg p-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">Actions rapides</h3>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {/* Transfer button - Seulement pour les utilisateurs normaux */}
           {!isAgent() && (
             <Button 
@@ -41,19 +41,19 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
               <Link to="/bill-payments" className="contents">
                 <Button 
                   variant="outline" 
-                  className="flex flex-col items-center justify-center h-24 bg-white rounded-xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-blue-100 hover:border-blue-200"
+                  className="flex flex-col items-center justify-center h-28 bg-white rounded-xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-blue-100 hover:border-blue-200"
                 >
                   <Receipt className="h-6 w-6 mb-2 text-blue-600" />
                   <span className="text-xs font-medium text-blue-600">Factures</span>
                 </Button>
               </Link>
               
-              {/* Cloche de notification améliorée */}
+              {/* Cloche de notification avec la même taille */}
               <div className="flex justify-center">
                 <WithdrawalNotificationBell
                   notificationCount={pendingRequests.length}
                   onClick={handleNotificationClick}
-                  className="h-24 w-full flex flex-col items-center justify-center bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-none"
+                  className="h-28 w-full flex flex-col items-center justify-center bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-none"
                 />
               </div>
             </>
@@ -65,7 +65,7 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
               <Link to="/commission" className="contents">
                 <Button 
                   variant="outline" 
-                  className="flex flex-col items-center justify-center h-24 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-none"
+                  className="flex flex-col items-center justify-center h-28 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-none"
                 >
                   <Receipt className="h-6 w-6 mb-2" />
                   <span className="text-xs font-medium">Commission</span>
@@ -74,7 +74,7 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
               
               <Button 
                 variant="outline" 
-                className="flex flex-col items-center justify-center h-24 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-none"
+                className="flex flex-col items-center justify-center h-28 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-none"
                 onClick={() => navigate('/agent-services')}
               >
                 <PiggyBank className="h-6 w-6 mb-2" />

@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, getCurrencyForCountry, convertCurrency, formatCurrency } from "@/integrations/supabase/client";
@@ -209,7 +210,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
-      <div className="w-full mx-auto space-y-6 px-0 pb-8">
+      <div className="w-full mx-auto space-y-4 px-0 pb-8">
         {/* Enhanced Header Section */}
         <div className="bg-white/70 backdrop-blur-sm border-b border-gray-100 px-4 pt-6 pb-4 shadow-sm">
           {profile && <ProfileHeader profile={profile} />}
@@ -228,7 +229,7 @@ const Index = () => {
 
         {/* Enhanced Transfer Form or Action Buttons */}
         {showTransfer ? (
-          <div className="space-y-4 px-4">
+          <div className="px-4">
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-800">Nouveau transfert</h2>
@@ -250,7 +251,7 @@ const Index = () => {
         )}
 
         {/* Enhanced Transactions Card */}
-        <div className="px-2">
+        <div className="px-4">
           <TransactionsCard 
             transactions={allTransactions}
             withdrawals={processedWithdrawals}
