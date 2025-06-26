@@ -16,7 +16,7 @@ export const INITIAL_TRANSFER_DATA: TransferData = {
   recipient: {
     fullName: "",
     email: "",
-    country: "", // Empty by default to force country selection
+    country: "Cameroun", // Default to Cameroun
     phone: "",
   },
   transfer: {
