@@ -94,7 +94,7 @@ const Layout = () => {
         }
       } else if (profile.role === 'agent') {
         // Agent should be on agent-dashboard or agent-specific pages
-        const agentPages = ['/agent-dashboard', '/agent-services', '/agent-withdrawal', '/commission', '/verify-identity'];
+        const agentPages = ['/agent-dashboard', '/agent-services', '/agent-withdrawal', '/commission', '/verify-identity', '/deposit-withdrawal'];
         const isOnAgentPage = agentPages.some(page => location.pathname.startsWith(page));
         
         if (!isOnAgentPage) {
