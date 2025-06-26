@@ -37,13 +37,14 @@ const Index = () => {
   const [showTransfer, setShowTransfer] = useState(false);
   const { toast } = useToast();
   
-  // Notifications de retrait
+  // Notifications de retrait avec le nouveau système sécurisé
   const {
     selectedRequest,
-    showNotification,
-    handleConfirm,
-    handleReject,
-    closeNotification
+    showSecureConfirmation,
+    handleNotificationClick,
+    handleSecureConfirm,
+    handleSecureReject,
+    closeSecureConfirmation
   } = useWithdrawalRequestNotifications();
 
   const { data: profile, isLoading } = useQuery({
@@ -237,12 +238,12 @@ const Index = () => {
           onDeleteTransaction={handleDeleteTransaction}
         />
         
-        {/* Notification de retrait */}
+        {/* Notification de retrait sécurisée */}
         <WithdrawalRequestNotification
-          isOpen={showNotification}
-          onClose={closeNotification}
-          onConfirm={() => selectedRequest && handleConfirm(selectedRequest.id)}
-          onReject={() => selectedRequest && handleReject(selectedRequest.id)}
+          isOpen={showSecureConfirmation}
+          onClose={closeSecureConfirmation}
+          onConfirm={handleSecureConfirm}
+          onReject={handleSecureReject}
           requestData={selectedRequest}
         />
       </div>
