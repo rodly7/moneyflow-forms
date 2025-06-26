@@ -28,48 +28,64 @@ const WithdrawalRequestNotification = ({
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-center">
-            Demande de Retrait
+          <AlertDialogTitle className="text-center text-orange-600">
+            📱 Message de l'Application
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-center space-y-3">
-            <div className="bg-orange-50 p-4 rounded-lg">
-              <div className="text-lg font-bold text-orange-800">
+          <AlertDialogDescription className="text-center space-y-4">
+            <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
+              <div className="text-lg font-bold text-orange-800 mb-2">
+                Demande de Retrait
+              </div>
+              <div className="text-2xl font-bold text-orange-900">
                 {formatCurrency(requestData.amount, 'XAF')}
               </div>
-              <div className="text-sm text-orange-600 mt-1">
-                Montant à retirer
+            </div>
+            
+            <div className="space-y-3 text-left bg-gray-50 p-4 rounded-lg">
+              <div className="text-center mb-3">
+                <p className="font-medium text-gray-800">
+                  Un agent souhaite effectuer un retrait sur votre compte :
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Agent :</span> 
+                  <span className="font-medium">{requestData.agent_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Téléphone :</span> 
+                  <span className="font-medium">{requestData.agent_phone}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Date :</span> 
+                  <span className="font-medium">{new Date(requestData.created_at).toLocaleString('fr-FR')}</span>
+                </div>
               </div>
             </div>
             
-            <div className="space-y-2 text-left">
-              <div>
-                <span className="font-medium">Agent:</span> {requestData.agent_name}
-              </div>
-              <div>
-                <span className="font-medium">Téléphone:</span> {requestData.agent_phone}
-              </div>
-              <div>
-                <span className="font-medium">Date:</span> {new Date(requestData.created_at).toLocaleString('fr-FR')}
-              </div>
+            <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+              <p className="text-blue-800 font-medium text-center">
+                ⚠️ Confirmez-vous ce retrait ?
+              </p>
+              <p className="text-blue-600 text-sm text-center mt-1">
+                Vérifiez que vous êtes bien en présence de cet agent avant de confirmer.
+              </p>
             </div>
-            
-            <p className="text-sm text-gray-600 mt-4">
-              Voulez-vous autoriser ce retrait auprès de cet agent ?
-            </p>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex gap-2">
           <AlertDialogCancel 
             onClick={onReject}
-            className="flex-1 bg-red-50 text-red-700 hover:bg-red-100"
+            className="flex-1 bg-red-50 text-red-700 hover:bg-red-100 border-red-200"
           >
-            Refuser
+            ❌ Refuser
           </AlertDialogCancel>
           <AlertDialogAction 
             onClick={onConfirm}
             className="flex-1 bg-green-600 hover:bg-green-700"
           >
-            Autoriser
+            ✅ Confirmer
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
