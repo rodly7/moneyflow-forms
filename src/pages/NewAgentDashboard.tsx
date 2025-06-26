@@ -139,7 +139,7 @@ const NewAgentDashboard = () => {
               </Button>
 
               <Button 
-                onClick={() => navigate('/agent-withdrawal')}
+                onClick={() => navigate('/agent-services')}
                 className="h-20 flex-col space-y-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md"
               >
                 <ArrowUpDown className="h-6 w-6" />

@@ -1,78 +1,69 @@
 
 import { useState } from "react";
+import { useToast } from "./use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import { createWithdrawalRequest } from "@/services/agentWithdrawalRequestService";
-import { getUserBalance } from "@/services/withdrawalService";
 
 export const useAgentWithdrawalRequest = () => {
-  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const { user } = useAuth();
 
-  const requestWithdrawal = async (
-    clientId: string,
-    clientName: string,
-    amount: number,
-    phoneNumber: string
-  ) => {
+  const createWithdrawalRequest = async (amount: number, recipientId: string) => {
     if (!user?.id) {
       toast({
-        title: "Erreur",
-        description: "Vous devez être connecté pour effectuer un retrait",
+        title: "Erreur d'authentification",
+        description: "Vous devez être connecté pour effectuer cette opération",
         variant: "destructive"
       });
       return { success: false };
     }
 
     try {
-      setIsProcessing(true);
+      setIsLoading(true);
 
-      // Vérifier le solde du client
-      const clientBalanceData = await getUserBalance(clientId);
-      
-      if (clientBalanceData.balance < amount) {
-        throw new Error(`Solde insuffisant. Le client a ${clientBalanceData.balance} FCFA, montant demandé: ${amount} FCFA`);
+      const { data, error } = await supabase
+        .from('withdrawal_requests')
+        .insert({
+          user_id: recipientId,
+          amount: amount,
+          status: 'pending',
+          requested_by: user.id
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Erreur lors de la création de la demande:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de créer la demande de retrait",
+          variant: "destructive"
+        });
+        return { success: false };
       }
 
-      // Récupérer les informations de l'agent
-      const agentData = await getUserBalance(user.id);
-
-      // Créer la demande de retrait
-      const request = await createWithdrawalRequest({
-        user_id: clientId,
-        agent_id: user.id,
-        agent_name: agentData.fullName || "Agent",
-        agent_phone: agentData.phone || phoneNumber,
-        amount: amount,
-        withdrawal_phone: phoneNumber
-      });
-
       toast({
-        title: "Demande envoyée",
-        description: `Demande de retrait de ${amount.toLocaleString()} FCFA envoyée à ${clientName}. En attente d'autorisation.`,
+        title: "Demande créée",
+        description: "La demande de retrait a été envoyée au client",
       });
 
-      return { 
-        success: true, 
-        requestId: request.id,
-        clientName 
-      };
+      return { success: true, data };
     } catch (error) {
-      console.error("❌ Erreur lors de la demande de retrait:", error);
+      console.error("Erreur lors de la création de la demande:", error);
       toast({
-        title: "Erreur de demande",
-        description: error instanceof Error ? error.message : "Erreur lors de la demande de retrait",
+        title: "Erreur",
+        description: "Une erreur inattendue s'est produite",
         variant: "destructive"
       });
-      return { success: false, error };
+      return { success: false };
     } finally {
-      setIsProcessing(false);
+      setIsLoading(false);
     }
   };
 
   return {
-    requestWithdrawal,
-    isProcessing
+    createWithdrawalRequest,
+    isLoading
   };
 };
