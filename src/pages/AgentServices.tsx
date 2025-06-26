@@ -5,11 +5,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, Shield, ArrowRight } from "lucide-react";
+import { ArrowLeft, Plus, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { SecureAgentWithdrawalForm } from "@/components/agent/SecureAgentWithdrawalForm";
 import { AgentBalanceCard } from "@/components/agent/AgentBalanceCard";
-import { TransferForm } from "@/components/TransferForm";
+import TransferForm from "@/components/TransferForm";
 import { getUserBalance } from "@/services/withdrawalService";
 
 const AgentServices = () => {
@@ -76,7 +75,7 @@ const AgentServices = () => {
         />
 
         <Tabs defaultValue="transfer" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="transfer" className="flex items-center gap-2">
               <ArrowRight className="w-4 h-4" />
               Transfert
@@ -84,10 +83,6 @@ const AgentServices = () => {
             <TabsTrigger value="deposit" className="flex items-center gap-2">
               <Plus className="w-4 h-4" />
               Dépôt
-            </TabsTrigger>
-            <TabsTrigger value="withdrawal" className="flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              Retrait
             </TabsTrigger>
           </TabsList>
 
@@ -117,10 +112,6 @@ const AgentServices = () => {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="withdrawal">
-            <SecureAgentWithdrawalForm />
           </TabsContent>
         </Tabs>
       </div>

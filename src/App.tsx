@@ -17,10 +17,10 @@ import Transactions from "@/pages/Transactions";
 import QRCode from "@/pages/QRCode";
 import Receive from "@/pages/Receive";
 import Withdraw from "@/pages/Withdraw";
-import AgentWithdrawal from "@/pages/AgentWithdrawal";
 import AgentWithdrawalSimple from "@/pages/AgentWithdrawalSimple";
 import AgentWithdrawalAdvanced from "@/pages/AgentWithdrawalAdvanced";
 import AgentDeposit from "@/pages/AgentDeposit";
+import AgentServices from "@/pages/AgentServices";
 import UnifiedDepositWithdrawal from "@/pages/UnifiedDepositWithdrawal";
 import BillPayments from "@/pages/BillPayments";
 import PrepaidCards from "@/pages/PrepaidCards";
@@ -48,11 +48,11 @@ function App() {
               <Route path="qr-code" element={<QRCode />} />
               <Route path="receive" element={<Receive />} />
               <Route path="withdraw" element={<Withdraw />} />
-              <Route path="agent-withdrawal" element={<AgentWithdrawal />} />
               <Route path="agent-withdrawal-simple" element={<AgentWithdrawalSimple />} />
               <Route path="agent-withdrawal-advanced" element={<AgentWithdrawalAdvanced />} />
               <Route path="deposit" element={<AgentDeposit />} />
-              <Route path="agent-services" element={<UnifiedDepositWithdrawal />} />
+              <Route path="agent-services" element={<AgentServices />} />
+              <Route path="deposit-withdrawal" element={<UnifiedDepositWithdrawal />} />
               <Route path="bill-payments" element={<BillPayments />} />
               <Route path="prepaid-cards" element={<PrepaidCards />} />
               <Route path="verify-identity" element={<VerifyIdentity />} />
