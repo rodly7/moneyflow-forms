@@ -3,8 +3,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TransferData } from "@/types/transfer";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
 import { calculateFee } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +13,6 @@ type TransferDetailsProps = TransferData & {
 
 const TransferDetails = ({ transfer, recipient, updateFields }: TransferDetailsProps) => {
   const { user, userRole } = useAuth();
-  const { toast } = useToast();
   
   // Récupérer le profil de l'utilisateur pour connaître son pays
   const { data: userProfile } = useQuery({
@@ -35,21 +32,6 @@ const TransferDetails = ({ transfer, recipient, updateFields }: TransferDetailsP
   });
 
   const userCountry = userProfile?.country || "Cameroun";
-  
-  // Pour les agents, restreindre aux transferts internationaux uniquement
-  useEffect(() => {
-    if (userRole === 'agent' && recipient.country && recipient.country === userCountry) {
-      toast({
-        title: "Transfert non autorisé",
-        description: "En tant qu'agent, vous ne pouvez effectuer que des transferts internationaux",
-        variant: "destructive"
-      });
-      // Reset the recipient country
-      updateFields({
-        recipient: { ...recipient, country: "" }
-      });
-    }
-  }, [recipient.country, userRole, userCountry]);
   
   // Calculer les frais automatiquement en utilisant le pays de l'utilisateur
   const { fee: fees, rate: feeRate } = calculateFee(
@@ -112,6 +94,11 @@ const TransferDetails = ({ transfer, recipient, updateFields }: TransferDetailsP
           {isNational && (
             <div className="text-sm text-emerald-600 bg-emerald-50 p-2 rounded">
               💰 Transfert national - Taux préférentiel de 2,5%
+            </div>
+          )}
+          {userRole === 'agent' && (
+            <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
+              🏢 Mode Agent - Transferts nationaux et internationaux disponibles
             </div>
           )}
         </div>

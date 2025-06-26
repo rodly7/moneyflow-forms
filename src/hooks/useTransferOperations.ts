@@ -73,16 +73,6 @@ export const useTransferOperations = () => {
       
       const totalAmount = transferData.amount + fees;
       
-      // Vérification spéciale pour les agents - ils ne peuvent faire que des transferts internationaux
-      if (userRole === 'agent' && userCountry === transferData.recipient.country) {
-        toast({
-          title: "Transfert non autorisé",
-          description: "En tant qu'agent, vous ne pouvez effectuer que des transferts internationaux",
-          variant: "destructive"
-        });
-        return { success: false };
-      }
-      
       if (profileData.balance < totalAmount) {
         toast({
           title: "Solde insuffisant",
