@@ -5,7 +5,7 @@ import { useTransferOperations } from "./useTransferOperations";
 import { useWithdrawalRequest } from "./useWithdrawalRequest";
 
 type PendingTransferInfo = {
-  recipientEmail: string;
+  recipientPhone: string;
   claimCode: string;
   amount: number;
 };
@@ -43,14 +43,19 @@ export const useTransferForm = () => {
     if (currentStep === 2) {
       const result = await processTransfer({
         amount: data.transfer.amount,
-        recipient: data.recipient
+        recipient: {
+          email: data.recipient.phone + "@placeholder.com", // Generate placeholder email from phone
+          fullName: data.recipient.fullName,
+          country: data.recipient.country,
+          phone: data.recipient.phone
+        }
       });
       
       if (result.success) {
         // Si le transfert génère un code de réclamation (transfert en attente)
         if (result.claimCode) {
           setPendingTransferInfo({
-            recipientEmail: data.recipient.email,
+            recipientPhone: data.recipient.phone,
             claimCode: result.claimCode,
             amount: data.transfer.amount
           });

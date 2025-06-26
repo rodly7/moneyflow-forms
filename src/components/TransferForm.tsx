@@ -55,8 +55,8 @@ const TransferForm = () => {
             
             <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
               <div>
-                <p className="text-sm text-gray-500">Email du destinataire</p>
-                <p className="font-medium">{pendingTransferInfo.recipientEmail}</p>
+                <p className="text-sm text-gray-500">Téléphone du destinataire</p>
+                <p className="font-medium">{pendingTransferInfo.recipientPhone}</p>
               </div>
               
               <div>
