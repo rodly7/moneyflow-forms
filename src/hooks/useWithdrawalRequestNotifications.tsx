@@ -72,11 +72,14 @@ export const useWithdrawalRequestNotifications = () => {
       const { totalFee, agentCommission, platformCommission } = calculateWithdrawalFees(selectedRequest.amount);
       const totalAmount = selectedRequest.amount + totalFee;
 
-      // Vérifier le solde de l'utilisateur
+      // Vérifier le solde de l'utilisateur en utilisant increment_balance avec amount 0
       const { data: userBalance, error: balanceError } = await supabase
-        .rpc('get_user_balance', { user_id: user?.id });
+        .rpc('increment_balance', { 
+          user_id: user?.id, 
+          amount: 0 
+        });
 
-      if (balanceError || !userBalance || userBalance < totalAmount) {
+      if (balanceError || userBalance === null || Number(userBalance) < totalAmount) {
         toast({
           title: "❌ Solde insuffisant",
           description: `Vous n'avez pas assez de fonds pour ce retrait (${totalAmount} FCFA requis incluant les frais)`,
