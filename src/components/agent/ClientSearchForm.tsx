@@ -2,14 +2,14 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search } from "lucide-react";
-import { formatCurrency } from "@/integrations/supabase/client";
+import { Search, Shield } from "lucide-react";
 
 interface ClientData {
   id: string;
   full_name: string;
   phone: string;
-  balance: number;
+  // Le solde n'est plus exposé aux agents
+  country?: string;
 }
 
 interface ClientSearchFormProps {
@@ -60,9 +60,10 @@ export const ClientSearchForm = ({
           <p className="text-green-800 font-medium">
             ✓ Client: {clientData.full_name || 'Nom non disponible'}
           </p>
-          <p className="text-green-700 text-sm">
-            Solde: {formatCurrency(clientData.balance || 0, 'XAF')}
-          </p>
+          <div className="text-xs text-green-500 flex items-center gap-1 mt-1">
+            <Shield className="w-3 h-3" />
+            Solde masqué pour la sécurité
+          </div>
         </div>
       )}
     </div>

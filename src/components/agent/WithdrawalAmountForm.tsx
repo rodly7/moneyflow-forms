@@ -1,13 +1,13 @@
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatCurrency } from "@/integrations/supabase/client";
 
 interface ClientData {
   id: string;
   full_name: string;
   phone: string;
-  balance: number;
+  // Le solde n'est plus exposé aux agents
+  country?: string;
 }
 
 interface WithdrawalAmountFormProps {
@@ -34,11 +34,9 @@ export const WithdrawalAmountForm = ({
         className="h-12 text-lg"
         disabled={!clientData}
       />
-      {amount && clientData && Number(amount) > clientData.balance && (
-        <p className="text-red-600 text-sm">
-          Le montant dépasse le solde du client
-        </p>
-      )}
+      <p className="text-xs text-gray-600">
+        Le système vérifiera automatiquement le solde du client lors du traitement
+      </p>
     </div>
   );
 };

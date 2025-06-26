@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, Minus, User, Wallet, RefreshCw } from "lucide-react";
+import { ArrowLeft, Plus, Minus, User, Wallet, RefreshCw, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/integrations/supabase/client";
 import { useUserSearch } from "@/hooks/useUserSearch";
@@ -63,8 +63,13 @@ const DepositWithdrawalForm = () => {
       const client = await searchUserByPhone(phone);
       
       if (client) {
-        setClientData(client);
-        console.log("✅ Client trouvé automatiquement:", client);
+        // Masquer le solde du client pour l'agent
+        const secureClientData = {
+          ...client,
+          balance: undefined // Ne pas exposer le solde
+        };
+        setClientData(secureClientData);
+        console.log("✅ Client trouvé automatiquement (solde masqué):", secureClientData);
       } else {
         setClientData(null);
       }
@@ -157,18 +162,8 @@ const DepositWithdrawalForm = () => {
       return;
     }
 
-    const { totalFee } = calculateWithdrawalFees(withdrawalAmount);
-    const totalAmount = withdrawalAmount + totalFee;
-
-    if (totalAmount > clientData.balance) {
-      toast({
-        title: "Solde client insuffisant",
-        description: `Le solde du client (${formatCurrency(clientData.balance, 'XAF')}) est insuffisant pour ce retrait (montant + frais: ${formatCurrency(totalAmount, 'XAF')})`,
-        variant: "destructive"
-      });
-      return;
-    }
-
+    // Note: On ne peut pas vérifier le solde du client car il est masqué
+    // Le système backend vérifiera le solde lors du traitement
     const success = await processWithdrawal(
       withdrawalAmount,
       clientData.id,
@@ -277,12 +272,12 @@ const DepositWithdrawalForm = () => {
                         <User className="w-4 h-4 mr-2" />
                         <span className="font-medium">{clientData.full_name || 'Nom non disponible'}</span>
                       </div>
-                      <div className="flex items-center text-green-700">
-                        <Wallet className="w-4 h-4 mr-2" />
-                        <span>Solde: {formatCurrency(clientData.balance || 0, 'XAF')}</span>
-                      </div>
                       <div className="text-sm text-green-600">
                         Pays: {clientData.country || 'Non spécifié'}
+                      </div>
+                      <div className="text-xs text-green-500 flex items-center gap-1">
+                        <Shield className="w-3 h-3" />
+                        Solde masqué pour la sécurité
                       </div>
                     </div>
                   )}
@@ -389,12 +384,12 @@ const DepositWithdrawalForm = () => {
                         <User className="w-4 h-4 mr-2" />
                         <span className="font-medium">{clientData.full_name || 'Nom non disponible'}</span>
                       </div>
-                      <div className="flex items-center text-green-700">
-                        <Wallet className="w-4 h-4 mr-2" />
-                        <span>Solde: {formatCurrency(clientData.balance || 0, 'XAF')}</span>
-                      </div>
                       <div className="text-sm text-green-600">
                         Pays: {clientData.country || 'Non spécifié'}
+                      </div>
+                      <div className="text-xs text-green-500 flex items-center gap-1">
+                        <Shield className="w-3 h-3" />
+                        Solde masqué pour la sécurité
                       </div>
                     </div>
                   )}
@@ -440,6 +435,9 @@ const DepositWithdrawalForm = () => {
                           <span>Total à débiter du client:</span>
                           <span>{formatCurrency(Number(amount) + withdrawalFees.totalFee, 'XAF')}</span>
                         </div>
+                        <div className="text-xs text-gray-600 mt-2">
+                          Note: Le solde du client sera vérifié lors du traitement
+                        </div>
                       </div>
                     </div>
                   )}
@@ -447,7 +445,7 @@ const DepositWithdrawalForm = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-orange-600 hover:bg-orange-700 h-12 text-lg"
-                    disabled={isProcessing || !clientData || !amount || (clientData && Number(amount) + (withdrawalFees?.totalFee || 0) > clientData.balance)}
+                    disabled={isProcessing || !clientData || !amount}
                   >
                     {isProcessing ? (
                       <div className="flex items-center">
