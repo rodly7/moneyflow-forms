@@ -9,13 +9,11 @@ interface ProfileData {
   full_name: string;
   phone: string;
   avatar_url?: string;
-  id_card_number?: string;
   id_card_photo_url?: string;
 }
 
 export const useProfileForm = (profile: ProfileData) => {
   const [fullName, setFullName] = useState(profile?.full_name || "");
-  const [idCardNumber, setIdCardNumber] = useState(profile?.id_card_number || "");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [idCardFile, setIdCardFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -99,8 +97,7 @@ export const useProfileForm = (profile: ProfileData) => {
       await ensureBucketsExist();
 
       const updates: any = { 
-        full_name: fullName.trim(),
-        id_card_number: idCardNumber.trim() || null
+        full_name: fullName.trim()
       };
       
       if (avatarFile) {
@@ -172,8 +169,6 @@ export const useProfileForm = (profile: ProfileData) => {
   return {
     fullName,
     setFullName,
-    idCardNumber,
-    setIdCardNumber,
     avatarFile,
     setAvatarFile,
     idCardFile,

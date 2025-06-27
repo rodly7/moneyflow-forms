@@ -5,16 +5,12 @@ import { Input } from "@/components/ui/input";
 interface ProfileFormFieldsProps {
   fullName: string;
   setFullName: (value: string) => void;
-  idCardNumber: string;
-  setIdCardNumber: (value: string) => void;
   phone: string;
 }
 
 const ProfileFormFields = ({ 
   fullName, 
   setFullName, 
-  idCardNumber, 
-  setIdCardNumber, 
   phone 
 }: ProfileFormFieldsProps) => {
   return (
@@ -28,17 +24,6 @@ const ProfileFormFields = ({
           onChange={(e) => setFullName(e.target.value)} 
           placeholder="Votre nom complet"
           required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="idCardNumber">Numéro de pièce d'identité</Label>
-        <Input 
-          id="idCardNumber"
-          type="text" 
-          value={idCardNumber} 
-          onChange={(e) => setIdCardNumber(e.target.value)} 
-          placeholder="Numéro de votre pièce d'identité"
         />
       </div>
       

@@ -11,7 +11,6 @@ interface ProfileEditFormProps {
     full_name: string;
     phone: string;
     avatar_url?: string;
-    id_card_number?: string;
     id_card_photo_url?: string;
   };
 }
@@ -20,8 +19,6 @@ const ProfileEditForm = ({ profile }: ProfileEditFormProps) => {
   const {
     fullName,
     setFullName,
-    idCardNumber,
-    setIdCardNumber,
     isUploading,
     previewUrl,
     setPreviewUrl,
@@ -80,8 +77,6 @@ const ProfileEditForm = ({ profile }: ProfileEditFormProps) => {
       <ProfileFormFields 
         fullName={fullName}
         setFullName={setFullName}
-        idCardNumber={idCardNumber}
-        setIdCardNumber={setIdCardNumber}
         phone={profile?.phone}
       />
 
