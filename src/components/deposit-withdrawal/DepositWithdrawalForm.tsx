@@ -208,11 +208,11 @@ const DepositWithdrawalForm = () => {
       return handleQRWithdrawalSubmit(e);
     }
     
-    // Permettre le retrait même si aucun client n'est trouvé automatiquement
-    if (!phoneNumber.trim() || !amount) {
+    // Exiger qu'un client soit trouvé pour effectuer le retrait
+    if (!clientData || !amount) {
       toast({
         title: "Formulaire incomplet",
-        description: "Veuillez saisir un numéro de téléphone et un montant",
+        description: "Veuillez scanner le QR code ou trouver un client valide pour effectuer le retrait",
         variant: "destructive"
       });
       return;
@@ -228,14 +228,10 @@ const DepositWithdrawalForm = () => {
       return;
     }
 
-    // Si un client est trouvé, utiliser ses données, sinon utiliser les données saisies manuellement
-    const clientId = clientData?.id || null;
-    const clientName = clientData?.full_name || 'Client non identifié';
-
     const success = await processWithdrawal(
       withdrawalAmount,
-      clientId,
-      clientName,
+      clientData.id,
+      clientData.full_name || 'Utilisateur',
       phoneNumber
     );
 
@@ -422,7 +418,7 @@ const DepositWithdrawalForm = () => {
                 </CardTitle>
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-gray-600">
-                    Scannez le QR code ou saisissez manuellement le numéro
+                    Scannez le QR code du client pour effectuer le retrait
                   </p>
                   <Button
                     type="button"
@@ -460,23 +456,24 @@ const DepositWithdrawalForm = () => {
                         }}
                         className="mt-2"
                       >
-                        Effacer et saisir manuellement
+                        Effacer et scanner un nouveau QR
                       </Button>
                     </div>
                   )}
 
-                  {/* Champ téléphone - Toujours modifiable */}
+                  {/* Champ téléphone - Désactivé pour empêcher la saisie manuelle */}
                   <div className="space-y-2">
                     <Label htmlFor="phone-withdrawal">Numéro du client</Label>
                     <div className="relative">
                       <Input
                         id="phone-withdrawal"
                         type="tel"
-                        placeholder="Entrez le numéro du client"
+                        placeholder="Scanner le QR code du client"
                         value={phoneNumber}
                         onChange={handlePhoneChange}
                         required
-                        className="h-12"
+                        className="h-12 bg-gray-100"
+                        disabled={true}
                       />
                       {isSearching && (
                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -485,7 +482,7 @@ const DepositWithdrawalForm = () => {
                       )}
                     </div>
                     <p className="text-xs text-gray-500">
-                      La recherche se fait automatiquement, mais vous pouvez saisir n'importe quel numéro
+                      🔒 Saisie désactivée - Utilisez uniquement le scanner QR pour identifier le client
                     </p>
                   </div>
 
@@ -505,10 +502,10 @@ const DepositWithdrawalForm = () => {
                     </div>
                   )}
 
-                  {phoneNumber.length >= 8 && !clientData && !isSearching && (
-                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-md">
-                      <p className="text-amber-700 text-sm">
-                        ⚠️ Client non trouvé automatiquement - Vous pouvez continuer avec la saisie manuelle
+                  {!scannedUserData && !clientData && (
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+                      <p className="text-blue-700 text-sm">
+                        📱 Veuillez scanner le QR code du client pour effectuer le retrait
                       </p>
                     </div>
                   )}
@@ -523,6 +520,7 @@ const DepositWithdrawalForm = () => {
                       onChange={(e) => setAmount(e.target.value)}
                       required
                       className="h-12 text-lg"
+                      disabled={!scannedUserData && !clientData}
                     />
                   </div>
 
@@ -546,10 +544,7 @@ const DepositWithdrawalForm = () => {
                           <span>{formatCurrency(Number(amount) + withdrawalFees.totalFee, 'XAF')}</span>
                         </div>
                         <div className="text-xs text-gray-600 mt-2">
-                          {clientData ? 
-                            "Note: Le solde du client sera vérifié lors du traitement" :
-                            "Note: Retrait manuel - Assurez-vous que le client dispose du solde nécessaire"
-                          }
+                          Note: Le solde du client sera vérifié lors du traitement
                         </div>
                       </div>
                     </div>
@@ -558,7 +553,7 @@ const DepositWithdrawalForm = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-orange-600 hover:bg-orange-700 h-12 text-lg"
-                    disabled={isProcessing || isQRProcessing || !phoneNumber.trim() || !amount}
+                    disabled={isProcessing || isQRProcessing || (!scannedUserData && !clientData) || !amount}
                   >
                     {(isProcessing || isQRProcessing) ? (
                       <div className="flex items-center">
