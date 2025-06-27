@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -130,27 +131,10 @@ const ProfileHeader = ({ profile }: ProfileHeaderProps) => {
         </CardContent>
       </Card>
 
-      <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
-        <DialogContent className="rounded-2xl max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-gray-800 flex items-center gap-2">
-              <QrCode className="h-5 w-5 text-emerald-600" />
-              Mon QR Code de retrait
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center p-4">
-            <QRCodeGenerator 
-              action="withdraw"
-              showCard={false}
-              userAvatar={profile?.avatar_url || undefined}
-              userName={profile?.full_name || undefined}
-            />
-            <p className="text-sm text-gray-600 text-center mt-4">
-              Présentez ce QR code à un agent pour effectuer un retrait
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <QRCodeGenerator 
+        isOpen={showQRDialog}
+        onClose={() => setShowQRDialog(false)}
+      />
     </>
   );
 };
