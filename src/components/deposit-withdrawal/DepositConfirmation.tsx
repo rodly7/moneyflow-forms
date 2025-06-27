@@ -36,7 +36,7 @@ const DepositConfirmation = ({
 
   // Vérifier si l'authentification biométrique est supportée
   useState(() => {
-    if (window.PublicKeyCredential && window.navigator.credentials) {
+    if (window.PublicKeyCredential && navigator.credentials) {
       setBiometricSupported(true);
     }
   });
@@ -83,19 +83,13 @@ const DepositConfirmation = ({
 
     setIsConfirming(true);
     try {
-      // Authentification biométrique simplifiée
-      const credential = await navigator.credentials.create({
+      // Authentification biométrique avec une approche plus simple
+      const credential = await navigator.credentials.get({
         publicKey: {
           challenge: new Uint8Array(32),
-          rp: { name: "SendFlow Agent" },
-          user: {
-            id: new TextEncoder().encode(user?.id || ""),
-            name: user?.email || "",
-            displayName: "Agent"
-          },
-          pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+          allowCredentials: [],
           timeout: 60000,
-          attestation: "direct"
+          userVerification: "required"
         }
       });
 
@@ -106,12 +100,16 @@ const DepositConfirmation = ({
           title: "Authentification réussie",
           description: "Dépôt confirmé avec succès",
         });
+      } else {
+        throw new Error("Credential not found");
       }
     } catch (error) {
       console.error("Erreur biométrique:", error);
+      
+      // Fallback vers l'authentification par mot de passe
       toast({
-        title: "Erreur biométrique",
-        description: "Authentification biométrique échouée. Utilisez votre mot de passe.",
+        title: "Authentification biométrique non disponible",
+        description: "Veuillez utiliser votre mot de passe pour confirmer",
         variant: "destructive"
       });
     } finally {
@@ -164,39 +162,7 @@ const DepositConfirmation = ({
             </p>
           </div>
 
-          {/* Authentification biométrique */}
-          {biometricSupported && (
-            <Button
-              onClick={handleBiometricConfirmation}
-              disabled={isConfirming || isProcessing}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 h-12"
-            >
-              {isConfirming ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  <span>Authentification...</span>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center">
-                  <Fingerprint className="mr-2 h-5 w-5" />
-                  <span>Utiliser Face ID / Empreinte</span>
-                </div>
-              )}
-            </Button>
-          )}
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Ou
-              </span>
-            </div>
-          </div>
-
-          {/* Authentification par mot de passe */}
+          {/* Authentification par mot de passe en priorité */}
           <div className="space-y-3">
             <Input
               type="password"
@@ -210,7 +176,7 @@ const DepositConfirmation = ({
             <Button
               onClick={handlePasswordConfirmation}
               disabled={isConfirming || isProcessing || !password.trim()}
-              className="w-full bg-gray-600 hover:bg-gray-700 h-12"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 h-12"
             >
               {isConfirming ? (
                 <div className="flex items-center">
@@ -225,6 +191,41 @@ const DepositConfirmation = ({
               )}
             </Button>
           </div>
+
+          {/* Authentification biométrique alternative */}
+          {biometricSupported && (
+            <>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Ou
+                  </span>
+                </div>
+              </div>
+
+              <Button
+                onClick={handleBiometricConfirmation}
+                disabled={isConfirming || isProcessing}
+                variant="outline"
+                className="w-full h-12"
+              >
+                {isConfirming ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                    <span>Authentification...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center">
+                    <Fingerprint className="mr-2 h-5 w-5" />
+                    <span>Utiliser Face ID / Empreinte</span>
+                  </div>
+                )}
+              </Button>
+            </>
+          )}
 
           <Button
             variant="outline"
