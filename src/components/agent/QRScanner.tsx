@@ -15,27 +15,43 @@ interface QRScannerProps {
 const QRScanner = ({ isOpen, onClose, onScanSuccess }: QRScannerProps) => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
+  const [cameraStarted, setCameraStarted] = useState(false);
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
+      // Réinitialiser les états
+      setIsScanning(false);
+      setCameraStarted(false);
+      setScanResult(null);
+      
       // Attendre que le DOM soit prêt avant d'initialiser le scanner
       const timer = setTimeout(() => {
         initializeScanner();
-      }, 100);
+      }, 200);
 
       return () => {
         clearTimeout(timer);
-        if (scannerRef.current) {
-          scannerRef.current.clear().catch(console.error);
-          scannerRef.current = null;
-        }
+        cleanupScanner();
       };
     }
   }, [isOpen]);
 
-  const initializeScanner = () => {
+  const cleanupScanner = () => {
+    if (scannerRef.current) {
+      try {
+        scannerRef.current.clear().catch(console.error);
+      } catch (error) {
+        console.error('Erreur nettoyage scanner:', error);
+      }
+      scannerRef.current = null;
+    }
+    setIsScanning(false);
+    setCameraStarted(false);
+  };
+
+  const initializeScanner = async () => {
     try {
       // Vérifier que l'élément existe avant d'initialiser
       const element = document.getElementById("qr-scanner-container");
@@ -49,6 +65,12 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess }: QRScannerProps) => {
         return;
       }
 
+      // Nettoyer l'ancien scanner s'il existe
+      if (scannerRef.current) {
+        await scannerRef.current.clear();
+        scannerRef.current = null;
+      }
+
       const scanner = new Html5QrcodeScanner(
         "qr-scanner-container",
         {
@@ -58,6 +80,9 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess }: QRScannerProps) => {
           supportedScanTypes: [],
           showTorchButtonIfSupported: true,
           showZoomSliderIfSupported: true,
+          rememberLastUsedCamera: true,
+          // Forcer l'utilisation de la caméra arrière si disponible
+          defaultZoomValueIfSupported: 2,
         },
         false
       );
@@ -69,7 +94,9 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess }: QRScannerProps) => {
         },
         (error: string) => {
           // Ignorer les erreurs de scan normales
-          if (!error.includes("No QR code found") && !error.includes("QR code parse error")) {
+          if (!error.includes("No QR code found") && 
+              !error.includes("QR code parse error") && 
+              !error.includes("Unable to detect a QR code")) {
             console.warn("Erreur de scan:", error);
           }
         }
@@ -77,10 +104,11 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess }: QRScannerProps) => {
 
       scannerRef.current = scanner;
       setIsScanning(true);
+      setCameraStarted(true);
       
       toast({
-        title: "Scanner initialisé",
-        description: "Pointez la caméra vers le QR code",
+        title: "Scanner démarré",
+        description: "Caméra activée - Pointez vers le QR code",
       });
 
     } catch (error) {
@@ -118,7 +146,7 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess }: QRScannerProps) => {
           // Fermer le scanner après succès
           setTimeout(() => {
             onClose();
-          }, 1000);
+          }, 1500);
         } else {
           toast({
             title: "QR Code invalide",
@@ -144,11 +172,7 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess }: QRScannerProps) => {
   };
 
   const handleClose = () => {
-    if (scannerRef.current) {
-      scannerRef.current.clear().catch(console.error);
-      scannerRef.current = null;
-    }
-    setIsScanning(false);
+    cleanupScanner();
     setScanResult(null);
     onClose();
   };
@@ -168,28 +192,36 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess }: QRScannerProps) => {
             {isOpen && (
               <div id="qr-scanner-container" className="w-full h-full"></div>
             )}
-            {!isScanning && (
-              <div className="absolute inset-0 flex items-center justify-center">
+            {!cameraStarted && (
+              <div className="absolute inset-0 flex items-center justify-center bg-white/90">
                 <div className="text-center">
                   <Camera className="h-16 w-16 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500">Initialisation du scanner...</p>
+                  <p className="text-gray-500">Démarrage de la caméra...</p>
                 </div>
               </div>
             )}
           </div>
 
           <div className="text-center space-y-2">
-            <p className="text-sm text-gray-600">
-              Positionnez le QR code du client dans le cadre
-            </p>
+            {cameraStarted ? (
+              <p className="text-sm text-gray-600 font-medium">
+                🎯 Pointez la caméra vers le QR code du client
+              </p>
+            ) : (
+              <p className="text-sm text-gray-600">
+                Initialisation du scanner...
+              </p>
+            )}
+            
             {scanResult && (
               <div className="p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700 flex items-center justify-center gap-1">
                 <CheckCircle className="w-3 h-3" />
                 QR Code détecté et traité
               </div>
             )}
+            
             <p className="text-xs text-gray-500">
-              Assurez-vous d'autoriser l'accès à la caméra
+              {cameraStarted ? "Le scan se fait automatiquement" : "Assurez-vous d'autoriser l'accès à la caméra"}
             </p>
           </div>
 
