@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Shield, Fingerprint, Lock, AlertCircle, ArrowRight } from "lucide-react";
+import { Shield, Fingerprint, Lock, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, calculateFee } from "@/integrations/supabase/client";
+import { AuthErrorHandler } from "@/services/authErrorHandler";
 
 interface TransferConfirmationProps {
   isOpen: boolean;
@@ -35,12 +36,23 @@ const TransferConfirmation = ({
   const [password, setPassword] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
   const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricError, setBiometricError] = useState<string | null>(null);
 
   // Vérifier si l'authentification biométrique est supportée
   useState(() => {
-    if (window.PublicKeyCredential && navigator.credentials) {
-      setBiometricSupported(true);
-    }
+    const checkBiometricSupport = async () => {
+      try {
+        if (window.PublicKeyCredential && 
+            await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()) {
+          setBiometricSupported(true);
+        }
+      } catch (error) {
+        console.log("Biométrie non supportée:", error);
+        setBiometricSupported(false);
+      }
+    };
+    
+    checkBiometricSupport();
   });
 
   const handlePasswordConfirmation = async () => {
@@ -55,18 +67,20 @@ const TransferConfirmation = ({
 
     setIsConfirming(true);
     try {
-      // Simulation de vérification du mot de passe
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise(resolve => setTimeout(resolve, 800));
       await onConfirm();
       setPassword("");
       onClose();
+      AuthErrorHandler.clearRetries('transfer_confirmation');
     } catch (error) {
-      toast({
-        title: "Erreur de confirmation",
-        description: "Impossible de confirmer le transfert",
-        variant: "destructive"
-      });
+      const canRetry = await AuthErrorHandler.handleAuthError(error, 'transfer_confirmation');
+      if (!canRetry) {
+        toast({
+          title: "Erreur de confirmation",
+          description: "Impossible de confirmer le transfert après plusieurs tentatives",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsConfirming(false);
     }
@@ -83,14 +97,18 @@ const TransferConfirmation = ({
     }
 
     setIsConfirming(true);
+    setBiometricError(null);
+    
     try {
+      const publicKeyCredentialRequestOptions = {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        allowCredentials: [],
+        timeout: 30000,
+        userVerification: "required" as UserVerificationRequirement
+      };
+
       const credential = await navigator.credentials.get({
-        publicKey: {
-          challenge: new Uint8Array(32),
-          allowCredentials: [],
-          timeout: 60000,
-          userVerification: "required"
-        }
+        publicKey: publicKeyCredentialRequestOptions
       });
 
       if (credential) {
@@ -100,17 +118,19 @@ const TransferConfirmation = ({
           title: "Authentification réussie",
           description: "Transfert confirmé avec succès",
         });
-      } else {
-        throw new Error("Credential not found");
+        AuthErrorHandler.clearRetries('biometric_confirmation');
       }
-    } catch (error) {
-      console.error("Erreur biométrique:", error);
+    } catch (error: any) {
+      console.log("Tentative d'authentification biométrique:", error);
       
-      toast({
-        title: "Authentification biométrique non disponible",
-        description: "Veuillez utiliser votre mot de passe pour confirmer",
-        variant: "destructive"
-      });
+      if (error.name === 'NotAllowedError') {
+        setBiometricError("Authentification annulée par l'utilisateur");
+      } else if (error.name === 'NotSupportedError') {
+        setBiometricError("Authentification biométrique non supportée");
+        setBiometricSupported(false);
+      } else {
+        setBiometricError("Erreur d'authentification biométrique");
+      }
     } finally {
       setIsConfirming(false);
     }
@@ -182,7 +202,6 @@ const TransferConfirmation = ({
             </p>
           </div>
 
-          {/* Authentification par mot de passe en priorité */}
           <div className="space-y-3">
             <Input
               type="password"
@@ -190,7 +209,8 @@ const TransferConfirmation = ({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-12"
-              onKeyPress={(e) => e.key === 'Enter' && handlePasswordConfirmation()}
+              disabled={isConfirming || isProcessing}
+              onKeyPress={(e) => e.key === 'Enter' && !isConfirming && handlePasswordConfirmation()}
             />
             
             <Button
@@ -212,7 +232,6 @@ const TransferConfirmation = ({
             </Button>
           </div>
 
-          {/* Authentification biométrique alternative */}
           {biometricSupported && (
             <>
               <div className="relative">
@@ -244,6 +263,13 @@ const TransferConfirmation = ({
                   </div>
                 )}
               </Button>
+
+              {biometricError && (
+                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-2 rounded">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>{biometricError}</span>
+                </div>
+              )}
             </>
           )}
 

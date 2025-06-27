@@ -8,6 +8,7 @@ import { Shield, Fingerprint, Lock, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/integrations/supabase/client";
+import { AuthErrorHandler } from "@/services/authErrorHandler";
 
 interface DepositConfirmationProps {
   isOpen: boolean;
@@ -33,12 +34,23 @@ const DepositConfirmation = ({
   const [password, setPassword] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
   const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricError, setBiometricError] = useState<string | null>(null);
 
   // Vérifier si l'authentification biométrique est supportée
   useState(() => {
-    if (window.PublicKeyCredential && navigator.credentials) {
-      setBiometricSupported(true);
-    }
+    const checkBiometricSupport = async () => {
+      try {
+        if (window.PublicKeyCredential && 
+            await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()) {
+          setBiometricSupported(true);
+        }
+      } catch (error) {
+        console.log("Biométrie non supportée:", error);
+        setBiometricSupported(false);
+      }
+    };
+    
+    checkBiometricSupport();
   });
 
   const handlePasswordConfirmation = async () => {
@@ -53,19 +65,20 @@ const DepositConfirmation = ({
 
     setIsConfirming(true);
     try {
-      // Ici on pourrait vérifier le mot de passe avec Supabase
-      // Pour l'instant, on simule une vérification
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise(resolve => setTimeout(resolve, 800));
       await onConfirm();
       setPassword("");
       onClose();
+      AuthErrorHandler.clearRetries('deposit_confirmation');
     } catch (error) {
-      toast({
-        title: "Erreur de confirmation",
-        description: "Impossible de confirmer le dépôt",
-        variant: "destructive"
-      });
+      const canRetry = await AuthErrorHandler.handleAuthError(error, 'deposit_confirmation');
+      if (!canRetry) {
+        toast({
+          title: "Erreur de confirmation",
+          description: "Impossible de confirmer le dépôt après plusieurs tentatives",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsConfirming(false);
     }
@@ -82,15 +95,18 @@ const DepositConfirmation = ({
     }
 
     setIsConfirming(true);
+    setBiometricError(null);
+    
     try {
-      // Authentification biométrique avec une approche plus simple
+      const publicKeyCredentialRequestOptions = {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        allowCredentials: [],
+        timeout: 30000,
+        userVerification: "required" as UserVerificationRequirement
+      };
+
       const credential = await navigator.credentials.get({
-        publicKey: {
-          challenge: new Uint8Array(32),
-          allowCredentials: [],
-          timeout: 60000,
-          userVerification: "required"
-        }
+        publicKey: publicKeyCredentialRequestOptions
       });
 
       if (credential) {
@@ -100,18 +116,19 @@ const DepositConfirmation = ({
           title: "Authentification réussie",
           description: "Dépôt confirmé avec succès",
         });
-      } else {
-        throw new Error("Credential not found");
+        AuthErrorHandler.clearRetries('biometric_confirmation');
       }
-    } catch (error) {
-      console.error("Erreur biométrique:", error);
+    } catch (error: any) {
+      console.log("Tentative d'authentification biométrique:", error);
       
-      // Fallback vers l'authentification par mot de passe
-      toast({
-        title: "Authentification biométrique non disponible",
-        description: "Veuillez utiliser votre mot de passe pour confirmer",
-        variant: "destructive"
-      });
+      if (error.name === 'NotAllowedError') {
+        setBiometricError("Authentification annulée par l'utilisateur");
+      } else if (error.name === 'NotSupportedError') {
+        setBiometricError("Authentification biométrique non supportée");
+        setBiometricSupported(false);
+      } else {
+        setBiometricError("Erreur d'authentification biométrique");
+      }
     } finally {
       setIsConfirming(false);
     }
@@ -162,7 +179,6 @@ const DepositConfirmation = ({
             </p>
           </div>
 
-          {/* Authentification par mot de passe en priorité */}
           <div className="space-y-3">
             <Input
               type="password"
@@ -170,7 +186,8 @@ const DepositConfirmation = ({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-12"
-              onKeyPress={(e) => e.key === 'Enter' && handlePasswordConfirmation()}
+              disabled={isConfirming || isProcessing}
+              onKeyPress={(e) => e.key === 'Enter' && !isConfirming && handlePasswordConfirmation()}
             />
             
             <Button
@@ -192,7 +209,6 @@ const DepositConfirmation = ({
             </Button>
           </div>
 
-          {/* Authentification biométrique alternative */}
           {biometricSupported && (
             <>
               <div className="relative">
@@ -224,6 +240,13 @@ const DepositConfirmation = ({
                   </div>
                 )}
               </Button>
+
+              {biometricError && (
+                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-2 rounded">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>{biometricError}</span>
+                </div>
+              )}
             </>
           )}
 

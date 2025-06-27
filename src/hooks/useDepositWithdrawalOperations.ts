@@ -5,6 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateDepositFees, calculateWithdrawalFees } from "@/utils/depositWithdrawalCalculations";
 import { getUserBalance } from "@/services/withdrawalService";
+import { AuthErrorHandler } from "@/services/authErrorHandler";
+import { errorHandlingService } from "@/services/errorHandlingService";
 
 export const useDepositWithdrawalOperations = () => {
   const { user, profile } = useAuth();
@@ -49,7 +51,7 @@ export const useDepositWithdrawalOperations = () => {
         throw new Error("Solde agent insuffisant pour effectuer ce dépôt");
       }
 
-      // Débiter l'agent
+      // Transaction avec gestion d'erreurs améliorée
       const { error: debitError } = await supabase.rpc('increment_balance', {
         user_id: user.id,
         amount: -amount
@@ -59,14 +61,13 @@ export const useDepositWithdrawalOperations = () => {
         throw new Error("Erreur lors du débit du compte agent");
       }
 
-      // Créditer le client
       const { error: creditError } = await supabase.rpc('increment_balance', {
         user_id: recipientId,
         amount: amount
       });
 
       if (creditError) {
-        // Annuler le débit de l'agent en cas d'erreur
+        // Rollback en cas d'erreur
         await supabase.rpc('increment_balance', {
           user_id: user.id,
           amount: amount
@@ -74,15 +75,7 @@ export const useDepositWithdrawalOperations = () => {
         throw new Error("Erreur lors du crédit du compte client");
       }
 
-      // Créditer la commission à l'agent (0 pour les dépôts)
-      if (agentCommission > 0) {
-        await supabase.rpc('increment_balance', {
-          user_id: user.id,
-          amount: agentCommission
-        });
-      }
-
-      // Créer l'enregistrement de la transaction
+      // Enregistrer la transaction
       const transactionReference = `DEP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       
       const { error: transactionError } = await supabase
@@ -104,16 +97,18 @@ export const useDepositWithdrawalOperations = () => {
       }
 
       toast({
-        title: "Dépôt effectué avec succès",
-        description: `Dépôt de ${amount} FCFA effectué pour ${recipientName}. Aucun frais appliqué.`,
+        title: "✅ Dépôt effectué avec succès",
+        description: `Dépôt de ${amount.toLocaleString()} FCFA effectué pour ${recipientName}`,
       });
 
+      AuthErrorHandler.clearRetries('deposit_operation');
       return true;
     } catch (error) {
       console.error('Erreur lors du dépôt:', error);
+      const errorMessage = await errorHandlingService.handleAuthError(error);
       toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Erreur lors du dépôt",
+        title: "❌ Erreur",
+        description: errorMessage,
         variant: "destructive"
       });
       return false;
@@ -151,17 +146,17 @@ export const useDepositWithdrawalOperations = () => {
         throw new Error(`Vous ne pouvez effectuer des retraits que pour des clients de ${profile.country}`);
       }
 
-      // Calculer les frais (1,5% pour les retraits)
+      // Calculer les frais
       const { totalFee, agentCommission, platformCommission } = calculateWithdrawalFees(amount);
       const totalAmount = amount + totalFee;
 
       // Vérifier le solde du client
       const clientBalanceData = await getUserBalance(clientId);
       if (clientBalanceData.balance < totalAmount) {
-        throw new Error(`Solde client insuffisant. Solde: ${clientBalanceData.balance} FCFA, montant total requis: ${totalAmount} FCFA (incluant frais de ${totalFee} FCFA)`);
+        throw new Error(`Solde client insuffisant. Solde: ${clientBalanceData.balance.toLocaleString()} FCFA, montant total requis: ${totalAmount.toLocaleString()} FCFA`);
       }
 
-      // Débiter le client (montant + frais)
+      // Transaction avec rollback en cas d'erreur
       const { error: debitError } = await supabase.rpc('increment_balance', {
         user_id: clientId,
         amount: -totalAmount
@@ -171,14 +166,13 @@ export const useDepositWithdrawalOperations = () => {
         throw new Error("Erreur lors du débit du compte client");
       }
 
-      // Créditer l'agent (montant + commission)
       const { error: creditError } = await supabase.rpc('increment_balance', {
         user_id: user.id,
         amount: amount + agentCommission
       });
 
       if (creditError) {
-        // Annuler le débit du client en cas d'erreur
+        // Rollback
         await supabase.rpc('increment_balance', {
           user_id: clientId,
           amount: totalAmount
@@ -186,7 +180,7 @@ export const useDepositWithdrawalOperations = () => {
         throw new Error("Erreur lors du crédit du compte agent");
       }
 
-      // Créditer la commission plateforme
+      // Commission plateforme
       if (platformCommission > 0) {
         const { data: adminData } = await supabase
           .from('profiles')
@@ -202,7 +196,7 @@ export const useDepositWithdrawalOperations = () => {
         }
       }
 
-      // Créer l'enregistrement du retrait
+      // Enregistrer le retrait
       const { error: withdrawalError } = await supabase
         .from('withdrawals')
         .insert({
@@ -217,16 +211,18 @@ export const useDepositWithdrawalOperations = () => {
       }
 
       toast({
-        title: "Retrait effectué avec succès",
-        description: `Retrait de ${amount} FCFA effectué pour ${clientName}. Frais: ${totalFee} FCFA (1,5%). Votre commission: ${agentCommission} FCFA.`,
+        title: "✅ Retrait effectué avec succès",
+        description: `Retrait de ${amount.toLocaleString()} FCFA pour ${clientName}. Votre commission: ${agentCommission.toLocaleString()} FCFA`,
       });
 
+      AuthErrorHandler.clearRetries('withdrawal_operation');
       return true;
     } catch (error) {
       console.error('Erreur lors du retrait:', error);
+      const errorMessage = await errorHandlingService.handleAuthError(error);
       toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Erreur lors du retrait",
+        title: "❌ Erreur",
+        description: errorMessage,
         variant: "destructive"
       });
       return false;
