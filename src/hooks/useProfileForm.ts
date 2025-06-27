@@ -24,27 +24,35 @@ export const useProfileForm = (profile: ProfileData) => {
 
   const ensureBucketsExist = async () => {
     try {
-      const { data: avatarBucket } = await supabase.storage.getBucket('avatars');
-      if (!avatarBucket) {
+      // Vérifier et créer le bucket avatars si nécessaire
+      const { data: avatarBucket, error: avatarBucketError } = await supabase.storage.getBucket('avatars');
+      if (avatarBucketError && avatarBucketError.message.includes('not found')) {
         console.log('Création du bucket avatars...');
-        await supabase.storage.createBucket('avatars', {
+        const { error: createAvatarError } = await supabase.storage.createBucket('avatars', {
           public: true,
           allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
-          fileSizeLimit: 2097152
+          fileSizeLimit: 2097152 // 2MB
         });
+        if (createAvatarError) {
+          console.log('Erreur création bucket avatars:', createAvatarError);
+        }
       }
 
-      const { data: idCardBucket } = await supabase.storage.getBucket('id-cards');
-      if (!idCardBucket) {
+      // Vérifier et créer le bucket id-cards si nécessaire
+      const { data: idCardBucket, error: idCardBucketError } = await supabase.storage.getBucket('id-cards');
+      if (idCardBucketError && idCardBucketError.message.includes('not found')) {
         console.log('Création du bucket id-cards...');
-        await supabase.storage.createBucket('id-cards', {
+        const { error: createIdCardError } = await supabase.storage.createBucket('id-cards', {
           public: false,
           allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
-          fileSizeLimit: 5242880
+          fileSizeLimit: 5242880 // 5MB
         });
+        if (createIdCardError) {
+          console.log('Erreur création bucket id-cards:', createIdCardError);
+        }
       }
     } catch (error) {
-      console.log('Les buckets existent déjà ou erreur lors de la création:', error);
+      console.log('Erreur lors de la vérification des buckets:', error);
     }
   };
 
@@ -52,6 +60,16 @@ export const useProfileForm = (profile: ProfileData) => {
     try {
       console.log(`Upload du fichier vers ${bucket}/${path}`);
       
+      // Supprimer l'ancien fichier s'il existe
+      const { error: deleteError } = await supabase.storage
+        .from(bucket)
+        .remove([path]);
+      
+      if (deleteError) {
+        console.log('Pas d\'ancien fichier à supprimer ou erreur:', deleteError);
+      }
+
+      // Upload du nouveau fichier
       const { data, error } = await supabase.storage
         .from(bucket)
         .upload(path, file, {
@@ -66,6 +84,7 @@ export const useProfileForm = (profile: ProfileData) => {
 
       console.log('Upload réussi:', data);
 
+      // Obtenir l'URL publique
       const { data: urlData } = supabase.storage
         .from(bucket)
         .getPublicUrl(path);
@@ -94,26 +113,29 @@ export const useProfileForm = (profile: ProfileData) => {
     try {
       console.log('Début de la mise à jour du profil...');
       
+      // S'assurer que les buckets existent
       await ensureBucketsExist();
 
       const updates: any = { 
         full_name: fullName.trim()
       };
       
+      // Upload de l'avatar si un fichier est sélectionné
       if (avatarFile) {
         console.log('Upload de l\'avatar...');
         const fileExt = avatarFile.name.split('.').pop();
-        const fileName = `${profile.id}-${Date.now()}.${fileExt}`;
+        const fileName = `${profile.id}-avatar-${Date.now()}.${fileExt}`;
         
         const avatarUrl = await uploadFile(avatarFile, 'avatars', fileName);
         updates.avatar_url = avatarUrl;
         console.log('Avatar uploadé:', avatarUrl);
       }
 
+      // Upload de la pièce d'identité si un fichier est sélectionné
       if (idCardFile) {
         console.log('Upload de la photo d\'identité...');
         const fileExt = idCardFile.name.split('.').pop();
-        const fileName = `${profile.id}/id-card-${Date.now()}.${fileExt}`;
+        const fileName = `${profile.id}-idcard-${Date.now()}.${fileExt}`;
         
         const idCardUrl = await uploadFile(idCardFile, 'id-cards', fileName);
         updates.id_card_photo_url = idCardUrl;
@@ -122,6 +144,7 @@ export const useProfileForm = (profile: ProfileData) => {
 
       console.log('Mise à jour des données du profil...', updates);
 
+      // Mettre à jour le profil dans la base de données
       const { error } = await supabase
         .from('profiles')
         .update(updates)
@@ -139,6 +162,7 @@ export const useProfileForm = (profile: ProfileData) => {
         description: "Vos informations ont été mises à jour avec succès"
       });
 
+      // Invalider le cache pour rafraîchir les données
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       
     } catch (error) {
