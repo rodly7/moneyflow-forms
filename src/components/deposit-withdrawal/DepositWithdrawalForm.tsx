@@ -99,15 +99,26 @@ const DepositWithdrawalForm = () => {
   };
 
   const handleQRScanSuccess = (userData: { userId: string; fullName: string; phone: string }) => {
+    console.log("QR Code scanné avec succès:", userData);
+    
+    // Remplir automatiquement les champs avec les données du QR
     setScannedUserData(userData);
+    setPhoneNumber(userData.phone);
+    
+    // Créer les données client pour l'affichage
     setClientData({
       id: userData.userId,
       full_name: userData.fullName,
       phone: userData.phone,
       country: 'Vérifié par QR'
     });
-    setPhoneNumber(userData.phone);
+    
     setShowQRScanner(false);
+    
+    toast({
+      title: "QR Code scanné",
+      description: `Client identifié: ${userData.fullName} (${userData.phone})`,
+    });
   };
 
   const handleDepositSubmit = async (e: React.FormEvent) => {
@@ -406,7 +417,7 @@ const DepositWithdrawalForm = () => {
                 </CardTitle>
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-gray-600">
-                    Saisissez manuellement ou scannez le QR code
+                    Scannez le QR code du client pour remplir automatiquement
                   </p>
                   <Button
                     type="button"
@@ -433,24 +444,37 @@ const DepositWithdrawalForm = () => {
                         <p><strong>Nom:</strong> {scannedUserData.fullName}</p>
                         <p><strong>Téléphone:</strong> {scannedUserData.phone}</p>
                       </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setScannedUserData(null);
+                          setPhoneNumber("");
+                          setClientData(null);
+                        }}
+                        className="mt-2"
+                      >
+                        Effacer et saisir manuellement
+                      </Button>
                     </div>
                   )}
 
-                  {/* Champ téléphone (désactivé si QR scanné) */}
+                  {/* Champ téléphone */}
                   <div className="space-y-2">
                     <Label htmlFor="phone-withdrawal">Numéro du client</Label>
                     <div className="relative">
                       <Input
                         id="phone-withdrawal"
                         type="tel"
-                        placeholder="Entrez le numéro du client"
+                        placeholder={scannedUserData ? "Rempli automatiquement par QR" : "Entrez le numéro du client"}
                         value={phoneNumber}
                         onChange={handlePhoneChange}
                         required
                         className="h-12"
                         disabled={!!scannedUserData}
                       />
-                      {isSearching && (
+                      {isSearching && !scannedUserData && (
                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
                         </div>
