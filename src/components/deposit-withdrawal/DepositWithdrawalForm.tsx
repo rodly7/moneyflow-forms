@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, Minus, User, Wallet, RefreshCw, Shield } from "lucide-react";
+import { ArrowLeft, Plus, Minus, User, Wallet, RefreshCw, Shield, Camera, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/integrations/supabase/client";
 import { useUserSearch } from "@/hooks/useUserSearch";
@@ -14,6 +13,8 @@ import { useDepositWithdrawalOperations } from "@/hooks/useDepositWithdrawalOper
 import { getUserBalance } from "@/services/withdrawalService";
 import { useAuth } from "@/contexts/AuthContext";
 import { calculateDepositFees, calculateWithdrawalFees } from "@/utils/depositWithdrawalCalculations";
+import QRScanner from "@/components/agent/QRScanner";
+import { useQRWithdrawal } from "@/hooks/useQRWithdrawal";
 
 const DepositWithdrawalForm = () => {
   const { user } = useAuth();
@@ -25,9 +26,12 @@ const DepositWithdrawalForm = () => {
   const [clientData, setClientData] = useState<any>(null);
   const [agentBalance, setAgentBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(true);
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [scannedUserData, setScannedUserData] = useState<any>(null);
 
   const { searchUserByPhone, isSearching } = useUserSearch();
   const { processDeposit, processWithdrawal, isProcessing } = useDepositWithdrawalOperations();
+  const { processQRWithdrawal, isProcessing: isQRProcessing } = useQRWithdrawal();
 
   const fetchAgentBalance = async () => {
     if (user?.id) {
@@ -94,6 +98,18 @@ const DepositWithdrawalForm = () => {
     }
   };
 
+  const handleQRScanSuccess = (userData: { userId: string; fullName: string; phone: string }) => {
+    setScannedUserData(userData);
+    setClientData({
+      id: userData.userId,
+      full_name: userData.fullName,
+      phone: userData.phone,
+      country: 'Vérifié par QR'
+    });
+    setPhoneNumber(userData.phone);
+    setShowQRScanner(false);
+  };
+
   const handleDepositSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -140,8 +156,46 @@ const DepositWithdrawalForm = () => {
     }
   };
 
+  const handleQRWithdrawalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!scannedUserData || !amount) {
+      toast({
+        title: "Données manquantes",
+        description: "Veuillez scanner le QR code du client et entrer un montant",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const withdrawalAmount = Number(amount);
+    if (isNaN(withdrawalAmount) || withdrawalAmount <= 0) {
+      toast({
+        title: "Montant invalide",
+        description: "Veuillez entrer un montant valide",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const result = await processQRWithdrawal(scannedUserData, withdrawalAmount);
+
+    if (result.success) {
+      setPhoneNumber("");
+      setAmount("");
+      setClientData(null);
+      setScannedUserData(null);
+      fetchAgentBalance();
+    }
+  };
+
   const handleWithdrawalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Si on a des données scannées, utiliser le retrait QR
+    if (scannedUserData) {
+      return handleQRWithdrawalSubmit(e);
+    }
     
     if (!clientData || !amount) {
       toast({
@@ -162,8 +216,6 @@ const DepositWithdrawalForm = () => {
       return;
     }
 
-    // Note: On ne peut pas vérifier le solde du client car il est masqué
-    // Le système backend vérifiera le solde lors du traitement
     const success = await processWithdrawal(
       withdrawalAmount,
       clientData.id,
@@ -352,12 +404,39 @@ const DepositWithdrawalForm = () => {
                   <Minus className="w-5 h-5" />
                   Retrait Client
                 </CardTitle>
-                <p className="text-sm text-gray-600">
-                  La recherche se fait automatiquement pendant que vous tapez
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-600">
+                    Saisissez manuellement ou scannez le QR code
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowQRScanner(true)}
+                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    Scanner QR
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleWithdrawalSubmit} className="space-y-4">
+                  {/* Affichage des données QR scannées */}
+                  {scannedUserData && (
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-md space-y-2">
+                      <div className="flex items-center text-emerald-800">
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        <span className="font-medium">QR Code scanné avec succès</span>
+                      </div>
+                      <div className="text-sm text-emerald-700">
+                        <p><strong>Nom:</strong> {scannedUserData.fullName}</p>
+                        <p><strong>Téléphone:</strong> {scannedUserData.phone}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Champ téléphone (désactivé si QR scanné) */}
                   <div className="space-y-2">
                     <Label htmlFor="phone-withdrawal">Numéro du client</Label>
                     <div className="relative">
@@ -369,6 +448,7 @@ const DepositWithdrawalForm = () => {
                         onChange={handlePhoneChange}
                         required
                         className="h-12"
+                        disabled={!!scannedUserData}
                       />
                       {isSearching && (
                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -445,9 +525,9 @@ const DepositWithdrawalForm = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-orange-600 hover:bg-orange-700 h-12 text-lg"
-                    disabled={isProcessing || !clientData || !amount}
+                    disabled={isProcessing || isQRProcessing || !clientData || !amount}
                   >
-                    {isProcessing ? (
+                    {(isProcessing || isQRProcessing) ? (
                       <div className="flex items-center">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                         <span>Traitement...</span>
@@ -455,7 +535,9 @@ const DepositWithdrawalForm = () => {
                     ) : (
                       <div className="flex items-center justify-center">
                         <Minus className="mr-2 h-5 w-5" />
-                        <span>Effectuer le retrait</span>
+                        <span>
+                          {scannedUserData ? 'Confirmer retrait QR' : 'Effectuer le retrait'}
+                        </span>
                       </div>
                     )}
                   </Button>
@@ -465,6 +547,13 @@ const DepositWithdrawalForm = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Scanner QR */}
+      <QRScanner
+        isOpen={showQRScanner}
+        onClose={() => setShowQRScanner(false)}
+        onScanSuccess={handleQRScanSuccess}
+      />
     </div>
   );
 };
