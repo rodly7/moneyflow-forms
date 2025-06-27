@@ -14,6 +14,7 @@ export const useTransferForm = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [data, setData] = useState(INITIAL_TRANSFER_DATA);
   const [pendingTransferInfo, setPendingTransferInfo] = useState<PendingTransferInfo | null>(null);
+  const [showTransferConfirmation, setShowTransferConfirmation] = useState(false);
 
   const { processTransfer, isLoading } = useTransferOperations();
   const { createWithdrawalRequest } = useWithdrawalRequest();
@@ -41,37 +42,42 @@ export const useTransferForm = () => {
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (currentStep === 2) {
-      const result = await processTransfer({
-        amount: data.transfer.amount,
-        recipient: {
-          email: data.recipient.phone + "@placeholder.com", // Generate placeholder email from phone
-          fullName: data.recipient.fullName,
-          country: data.recipient.country,
-          phone: data.recipient.phone
-        }
-      });
-      
-      if (result.success) {
-        // Si le transfert génère un code de réclamation (transfert en attente)
-        if (result.claimCode) {
-          setPendingTransferInfo({
-            recipientPhone: data.recipient.phone,
-            claimCode: result.claimCode,
-            amount: data.transfer.amount
-          });
-        } else {
-          resetForm();
-        }
-      }
+      // Ouvrir la confirmation sécurisée au lieu de traiter immédiatement
+      setShowTransferConfirmation(true);
     } else {
       next();
     }
-  }, [currentStep, data, processTransfer, next]);
+  }, [currentStep, next]);
+
+  const handleConfirmedTransfer = useCallback(async () => {
+    const result = await processTransfer({
+      amount: data.transfer.amount,
+      recipient: {
+        email: data.recipient.phone + "@placeholder.com",
+        fullName: data.recipient.fullName,
+        country: data.recipient.country,
+        phone: data.recipient.phone
+      }
+    });
+    
+    if (result.success) {
+      if (result.claimCode) {
+        setPendingTransferInfo({
+          recipientPhone: data.recipient.phone,
+          claimCode: result.claimCode,
+          amount: data.transfer.amount
+        });
+      } else {
+        resetForm();
+      }
+    }
+  }, [data, processTransfer]);
 
   const resetForm = useCallback(() => {
     setData(INITIAL_TRANSFER_DATA);
     setCurrentStep(0);
     setPendingTransferInfo(null);
+    setShowTransferConfirmation(false);
   }, []);
 
   return {
@@ -79,10 +85,13 @@ export const useTransferForm = () => {
     data,
     isLoading,
     pendingTransferInfo,
+    showTransferConfirmation,
     updateFields,
     back,
     handleSubmit,
+    handleConfirmedTransfer,
     resetForm,
-    confirmWithdrawal
+    confirmWithdrawal,
+    setShowTransferConfirmation
   };
 };

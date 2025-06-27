@@ -5,6 +5,7 @@ import RecipientInfo from "./transfer-steps/RecipientInfo";
 import TransferDetails from "./transfer-steps/TransferDetails";
 import TransferSummary from "./transfer-steps/TransferSummary";
 import TransferStepper from "./transfer/TransferStepper";
+import TransferConfirmation from "./transfer/TransferConfirmation";
 import { useTransferForm } from "@/hooks/useTransferForm";
 import { useState } from "react";
 import { CheckCircle, Copy } from "lucide-react";
@@ -17,10 +18,13 @@ const TransferForm = () => {
     data,
     isLoading,
     pendingTransferInfo,
+    showTransferConfirmation,
     updateFields,
     back,
     handleSubmit,
-    resetForm
+    handleConfirmedTransfer,
+    resetForm,
+    setShowTransferConfirmation
   } = useTransferForm();
 
   const [copied, setCopied] = useState(false);
@@ -151,6 +155,21 @@ const TransferForm = () => {
           </form>
         </div>
       </Card>
+
+      {/* Confirmation sécurisée du transfert */}
+      <TransferConfirmation
+        isOpen={showTransferConfirmation}
+        onClose={() => setShowTransferConfirmation(false)}
+        onConfirm={handleConfirmedTransfer}
+        transferData={{
+          amount: data.transfer.amount,
+          recipientName: data.recipient.fullName,
+          recipientPhone: data.recipient.phone,
+          recipientCountry: data.recipient.country,
+          senderCountry: profile?.country || "Cameroun"
+        }}
+        isProcessing={isLoading}
+      />
     </div>
   );
 };
