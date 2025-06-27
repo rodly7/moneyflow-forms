@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -209,10 +208,11 @@ const DepositWithdrawalForm = () => {
       return handleQRWithdrawalSubmit(e);
     }
     
-    if (!clientData || !amount) {
+    // Permettre le retrait même si aucun client n'est trouvé automatiquement
+    if (!phoneNumber.trim() || !amount) {
       toast({
         title: "Formulaire incomplet",
-        description: "Veuillez saisir un numéro valide pour trouver le client et entrer un montant",
+        description: "Veuillez saisir un numéro de téléphone et un montant",
         variant: "destructive"
       });
       return;
@@ -228,10 +228,14 @@ const DepositWithdrawalForm = () => {
       return;
     }
 
+    // Si un client est trouvé, utiliser ses données, sinon utiliser les données saisies manuellement
+    const clientId = clientData?.id || null;
+    const clientName = clientData?.full_name || 'Client non identifié';
+
     const success = await processWithdrawal(
       withdrawalAmount,
-      clientData.id,
-      clientData.full_name || 'Utilisateur',
+      clientId,
+      clientName,
       phoneNumber
     );
 
@@ -481,7 +485,7 @@ const DepositWithdrawalForm = () => {
                       )}
                     </div>
                     <p className="text-xs text-gray-500">
-                      La recherche se fait automatiquement pendant que vous tapez
+                      La recherche se fait automatiquement, mais vous pouvez saisir n'importe quel numéro
                     </p>
                   </div>
 
@@ -502,9 +506,9 @@ const DepositWithdrawalForm = () => {
                   )}
 
                   {phoneNumber.length >= 8 && !clientData && !isSearching && (
-                    <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-                      <p className="text-red-700 text-sm">
-                        Aucun client trouvé avec ce numéro
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-md">
+                      <p className="text-amber-700 text-sm">
+                        ⚠️ Client non trouvé automatiquement - Vous pouvez continuer avec la saisie manuelle
                       </p>
                     </div>
                   )}
@@ -519,7 +523,6 @@ const DepositWithdrawalForm = () => {
                       onChange={(e) => setAmount(e.target.value)}
                       required
                       className="h-12 text-lg"
-                      disabled={!clientData}
                     />
                   </div>
 
@@ -543,7 +546,10 @@ const DepositWithdrawalForm = () => {
                           <span>{formatCurrency(Number(amount) + withdrawalFees.totalFee, 'XAF')}</span>
                         </div>
                         <div className="text-xs text-gray-600 mt-2">
-                          Note: Le solde du client sera vérifié lors du traitement
+                          {clientData ? 
+                            "Note: Le solde du client sera vérifié lors du traitement" :
+                            "Note: Retrait manuel - Assurez-vous que le client dispose du solde nécessaire"
+                          }
                         </div>
                       </div>
                     </div>
@@ -552,7 +558,7 @@ const DepositWithdrawalForm = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-orange-600 hover:bg-orange-700 h-12 text-lg"
-                    disabled={isProcessing || isQRProcessing || !clientData || !amount}
+                    disabled={isProcessing || isQRProcessing || !phoneNumber.trim() || !amount}
                   >
                     {(isProcessing || isQRProcessing) ? (
                       <div className="flex items-center">
