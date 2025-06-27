@@ -60,16 +60,7 @@ export const useProfileForm = (profile: ProfileData) => {
     try {
       console.log(`Upload du fichier vers ${bucket}/${path}`);
       
-      // Supprimer l'ancien fichier s'il existe
-      const { error: deleteError } = await supabase.storage
-        .from(bucket)
-        .remove([path]);
-      
-      if (deleteError) {
-        console.log('Pas d\'ancien fichier à supprimer ou erreur:', deleteError);
-      }
-
-      // Upload du nouveau fichier
+      // Upload du fichier (avec upsert pour écraser s'il existe)
       const { data, error } = await supabase.storage
         .from(bucket)
         .upload(path, file, {
@@ -126,9 +117,19 @@ export const useProfileForm = (profile: ProfileData) => {
         const fileExt = avatarFile.name.split('.').pop();
         const fileName = `${profile.id}-avatar-${Date.now()}.${fileExt}`;
         
-        const avatarUrl = await uploadFile(avatarFile, 'avatars', fileName);
-        updates.avatar_url = avatarUrl;
-        console.log('Avatar uploadé:', avatarUrl);
+        try {
+          const avatarUrl = await uploadFile(avatarFile, 'avatars', fileName);
+          updates.avatar_url = avatarUrl;
+          console.log('Avatar uploadé:', avatarUrl);
+        } catch (error) {
+          console.error('Erreur upload avatar:', error);
+          toast({
+            title: "Erreur",
+            description: "Impossible d'uploader la photo de profil",
+            variant: "destructive"
+          });
+          return;
+        }
       }
 
       // Upload de la pièce d'identité si un fichier est sélectionné
@@ -137,9 +138,19 @@ export const useProfileForm = (profile: ProfileData) => {
         const fileExt = idCardFile.name.split('.').pop();
         const fileName = `${profile.id}-idcard-${Date.now()}.${fileExt}`;
         
-        const idCardUrl = await uploadFile(idCardFile, 'id-cards', fileName);
-        updates.id_card_photo_url = idCardUrl;
-        console.log('Photo d\'identité uploadée:', idCardUrl);
+        try {
+          const idCardUrl = await uploadFile(idCardFile, 'id-cards', fileName);
+          updates.id_card_photo_url = idCardUrl;
+          console.log('Photo d\'identité uploadée:', idCardUrl);
+        } catch (error) {
+          console.error('Erreur upload ID card:', error);
+          toast({
+            title: "Erreur",
+            description: "Impossible d'uploader la photo d'identité",
+            variant: "destructive"
+          });
+          return;
+        }
       }
 
       console.log('Mise à jour des données du profil...', updates);
@@ -151,7 +162,7 @@ export const useProfileForm = (profile: ProfileData) => {
         .eq('id', profile.id);
 
       if (error) {
-        console.error('Erreur lors de la mise à jour:', error);
+        console.error('Erreur lors de la mise à jour du profil:', error);
         throw error;
       }
 
@@ -177,6 +188,8 @@ export const useProfileForm = (profile: ProfileData) => {
           errorMessage = "Erreur lors de la sauvegarde des informations";
         } else if (error.message.includes('permission')) {
           errorMessage = "Permissions insuffisantes";
+        } else if (error.message.includes('RLS')) {
+          errorMessage = "Problème d'autorisation d'accès";
         }
       }
       

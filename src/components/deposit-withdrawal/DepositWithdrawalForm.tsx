@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -417,7 +418,7 @@ const DepositWithdrawalForm = () => {
                 </CardTitle>
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-gray-600">
-                    Scannez le QR code du client pour remplir automatiquement
+                    Scannez le QR code ou saisissez manuellement le numéro
                   </p>
                   <Button
                     type="button"
@@ -460,26 +461,28 @@ const DepositWithdrawalForm = () => {
                     </div>
                   )}
 
-                  {/* Champ téléphone */}
+                  {/* Champ téléphone - Toujours modifiable */}
                   <div className="space-y-2">
                     <Label htmlFor="phone-withdrawal">Numéro du client</Label>
                     <div className="relative">
                       <Input
                         id="phone-withdrawal"
                         type="tel"
-                        placeholder={scannedUserData ? "Rempli automatiquement par QR" : "Entrez le numéro du client"}
+                        placeholder="Entrez le numéro du client"
                         value={phoneNumber}
                         onChange={handlePhoneChange}
                         required
                         className="h-12"
-                        disabled={!!scannedUserData}
                       />
-                      {isSearching && !scannedUserData && (
+                      {isSearching && (
                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
                         </div>
                       )}
                     </div>
+                    <p className="text-xs text-gray-500">
+                      La recherche se fait automatiquement pendant que vous tapez
+                    </p>
                   </div>
 
                   {clientData && (
