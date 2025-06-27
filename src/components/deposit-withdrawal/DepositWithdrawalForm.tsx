@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { calculateDepositFees, calculateWithdrawalFees } from "@/utils/depositWithdrawalCalculations";
 import QRScanner from "@/components/agent/QRScanner";
 import { useQRWithdrawal } from "@/hooks/useQRWithdrawal";
+import DepositConfirmation from "./DepositConfirmation";
 
 const DepositWithdrawalForm = () => {
   const { user } = useAuth();
@@ -28,6 +29,7 @@ const DepositWithdrawalForm = () => {
   const [isLoadingBalance, setIsLoadingBalance] = useState(true);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [scannedUserData, setScannedUserData] = useState<any>(null);
+  const [showDepositConfirmation, setShowDepositConfirmation] = useState(false);
 
   const { searchUserByPhone, isSearching } = useUserSearch();
   const { processDeposit, processWithdrawal, isProcessing } = useDepositWithdrawalOperations();
@@ -55,7 +57,6 @@ const DepositWithdrawalForm = () => {
     fetchAgentBalance();
   }, [user]);
 
-  // Recherche automatique d'utilisateurs comme dans le système de transfert
   const searchClientAutomatically = async (phone: string) => {
     if (!phone || phone.length < 6) {
       setClientData(null);
@@ -67,10 +68,9 @@ const DepositWithdrawalForm = () => {
       const client = await searchUserByPhone(phone);
       
       if (client) {
-        // Masquer le solde du client pour l'agent
         const secureClientData = {
           ...client,
-          balance: undefined // Ne pas exposer le solde
+          balance: undefined
         };
         setClientData(secureClientData);
         console.log("✅ Client trouvé automatiquement (solde masqué):", secureClientData);
@@ -87,12 +87,10 @@ const DepositWithdrawalForm = () => {
     const value = e.target.value;
     setPhoneNumber(value);
     
-    // Réinitialiser les données client si le numéro change
     if (clientData) {
       setClientData(null);
     }
 
-    // Recherche automatique quand le numéro semble complet (8 chiffres ou plus)
     if (value.length >= 8) {
       searchClientAutomatically(value);
     }
@@ -101,11 +99,9 @@ const DepositWithdrawalForm = () => {
   const handleQRScanSuccess = (userData: { userId: string; fullName: string; phone: string }) => {
     console.log("QR Code scanné avec succès:", userData);
     
-    // Remplir automatiquement les champs avec les données du QR
     setScannedUserData(userData);
     setPhoneNumber(userData.phone);
     
-    // Créer les données client pour l'affichage
     setClientData({
       id: userData.userId,
       full_name: userData.fullName,
@@ -152,6 +148,12 @@ const DepositWithdrawalForm = () => {
       return;
     }
 
+    setShowDepositConfirmation(true);
+  };
+
+  const handleConfirmedDeposit = async () => {
+    const depositAmount = Number(amount);
+    
     const success = await processDeposit(
       depositAmount,
       clientData.id,
@@ -203,12 +205,10 @@ const DepositWithdrawalForm = () => {
   const handleWithdrawalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Si on a des données scannées, utiliser le retrait QR
     if (scannedUserData) {
       return handleQRWithdrawalSubmit(e);
     }
     
-    // Exiger qu'un client soit trouvé pour effectuer le retrait
     if (!clientData || !amount) {
       toast({
         title: "Formulaire incomplet",
@@ -243,7 +243,6 @@ const DepositWithdrawalForm = () => {
     }
   };
 
-  // Calculer les frais pour l'affichage
   const depositFees = amount ? calculateDepositFees(Number(amount)) : null;
   const withdrawalFees = amount ? calculateWithdrawalFees(Number(amount)) : null;
 
@@ -259,7 +258,6 @@ const DepositWithdrawalForm = () => {
           <div className="w-10"></div>
         </div>
 
-        {/* Solde Agent */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex justify-between items-center">
@@ -434,7 +432,6 @@ const DepositWithdrawalForm = () => {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleWithdrawalSubmit} className="space-y-4">
-                  {/* Affichage des données QR scannées */}
                   {scannedUserData && (
                     <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-md space-y-2">
                       <div className="flex items-center text-emerald-800">
@@ -461,7 +458,6 @@ const DepositWithdrawalForm = () => {
                     </div>
                   )}
 
-                  {/* Champ téléphone - Désactivé pour empêcher la saisie manuelle */}
                   <div className="space-y-2">
                     <Label htmlFor="phone-withdrawal">Numéro du client</Label>
                     <div className="relative">
@@ -576,11 +572,20 @@ const DepositWithdrawalForm = () => {
         </Tabs>
       </div>
 
-      {/* Scanner QR */}
       <QRScanner
         isOpen={showQRScanner}
         onClose={() => setShowQRScanner(false)}
         onScanSuccess={handleQRScanSuccess}
+      />
+
+      <DepositConfirmation
+        isOpen={showDepositConfirmation}
+        onClose={() => setShowDepositConfirmation(false)}
+        onConfirm={handleConfirmedDeposit}
+        amount={Number(amount)}
+        clientName={clientData?.full_name || 'Client'}
+        clientPhone={phoneNumber}
+        isProcessing={isProcessing}
       />
     </div>
   );
