@@ -26,6 +26,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         
+        console.log('📊 Profil rafraîchi:', profileData);
         setProfile(profileData);
       } catch (error) {
         console.error('Erreur lors du rafraîchissement du profil:', error);
@@ -38,15 +39,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const initAuth = async () => {
       try {
+        console.log('🔄 Initialisation de l\'authentification...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Erreur lors de la récupération de la session:', error);
-          setLoading(false);
+          if (mounted) setLoading(false);
           return;
         }
         
         if (session?.user && mounted) {
+          console.log('👤 Utilisateur trouvé dans la session:', session.user.id);
           setUser(session.user);
           
           try {
@@ -57,11 +60,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               .single();
             
             if (!profileError && profileData && mounted) {
+              console.log('📊 Profil chargé:', profileData);
               setProfile(profileData);
+            } else {
+              console.error('Erreur profil:', profileError);
             }
           } catch (error) {
             console.error('Erreur lors de la récupération du profil:', error);
           }
+        } else {
+          console.log('❌ Aucune session utilisateur trouvée');
         }
         
         if (mounted) {
@@ -80,6 +88,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
+      console.log('🔄 Changement d\'état auth:', event, session?.user?.id);
+      
       if (event === 'SIGNED_OUT' || !session) {
         setUser(null);
         setProfile(null);
@@ -90,6 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (session?.user) {
         setUser(session.user);
         
+        // Attendre un peu avant de charger le profil
         setTimeout(async () => {
           if (!mounted) return;
           try {
@@ -100,7 +111,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               .single();
             
             if (!error && profileData && mounted) {
+              console.log('📊 Profil chargé après auth change:', profileData);
               setProfile(profileData);
+            } else {
+              console.error('Erreur profil après auth change:', error);
             }
           } catch (error) {
             console.error('Erreur lors de la récupération du profil après auth change:', error);

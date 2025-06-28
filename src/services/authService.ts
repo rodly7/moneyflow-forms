@@ -6,7 +6,7 @@ export const authService = {
   async signIn(phone: string, password: string) {
     console.log('🔐 Tentative de connexion avec le numéro:', phone);
     
-    // Normaliser le numéro de téléphone pour la connexion
+    // Normaliser le numéro de téléphone - enlever tous les espaces et caractères non numériques sauf +
     const normalizedPhone = phone.replace(/[^\d+]/g, '');
     const email = `${normalizedPhone}@sendflow.app`;
     console.log('📧 Email de connexion généré:', email);
@@ -19,21 +19,29 @@ export const authService = {
     if (error) {
       console.error('❌ Erreur de connexion:', error);
       
+      // Messages d'erreur plus spécifiques
       if (error.message.includes('Invalid login credentials')) {
-        throw new Error('Numéro de téléphone ou mot de passe incorrect. Vérifiez que vous utilisez le même format qu\'à l\'inscription.');
+        throw new Error('Numéro de téléphone ou mot de passe incorrect.');
+      }
+      if (error.message.includes('Email not confirmed')) {
+        throw new Error('Veuillez confirmer votre email avant de vous connecter.');
+      }
+      if (error.message.includes('Too many requests')) {
+        throw new Error('Trop de tentatives de connexion. Veuillez attendre quelques minutes.');
       }
       
-      throw new Error('Numéro de téléphone ou mot de passe incorrect. Vérifiez vos informations.');
+      throw new Error('Erreur de connexion. Vérifiez vos informations.');
     }
     
     console.log('✅ Connexion réussie pour:', data.user?.id);
+    return data;
   },
 
   async signUp(phone: string, password: string, metadata: SignUpMetadata) {
     console.log('📝 Tentative d\'inscription avec le numéro:', phone);
     console.log('🎯 Rôle demandé:', metadata.role);
     
-    // Normaliser le numéro de téléphone pour l'inscription
+    // Même normalisation que pour la connexion
     const normalizedPhone = phone.replace(/[^\d+]/g, '');
     const email = `${normalizedPhone}@sendflow.app`;
     console.log('📧 Email d\'inscription généré:', email);
@@ -47,7 +55,7 @@ export const authService = {
       options: {
         data: {
           ...metadata,
-          phone: normalizedPhone,  // Utiliser le numéro normalisé
+          phone: normalizedPhone,
           role: userRole,
         },
       },
@@ -56,13 +64,13 @@ export const authService = {
     if (error) {
       console.error('❌ Erreur d\'inscription:', error);
       if (error.message.includes('User already registered')) {
-        throw new Error('Un compte existe déjà avec ce numéro de téléphone. Essayez de vous connecter.');
+        throw new Error('Un compte existe déjà avec ce numéro de téléphone.');
       }
       throw error;
     }
     
     console.log('✅ Inscription réussie:', data.user?.id);
-    console.log('📋 Métadonnées utilisateur:', data.user?.user_metadata);
+    return data;
   },
 
   async signOut() {

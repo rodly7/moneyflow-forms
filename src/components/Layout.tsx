@@ -9,32 +9,46 @@ const Layout = () => {
   const location = useLocation();
 
   React.useEffect(() => {
-    if (loading) return;
+    if (loading) {
+      console.log('⏳ Chargement en cours...');
+      return;
+    }
 
-    // Pages d'authentification
+    console.log('🔍 Layout - État:', { 
+      user: !!user, 
+      profile: !!profile, 
+      role: profile?.role, 
+      path: location.pathname 
+    });
+
+    // Pages d'authentification - pas de redirection
     if (location.pathname === '/auth' || location.pathname === '/agent-auth') {
+      console.log('📄 Page d\'authentification');
       return;
     }
 
     // Si pas d'utilisateur connecté, rediriger vers auth
     if (!user) {
+      console.log('❌ Pas d\'utilisateur - redirection vers /auth');
       navigate('/auth', { replace: true });
       return;
     }
 
     // Si utilisateur mais pas de profil encore, attendre
     if (!profile) {
+      console.log('⏳ Utilisateur trouvé mais profil en chargement...');
       return;
     }
 
-    // Redirections basées sur le rôle
-    const isMainAdmin = profile.phone === '+221773637752';
-    const isSubAdmin = profile.role === 'sub_admin';
-    const isAgent = profile.role === 'agent';
-    const isUser = profile.role === 'user';
-
-    // Redirection selon le rôle si on est sur la page d'accueil
+    // Redirections basées sur le rôle uniquement si on est sur la page d'accueil
     if (location.pathname === '/') {
+      const isMainAdmin = profile.phone === '+221773637752';
+      const isSubAdmin = profile.role === 'sub_admin';
+      const isAgent = profile.role === 'agent';
+      const isUser = profile.role === 'user';
+
+      console.log('🏠 Page d\'accueil - redirection basée sur le rôle:', profile.role);
+
       if (isMainAdmin) {
         navigate('/main-admin', { replace: true });
       } else if (isSubAdmin) {
@@ -65,7 +79,14 @@ const Layout = () => {
 
   // Si pas d'utilisateur ou de profil, ne rien afficher (redirection en cours)
   if (!user || !profile) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-blue-600 font-medium">Redirection...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
