@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Wallet, Settings, LogOut, Users, UserPlus, Ban, Shield, Eye, BarChart3, CreditCard } from "lucide-react";
+import { Wallet, Settings, LogOut, Users, UserPlus, Ban, Shield, Eye, BarChart3, CreditCard, Activity, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/integrations/supabase/client";
@@ -12,6 +12,9 @@ import { useNavigate } from "react-router-dom";
 import { useSecureAdminOperations } from "@/hooks/useSecureAdminOperations";
 import UsersDataTable from "@/components/admin/UsersDataTable";
 import UserManagementModal from "@/components/admin/UserManagementModal";
+import TransactionMonitor from "@/components/admin/TransactionMonitor";
+import BatchAgentRecharge from "@/components/admin/BatchAgentRecharge";
+import NotificationSender from "@/components/admin/NotificationSender";
 
 interface UserData {
   id: string;
@@ -39,17 +42,23 @@ const MainAdminDashboard = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'recharge' | 'reports' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'recharge' | 'transactions' | 'batch-recharge' | 'notifications' | 'settings'>('overview');
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
 
   if (!user || !profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md mx-auto">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className="text-blue-600 font-medium">Chargement du profil...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md mx-auto backdrop-blur-xl bg-white/80 shadow-2xl border border-white/50 rounded-3xl">
+          <CardContent className="pt-8">
+            <div className="text-center space-y-6">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500/30 border-t-blue-500 mx-auto"></div>
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 animate-pulse"></div>
+              </div>
+              <div>
+                <p className="text-blue-600 font-semibold text-xl">Chargement du profil</p>
+                <p className="text-gray-500">Administration en cours...</p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -62,15 +71,20 @@ const MainAdminDashboard = () => {
 
   if (!isMainAdmin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md mx-auto">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <h2 className="text-xl font-bold text-red-600 mb-4">Accès refusé</h2>
-              <p className="text-gray-600 mb-4">Cette interface est réservée à l'administrateur principal.</p>
-              <Button onClick={() => navigate('/dashboard')} className="w-full">
-                Retour au tableau de bord
-              </Button>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-orange-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md mx-auto backdrop-blur-xl bg-white/80 shadow-2xl border border-white/50 rounded-3xl">
+          <CardContent className="pt-8">
+            <div className="text-center space-y-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-orange-500 rounded-2xl flex items-center justify-center mx-auto">
+                <Shield className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-red-600 mb-4">Accès refusé</h2>
+                <p className="text-gray-600 mb-4">Cette interface est réservée à l'administrateur principal.</p>
+                <Button onClick={() => navigate('/dashboard')} className="w-full rounded-full h-12 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg">
+                  Retour au tableau de bord
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -239,31 +253,41 @@ const MainAdminDashboard = () => {
   }, [activeTab]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 w-full">
-      <div className="w-full mx-auto space-y-6 px-4 py-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
+      {/* Enhanced Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-indigo-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
+
+      <div className="relative z-10 w-full mx-auto space-y-8 px-4 py-6 max-w-7xl">
+        {/* Enhanced Header */}
+        <div className="flex items-center justify-between backdrop-blur-xl bg-white/80 rounded-3xl p-6 shadow-2xl border border-white/50">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-              <Settings className="w-6 h-6 text-white" />
+            <div className="w-14 h-14 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg animate-pulse">
+              <Settings className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-blue-700">Admin Principal</h1>
-              <p className="text-blue-600">Bienvenue, {profile.full_name}</p>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Admin Principal</h1>
+              <p className="text-blue-600 text-lg">Bienvenue, {profile.full_name}</p>
             </div>
           </div>
-          <Button onClick={handleSignOut} variant="ghost" className="text-red-600">
+          <Button 
+            onClick={handleSignOut} 
+            variant="ghost" 
+            className="text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300 rounded-full px-6 py-3 transition-all duration-300"
+          >
             <LogOut className="w-4 h-4 mr-2" />
             Déconnexion
           </Button>
         </div>
 
-        {/* Navigation */}
-        <div className="flex gap-2 bg-white p-2 rounded-lg shadow overflow-x-auto">
+        {/* Enhanced Navigation */}
+        <div className="flex gap-2 bg-white/80 backdrop-blur-xl p-3 rounded-2xl shadow-xl border border-white/50 overflow-x-auto">
           <Button
             variant={activeTab === 'overview' ? 'default' : 'ghost'}
             onClick={() => setActiveTab('overview')}
-            className="flex-shrink-0"
+            className="flex-shrink-0 rounded-full px-6 py-3 transition-all duration-300"
           >
             <Settings className="w-4 h-4 mr-2" />
             Vue d'ensemble
@@ -271,7 +295,7 @@ const MainAdminDashboard = () => {
           <Button
             variant={activeTab === 'users' ? 'default' : 'ghost'}
             onClick={() => setActiveTab('users')}
-            className="flex-shrink-0"
+            className="flex-shrink-0 rounded-full px-6 py-3 transition-all duration-300"
           >
             <Users className="w-4 h-4 mr-2" />
             Utilisateurs
@@ -279,23 +303,39 @@ const MainAdminDashboard = () => {
           <Button
             variant={activeTab === 'recharge' ? 'default' : 'ghost'}
             onClick={() => setActiveTab('recharge')}
-            className="flex-shrink-0"
+            className="flex-shrink-0 rounded-full px-6 py-3 transition-all duration-300"
           >
             <Wallet className="w-4 h-4 mr-2" />
             Recharge
           </Button>
           <Button
-            variant={activeTab === 'reports' ? 'default' : 'ghost'}
-            onClick={() => setActiveTab('reports')}
-            className="flex-shrink-0"
+            variant={activeTab === 'transactions' ? 'default' : 'ghost'}
+            onClick={() => setActiveTab('transactions')}
+            className="flex-shrink-0 rounded-full px-6 py-3 transition-all duration-300"
           >
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Rapports
+            <Activity className="w-4 h-4 mr-2" />
+            Transactions
+          </Button>
+          <Button
+            variant={activeTab === 'batch-recharge' ? 'default' : 'ghost'}
+            onClick={() => setActiveTab('batch-recharge')}
+            className="flex-shrink-0 rounded-full px-6 py-3 transition-all duration-300"
+          >
+            <CreditCard className="w-4 h-4 mr-2" />
+            Recharge Groupée
+          </Button>
+          <Button
+            variant={activeTab === 'notifications' ? 'default' : 'ghost'}
+            onClick={() => setActiveTab('notifications')}
+            className="flex-shrink-0 rounded-full px-6 py-3 transition-all duration-300"
+          >
+            <Send className="w-4 h-4 mr-2" />
+            Notifications
           </Button>
           <Button
             variant={activeTab === 'settings' ? 'default' : 'ghost'}
             onClick={() => setActiveTab('settings')}
-            className="flex-shrink-0"
+            className="flex-shrink-0 rounded-full px-6 py-3 transition-all duration-300"
           >
             <Shield className="w-4 h-4 mr-2" />
             Paramètres
@@ -304,41 +344,47 @@ const MainAdminDashboard = () => {
 
         {/* Contenu selon l'onglet actif */}
         {activeTab === 'overview' && (
-          <div className="space-y-6">
-            {/* Solde */}
-            <Card className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <Wallet className="w-6 h-6" />
+          <div className="space-y-8">
+            {/* Enhanced Balance Card */}
+            <Card className="bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-600 text-white border-0 shadow-2xl rounded-3xl">
+              <CardContent className="pt-8">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                    <Wallet className="w-6 h-6" />
+                  </div>
                   <div>
-                    <h2 className="text-lg font-bold">Solde Admin</h2>
-                    <p className="text-2xl font-bold">{formatCurrency(profile.balance, 'XAF')}</p>
+                    <h2 className="text-xl font-bold text-blue-100">Solde Admin</h2>
+                    <p className="text-3xl font-bold drop-shadow-lg">{formatCurrency(profile.balance, 'XAF')}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Statistiques rapides */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <Users className="w-8 h-8 text-blue-600" />
+            {/* Enhanced Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <Card className="backdrop-blur-xl bg-white/80 shadow-xl border border-white/50 rounded-2xl hover:shadow-2xl transition-all duration-300">
+                <CardContent className="pt-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+                      <Users className="w-6 h-6 text-white" />
+                    </div>
                     <div>
-                      <p className="text-sm text-gray-600">Total Utilisateurs</p>
-                      <p className="text-2xl font-bold">{users.length}</p>
+                      <p className="text-sm text-gray-600 font-medium">Total Utilisateurs</p>
+                      <p className="text-3xl font-bold text-blue-600">{users.length}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
               
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <Shield className="w-8 h-8 text-green-600" />
+              <Card className="backdrop-blur-xl bg-white/80 shadow-xl border border-white/50 rounded-2xl hover:shadow-2xl transition-all duration-300">
+                <CardContent className="pt-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
+                      <Shield className="w-6 h-6 text-white" />
+                    </div>
                     <div>
-                      <p className="text-sm text-gray-600">Agents Actifs</p>
-                      <p className="text-2xl font-bold">
+                      <p className="text-sm text-gray-600 font-medium">Agents Actifs</p>
+                      <p className="text-3xl font-bold text-emerald-600">
                         {users.filter(u => u.role === 'agent').length}
                       </p>
                     </div>
@@ -346,13 +392,15 @@ const MainAdminDashboard = () => {
                 </CardContent>
               </Card>
               
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <Ban className="w-8 h-8 text-red-600" />
+              <Card className="backdrop-blur-xl bg-white/80 shadow-xl border border-white/50 rounded-2xl hover:shadow-2xl transition-all duration-300">
+                <CardContent className="pt-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center shadow-lg">
+                      <Ban className="w-6 h-6 text-white" />
+                    </div>
                     <div>
-                      <p className="text-sm text-gray-600">Utilisateurs Bannis</p>
-                      <p className="text-2xl font-bold">
+                      <p className="text-sm text-gray-600 font-medium">Utilisateurs Bannis</p>
+                      <p className="text-3xl font-bold text-red-600">
                         {users.filter(u => u.is_banned).length}
                       </p>
                     </div>
@@ -360,13 +408,15 @@ const MainAdminDashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <Settings className="w-8 h-8 text-purple-600" />
+              <Card className="backdrop-blur-xl bg-white/80 shadow-xl border border-white/50 rounded-2xl hover:shadow-2xl transition-all duration-300">
+                <CardContent className="pt-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                      <Settings className="w-6 h-6 text-white" />
+                    </div>
                     <div>
-                      <p className="text-sm text-gray-600">Sous-Admins</p>
-                      <p className="text-2xl font-bold">
+                      <p className="text-sm text-gray-600 font-medium">Sous-Admins</p>
+                      <p className="text-3xl font-bold text-purple-600">
                         {users.filter(u => u.role === 'sub_admin').length}
                       </p>
                     </div>
@@ -375,29 +425,35 @@ const MainAdminDashboard = () => {
               </Card>
             </div>
 
-            {/* Actions rapides */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/admin-balance-update')}>
-                <CardContent className="pt-6 text-center">
-                  <CreditCard className="w-8 h-8 text-blue-600 mx-auto mb-3" />
-                  <h3 className="font-semibold text-blue-700 mb-2">Mise à jour des soldes</h3>
-                  <p className="text-sm text-gray-600">Gestion avancée des soldes</p>
+            {/* Enhanced Quick Actions */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="cursor-pointer hover:shadow-2xl transition-all duration-300 group backdrop-blur-xl bg-white/80 border border-white/50 rounded-2xl" onClick={() => navigate('/admin-balance-update')}>
+                <CardContent className="pt-8 text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                    <CreditCard className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="font-bold text-blue-700 mb-3 text-lg">Mise à jour des soldes</h3>
+                  <p className="text-gray-600">Gestion avancée des soldes</p>
                 </CardContent>
               </Card>
 
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setActiveTab('users')}>
-                <CardContent className="pt-6 text-center">
-                  <Users className="w-8 h-8 text-green-600 mx-auto mb-3" />
-                  <h3 className="font-semibold text-green-700 mb-2">Gestion Utilisateurs</h3>
-                  <p className="text-sm text-gray-600">Voir et gérer tous les utilisateurs</p>
+              <Card className="cursor-pointer hover:shadow-2xl transition-all duration-300 group backdrop-blur-xl bg-white/80 border border-white/50 rounded-2xl" onClick={() => setActiveTab('users')}>
+                <CardContent className="pt-8 text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-green-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                    <Users className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="font-bold text-emerald-700 mb-3 text-lg">Gestion Utilisateurs</h3>
+                  <p className="text-gray-600">Voir et gérer tous les utilisateurs</p>
                 </CardContent>
               </Card>
 
-              <Card className="cursor-pointer hover-shadow-lg transition-shadow" onClick={() => setActiveTab('reports')}>
-                <CardContent className="pt-6 text-center">
-                  <BarChart3 className="w-8 h-8 text-purple-600 mx-auto mb-3" />
-                  <h3 className="font-semibold text-purple-700 mb-2">Rapports</h3>
-                  <p className="text-sm text-gray-600">Statistiques et analyses</p>
+              <Card className="cursor-pointer hover:shadow-2xl transition-all duration-300 group backdrop-blur-xl bg-white/80 border border-white/50 rounded-2xl" onClick={() => setActiveTab('transactions')}>
+                <CardContent className="pt-8 text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                    <BarChart3 className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="font-bold text-purple-700 mb-3 text-lg">Monitoring Transactions</h3>
+                  <p className="text-gray-600">Suivi en temps réel</p>
                 </CardContent>
               </Card>
             </div>
@@ -406,7 +462,7 @@ const MainAdminDashboard = () => {
 
         {activeTab === 'users' && (
           <div className="space-y-6">
-            <Card>
+            <Card className="backdrop-blur-xl bg-white/90 shadow-2xl border border-white/50 rounded-2xl">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
@@ -435,7 +491,7 @@ const MainAdminDashboard = () => {
         {activeTab === 'recharge' && (
           <div className="space-y-6">
             {/* Recharge Admin */}
-            <Card className="bg-white">
+            <Card className="backdrop-blur-xl bg-white/90 shadow-2xl border border-white/50 rounded-2xl">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-gray-900">
                   <Wallet className="w-5 h-5 text-blue-600" />
@@ -461,7 +517,7 @@ const MainAdminDashboard = () => {
                 <Button
                   onClick={handleAdminRecharge}
                   disabled={isProcessing}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-blue-600 hover:bg-blue-700 rounded-full h-12"
                 >
                   {isProcessing ? "Recharge automatique..." : "Recharger Automatiquement"}
                 </Button>
@@ -469,7 +525,7 @@ const MainAdminDashboard = () => {
             </Card>
 
             {/* Crédit Utilisateur */}
-            <Card className="bg-white">
+            <Card className="backdrop-blur-xl bg-white/90 shadow-2xl border border-white/50 rounded-2xl">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-gray-900">
                   <UserPlus className="w-5 h-5 text-green-600" />
@@ -505,7 +561,7 @@ const MainAdminDashboard = () => {
                 <Button
                   onClick={handleCreditUser}
                   disabled={isProcessing}
-                  className="w-full bg-green-600 hover:bg-green-700"
+                  className="w-full bg-green-600 hover:bg-green-700 rounded-full h-12"
                 >
                   {isProcessing ? "Crédit en cours..." : "Créditer l'Utilisateur"}
                 </Button>
@@ -514,33 +570,13 @@ const MainAdminDashboard = () => {
           </div>
         )}
 
-        {activeTab === 'reports' && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />
-                  Rapports et Statistiques
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <BarChart3 className="w-16 h-16 text-purple-600 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-4">
-                    Section rapports et analytics
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Fonctionnalité à développer selon les besoins
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        {activeTab === 'transactions' && <TransactionMonitor />}
+        {activeTab === 'batch-recharge' && <BatchAgentRecharge />}
+        {activeTab === 'notifications' && <NotificationSender />}
 
         {activeTab === 'settings' && (
           <div className="space-y-6">
-            <Card>
+            <Card className="backdrop-blur-xl bg-white/90 shadow-2xl border border-white/50 rounded-2xl">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="w-5 h-5" />

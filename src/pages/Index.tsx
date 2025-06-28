@@ -154,10 +154,22 @@ const Index = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent shadow-lg" />
-          <p className="text-gray-600 font-medium">Chargement en cours...</p>
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-100 relative overflow-hidden">
+        {/* Enhanced Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-indigo-400/20 to-blue-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        </div>
+        
+        <div className="relative z-10 flex flex-col items-center space-y-6 p-8">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-20 w-20 border-4 border-blue-500/30 border-t-blue-500 shadow-lg"></div>
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/10 to-cyan-500/10 animate-pulse"></div>
+          </div>
+          <div className="text-center space-y-2">
+            <p className="text-blue-600 font-semibold text-xl">Chargement en cours</p>
+            <p className="text-gray-500">Préparation de votre espace...</p>
+          </div>
         </div>
       </div>
     );
@@ -207,34 +219,43 @@ const Index = () => {
   })) || [];
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
-      <div className="w-full mx-auto space-y-2 px-0 pb-8">
-        {/* Enhanced Header Section - espacement réduit */}
-        <div className="bg-white/70 backdrop-blur-sm border-b border-gray-100 px-4 pt-6 pb-2 shadow-sm">
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-100 relative overflow-hidden">
+      {/* Enhanced Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-indigo-400/20 to-blue-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-300/10 to-blue-300/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+      </div>
+
+      <div className="relative z-10 w-full mx-auto space-y-4 px-0 pb-8">
+        {/* Enhanced Header Section */}
+        <div className="backdrop-blur-xl bg-white/80 border-b border-white/50 px-4 pt-8 pb-4 shadow-xl">
           {profile && <ProfileHeader profile={profile} />}
         </div>
 
-        {/* Enhanced Balance Card - espacement réduit */}
+        {/* Enhanced Balance Card */}
         {profile && (
           <div className="px-4">
-            <BalanceCard 
-              balance={profile.balance} 
-              userCountry={userCountry}
-              currency={userCurrency}
-            />
+            <div className="backdrop-blur-xl bg-white/70 rounded-3xl p-1 shadow-2xl border border-white/40">
+              <BalanceCard 
+                balance={profile.balance} 
+                userCountry={userCountry}
+                currency={userCurrency}
+              />
+            </div>
           </div>
         )}
 
-        {/* Enhanced Transfer Form or Action Buttons - espacement réduit */}
+        {/* Enhanced Transfer Form or Action Buttons */}
         {showTransfer ? (
           <div className="px-4">
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-800">Nouveau transfert</h2>
+            <div className="backdrop-blur-xl bg-white/90 rounded-3xl shadow-2xl p-8 border border-white/50">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">Nouveau transfert</h2>
                 <Button
                   variant="outline"
                   onClick={() => setShowTransfer(false)}
-                  className="rounded-full px-6 hover:bg-gray-50 transition-all duration-200"
+                  className="rounded-full px-8 py-3 hover:bg-blue-50 transition-all duration-200 border-2 border-blue-200 hover:border-blue-300"
                 >
                   ← Retour
                 </Button>
@@ -244,17 +265,21 @@ const Index = () => {
           </div>
         ) : (
           <div className="px-4">
-            <ActionButtons onTransferClick={() => setShowTransfer(true)} />
+            <div className="backdrop-blur-xl bg-white/70 rounded-3xl p-8 shadow-2xl border border-white/40">
+              <ActionButtons onTransferClick={() => setShowTransfer(true)} />
+            </div>
           </div>
         )}
 
-        {/* Enhanced Transactions Card - espacement réduit */}
+        {/* Enhanced Transactions Card */}
         <div className="px-4">
-          <TransactionsCard 
-            transactions={allTransactions}
-            withdrawals={processedWithdrawals}
-            onDeleteTransaction={handleDeleteTransaction}
-          />
+          <div className="backdrop-blur-xl bg-white/70 rounded-3xl shadow-2xl border border-white/40 overflow-hidden">
+            <TransactionsCard 
+              transactions={allTransactions}
+              withdrawals={processedWithdrawals}
+              onDeleteTransaction={handleDeleteTransaction}
+            />
+          </div>
         </div>
         
         {/* Notification de retrait sécurisée */}
