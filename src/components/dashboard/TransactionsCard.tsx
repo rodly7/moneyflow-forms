@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Copy, Check, Activity } from "lucide-react";
@@ -9,7 +8,7 @@ import { fr } from "date-fns/locale";
 import { Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/OptimizedAuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Transaction {
   id: string;

@@ -2,7 +2,7 @@
 import { ArrowUpRight, Banknote, CreditCard, UserMinus, Receipt, PiggyBank, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/OptimizedAuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useWithdrawalRequestNotifications } from "@/hooks/useWithdrawalRequestNotifications";
 import WithdrawalNotificationBell from "@/components/notifications/WithdrawalNotificationBell";
 
@@ -13,7 +13,14 @@ type ActionButtonsProps = {
 const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
   const { isAgent } = useAuth();
   const navigate = useNavigate();
-  const { pendingRequests, handleNotificationClick } = useWithdrawalRequestNotifications();
+  const { pendingRequests, selectedRequest, setSelectedRequest, setShowSecureConfirmation } = useWithdrawalRequestNotifications();
+  
+  const handleNotificationClick = () => {
+    if (pendingRequests.length > 0) {
+      setSelectedRequest(pendingRequests[0]);
+      setShowSecureConfirmation(true);
+    }
+  };
   
   return (
     <div className="w-full">
@@ -50,11 +57,7 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
               <div className="flex justify-center">
                 <WithdrawalNotificationBell
                   notificationCount={pendingRequests.length}
-                  onClick={() => {
-                    if (pendingRequests.length > 0) {
-                      handleNotificationClick(pendingRequests[0]);
-                    }
-                  }}
+                  onClick={handleNotificationClick}
                   className="h-28 w-full flex flex-col items-center justify-center bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-none"
                 />
               </div>

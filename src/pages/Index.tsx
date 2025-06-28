@@ -1,5 +1,4 @@
-
-import { useAuth } from "@/contexts/OptimizedAuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, getCurrencyForCountry, convertCurrency, formatCurrency } from "@/integrations/supabase/client";
 import { useState } from "react";
@@ -42,7 +41,6 @@ const Index = () => {
   const {
     selectedRequest,
     showSecureConfirmation,
-    handleNotificationClick,
     handleSecureConfirm,
     handleSecureReject,
     closeSecureConfirmation

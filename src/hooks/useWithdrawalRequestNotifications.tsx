@@ -158,7 +158,9 @@ export const useWithdrawalRequestNotifications = () => {
     withdrawalRequests,
     pendingRequests: withdrawalRequests,
     selectedRequest,
+    setSelectedRequest,
     showSecureConfirmation,
+    setShowSecureConfirmation,
     handleSecureConfirm,
     handleSecureReject,
     closeSecureConfirmation

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "./use-toast";
 import { supabase, calculateFee } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/OptimizedAuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const useTransferOperations = () => {
   const [isLoading, setIsLoading] = useState(false);
