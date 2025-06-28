@@ -134,32 +134,6 @@ export const useAgentReports = () => {
     return reports.find(report => report.period === period);
   };
 
-  const saveReportToSupabase = async (report: AgentReportData) => {
-    if (!user?.id) return;
-
-    try {
-      const { error } = await supabase
-        .from('agent_reports')
-        .upsert({
-          agent_id: user.id,
-          period: report.period,
-          report_date: new Date().toISOString().split('T')[0],
-          total_transfers: report.totalTransfers,
-          total_withdrawals: report.totalWithdrawals,
-          total_deposits: report.totalDeposits,
-          current_balance: report.currentBalance,
-          amount_to_add: report.amountToAdd,
-          total_commissions: report.totalCommissions,
-          start_date: report.startDate.toISOString(),
-          end_date: report.endDate.toISOString()
-        });
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde du rapport:', error);
-    }
-  };
-
   // Auto-génération des rapports quotidiens
   useEffect(() => {
     if (user?.id) {
@@ -180,7 +154,6 @@ export const useAgentReports = () => {
     error,
     generateReport,
     generateAllReports,
-    getReportByPeriod,
-    saveReportToSupabase
+    getReportByPeriod
   };
 };

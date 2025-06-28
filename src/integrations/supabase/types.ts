@@ -9,6 +9,65 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      agent_reports: {
+        Row: {
+          agent_id: string
+          amount_to_add: number
+          created_at: string
+          current_balance: number
+          end_date: string
+          id: string
+          period: string
+          report_date: string
+          start_date: string
+          total_commissions: number
+          total_deposits: number
+          total_transfers: number
+          total_withdrawals: number
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          amount_to_add?: number
+          created_at?: string
+          current_balance?: number
+          end_date: string
+          id?: string
+          period: string
+          report_date?: string
+          start_date: string
+          total_commissions?: number
+          total_deposits?: number
+          total_transfers?: number
+          total_withdrawals?: number
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          amount_to_add?: number
+          created_at?: string
+          current_balance?: number
+          end_date?: string
+          id?: string
+          period?: string
+          report_date?: string
+          start_date?: string
+          total_commissions?: number
+          total_deposits?: number
+          total_transfers?: number
+          total_withdrawals?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_reports_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "auth_users_agents_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agents: {
         Row: {
           agent_id: string
