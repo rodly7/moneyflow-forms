@@ -9,10 +9,15 @@ import ActionButtons from "@/components/dashboard/ActionButtons";
 import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import TransactionsCard from "@/components/dashboard/TransactionsCard";
 import TransferForm from "@/components/TransferForm";
+import { LogOut, Settings, User, CreditCard } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, signOut } = useAuth();
   const [showTransferForm, setShowTransferForm] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const { data: transfers, isLoading: transfersLoading } = useQuery({
     queryKey: ['transfers', user?.id],
@@ -43,6 +48,19 @@ const Dashboard = () => {
     refetchInterval: 5 * 60 * 1000,
   });
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/auth');
+      toast({
+        title: "Déconnexion réussie",
+        description: "À bientôt !",
+      });
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
+  };
+
   if (!user || !profile) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -67,7 +85,39 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 w-full">
       <div className="w-full mx-auto space-y-6 px-4 py-4">
-        <ProfileHeader profile={profile} />
+        {/* Header avec options utilisateur */}
+        <div className="flex items-center justify-between">
+          <ProfileHeader profile={profile} />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/verify-identity')}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              <User className="w-4 h-4 mr-1" />
+              Profil
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/bill-payments')}
+              className="text-green-600 hover:text-green-700"
+            >
+              <CreditCard className="w-4 h-4 mr-1" />
+              Factures
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSignOut}
+              className="text-red-600 hover:text-red-700"
+            >
+              <LogOut className="w-4 h-4 mr-1" />
+              Déconnexion
+            </Button>
+          </div>
+        </div>
         
         <BalanceCard balance={profile?.balance || 0} userCountry={profile?.country || "Cameroun"} />
         

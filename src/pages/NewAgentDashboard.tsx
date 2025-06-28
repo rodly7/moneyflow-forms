@@ -10,7 +10,11 @@ import {
   ArrowRight,
   LogOut,
   Eye,
-  EyeOff
+  EyeOff,
+  BarChart3,
+  PlusCircle,
+  MinusCircle,
+  Receipt
 } from 'lucide-react';
 import { formatCurrency } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -129,36 +133,55 @@ const NewAgentDashboard = () => {
         </Card>
 
         {/* Actions Agent */}
-        <Card className="border-blue-200 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-blue-700 flex items-center gap-2">
-              <Wallet className="w-5 h-5" />
-              Services Agent
-            </CardTitle>
-            <CardDescription className="text-blue-600">
-              Gérez vos opérations d'agent
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button 
-                onClick={() => navigate('/agent-services')}
-                className="h-20 flex-col space-y-2 bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <ArrowRight className="w-6 h-6" />
-                <span>Services Clients</span>
-              </Button>
-              
-              <Button 
-                onClick={() => navigate('/commission')}
-                className="h-20 flex-col space-y-2 bg-green-600 hover:bg-green-700 text-white"
-              >
-                <Wallet className="w-6 h-6" />
-                <span>Commissions</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Card className="border-blue-200 shadow-lg hover:shadow-xl transition-shadow cursor-pointer" onClick={() => navigate('/agent-services')}>
+            <CardContent className="p-6 text-center">
+              <ArrowRight className="w-8 h-8 text-blue-600 mx-auto mb-3" />
+              <h3 className="font-semibold text-blue-700 mb-2">Services Clients</h3>
+              <p className="text-sm text-gray-600">Transferts et opérations clients</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-green-200 shadow-lg hover:shadow-xl transition-shadow cursor-pointer" onClick={() => navigate('/commission')}>
+            <CardContent className="p-6 text-center">
+              <Receipt className="w-8 h-8 text-green-600 mx-auto mb-3" />
+              <h3 className="font-semibold text-green-700 mb-2">Commissions</h3>
+              <p className="text-sm text-gray-600">Gestion des commissions</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-purple-200 shadow-lg hover:shadow-xl transition-shadow cursor-pointer" onClick={() => navigate('/agent-reports')}>
+            <CardContent className="p-6 text-center">
+              <BarChart3 className="w-8 h-8 text-purple-600 mx-auto mb-3" />
+              <h3 className="font-semibold text-purple-700 mb-2">Rapports</h3>
+              <p className="text-sm text-gray-600">Statistiques et rapports</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-orange-200 shadow-lg hover:shadow-xl transition-shadow cursor-pointer" onClick={() => navigate('/deposit-withdrawal')}>
+            <CardContent className="p-6 text-center">
+              <PlusCircle className="w-8 h-8 text-orange-600 mx-auto mb-3" />
+              <h3 className="font-semibold text-orange-700 mb-2">Dépôt/Retrait</h3>
+              <p className="text-sm text-gray-600">Services de dépôt et retrait</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-red-200 shadow-lg hover:shadow-xl transition-shadow cursor-pointer" onClick={() => navigate('/agent-withdrawal-simple')}>
+            <CardContent className="p-6 text-center">
+              <MinusCircle className="w-8 h-8 text-red-600 mx-auto mb-3" />
+              <h3 className="font-semibold text-red-700 mb-2">Retrait Simple</h3>
+              <p className="text-sm text-gray-600">Retraits rapides</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-indigo-200 shadow-lg hover:shadow-xl transition-shadow cursor-pointer" onClick={() => navigate('/agent-withdrawal-advanced')}>
+            <CardContent className="p-6 text-center">
+              <Wallet className="w-8 h-8 text-indigo-600 mx-auto mb-3" />
+              <h3 className="font-semibold text-indigo-700 mb-2">Retrait Avancé</h3>
+              <p className="text-sm text-gray-600">Retraits avec vérification</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

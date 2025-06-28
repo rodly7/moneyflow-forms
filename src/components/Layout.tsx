@@ -31,16 +31,19 @@ const Layout = () => {
     const isMainAdmin = profile.phone === '+221773637752';
     const isSubAdmin = profile.role === 'sub_admin';
     const isAgent = profile.role === 'agent';
+    const isUser = profile.role === 'user';
 
-    // Rediriger selon le rôle uniquement si pas déjà sur la bonne page
-    if (isMainAdmin && !location.pathname.startsWith('/main-admin')) {
-      navigate('/main-admin', { replace: true });
-    } else if (isSubAdmin && !location.pathname.startsWith('/sub-admin')) {
-      navigate('/sub-admin', { replace: true });
-    } else if (isAgent && !location.pathname.startsWith('/agent-dashboard')) {
-      navigate('/agent-dashboard', { replace: true });
-    } else if (!isMainAdmin && !isSubAdmin && !isAgent && (location.pathname === '/' || location.pathname.startsWith('/main-admin') || location.pathname.startsWith('/sub-admin'))) {
-      navigate('/dashboard', { replace: true });
+    // Redirection selon le rôle si on est sur la page d'accueil
+    if (location.pathname === '/') {
+      if (isMainAdmin) {
+        navigate('/main-admin', { replace: true });
+      } else if (isSubAdmin) {
+        navigate('/sub-admin', { replace: true });
+      } else if (isAgent) {
+        navigate('/agent-dashboard', { replace: true });
+      } else if (isUser) {
+        navigate('/dashboard', { replace: true });
+      }
     }
   }, [user, profile, loading, navigate, location.pathname]);
 

@@ -1,11 +1,10 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Wallet, Settings, ArrowLeft, LogOut, Users, UserPlus, Ban, Shield, Eye } from "lucide-react";
+import { Wallet, Settings, LogOut, Users, UserPlus, Ban, Shield, Eye, BarChart3, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/integrations/supabase/client";
@@ -40,7 +39,7 @@ const MainAdminDashboard = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'recharge'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'recharge' | 'reports' | 'settings'>('overview');
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
 
   if (!user || !profile) {
@@ -260,11 +259,11 @@ const MainAdminDashboard = () => {
         </div>
 
         {/* Navigation */}
-        <div className="flex gap-2 bg-white p-2 rounded-lg shadow">
+        <div className="flex gap-2 bg-white p-2 rounded-lg shadow overflow-x-auto">
           <Button
             variant={activeTab === 'overview' ? 'default' : 'ghost'}
             onClick={() => setActiveTab('overview')}
-            className="flex-1"
+            className="flex-shrink-0"
           >
             <Settings className="w-4 h-4 mr-2" />
             Vue d'ensemble
@@ -272,7 +271,7 @@ const MainAdminDashboard = () => {
           <Button
             variant={activeTab === 'users' ? 'default' : 'ghost'}
             onClick={() => setActiveTab('users')}
-            className="flex-1"
+            className="flex-shrink-0"
           >
             <Users className="w-4 h-4 mr-2" />
             Utilisateurs
@@ -280,10 +279,26 @@ const MainAdminDashboard = () => {
           <Button
             variant={activeTab === 'recharge' ? 'default' : 'ghost'}
             onClick={() => setActiveTab('recharge')}
-            className="flex-1"
+            className="flex-shrink-0"
           >
             <Wallet className="w-4 h-4 mr-2" />
             Recharge
+          </Button>
+          <Button
+            variant={activeTab === 'reports' ? 'default' : 'ghost'}
+            onClick={() => setActiveTab('reports')}
+            className="flex-shrink-0"
+          >
+            <BarChart3 className="w-4 h-4 mr-2" />
+            Rapports
+          </Button>
+          <Button
+            variant={activeTab === 'settings' ? 'default' : 'ghost'}
+            onClick={() => setActiveTab('settings')}
+            className="flex-shrink-0"
+          >
+            <Shield className="w-4 h-4 mr-2" />
+            Paramètres
           </Button>
         </div>
 
@@ -304,7 +319,7 @@ const MainAdminDashboard = () => {
             </Card>
 
             {/* Statistiques rapides */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
@@ -342,6 +357,47 @@ const MainAdminDashboard = () => {
                       </p>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <Settings className="w-8 h-8 text-purple-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">Sous-Admins</p>
+                      <p className="text-2xl font-bold">
+                        {users.filter(u => u.role === 'sub_admin').length}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Actions rapides */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/admin-balance-update')}>
+                <CardContent className="pt-6 text-center">
+                  <CreditCard className="w-8 h-8 text-blue-600 mx-auto mb-3" />
+                  <h3 className="font-semibold text-blue-700 mb-2">Mise à jour des soldes</h3>
+                  <p className="text-sm text-gray-600">Gestion avancée des soldes</p>
+                </CardContent>
+              </Card>
+
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setActiveTab('users')}>
+                <CardContent className="pt-6 text-center">
+                  <Users className="w-8 h-8 text-green-600 mx-auto mb-3" />
+                  <h3 className="font-semibold text-green-700 mb-2">Gestion Utilisateurs</h3>
+                  <p className="text-sm text-gray-600">Voir et gérer tous les utilisateurs</p>
+                </CardContent>
+              </Card>
+
+              <Card className="cursor-pointer hover-shadow-lg transition-shadow" onClick={() => setActiveTab('reports')}>
+                <CardContent className="pt-6 text-center">
+                  <BarChart3 className="w-8 h-8 text-purple-600 mx-auto mb-3" />
+                  <h3 className="font-semibold text-purple-700 mb-2">Rapports</h3>
+                  <p className="text-sm text-gray-600">Statistiques et analyses</p>
                 </CardContent>
               </Card>
             </div>
@@ -453,6 +509,54 @@ const MainAdminDashboard = () => {
                 >
                   {isProcessing ? "Crédit en cours..." : "Créditer l'Utilisateur"}
                 </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === 'reports' && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5" />
+                  Rapports et Statistiques
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <BarChart3 className="w-16 h-16 text-purple-600 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">
+                    Section rapports et analytics
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Fonctionnalité à développer selon les besoins
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Paramètres Système
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <Shield className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">
+                    Configuration et paramètres système
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Paramètres avancés de l'application
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>
