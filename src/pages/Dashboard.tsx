@@ -1,6 +1,6 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -9,16 +9,13 @@ import ActionButtons from "@/components/dashboard/ActionButtons";
 import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import TransactionsCard from "@/components/dashboard/TransactionsCard";
 import TransferForm from "@/components/TransferForm";
-import { useToast } from "@/hooks/use-toast";
 import { useWithdrawalRequestNotifications } from "@/hooks/useWithdrawalRequestNotifications";
 import WithdrawalRequestNotification from "@/components/notifications/WithdrawalRequestNotification";
 
 const Dashboard = () => {
-  const { user, isAgent } = useAuth();
-  const { toast } = useToast();
+  const { user, profile, refreshProfile } = useAuth();
   const [showTransferForm, setShowTransferForm] = useState(false);
   
-  // Notifications de retrait avec le nouveau système sécurisé
   const {
     selectedRequest,
     showSecureConfirmation,
@@ -27,21 +24,6 @@ const Dashboard = () => {
     handleSecureReject,
     closeSecureConfirmation
   } = useWithdrawalRequestNotifications();
-
-  const { data: profile } = useQuery({
-    queryKey: ['profile', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
 
   const { data: transfers } = useQuery({
     queryKey: ['transfers', user?.id],
@@ -57,13 +39,25 @@ const Dashboard = () => {
       return data || [];
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  // Transform transfers data to match Transaction interface
+  // Rafraîchir le profil périodiquement mais moins fréquemment
+  useQuery({
+    queryKey: ['profile-refresh', user?.id],
+    queryFn: async () => {
+      await refreshProfile();
+      return true;
+    },
+    enabled: !!user,
+    refetchInterval: 2 * 60 * 1000, // Toutes les 2 minutes au lieu de 30 secondes
+    staleTime: 60 * 1000, // Cache for 1 minute
+  });
+
   const transformedTransactions = transfers?.map(transfer => ({
     id: transfer.id,
     type: 'transfer',
-    amount: -transfer.amount, // Negative because it's outgoing
+    amount: -transfer.amount,
     date: new Date(transfer.created_at),
     description: `Transfert vers ${transfer.recipient_full_name}`,
     currency: transfer.currency,
@@ -97,7 +91,6 @@ const Dashboard = () => {
           </div>
         )}
         
-        {/* Notification de retrait sécurisée */}
         <WithdrawalRequestNotification
           isOpen={showSecureConfirmation}
           onClose={closeSecureConfirmation}
