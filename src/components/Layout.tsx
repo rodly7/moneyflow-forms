@@ -2,6 +2,7 @@
 import React from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/OptimizedAuthContext';
+import AuthDiagnostic from './AuthDiagnostic';
 
 const Layout = () => {
   const { user, profile, loading } = useAuth();
@@ -61,6 +62,7 @@ const Layout = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="text-blue-600 font-medium">Chargement...</p>
         </div>
+        <AuthDiagnostic />
       </div>
     );
   }
@@ -75,7 +77,12 @@ const Layout = () => {
     return null;
   }
 
-  return <div className="min-h-screen w-full"><Outlet /></div>;
+  return (
+    <div className="min-h-screen w-full">
+      <Outlet />
+      <AuthDiagnostic />
+    </div>
+  );
 };
 
 export default Layout;
