@@ -1,13 +1,12 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/OptimizedAuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Plus, ArrowRight, RefreshCw, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { AgentBalanceCard } from "@/components/agent/AgentBalanceCard";
 import TransferForm from "@/components/TransferForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useDeviceDetection } from "@/hooks/useDeviceDetection";
@@ -33,7 +32,7 @@ const AgentServices = () => {
         if (error) throw error;
         setAgentBalance(data.balance || 0);
       } catch (error) {
-        console.error("❌ Erreur lors du chargement du solde agent:", error);
+        console.error("Erreur lors du chargement du solde agent:", error);
         toast({
           title: "Erreur",
           description: "Impossible de charger votre solde",
@@ -114,7 +113,6 @@ const AgentServices = () => {
           </div>
         </div>
 
-        {/* Solde Agent */}
         <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-xl">
           <CardContent className="p-6">
             <div className="text-center">
@@ -130,7 +128,7 @@ const AgentServices = () => {
         </Card>
 
         <Tabs defaultValue="transfer" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="transfer" className="flex items-center gap-2">
               <ArrowRight className="w-4 h-4" />
               Transfert
@@ -138,9 +136,6 @@ const AgentServices = () => {
             <TabsTrigger value="deposit" className="flex items-center gap-2">
               <Plus className="w-4 h-4" />
               Dépôt/Retrait
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="flex items-center gap-2">
-              📊 Rapports
             </TabsTrigger>
           </TabsList>
 
@@ -176,29 +171,6 @@ const AgentServices = () => {
                     className="bg-blue-600 hover:bg-blue-700"
                   >
                     Accéder aux services de dépôt/retrait
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="reports">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-green-600">
-                  📊 Rapports d'Activité
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 space-y-4">
-                  <p className="text-gray-600 mb-4">
-                    Consultez vos rapports d'activité quotidiens, hebdomadaires et mensuels
-                  </p>
-                  <Button 
-                    onClick={() => navigate('/agent-reports')}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    Voir mes rapports
                   </Button>
                 </div>
               </CardContent>

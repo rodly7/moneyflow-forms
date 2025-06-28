@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,25 +7,19 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
   Wallet, 
-  DollarSign,
+  ArrowRight,
   LogOut,
   Eye,
-  EyeOff,
-  BarChart3
+  EyeOff
 } from 'lucide-react';
-import { useState } from 'react';
 import { formatCurrency } from '@/integrations/supabase/client';
-import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 import { useToast } from '@/hooks/use-toast';
 
 const NewAgentDashboard = () => {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
-  const { isMobile } = useDeviceDetection();
   const { toast } = useToast();
   const [showBalance, setShowBalance] = useState(true);
-
-  console.log('🏢 NewAgentDashboard - Profil:', profile);
 
   if (!profile) {
     return (
@@ -105,7 +99,7 @@ const NewAgentDashboard = () => {
               className="text-white hover:bg-white/20"
             >
               <LogOut className="w-4 h-4 mr-2" />
-              {isMobile ? "" : "Déconnexion"}
+              Déconnexion
             </Button>
           </div>
         </div>
@@ -146,61 +140,22 @@ const NewAgentDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Button 
                 onClick={() => navigate('/agent-services')}
-                className="h-20 flex-col space-y-2 bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+                className="h-20 flex-col space-y-2 bg-blue-600 hover:bg-blue-700 text-white"
               >
-                <Wallet className="h-6 w-6" />
-                <span className="text-sm font-medium">Services Agent</span>
+                <ArrowRight className="w-6 h-6" />
+                <span>Services Clients</span>
               </Button>
-
+              
               <Button 
                 onClick={() => navigate('/commission')}
-                className="h-20 flex-col space-y-2 bg-green-600 hover:bg-green-700 text-white shadow-md"
+                className="h-20 flex-col space-y-2 bg-green-600 hover:bg-green-700 text-white"
               >
-                <DollarSign className="h-6 w-6" />
-                <span className="text-sm font-medium">Commissions</span>
+                <Wallet className="w-6 h-6" />
+                <span>Commissions</span>
               </Button>
-
-              <Button 
-                onClick={() => navigate('/agent-reports')}
-                className="h-20 flex-col space-y-2 bg-purple-600 hover:bg-purple-700 text-white shadow-md"
-              >
-                <BarChart3 className="h-6 w-6" />
-                <span className="text-sm font-medium">Rapports</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Informations Agent */}
-        <Card className="border-blue-200 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-blue-700">Informations Agent</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Nom:</span>
-                <span className="font-medium">{profile.full_name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Téléphone:</span>
-                <span className="font-medium">{profile.phone}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Pays:</span>
-                <span className="font-medium">{profile.country}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Ville:</span>
-                <span className="font-medium">{profile.address}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Statut:</span>
-                <span className="font-medium text-green-600">Agent Actif</span>
-              </div>
             </div>
           </CardContent>
         </Card>

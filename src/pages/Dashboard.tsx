@@ -1,5 +1,5 @@
 
-import { useAuth } from "@/contexts/OptimizedAuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,29 +9,15 @@ import ActionButtons from "@/components/dashboard/ActionButtons";
 import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import TransactionsCard from "@/components/dashboard/TransactionsCard";
 import TransferForm from "@/components/TransferForm";
-import { useWithdrawalRequestNotifications } from "@/hooks/useWithdrawalRequestNotifications";
-import WithdrawalRequestNotification from "@/components/notifications/WithdrawalRequestNotification";
 
 const Dashboard = () => {
   const { user, profile, refreshProfile } = useAuth();
   const [showTransferForm, setShowTransferForm] = useState(false);
-  
-  console.log('📊 Dashboard - État:', { user: !!user, profile: !!profile });
-  
-  const {
-    selectedRequest,
-    showSecureConfirmation,
-    handleSecureConfirm,
-    handleSecureReject,
-    closeSecureConfirmation
-  } = useWithdrawalRequestNotifications();
 
   const { data: transfers, isLoading: transfersLoading } = useQuery({
     queryKey: ['transfers', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      
-      console.log('🔄 Chargement des transferts pour:', user.id);
       
       const { data, error } = await supabase
         .from('transfers')
@@ -40,19 +26,13 @@ const Dashboard = () => {
         .order('created_at', { ascending: false })
         .limit(5);
         
-      if (error) {
-        console.error('❌ Erreur transferts:', error);
-        throw error;
-      }
-      
-      console.log('✅ Transferts chargés:', data?.length);
+      if (error) throw error;
       return data || [];
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  // Rafraîchir le profil moins souvent
+  // Rafraîchir le profil
   useQuery({
     queryKey: ['profile-refresh', user?.id],
     queryFn: async () => {
@@ -60,8 +40,7 @@ const Dashboard = () => {
       return true;
     },
     enabled: !!user,
-    refetchInterval: 5 * 60 * 1000, // Toutes les 5 minutes
-    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+    refetchInterval: 5 * 60 * 1000,
   });
 
   if (!user || !profile) {
@@ -116,14 +95,6 @@ const Dashboard = () => {
             </div>
           </div>
         )}
-        
-        <WithdrawalRequestNotification
-          isOpen={showSecureConfirmation}
-          onClose={closeSecureConfirmation}
-          onConfirm={handleSecureConfirm}
-          onReject={handleSecureReject}
-          requestData={selectedRequest}
-        />
       </div>
     </div>
   );

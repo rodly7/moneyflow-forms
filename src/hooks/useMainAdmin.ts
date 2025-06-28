@@ -1,5 +1,5 @@
 
-import { useAuth } from "@/contexts/OptimizedAuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const useMainAdmin = () => {
   const { profile } = useAuth();
