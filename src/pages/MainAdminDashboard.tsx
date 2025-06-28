@@ -1,4 +1,4 @@
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/OptimizedAuthContext";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,22 +40,70 @@ const MainAdminDashboard = () => {
 
   const { searchUserByPhone } = useUserSearch();
 
-  // Force refresh profile on component mount
-  useEffect(() => {
-    console.log('🔍 MainAdminDashboard - État du profil:', {
-      user: !!user,
-      profile: profile,
-      profileRole: profile?.role,
-      profilePhone: profile?.phone,
-      isMainAdmin: profile?.phone === '+221773637752'
-    });
+  console.log('🔍 MainAdminDashboard - État du profil:', {
+    user: !!user,
+    profile: profile,
+    profileRole: profile?.role,
+    profilePhone: profile?.phone,
+    isMainAdmin: profile?.phone === '+221773637752'
+  });
 
-    // Force refresh profile to get latest data from database
-    if (user && profile) {
-      console.log('🔄 Forcer le rafraîchissement du profil...');
-      refreshProfile();
+  // Vérification d'accès simplifiée
+  if (!user || !profile) {
+    if (!user) {
+      console.log('❌ Pas d\'utilisateur connecté - redirection vers auth');
+      navigate('/auth', { replace: true });
+      return null;
     }
-  }, [user, profile, refreshProfile]);
+    
+    // Si utilisateur mais pas de profil, afficher un message d'attente
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md mx-auto">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-blue-600 font-medium">Chargement du profil...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Vérification admin simplifiée
+  const isMainAdmin = profile.phone === '+221773637752';
+  console.log('🔐 Vérification admin principal:', {
+    profilePhone: profile.phone,
+    targetPhone: '+221773637752',
+    isMainAdmin
+  });
+
+  if (!isMainAdmin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md mx-auto">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <h2 className="text-xl font-bold text-red-600 mb-4">Accès refusé</h2>
+              <p className="text-gray-600 mb-2">Cette interface est réservée à l'administrateur principal.</p>
+              <div className="bg-gray-50 p-3 rounded-lg mb-4 text-sm">
+                <p><strong>Votre profil :</strong></p>
+                <p>Téléphone: {profile.phone}</p>
+                <p>Rôle: {profile.role}</p>
+                <p>Admin requis: +221773637752</p>
+              </div>
+              <div className="space-y-2">
+                <Button onClick={() => navigate('/dashboard')} className="w-full">
+                  Retour au tableau de bord
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Récupérer les utilisateurs avec les nouvelles colonnes
   const { data: users, refetch: refetchUsers } = useQuery({
@@ -291,66 +339,6 @@ const MainAdminDashboard = () => {
   const handleUserUpdated = () => {
     refetchUsers();
   };
-
-  // Updated access check with detailed logging
-  if (!user) {
-    console.log('❌ Pas d\'utilisateur connecté');
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md mx-auto">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <h2 className="text-xl font-bold text-red-600 mb-4">Non connecté</h2>
-              <p className="text-gray-600 mb-4">Vous devez être connecté pour accéder à cette page.</p>
-              <Button onClick={() => navigate('/auth')} className="w-full">
-                Se connecter
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Updated admin check with better debugging
-  const isMainAdmin = profile.phone === '+221773637752' && profile.role === 'admin';
-  console.log('🔐 Vérification admin principal:', {
-    profilePhone: profile.phone,
-    targetPhone: '+221773637752',
-    phoneMatch: profile.phone === '+221773637752',
-    profileRole: profile.role,
-    roleMatch: profile.role === 'admin',
-    isMainAdmin
-  });
-
-  if (!isMainAdmin) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md mx-auto">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <h2 className="text-xl font-bold text-red-600 mb-4">Accès refusé</h2>
-              <p className="text-gray-600 mb-2">Cette interface est réservée à l'administrateur principal.</p>
-              <div className="bg-gray-50 p-3 rounded-lg mb-4 text-sm">
-                <p><strong>Votre profil :</strong></p>
-                <p>Téléphone: {profile.phone}</p>
-                <p>Rôle: {profile.role}</p>
-                <p>Admin requis: +221773637752 avec rôle 'admin'</p>
-              </div>
-              <div className="space-y-2">
-                <Button onClick={refreshProfile} variant="outline" className="w-full">
-                  Actualiser le profil
-                </Button>
-                <Button onClick={() => navigate('/dashboard')} className="w-full">
-                  Retour au tableau de bord
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   // Configuration responsive adaptée aux différents appareils
   const getGridColumns = () => {
