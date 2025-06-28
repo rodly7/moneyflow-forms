@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,8 +18,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user?.id) {
       console.log('🔄 Rafraîchissement du profil pour:', user.id);
       try {
-        const profileData = await profileService.fetchProfile(user.id);
-        console.log('📊 Profil récupéré:', profileData);
+        // Force refresh from database, bypass any caching
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('❌ Erreur lors du rafraîchissement du profil:', error);
+          return;
+        }
+        
+        console.log('📊 Profil rafraîchi depuis la base de données:', profileData);
         setProfile(profileData);
       } catch (error) {
         console.error('❌ Erreur lors du rafraîchissement du profil:', error);
@@ -48,13 +58,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('👤 Utilisateur connecté:', session.user.id);
           setUser(session.user);
           
-          // Fetch profile with retry logic
+          // Fetch profile with retry logic - direct database query
           let retries = 3;
           while (retries > 0 && mounted) {
             try {
-              const profileData = await profileService.fetchProfile(session.user.id);
+              const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+              
+              if (profileError) {
+                console.error('❌ Erreur base de données profil:', profileError);
+                retries--;
+                if (retries > 0) {
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                continue;
+              }
+              
               if (profileData && mounted) {
-                console.log('📊 Profil initial récupéré:', profileData);
+                console.log('📊 Profil initial récupéré depuis la base:', profileData);
                 setProfile(profileData);
                 break;
               }
@@ -103,12 +127,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (session?.user) {
         setUser(session.user);
         
-        // Defer profile fetching to avoid blocking
+        // Defer profile fetching to avoid blocking - direct database query
         setTimeout(async () => {
           if (!mounted) return;
           try {
-            const profileData = await profileService.fetchProfile(session.user.id);
-            if (profileData && mounted) {
+            const { data: profileData, error } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (error) {
+              console.error('❌ Erreur base de données profil après auth change:', error);
+            } else if (profileData && mounted) {
+              console.log('📊 Profil récupéré après changement auth:', profileData);
               setProfile(profileData);
             }
           } catch (error) {

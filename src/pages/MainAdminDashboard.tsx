@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,7 @@ interface CommissionData {
 }
 
 const MainAdminDashboard = () => {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, refreshProfile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const deviceInfo = useDeviceDetection();
@@ -39,6 +39,23 @@ const MainAdminDashboard = () => {
   const [showUserModal, setShowUserModal] = useState(false);
 
   const { searchUserByPhone } = useUserSearch();
+
+  // Force refresh profile on component mount
+  useEffect(() => {
+    console.log('🔍 MainAdminDashboard - État du profil:', {
+      user: !!user,
+      profile: profile,
+      profileRole: profile?.role,
+      profilePhone: profile?.phone,
+      isMainAdmin: profile?.phone === '+221773637752'
+    });
+
+    // Force refresh profile to get latest data from database
+    if (user && profile) {
+      console.log('🔄 Forcer le rafraîchissement du profil...');
+      refreshProfile();
+    }
+  }, [user, profile, refreshProfile]);
 
   // Récupérer les utilisateurs avec les nouvelles colonnes
   const { data: users, refetch: refetchUsers } = useQuery({
@@ -275,17 +292,59 @@ const MainAdminDashboard = () => {
     refetchUsers();
   };
 
-  if (!profile || profile.phone !== '+221773637752') {
+  // Updated access check with detailed logging
+  if (!user) {
+    console.log('❌ Pas d\'utilisateur connecté');
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md mx-auto">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <h2 className="text-xl font-bold text-red-600 mb-4">Non connecté</h2>
+              <p className="text-gray-600 mb-4">Vous devez être connecté pour accéder à cette page.</p>
+              <Button onClick={() => navigate('/auth')} className="w-full">
+                Se connecter
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Updated admin check with better debugging
+  const isMainAdmin = profile.phone === '+221773637752' && profile.role === 'admin';
+  console.log('🔐 Vérification admin principal:', {
+    profilePhone: profile.phone,
+    targetPhone: '+221773637752',
+    phoneMatch: profile.phone === '+221773637752',
+    profileRole: profile.role,
+    roleMatch: profile.role === 'admin',
+    isMainAdmin
+  });
+
+  if (!isMainAdmin) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <Card className="w-full max-w-md mx-auto">
           <CardContent className="pt-6">
             <div className="text-center">
               <h2 className="text-xl font-bold text-red-600 mb-4">Accès refusé</h2>
-              <p className="text-gray-600 mb-4">Cette interface est réservée à l'administrateur principal.</p>
-              <Button onClick={() => navigate('/dashboard')} className="w-full">
-                Retour au tableau de bord
-              </Button>
+              <p className="text-gray-600 mb-2">Cette interface est réservée à l'administrateur principal.</p>
+              <div className="bg-gray-50 p-3 rounded-lg mb-4 text-sm">
+                <p><strong>Votre profil :</strong></p>
+                <p>Téléphone: {profile.phone}</p>
+                <p>Rôle: {profile.role}</p>
+                <p>Admin requis: +221773637752 avec rôle 'admin'</p>
+              </div>
+              <div className="space-y-2">
+                <Button onClick={refreshProfile} variant="outline" className="w-full">
+                  Actualiser le profil
+                </Button>
+                <Button onClick={() => navigate('/dashboard')} className="w-full">
+                  Retour au tableau de bord
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
