@@ -11,6 +11,8 @@ interface WithdrawalRequest {
   agent_id: string;
   status: string;
   created_at: string;
+  agent_name: string;
+  agent_phone: string;
   user_name?: string;
   user_phone?: string;
 }
@@ -41,10 +43,7 @@ export const useWithdrawalRequestNotifications = () => {
       try {
         const { data, error } = await supabase
           .from('withdrawal_requests')
-          .select(`
-            *,
-            profiles!withdrawal_requests_user_id_fkey(full_name, phone)
-          `)
+          .select('*')
           .eq('agent_id', user.id)
           .eq('status', 'pending')
           .order('created_at', { ascending: false });
@@ -54,10 +53,21 @@ export const useWithdrawalRequestNotifications = () => {
           return;
         }
 
+        // Récupérer les informations des utilisateurs séparément
+        const userIds = data?.map(req => req.user_id) || [];
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, phone')
+          .in('id', userIds);
+
+        if (profilesError) {
+          console.error('❌ Erreur récupération profils:', profilesError);
+        }
+
         const formattedRequests = data?.map(request => ({
           ...request,
-          user_name: request.profiles?.full_name || 'Utilisateur inconnu',
-          user_phone: request.profiles?.phone || 'Téléphone inconnu'
+          user_name: profiles?.find(p => p.id === request.user_id)?.full_name || 'Utilisateur inconnu',
+          user_phone: profiles?.find(p => p.id === request.user_id)?.phone || 'Téléphone inconnu'
         })) || [];
 
         console.log('✅ Demandes de retrait récupérées:', formattedRequests.length);
@@ -112,7 +122,7 @@ export const useWithdrawalRequestNotifications = () => {
         .from('withdrawal_requests')
         .update({ 
           status: 'confirmed',
-          confirmed_at: new Date().toISOString()
+          completed_at: new Date().toISOString()
         })
         .eq('id', selectedRequest.id);
 
@@ -172,6 +182,7 @@ export const useWithdrawalRequestNotifications = () => {
 
   return {
     withdrawalRequests,
+    pendingRequests: withdrawalRequests, // Alias pour compatibilité
     selectedRequest,
     showSecureConfirmation,
     handleNotificationClick,
