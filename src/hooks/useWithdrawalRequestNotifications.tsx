@@ -1,230 +1,182 @@
 
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
-import { calculateWithdrawalFees } from "@/utils/depositWithdrawalCalculations";
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/OptimizedAuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface WithdrawalRequest {
   id: string;
   amount: number;
-  agent_name: string;
-  agent_phone: string;
-  created_at: string;
   user_id: string;
   agent_id: string;
   status: string;
-  withdrawal_phone: string;
+  created_at: string;
+  user_name?: string;
+  user_phone?: string;
 }
 
 export const useWithdrawalRequestNotifications = () => {
-  const { user, userRole } = useAuth();
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  
+  const { user, profile, isAgent } = useAuth();
+  const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<WithdrawalRequest | null>(null);
   const [showSecureConfirmation, setShowSecureConfirmation] = useState(false);
 
-  // Récupérer les demandes de retrait en attente
-  const { data: pendingRequests, refetch } = useQuery({
-    queryKey: ['withdrawalRequests', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-
-      const { data, error } = await supabase
-        .from('withdrawal_requests')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'pending');
-
-      if (error) {
-        console.error("Erreur lors de la récupération des demandes:", error);
-        return [];
-      }
-
-      return data || [];
-    },
-    enabled: !!user?.id && userRole !== 'agent',
-    refetchInterval: 15000,
+  console.log('🔔 useWithdrawalRequestNotifications - État:', { 
+    user: !!user, 
+    profile: !!profile, 
+    isAgent: isAgent(),
+    requestsCount: withdrawalRequests.length 
   });
 
-  const handleNotificationClick = () => {
-    if (pendingRequests && pendingRequests.length > 0) {
-      setSelectedRequest(pendingRequests[0]);
-      setShowSecureConfirmation(true);
-      
-      toast({
-        title: "💰 Demande de retrait",
-        description: `Un agent souhaite retirer ${pendingRequests[0].amount} FCFA de votre compte`,
-      });
+  // Récupérer les demandes de retrait pour les agents
+  useEffect(() => {
+    if (!user || !profile || !isAgent()) {
+      console.log('❌ Pas d\'agent connecté, pas de notifications de retrait');
+      return;
     }
+
+    console.log('🔍 Agent connecté, récupération des demandes de retrait...');
+    
+    const fetchWithdrawalRequests = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('withdrawal_requests')
+          .select(`
+            *,
+            profiles!withdrawal_requests_user_id_fkey(full_name, phone)
+          `)
+          .eq('agent_id', user.id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('❌ Erreur récupération demandes de retrait:', error);
+          return;
+        }
+
+        const formattedRequests = data?.map(request => ({
+          ...request,
+          user_name: request.profiles?.full_name || 'Utilisateur inconnu',
+          user_phone: request.profiles?.phone || 'Téléphone inconnu'
+        })) || [];
+
+        console.log('✅ Demandes de retrait récupérées:', formattedRequests.length);
+        setWithdrawalRequests(formattedRequests);
+      } catch (error) {
+        console.error('❌ Erreur lors de la récupération des demandes:', error);
+      }
+    };
+
+    fetchWithdrawalRequests();
+
+    // Écouter les nouvelles demandes de retrait en temps réel
+    const channel = supabase
+      .channel('withdrawal_requests')
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'withdrawal_requests',
+          filter: `agent_id=eq.${user.id}`
+        }, 
+        (payload) => {
+          console.log('🔔 Nouvelle demande de retrait reçue:', payload);
+          fetchWithdrawalRequests();
+          
+          toast.success('Nouvelle demande de retrait reçue!', {
+            description: 'Vérifiez vos notifications pour traiter la demande.'
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('🔌 Déconnexion du canal de notifications');
+      supabase.removeChannel(channel);
+    };
+  }, [user, profile, isAgent]);
+
+  const handleNotificationClick = (request: WithdrawalRequest) => {
+    console.log('🔔 Clic sur notification de retrait:', request.id);
+    setSelectedRequest(request);
+    setShowSecureConfirmation(true);
   };
 
   const handleSecureConfirm = async () => {
     if (!selectedRequest) return;
-    
+
     try {
-      const { totalFee, agentCommission, platformCommission } = calculateWithdrawalFees(selectedRequest.amount);
-      const totalAmount = selectedRequest.amount + totalFee;
+      console.log('✅ Confirmation sécurisée du retrait:', selectedRequest.id);
 
-      // Vérifier le solde de l'utilisateur
-      const { data: userBalance, error: balanceError } = await supabase
-        .rpc('increment_balance', { 
-          user_id: user?.id, 
-          amount: 0 
-        });
-
-      if (balanceError || userBalance === null || Number(userBalance) < totalAmount) {
-        toast({
-          title: "❌ Solde insuffisant",
-          description: `Vous n'avez pas assez de fonds pour ce retrait (${totalAmount} FCFA requis incluant les frais)`,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Débiter l'utilisateur (montant + frais)
-      const { error: debitError } = await supabase.rpc('increment_balance', {
-        user_id: user?.id,
-        amount: -totalAmount
-      });
-
-      if (debitError) {
-        console.error("Erreur lors du débit:", debitError);
-        toast({
-          title: "❌ Erreur",
-          description: "Erreur lors du débit de votre compte",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Créditer l'agent (montant + commission)
-      const { error: creditError } = await supabase.rpc('increment_balance', {
-        user_id: selectedRequest.agent_id,
-        amount: selectedRequest.amount + agentCommission
-      });
-
-      if (creditError) {
-        console.error("Erreur lors du crédit agent:", creditError);
-        // Annuler le débit de l'utilisateur
-        await supabase.rpc('increment_balance', {
-          user_id: user?.id,
-          amount: totalAmount
-        });
-        toast({
-          title: "❌ Erreur",
-          description: "Erreur lors du crédit de l'agent",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Créditer la commission plateforme
-      if (platformCommission > 0) {
-        const { data: adminData } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('phone', '+221773637752')
-          .maybeSingle();
-          
-        if (adminData) {
-          await supabase.rpc('increment_balance', {
-            user_id: adminData.id,
-            amount: platformCommission
-          });
-        }
-      }
-
-      // Créer l'enregistrement du retrait
-      const { error: withdrawalError } = await supabase
-        .from('withdrawals')
-        .insert({
-          user_id: user?.id,
-          amount: selectedRequest.amount,
-          withdrawal_phone: selectedRequest.withdrawal_phone,
-          status: 'completed'
-        });
-
-      if (withdrawalError) {
-        console.error("❌ Erreur lors de l'enregistrement du retrait:", withdrawalError);
-      }
-
-      // Mettre à jour le statut de la demande
-      const { error: updateError } = await supabase
+      const { error } = await supabase
         .from('withdrawal_requests')
-        .update({ status: 'confirmed' })
+        .update({ 
+          status: 'confirmed',
+          confirmed_at: new Date().toISOString()
+        })
         .eq('id', selectedRequest.id);
+
+      if (error) throw error;
+
+      toast.success('Demande de retrait confirmée avec succès!');
       
-      if (updateError) {
-        console.error("Erreur lors de la mise à jour:", updateError);
-      }
-      
-      toast({
-        title: "✅ Retrait effectué avec succès",
-        description: `Le retrait de ${selectedRequest.amount} FCFA a été effectué avec succès. Frais: ${totalFee} FCFA`,
-      });
+      // Retirer la demande de la liste
+      setWithdrawalRequests(prev => 
+        prev.filter(req => req.id !== selectedRequest.id)
+      );
       
       setShowSecureConfirmation(false);
       setSelectedRequest(null);
-      queryClient.invalidateQueries({ queryKey: ['withdrawalRequests'] });
-      refetch();
     } catch (error) {
-      console.error("Erreur lors de la confirmation:", error);
-      toast({
-        title: "❌ Erreur",
-        description: "Impossible d'effectuer le retrait. Veuillez réessayer.",
-        variant: "destructive"
-      });
+      console.error('❌ Erreur confirmation retrait:', error);
+      toast.error('Erreur lors de la confirmation du retrait');
     }
   };
 
   const handleSecureReject = async () => {
     if (!selectedRequest) return;
-    
+
     try {
+      console.log('❌ Rejet sécurisé du retrait:', selectedRequest.id);
+
       const { error } = await supabase
         .from('withdrawal_requests')
-        .update({ status: 'rejected' })
+        .update({ 
+          status: 'rejected',
+          rejected_at: new Date().toISOString()
+        })
         .eq('id', selectedRequest.id);
-      
+
       if (error) throw error;
+
+      toast.success('Demande de retrait rejetée');
       
-      toast({
-        title: "🚫 Retrait refusé",
-        description: `La demande de retrait de ${selectedRequest.agent_name} a été refusée`,
-      });
+      // Retirer la demande de la liste
+      setWithdrawalRequests(prev => 
+        prev.filter(req => req.id !== selectedRequest.id)
+      );
       
       setShowSecureConfirmation(false);
       setSelectedRequest(null);
-      queryClient.invalidateQueries({ queryKey: ['withdrawalRequests'] });
-      refetch();
     } catch (error) {
-      console.error("Erreur lors du refus:", error);
-      toast({
-        title: "❌ Erreur",
-        description: "Impossible de refuser le retrait. Veuillez réessayer.",
-        variant: "destructive"
-      });
+      console.error('❌ Erreur rejet retrait:', error);
+      toast.error('Erreur lors du rejet du retrait');
     }
   };
 
   const closeSecureConfirmation = () => {
+    console.log('🔒 Fermeture de la confirmation sécurisée');
     setShowSecureConfirmation(false);
     setSelectedRequest(null);
   };
 
   return {
-    pendingRequests: pendingRequests || [],
+    withdrawalRequests,
     selectedRequest,
     showSecureConfirmation,
     handleNotificationClick,
     handleSecureConfirm,
     handleSecureReject,
-    closeSecureConfirmation,
-    refetch
+    closeSecureConfirmation
   };
 };
