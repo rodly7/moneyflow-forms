@@ -179,7 +179,7 @@ const MainAdminDashboard = () => {
     setShowUserModal(true);
   };
 
-  const handleQuickRoleChange = async (userId: string, newRole: string) => {
+  const handleQuickRoleChange = async (userId: string, newRole: 'user' | 'agent' | 'admin' | 'sub_admin') => {
     try {
       const { error } = await supabase
         .from('profiles')
