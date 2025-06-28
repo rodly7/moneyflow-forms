@@ -1,15 +1,14 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "./use-toast";
 import { supabase, calculateFee } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/OptimizedAuthContext";
 
 export const useTransferOperations = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, userRole, profile } = useAuth();
+  const { user, profile, isAgent } = useAuth();
 
   const processTransfer = async (transferData: {
     amount: number;
@@ -46,7 +45,7 @@ export const useTransferOperations = () => {
       const userCountry = profile?.country || "Cameroun";
       
       // Calculer les frais selon le rôle
-      const feeType = userRole === 'agent' ? 'agent' : 'user';
+      const feeType = isAgent() ? 'agent' : 'user';
       const { fee: fees, rate, agentCommission, moneyFlowCommission } = calculateFee(
         transferData.amount, 
         userCountry, 
@@ -67,7 +66,7 @@ export const useTransferOperations = () => {
       }
 
       console.log("🔄 Traitement du transfert:", {
-        typeUtilisateur: userRole,
+        typeUtilisateur: isAgent() ? 'agent' : 'user',
         paysSources: userCountry,
         paysDestination: transferData.recipient.country,
         beneficiaire: transferData.recipient.fullName,
@@ -148,7 +147,7 @@ export const useTransferOperations = () => {
 
       // Succès du transfert
       const isNational = userCountry === transferData.recipient.country;
-      const successMessage = userRole === 'agent'
+      const successMessage = isAgent()
         ? `Transfert agent effectué: ${transferData.amount} XAF vers ${transferData.recipient.fullName} (${rate}%)`
         : `Transfert réussi: ${transferData.amount} XAF vers ${transferData.recipient.fullName} (${rate}%)`;
 
@@ -158,7 +157,7 @@ export const useTransferOperations = () => {
       });
       
       // Navigation selon le rôle
-      if (userRole === 'agent') {
+      if (isAgent()) {
         navigate('/agent-services');
       } else {
         navigate('/');
