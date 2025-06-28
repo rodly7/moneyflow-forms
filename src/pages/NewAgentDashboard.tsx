@@ -10,14 +10,19 @@ import {
   DollarSign,
   LogOut,
   Eye,
-  EyeOff
+  EyeOff,
+  BarChart3
 } from 'lucide-react';
 import { useState } from 'react';
 import { formatCurrency } from '@/integrations/supabase/client';
+import { useDeviceDetection } from '@/hooks/useDeviceDetection';
+import { useToast } from '@/hooks/use-toast';
 
 const NewAgentDashboard = () => {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
+  const { isMobile } = useDeviceDetection();
+  const { toast } = useToast();
   const [showBalance, setShowBalance] = useState(true);
 
   console.log('🏢 NewAgentDashboard - Profil:', profile);
@@ -56,8 +61,21 @@ const NewAgentDashboard = () => {
   }
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
+    try {
+      await signOut();
+      navigate('/agent-auth');
+      toast({
+        title: "Déconnexion réussie",
+        description: "À bientôt !",
+      });
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la déconnexion",
+        variant: "destructive"
+      });
+    }
   };
 
   const displayBalance = showBalance 
@@ -87,7 +105,7 @@ const NewAgentDashboard = () => {
               className="text-white hover:bg-white/20"
             >
               <LogOut className="w-4 h-4 mr-2" />
-              Déconnexion
+              {isMobile ? "" : "Déconnexion"}
             </Button>
           </div>
         </div>
@@ -128,7 +146,7 @@ const NewAgentDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Button 
                 onClick={() => navigate('/deposit-withdrawal')}
                 className="h-20 flex-col space-y-2 bg-blue-600 hover:bg-blue-700 text-white shadow-md"
@@ -143,6 +161,14 @@ const NewAgentDashboard = () => {
               >
                 <DollarSign className="h-6 w-6" />
                 <span className="text-sm font-medium">Commissions</span>
+              </Button>
+
+              <Button 
+                onClick={() => navigate('/agent-reports')}
+                className="h-20 flex-col space-y-2 bg-purple-600 hover:bg-purple-700 text-white shadow-md"
+              >
+                <BarChart3 className="h-6 w-6" />
+                <span className="text-sm font-medium">Rapports</span>
               </Button>
             </div>
           </CardContent>
