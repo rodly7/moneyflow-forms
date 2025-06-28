@@ -102,16 +102,15 @@ const AgentServices = () => {
             >
               <RefreshCw className={`w-4 h-4 ${isLoadingBalance ? 'animate-spin' : ''}`} />
             </Button>
-            {isMobile && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleSignOut}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
-            )}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleSignOut}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <LogOut className="w-4 h-4" />
+              {!isMobile && <span className="ml-1">Déconnexion</span>}
+            </Button>
           </div>
         </div>
 

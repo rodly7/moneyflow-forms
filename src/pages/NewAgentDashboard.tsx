@@ -148,11 +148,11 @@ const NewAgentDashboard = () => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Button 
-                onClick={() => navigate('/deposit-withdrawal')}
+                onClick={() => navigate('/agent-services')}
                 className="h-20 flex-col space-y-2 bg-blue-600 hover:bg-blue-700 text-white shadow-md"
               >
                 <Wallet className="h-6 w-6" />
-                <span className="text-sm font-medium">Dépôt & Retrait</span>
+                <span className="text-sm font-medium">Services Agent</span>
               </Button>
 
               <Button 
