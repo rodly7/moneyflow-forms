@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -116,22 +115,31 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-400 via-cyan-400 to-blue-500 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/20 via-cyan-400/20 to-blue-500/20"></div>
+      <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-white/5 rounded-full blur-2xl animate-pulse delay-1000"></div>
+      
+      <Card className="w-full max-w-md backdrop-blur-sm bg-white/95 shadow-2xl border-0 animate-fade-in">
+        <CardHeader className="space-y-2 text-center pb-8">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-emerald-500 to-blue-500 rounded-full flex items-center justify-center mb-4 animate-scale-in">
+            <Icons.spinner className="w-8 h-8 text-white" />
+          </div>
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
             {isSignUp ? "Créer un compte" : "Connexion"}
           </CardTitle>
-          <CardDescription className="text-center">
-            {isSignUp ? "Créez votre compte SendFlow" : "Connectez-vous à votre compte SendFlow"}
+          <CardDescription className="text-gray-600 text-lg">
+            {isSignUp ? "Rejoignez SendFlow dès aujourd'hui" : "Bienvenue sur SendFlow"}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        
+        <CardContent className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {isSignUp ? (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Nom complet</Label>
+                  <Label htmlFor="fullName" className="text-gray-700 font-medium">Nom complet</Label>
                   <Input
                     id="fullName"
                     value={fullName}
@@ -139,13 +147,14 @@ const Auth = () => {
                     required
                     disabled={loading}
                     placeholder="Votre nom complet"
+                    className="h-12 bg-gray-50 border-gray-200 focus:border-emerald-500 focus:ring-emerald-500 transition-all duration-200"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="country">Pays</Label>
+                  <Label htmlFor="country" className="text-gray-700 font-medium">Pays</Label>
                   <Select value={country} onValueChange={handleCountryChange}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-12 bg-gray-50 border-gray-200 focus:border-emerald-500 focus:ring-emerald-500">
                       <SelectValue placeholder="Sélectionnez votre pays" />
                     </SelectTrigger>
                     <SelectContent>
@@ -159,9 +168,9 @@ const Auth = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="address">Ville</Label>
+                  <Label htmlFor="address" className="text-gray-700 font-medium">Ville</Label>
                   <Select value={address} onValueChange={setAddress} disabled={!country}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-12 bg-gray-50 border-gray-200 focus:border-emerald-500 focus:ring-emerald-500">
                       <SelectValue placeholder="Sélectionnez votre ville" />
                     </SelectTrigger>
                     <SelectContent>
@@ -175,10 +184,10 @@ const Auth = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Numéro de téléphone</Label>
-                  <div className="flex gap-2">
+                  <Label htmlFor="phone" className="text-gray-700 font-medium">Numéro de téléphone</Label>
+                  <div className="flex gap-3">
                     <div className="w-24">
-                      <Input value={selectedCountryCode} readOnly className="bg-gray-100" />
+                      <Input value={selectedCountryCode} readOnly className="h-12 bg-gray-100 text-center font-mono" />
                     </div>
                     <Input
                       id="phone"
@@ -188,12 +197,13 @@ const Auth = () => {
                       onChange={handlePhoneNumberChange}
                       required
                       disabled={loading || !selectedCountryCode}
+                      className="h-12 bg-gray-50 border-gray-200 focus:border-emerald-500 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Mot de passe</Label>
+                  <Label htmlFor="password" className="text-gray-700 font-medium">Mot de passe</Label>
                   <Input
                     id="password"
                     type="password"
@@ -203,13 +213,14 @@ const Auth = () => {
                     disabled={loading}
                     minLength={6}
                     placeholder="Au moins 6 caractères"
+                    className="h-12 bg-gray-50 border-gray-200 focus:border-emerald-500 focus:ring-emerald-500"
                   />
                 </div>
               </>
             ) : (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="loginPhone">Numéro de téléphone</Label>
+                  <Label htmlFor="loginPhone" className="text-gray-700 font-medium">Numéro de téléphone</Label>
                   <Input
                     id="loginPhone"
                     type="text"
@@ -218,14 +229,15 @@ const Auth = () => {
                     onChange={(e) => setLoginPhone(e.target.value)}
                     required
                     disabled={loading}
+                    className="h-12 bg-gray-50 border-gray-200 focus:border-emerald-500 focus:ring-emerald-500"
                   />
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-emerald-600 flex items-center gap-1">
                     💡 Utilisez exactement le même format qu'à l'inscription
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="loginPassword">Mot de passe</Label>
+                  <Label htmlFor="loginPassword" className="text-gray-700 font-medium">Mot de passe</Label>
                   <Input
                     id="loginPassword"
                     type="password"
@@ -234,22 +246,27 @@ const Auth = () => {
                     required
                     disabled={loading}
                     minLength={6}
+                    className="h-12 bg-gray-50 border-gray-200 focus:border-emerald-500 focus:ring-emerald-500"
                   />
                 </div>
               </>
             )}
 
-            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white" disabled={loading}>
-              {loading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+            <Button 
+              type="submit" 
+              className="w-full h-12 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200" 
+              disabled={loading}
+            >
+              {loading && <Icons.spinner className="mr-2 h-5 w-5 animate-spin" />}
               {loading ? "Chargement..." : isSignUp ? "Créer un compte" : "Se connecter"}
             </Button>
 
-            <div className="relative my-4">
+            <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
+                <span className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Ou</span>
+                <span className="bg-white px-4 text-gray-500 font-medium">Ou</span>
               </div>
             </div>
 
@@ -257,30 +274,30 @@ const Auth = () => {
               type="button"
               variant="outline"
               onClick={() => setIsSignUp(!isSignUp)}
-              className="w-full"
+              className="w-full h-12 border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all duration-200"
               disabled={loading}
             >
               {isSignUp ? "Déjà un compte? Se connecter" : "Pas de compte? S'inscrire"}
             </Button>
 
-            <div className="mt-4 text-center space-y-2">
+            <div className="mt-6 text-center space-y-3">
               <Button
                 type="button"
                 variant="link"
                 onClick={() => navigate('/auth?role=agent')}
-                className="text-blue-600 hover:text-blue-700 font-medium"
+                className="text-blue-600 hover:text-blue-700 font-semibold hover:underline"
               >
-                Créer un compte agent
+                🏢 Créer un compte agent
               </Button>
               
-              <div className="text-sm text-gray-500">
+              <div className="text-sm">
                 <Button
                   type="button"
                   variant="link"
                   onClick={() => navigate('/agent-auth')}
-                  className="text-blue-600 hover:text-blue-700 text-sm"
+                  className="text-emerald-600 hover:text-emerald-700 text-sm hover:underline"
                 >
-                  Déjà agent? Se connecter ici
+                  Déjà agent? Se connecter ici →
                 </Button>
               </div>
             </div>

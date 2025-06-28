@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Icons } from "@/components/ui/icons";
+import { Shield, Users } from "lucide-react";
 
 const AgentAuthForm = () => {
   const [loading, setLoading] = useState(false);
@@ -65,20 +67,30 @@ const AgentAuthForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500/20 to-indigo-500/20 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center text-blue-600">
-            Connexion Agent
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-indigo-600/20 to-purple-700/20"></div>
+      <div className="absolute top-1/3 left-1/3 w-40 h-40 bg-white/10 rounded-full blur-xl animate-pulse"></div>
+      <div className="absolute bottom-1/3 right-1/3 w-56 h-56 bg-white/5 rounded-full blur-2xl animate-pulse delay-1000"></div>
+      
+      <Card className="w-full max-w-md backdrop-blur-sm bg-white/95 shadow-2xl border-0 animate-fade-in">
+        <CardHeader className="space-y-4 text-center pb-8">
+          <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-4 animate-scale-in shadow-lg">
+            <Shield className="w-10 h-10 text-white" />
+          </div>
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Espace Agent
           </CardTitle>
-          <CardDescription className="text-center">
-            Connectez-vous à votre espace agent
+          <CardDescription className="text-gray-600 text-lg flex items-center justify-center gap-2">
+            <Users className="w-5 h-5 text-blue-500" />
+            Accès professionnel sécurisé
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        
+        <CardContent className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="loginPhone">Numéro de téléphone</Label>
+              <Label htmlFor="loginPhone" className="text-gray-700 font-medium">Numéro de téléphone</Label>
               <Input
                 id="loginPhone"
                 type="text"
@@ -86,38 +98,45 @@ const AgentAuthForm = () => {
                 value={loginPhone}
                 onChange={(e) => setLoginPhone(e.target.value)}
                 required
-                className="w-full"
+                className="h-12 bg-gray-50 border-gray-200 focus:border-blue-500 focus:ring-blue-500 transition-all duration-200"
                 disabled={loading}
               />
-              <p className="text-xs text-blue-600">
+              <p className="text-xs text-blue-600 flex items-center gap-1">
                 💡 Utilisez le format complet avec le code pays (ex: +242...)
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="loginPassword">Mot de passe</Label>
+              <Label htmlFor="loginPassword" className="text-gray-700 font-medium">Mot de passe</Label>
               <Input
                 id="loginPassword"
                 type="password"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
                 required
-                className="w-full"
+                className="h-12 bg-gray-50 border-gray-200 focus:border-blue-500 focus:ring-blue-500 transition-all duration-200"
                 disabled={loading}
                 minLength={6}
+                placeholder="Votre mot de passe sécurisé"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
               disabled={loading}
             >
               {loading && (
-                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                <Icons.spinner className="mr-2 h-5 w-5 animate-spin" />
               )}
-              {loading ? "Chargement..." : "Se connecter"}
+              {loading ? "Connexion en cours..." : "Se connecter"}
             </Button>
+
+            <div className="text-center pt-4">
+              <p className="text-sm text-gray-500">
+                Accès réservé aux agents autorisés uniquement
+              </p>
+            </div>
           </form>
         </CardContent>
       </Card>

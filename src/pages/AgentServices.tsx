@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, ArrowRight, RefreshCw, LogOut } from "lucide-react";
+import { ArrowLeft, Plus, ArrowRight, RefreshCw, LogOut, Shield, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import TransferForm from "@/components/TransferForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,16 +67,20 @@ const AgentServices = () => {
 
   if (!profile || profile.role !== 'agent') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <h2 className="text-xl font-bold text-red-600 mb-4">Accès refusé</h2>
-              <p className="text-gray-600 mb-4">Cette page est réservée aux agents.</p>
-              <Button onClick={() => navigate('/dashboard')} className="w-full">
-                Retour au tableau de bord
-              </Button>
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-red-100 flex items-center justify-center">
+        <Card className="w-full max-w-md mx-4 shadow-2xl border-0 bg-white/90 backdrop-blur-sm">
+          <CardContent className="pt-8 text-center">
+            <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Shield className="w-8 h-8 text-white" />
             </div>
+            <h2 className="text-2xl font-bold text-red-600 mb-4">Accès refusé</h2>
+            <p className="text-gray-600 mb-6">Cette page est réservée aux agents autorisés.</p>
+            <Button 
+              onClick={() => navigate('/dashboard')} 
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+            >
+              Retour au tableau de bord
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -84,20 +88,32 @@ const AgentServices = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50/50 to-indigo-100/50 py-4 px-0 sm:py-8 sm:px-4">
-      <div className="container max-w-lg mx-auto space-y-6">
-        <div className="flex items-center justify-between mb-4">
-          <Button variant="ghost" onClick={() => navigate('/agent-dashboard')} className="text-gray-700">
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-4 px-0 sm:py-8 sm:px-4 relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-200/20 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-200/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      
+      <div className="relative z-10 container max-w-lg mx-auto space-y-6">
+        {/* Enhanced Header */}
+        <div className="flex items-center justify-between mb-6 backdrop-blur-sm bg-white/70 rounded-2xl p-4 shadow-lg border border-white/20">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/agent-dashboard')} 
+            className="text-gray-700 hover:bg-blue-50 border border-blue-200 hover:border-blue-300"
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
           </Button>
-          <h1 className="text-2xl font-bold text-blue-700">Services Agent</h1>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Services Agent
+          </h1>
           <div className="flex items-center gap-2">
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={fetchAgentBalance}
               disabled={isLoadingBalance}
+              className="hover:bg-green-50 border border-green-200"
             >
               <RefreshCw className={`w-4 h-4 ${isLoadingBalance ? 'animate-spin' : ''}`} />
             </Button>
@@ -105,7 +121,7 @@ const AgentServices = () => {
               variant="ghost" 
               size="sm" 
               onClick={handleSignOut}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200"
             >
               <LogOut className="w-4 h-4" />
               {!isMobile && <span className="ml-1">Déconnexion</span>}
@@ -113,70 +129,85 @@ const AgentServices = () => {
           </div>
         </div>
 
-        <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-xl">
-          <CardContent className="p-6">
+        {/* Enhanced Balance Card */}
+        <Card className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white border-0 shadow-2xl backdrop-blur-sm">
+          <CardContent className="p-8">
             <div className="text-center">
-              <h3 className="text-blue-100 mb-2">Solde Agent</h3>
-              <div className="text-3xl font-bold mb-2">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <TrendingUp className="w-6 h-6 text-blue-200" />
+                <h3 className="text-blue-100 text-lg">Solde Agent</h3>
+              </div>
+              <div className="text-4xl font-bold mb-4 text-white drop-shadow-lg">
                 {agentBalance.toLocaleString('fr-FR')} XAF
               </div>
-              <p className="text-blue-100 text-sm">
-                Pays: {profile.country}
+              <p className="text-blue-100 text-sm flex items-center justify-center gap-2">
+                📍 Pays: {profile.country}
               </p>
             </div>
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="transfer" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="transfer" className="flex items-center gap-2">
-              <ArrowRight className="w-4 h-4" />
-              Transfert
-            </TabsTrigger>
-            <TabsTrigger value="deposit" className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Dépôt/Retrait
-            </TabsTrigger>
-          </TabsList>
+        {/* Enhanced Tabs */}
+        <div className="backdrop-blur-sm bg-white/70 rounded-2xl shadow-xl border border-white/30 overflow-hidden">
+          <Tabs defaultValue="transfer" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-gray-100/50 m-2 rounded-xl">
+              <TabsTrigger value="transfer" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md">
+                <ArrowRight className="w-4 h-4" />
+                Transfert
+              </TabsTrigger>
+              <TabsTrigger value="deposit" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md">
+                <Plus className="w-4 h-4" />
+                Dépôt/Retrait
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="transfer">
-            <div className="space-y-4">
-              <Card className="bg-blue-50 border-blue-200">
-                <CardContent className="p-4">
-                  <h3 className="font-medium text-blue-800 mb-2">Mode Agent Activé</h3>
-                  <p className="text-blue-600 text-sm">
-                    Vous pouvez effectuer des transferts pour vos clients vers tous les pays disponibles.
-                  </p>
+            <TabsContent value="transfer" className="p-4">
+              <div className="space-y-4">
+                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/50 shadow-md">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      <Shield className="w-6 h-6 text-blue-600" />
+                      <h3 className="font-semibold text-blue-800">Mode Agent Activé</h3>
+                    </div>
+                    <p className="text-blue-600">
+                      Vous pouvez effectuer des transferts pour vos clients vers tous les pays disponibles.
+                    </p>
+                  </CardContent>
+                </Card>
+                <TransferForm />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="deposit" className="p-4">
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-3 text-blue-600">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                      <Plus className="w-5 h-5 text-white" />
+                    </div>
+                    Services de Dépôt et Retrait
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8 space-y-6">
+                    <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto">
+                      <TrendingUp className="w-8 h-8 text-white" />
+                    </div>
+                    <p className="text-gray-600 text-lg">
+                      Gérez les dépôts et retraits de vos clients en toute sécurité
+                    </p>
+                    <Button 
+                      onClick={() => navigate('/deposit-withdrawal')}
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-8 py-3 h-12 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                    >
+                      Accéder aux services de dépôt/retrait
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
-              <TransferForm />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="deposit">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-blue-600">
-                  <Plus className="w-5 h-5" />
-                  Services de Dépôt et Retrait
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 space-y-4">
-                  <p className="text-gray-600 mb-4">
-                    Gérez les dépôts et retraits de vos clients
-                  </p>
-                  <Button 
-                    onClick={() => navigate('/deposit-withdrawal')}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    Accéder aux services de dépôt/retrait
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );
