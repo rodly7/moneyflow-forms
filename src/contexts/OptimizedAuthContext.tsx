@@ -14,11 +14,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  console.log('🔐 AuthProvider - État:', { user: !!user, profile: !!profile, loading });
+
   const refreshProfile = async () => {
     if (user?.id) {
       try {
+        console.log('🔄 Rafraîchissement du profil pour:', user.id);
         const profileData = await profileOptimizationService.getProfile(user.id, true);
         setProfile(profileData);
+        console.log('✅ Profil rafraîchi:', profileData);
       } catch (error) {
         console.error('❌ Erreur lors du rafraîchissement du profil:', error);
       }
@@ -30,22 +34,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const initAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        console.log('🚀 Initialisation de l\'authentification');
+        
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('❌ Erreur session:', error);
+          if (mounted) setLoading(false);
+          return;
+        }
+
+        console.log('📋 Session:', session ? 'Trouvée' : 'Aucune');
         
         if (session?.user && mounted) {
+          console.log('👤 Utilisateur trouvé:', session.user.id);
           setUser(session.user);
           
           try {
             const profileData = await profileOptimizationService.getProfile(session.user.id);
-            if (mounted) setProfile(profileData);
+            if (mounted) {
+              setProfile(profileData);
+              console.log('📊 Profil chargé:', profileData);
+            }
           } catch (error) {
-            console.error('❌ Profile fetch error:', error);
+            console.error('❌ Erreur profil:', error);
           }
         }
         
         if (mounted) setLoading(false);
       } catch (error) {
-        console.error('❌ Auth init error:', error);
+        console.error('❌ Erreur init auth:', error);
         if (mounted) setLoading(false);
       }
     };
@@ -55,10 +73,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
+      console.log('🔐 Changement auth:', event);
+      
       if (event === 'SIGNED_OUT' || !session) {
         setUser(null);
         setProfile(null);
         profileOptimizationService.clearCache();
+        setLoading(false);
         return;
       }
       
@@ -67,9 +88,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         try {
           const profileData = await profileOptimizationService.getProfile(session.user.id);
-          if (mounted) setProfile(profileData);
+          if (mounted) {
+            setProfile(profileData);
+            console.log('📊 Profil mis à jour:', profileData);
+          }
         } catch (error) {
-          console.error('❌ Profile fetch after auth change:', error);
+          console.error('❌ Erreur profil après auth change:', error);
         }
       }
       
@@ -85,8 +109,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (phone: string, password: string) => {
     setLoading(true);
     try {
+      console.log('🔑 Tentative de connexion:', phone);
       await authService.signIn(phone, password);
     } catch (error) {
+      console.error('❌ Erreur signIn:', error);
       setLoading(false);
       throw error;
     }
@@ -95,16 +121,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (phone: string, password: string, metadata: SignUpMetadata) => {
     setLoading(true);
     try {
+      console.log('📝 Tentative d\'inscription:', phone);
       await authService.signUp(phone, password, metadata);
     } catch (error) {
+      console.error('❌ Erreur signUp:', error);
       setLoading(false);
       throw error;
     }
   };
 
   const signOut = async () => {
-    await authService.signOut();
-    profileOptimizationService.clearCache();
+    console.log('🚪 Déconnexion');
+    try {
+      await authService.signOut();
+      profileOptimizationService.clearCache();
+    } catch (error) {
+      console.error('❌ Erreur signOut:', error);
+      throw error;
+    }
   };
 
   const isAdmin = () => profileService.isAdmin(profile);

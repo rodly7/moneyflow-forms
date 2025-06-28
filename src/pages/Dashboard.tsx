@@ -1,5 +1,5 @@
 
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/OptimizedAuthContext";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,33 +16,43 @@ const Dashboard = () => {
   const { user, profile, refreshProfile } = useAuth();
   const [showTransferForm, setShowTransferForm] = useState(false);
   
+  console.log('📊 Dashboard - État:', { user: !!user, profile: !!profile });
+  
   const {
     selectedRequest,
     showSecureConfirmation,
-    handleNotificationClick,
     handleSecureConfirm,
     handleSecureReject,
     closeSecureConfirmation
   } = useWithdrawalRequestNotifications();
 
-  const { data: transfers } = useQuery({
+  const { data: transfers, isLoading: transfersLoading } = useQuery({
     queryKey: ['transfers', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
+      
+      console.log('🔄 Chargement des transferts pour:', user.id);
+      
       const { data, error } = await supabase
         .from('transfers')
         .select('*')
         .eq('sender_id', user.id)
         .order('created_at', { ascending: false })
         .limit(5);
-      if (error) throw error;
+        
+      if (error) {
+        console.error('❌ Erreur transferts:', error);
+        throw error;
+      }
+      
+      console.log('✅ Transferts chargés:', data?.length);
       return data || [];
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  // Rafraîchir le profil périodiquement mais moins fréquemment
+  // Rafraîchir le profil moins souvent
   useQuery({
     queryKey: ['profile-refresh', user?.id],
     queryFn: async () => {
@@ -50,9 +60,20 @@ const Dashboard = () => {
       return true;
     },
     enabled: !!user,
-    refetchInterval: 2 * 60 * 1000, // Toutes les 2 minutes au lieu de 30 secondes
-    staleTime: 60 * 1000, // Cache for 1 minute
+    refetchInterval: 5 * 60 * 1000, // Toutes les 5 minutes
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
   });
+
+  if (!user || !profile) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-blue-600 font-medium">Chargement du tableau de bord...</p>
+        </div>
+      </div>
+    );
+  }
 
   const transformedTransactions = transfers?.map(transfer => ({
     id: transfer.id,
@@ -72,7 +93,12 @@ const Dashboard = () => {
         <BalanceCard balance={profile?.balance || 0} userCountry={profile?.country || "Cameroun"} />
         
         <ActionButtons onTransferClick={() => setShowTransferForm(true)} />
-        <TransactionsCard transactions={transformedTransactions} onDeleteTransaction={() => {}} />
+        
+        <TransactionsCard 
+          transactions={transformedTransactions} 
+          onDeleteTransaction={() => {}}
+          isLoading={transfersLoading}
+        />
         
         {showTransferForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

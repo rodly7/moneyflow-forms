@@ -34,12 +34,14 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
       retry: 1,
-      refetchOnWindowFocus: false, // Évite les requêtes inutiles
+      refetchOnWindowFocus: false,
     },
   },
 });
 
 function App() {
+  console.log('🚀 App démarré');
+  
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

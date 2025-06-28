@@ -11,17 +11,23 @@ class ProfileOptimizationService {
     
     // Utiliser le cache si disponible et pas expiré
     if (!forceRefresh && cached && (Date.now() - cached.timestamp) < this.CACHE_DURATION) {
+      console.log('💾 Profil depuis le cache pour:', userId);
       return cached.data;
     }
 
     try {
+      console.log('🌐 Récupération profil depuis la DB pour:', userId);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur récupération profil:', error);
+        throw error;
+      }
       
       // Mettre en cache
       this.profileCache.set(cacheKey, {
@@ -29,6 +35,7 @@ class ProfileOptimizationService {
         timestamp: Date.now()
       });
       
+      console.log('✅ Profil récupéré et mis en cache:', data);
       return data;
     } catch (error) {
       console.error('❌ Erreur lors de la récupération du profil:', error);
@@ -38,8 +45,10 @@ class ProfileOptimizationService {
 
   clearCache(userId?: string) {
     if (userId) {
+      console.log('🗑️ Suppression cache pour:', userId);
       this.profileCache.delete(`profile_${userId}`);
     } else {
+      console.log('🗑️ Suppression de tout le cache');
       this.profileCache.clear();
     }
   }
