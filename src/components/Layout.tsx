@@ -21,9 +21,25 @@ const Layout = () => {
       path: location.pathname 
     });
 
-    // Pages d'authentification - pas de redirection
+    // Pages d'authentification - rediriger si déjà connecté
     if (location.pathname === '/auth' || location.pathname === '/agent-auth') {
-      console.log('📄 Page d\'authentification');
+      if (user && profile) {
+        console.log('👤 Utilisateur connecté détecté sur page auth - redirection');
+        const isMainAdmin = profile.phone === '+221773637752';
+        const isSubAdmin = profile.role === 'sub_admin';
+        const isAgent = profile.role === 'agent';
+        const isUser = profile.role === 'user';
+
+        if (isMainAdmin) {
+          navigate('/main-admin', { replace: true });
+        } else if (isSubAdmin) {
+          navigate('/sub-admin', { replace: true });
+        } else if (isAgent) {
+          navigate('/agent-dashboard', { replace: true });
+        } else if (isUser) {
+          navigate('/dashboard', { replace: true });
+        }
+      }
       return;
     }
 

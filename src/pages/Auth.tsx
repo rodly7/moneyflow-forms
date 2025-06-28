@@ -219,6 +219,9 @@ const Auth = () => {
                     required
                     disabled={loading}
                   />
+                  <p className="text-xs text-gray-500">
+                    💡 Utilisez exactement le même format qu'à l'inscription
+                  </p>
                 </div>
 
                 <div className="space-y-2">

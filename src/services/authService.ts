@@ -21,7 +21,7 @@ export const authService = {
       
       // Messages d'erreur plus spécifiques
       if (error.message.includes('Invalid login credentials')) {
-        throw new Error('Numéro de téléphone ou mot de passe incorrect.');
+        throw new Error('Numéro de téléphone ou mot de passe incorrect. Vérifiez que vous utilisez exactement le même numéro qu\'à l\'inscription.');
       }
       if (error.message.includes('Email not confirmed')) {
         throw new Error('Veuillez confirmer votre email avant de vous connecter.');
@@ -74,9 +74,12 @@ export const authService = {
   },
 
   async signOut() {
+    console.log('🚪 Déconnexion en cours...');
     const { error } = await supabase.auth.signOut();
     if (error) {
+      console.error('❌ Erreur de déconnexion:', error);
       throw error;
     }
+    console.log('✅ Déconnexion réussie');
   }
 };
