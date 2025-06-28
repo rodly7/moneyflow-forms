@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import SubAdminUsersTable from "@/components/admin/SubAdminUsersTable";
 import BatchAgentDeposit from "@/components/admin/BatchAgentDeposit";
+import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 
 interface CommissionData {
   agent_transfer_commission: number;
@@ -26,6 +26,7 @@ const SubAdminDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const deviceInfo = useDeviceDetection();
   const [selectedOperation, setSelectedOperation] = useState<'batch-deposit' | 'view-data' | 'view-users' | null>(null);
 
   // Récupérer les utilisateurs (lecture seule pour les sous-admins)
@@ -94,8 +95,8 @@ const SubAdminDashboard = () => {
   // Vérifier les permissions
   if (!profile || profile.role !== 'sub_admin') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <Card className="w-full max-w-md mx-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md mx-auto">
           <CardContent className="pt-6">
             <div className="text-center">
               <h2 className="text-xl font-bold text-red-600 mb-4">Accès refusé</h2>
@@ -110,33 +111,52 @@ const SubAdminDashboard = () => {
     );
   }
 
+  // Configuration responsive
+  const getGridColumns = () => {
+    if (deviceInfo.isMobile) return "grid-cols-1";
+    if (deviceInfo.isTablet) return "grid-cols-2";
+    return "grid-cols-1 md:grid-cols-2";
+  };
+
+  const getActionGridColumns = () => {
+    if (deviceInfo.isMobile) return "grid-cols-1";
+    if (deviceInfo.isTablet) return "grid-cols-2";
+    return "grid-cols-1 md:grid-cols-3";
+  };
+
+  const getSpacing = () => {
+    if (deviceInfo.isMobile) return "space-y-3 px-3 py-3";
+    if (deviceInfo.isTablet) return "space-y-4 px-4 py-4";
+    return "space-y-4 px-4 py-4";
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 w-full">
-      <div className="w-full mx-auto space-y-4 px-4 py-4">
+      <div className={`w-full mx-auto ${getSpacing()}`}>
         {/* Profile Header */}
         <ProfileHeader profile={profile} />
 
-        {/* Sub-Admin Badge & Balance */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Sub-Admin Badge & Balance - Responsive */}
+        <div className={`grid ${getGridColumns()} gap-3 md:gap-4`}>
           <Card className="bg-gradient-to-r from-orange-600 to-orange-700 text-white">
-            <CardContent className="pt-4 pb-4">
+            <CardContent className={`${deviceInfo.isMobile ? 'pt-3 pb-3' : 'pt-4 pb-4'}`}>
               <div className="flex items-center gap-3">
-                <Settings className="w-6 h-6" />
+                <Settings className={`${deviceInfo.isMobile ? 'w-5 h-5' : 'w-6 h-6'}`} />
                 <div>
-                  <h2 className="text-lg font-bold">Sous-Administrateur</h2>
-                  <p className="text-xs text-orange-100">Interface de gestion limitée</p>
+                  <h2 className={`${deviceInfo.isMobile ? 'text-base' : 'text-lg'} font-bold`}>Sous-Administrateur</h2>
+                  <p className={`${deviceInfo.isMobile ? 'text-xs' : 'text-xs'} text-orange-100`}>Interface de gestion limitée</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white">
-            <CardContent className="pt-4 pb-4">
+            <CardContent className={`${deviceInfo.isMobile ? 'pt-3 pb-3' : 'pt-4 pb-4'}`}>
               <div className="flex items-center gap-3">
-                <Wallet className="w-6 h-6 text-blue-600" />
+                <Wallet className={`${deviceInfo.isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-blue-600`} />
                 <div>
                   <p className="text-xs text-gray-600">Solde</p>
-                  <p className="text-lg font-bold text-gray-900">
+                  <p className={`${deviceInfo.isMobile ? 'text-base' : 'text-lg'} font-bold text-gray-900`}>
                     {formatCurrency(profile.balance, 'XAF')}
                   </p>
                 </div>
@@ -145,21 +165,21 @@ const SubAdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Commissions Display (Lecture seule) */}
+        {/* Commissions Display (Lecture seule) - Responsive */}
         {!selectedOperation && commissions && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className={`grid ${getGridColumns()} gap-3 md:gap-4`}>
             <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
-              <CardContent className="pt-4 pb-4">
+              <CardContent className={`${deviceInfo.isMobile ? 'pt-3 pb-3' : 'pt-4 pb-4'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-emerald-600" />
-                    <h3 className="font-semibold text-emerald-800">Commission Agents</h3>
+                    <TrendingUp className={`${deviceInfo.isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-emerald-600`} />
+                    <h3 className={`${deviceInfo.isMobile ? 'text-sm' : 'font-semibold'} text-emerald-800`}>Commission Agents</h3>
                   </div>
-                  <p className="text-xl font-bold text-emerald-600">
+                  <p className={`${deviceInfo.isMobile ? 'text-lg' : 'text-xl'} font-bold text-emerald-600`}>
                     {formatCurrency(commissions.agent_total_commission, 'XAF')}
                   </p>
                 </div>
-                <div className="mt-2 text-sm text-emerald-700">
+                <div className={`mt-2 ${deviceInfo.isMobile ? 'text-xs' : 'text-sm'} text-emerald-700`}>
                   <p>Transferts: {formatCurrency(commissions.agent_transfer_commission, 'XAF')}</p>
                   <p>Retraits: {formatCurrency(commissions.agent_withdrawal_commission, 'XAF')}</p>
                 </div>
@@ -167,17 +187,17 @@ const SubAdminDashboard = () => {
             </Card>
 
             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-              <CardContent className="pt-4 pb-4">
+              <CardContent className={`${deviceInfo.isMobile ? 'pt-3 pb-3' : 'pt-4 pb-4'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Building2 className="w-5 h-5 text-blue-600" />
-                    <h3 className="font-semibold text-blue-800">Commission Entreprise</h3>
+                    <Building2 className={`${deviceInfo.isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-blue-600`} />
+                    <h3 className={`${deviceInfo.isMobile ? 'text-sm' : 'font-semibold'} text-blue-800`}>Commission Entreprise</h3>
                   </div>
-                  <p className="text-xl font-bold text-blue-600">
+                  <p className={`${deviceInfo.isMobile ? 'text-lg' : 'text-xl'} font-bold text-blue-600`}>
                     {formatCurrency(commissions.enterprise_total_commission, 'XAF')}
                   </p>
                 </div>
-                <div className="mt-2 text-sm text-blue-700">
+                <div className={`mt-2 ${deviceInfo.isMobile ? 'text-xs' : 'text-sm'} text-blue-700`}>
                   <p>Transferts: {formatCurrency(commissions.enterprise_transfer_commission, 'XAF')}</p>
                   <p>Retraits: {formatCurrency(commissions.enterprise_withdrawal_commission, 'XAF')}</p>
                 </div>
@@ -186,16 +206,16 @@ const SubAdminDashboard = () => {
           </div>
         )}
 
-        {/* Quick Actions - Removed individual deposit, kept batch deposit */}
+        {/* Quick Actions - Responsive */}
         {!selectedOperation && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className={`grid ${getActionGridColumns()} gap-2 md:gap-3`}>
             <Card 
               className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-emerald-500"
               onClick={() => setSelectedOperation('batch-deposit')}
             >
-              <CardContent className="pt-4 pb-4 text-center">
-                <Users className="w-6 h-6 text-emerald-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-900">Dépôt en Lot</p>
+              <CardContent className={`${deviceInfo.isMobile ? 'pt-3 pb-3' : 'pt-4 pb-4'} text-center`}>
+                <Users className={`${deviceInfo.isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-emerald-600 mx-auto mb-2`} />
+                <p className={`${deviceInfo.isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-900`}>Dépôt en Lot</p>
               </CardContent>
             </Card>
 
@@ -203,9 +223,9 @@ const SubAdminDashboard = () => {
               className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-purple-500"
               onClick={() => setSelectedOperation('view-users')}
             >
-              <CardContent className="pt-4 pb-4 text-center">
-                <Eye className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-900">Voir Utilisateurs</p>
+              <CardContent className={`${deviceInfo.isMobile ? 'pt-3 pb-3' : 'pt-4 pb-4'} text-center`}>
+                <Eye className={`${deviceInfo.isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-purple-600 mx-auto mb-2`} />
+                <p className={`${deviceInfo.isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-900`}>Voir Utilisateurs</p>
               </CardContent>
             </Card>
 
@@ -213,9 +233,9 @@ const SubAdminDashboard = () => {
               className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-indigo-500"
               onClick={() => setSelectedOperation('view-data')}
             >
-              <CardContent className="pt-4 pb-4 text-center">
-                <Activity className="w-6 h-6 text-indigo-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-900">Données</p>
+              <CardContent className={`${deviceInfo.isMobile ? 'pt-3 pb-3' : 'pt-4 pb-4'} text-center`}>
+                <Activity className={`${deviceInfo.isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-indigo-600 mx-auto mb-2`} />
+                <p className={`${deviceInfo.isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-900`}>Données</p>
               </CardContent>
             </Card>
           </div>
@@ -253,7 +273,9 @@ const SubAdminDashboard = () => {
                 </div>
                 
                 {users && users.length > 0 ? (
-                  <SubAdminUsersTable users={users} />
+                  <div className={deviceInfo.isMobile ? "overflow-x-auto" : ""}>
+                    <SubAdminUsersTable users={users} />
+                  </div>
                 ) : (
                   <div className="text-center py-8">
                     <p className="text-gray-500">Aucun utilisateur trouvé</p>
@@ -279,7 +301,7 @@ const SubAdminDashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className={`grid ${deviceInfo.isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'} gap-4`}>
                 <div className="bg-green-50 p-4 rounded-lg">
                   <h3 className="font-semibold text-green-800 mb-2">Transferts récents</h3>
                   <div className="space-y-2">
@@ -345,12 +367,12 @@ const SubAdminDashboard = () => {
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 text-blue-600" />
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{user.full_name || 'Nom non disponible'}</p>
-                        <p className="text-xs text-gray-600">{user.phone}</p>
+                        <p className={`${deviceInfo.isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-900`}>{user.full_name || 'Nom non disponible'}</p>
+                        <p className={`${deviceInfo.isMobile ? 'text-xs' : 'text-xs'} text-gray-600`}>{user.phone}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-blue-600">
+                      <p className={`${deviceInfo.isMobile ? 'text-xs' : 'text-sm'} font-semibold text-blue-600`}>
                         {formatCurrency(user.balance, 'XAF')}
                       </p>
                       <span className="text-xs text-gray-500">

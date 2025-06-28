@@ -16,6 +16,7 @@ import { useUserSearch } from "@/hooks/useUserSearch";
 import UserManagementModal from "@/components/admin/UserManagementModal";
 import UsersDataTable from "@/components/admin/UsersDataTable";
 import BatchAgentDeposit from "@/components/admin/BatchAgentDeposit";
+import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 
 interface CommissionData {
   agent_transfer_commission: number;
@@ -30,6 +31,7 @@ const MainAdminDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const deviceInfo = useDeviceDetection();
   const [selectedOperation, setSelectedOperation] = useState<'batch-deposit' | 'recharge' | 'manage-users' | 'view-data' | null>(null);
   const [amount, setAmount] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -193,7 +195,7 @@ const MainAdminDashboard = () => {
     }
   };
 
-  // Changer le rôle d'un utilisateur
+  // Changer le rôle d'un utilisateur avec support pour admin
   const handleQuickRoleChange = async (userId: string, newRole: string) => {
     try {
       const { error } = await supabase
@@ -203,9 +205,16 @@ const MainAdminDashboard = () => {
 
       if (error) throw error;
 
+      const roleLabels = {
+        'admin': 'Administrateur',
+        'sub_admin': 'Sous-Administrateur',
+        'agent': 'Agent',
+        'user': 'Utilisateur'
+      };
+
       toast({
         title: "Rôle mis à jour",
-        description: `Le rôle a été changé en ${newRole === 'sub_admin' ? 'Sous-Administrateur' : newRole === 'agent' ? 'Agent' : 'Utilisateur'}`,
+        description: `Le rôle a été changé en ${roleLabels[newRole as keyof typeof roleLabels]}`,
       });
 
       refetchUsers();
@@ -268,8 +277,8 @@ const MainAdminDashboard = () => {
 
   if (!profile || profile.phone !== '+221773637752') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <Card className="w-full max-w-md mx-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md mx-auto">
           <CardContent className="pt-6">
             <div className="text-center">
               <h2 className="text-xl font-bold text-red-600 mb-4">Accès refusé</h2>
@@ -284,33 +293,52 @@ const MainAdminDashboard = () => {
     );
   }
 
+  // Configuration responsive adaptée aux différents appareils
+  const getGridColumns = () => {
+    if (deviceInfo.isMobile) return "grid-cols-1";
+    if (deviceInfo.isTablet) return "grid-cols-2";
+    return "grid-cols-1 md:grid-cols-2";
+  };
+
+  const getActionGridColumns = () => {
+    if (deviceInfo.isMobile) return "grid-cols-2";
+    if (deviceInfo.isTablet) return "grid-cols-3";
+    return "grid-cols-2 md:grid-cols-4";
+  };
+
+  const getSpacing = () => {
+    if (deviceInfo.isMobile) return "space-y-3 px-3 py-3";
+    if (deviceInfo.isTablet) return "space-y-4 px-4 py-4";
+    return "space-y-4 px-4 py-4";
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 w-full">
-      <div className="w-full mx-auto space-y-4 px-4 py-4">
+      <div className={`w-full mx-auto ${getSpacing()}`}>
         {/* Profile Header */}
         <ProfileHeader profile={profile} />
 
-        {/* Admin Badge & Balance */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Admin Badge & Balance - Responsive */}
+        <div className={`grid ${getGridColumns()} gap-3 md:gap-4`}>
           <Card className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-            <CardContent className="pt-4 pb-4">
+            <CardContent className={`${deviceInfo.isMobile ? 'pt-3 pb-3' : 'pt-4 pb-4'}`}>
               <div className="flex items-center gap-3">
-                <Settings className="w-6 h-6" />
+                <Settings className={`${deviceInfo.isMobile ? 'w-5 h-5' : 'w-6 h-6'}`} />
                 <div>
-                  <h2 className="text-lg font-bold">Admin Principal</h2>
-                  <p className="text-xs text-blue-100">Interface de gestion</p>
+                  <h2 className={`${deviceInfo.isMobile ? 'text-base' : 'text-lg'} font-bold`}>Admin Principal</h2>
+                  <p className={`${deviceInfo.isMobile ? 'text-xs' : 'text-xs'} text-blue-100`}>Interface de gestion</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white">
-            <CardContent className="pt-4 pb-4">
+            <CardContent className={`${deviceInfo.isMobile ? 'pt-3 pb-3' : 'pt-4 pb-4'}`}>
               <div className="flex items-center gap-3">
-                <Wallet className="w-6 h-6 text-blue-600" />
+                <Wallet className={`${deviceInfo.isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-blue-600`} />
                 <div>
                   <p className="text-xs text-gray-600">Solde</p>
-                  <p className="text-lg font-bold text-gray-900">
+                  <p className={`${deviceInfo.isMobile ? 'text-base' : 'text-lg'} font-bold text-gray-900`}>
                     {formatCurrency(profile.balance, 'XAF')}
                   </p>
                 </div>
@@ -319,21 +347,21 @@ const MainAdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Commissions Display */}
+        {/* Commissions Display - Responsive */}
         {!selectedOperation && commissions && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className={`grid ${getGridColumns()} gap-3 md:gap-4`}>
             <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
-              <CardContent className="pt-4 pb-4">
+              <CardContent className={`${deviceInfo.isMobile ? 'pt-3 pb-3' : 'pt-4 pb-4'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-emerald-600" />
-                    <h3 className="font-semibold text-emerald-800">Commission Agents</h3>
+                    <TrendingUp className={`${deviceInfo.isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-emerald-600`} />
+                    <h3 className={`${deviceInfo.isMobile ? 'text-sm' : 'font-semibold'} text-emerald-800`}>Commission Agents</h3>
                   </div>
-                  <p className="text-xl font-bold text-emerald-600">
+                  <p className={`${deviceInfo.isMobile ? 'text-lg' : 'text-xl'} font-bold text-emerald-600`}>
                     {formatCurrency(commissions.agent_total_commission, 'XAF')}
                   </p>
                 </div>
-                <div className="mt-2 text-sm text-emerald-700">
+                <div className={`mt-2 ${deviceInfo.isMobile ? 'text-xs' : 'text-sm'} text-emerald-700`}>
                   <p>Transferts: {formatCurrency(commissions.agent_transfer_commission, 'XAF')}</p>
                   <p>Retraits: {formatCurrency(commissions.agent_withdrawal_commission, 'XAF')}</p>
                 </div>
@@ -341,17 +369,17 @@ const MainAdminDashboard = () => {
             </Card>
 
             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-              <CardContent className="pt-4 pb-4">
+              <CardContent className={`${deviceInfo.isMobile ? 'pt-3 pb-3' : 'pt-4 pb-4'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Building2 className="w-5 h-5 text-blue-600" />
-                    <h3 className="font-semibold text-blue-800">Commission Entreprise</h3>
+                    <Building2 className={`${deviceInfo.isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-blue-600`} />
+                    <h3 className={`${deviceInfo.isMobile ? 'text-sm' : 'font-semibold'} text-blue-800`}>Commission Entreprise</h3>
                   </div>
-                  <p className="text-xl font-bold text-blue-600">
+                  <p className={`${deviceInfo.isMobile ? 'text-lg' : 'text-xl'} font-bold text-blue-600`}>
                     {formatCurrency(commissions.enterprise_total_commission, 'XAF')}
                   </p>
                 </div>
-                <div className="mt-2 text-sm text-blue-700">
+                <div className={`mt-2 ${deviceInfo.isMobile ? 'text-xs' : 'text-sm'} text-blue-700`}>
                   <p>Transferts: {formatCurrency(commissions.enterprise_transfer_commission, 'XAF')}</p>
                   <p>Retraits: {formatCurrency(commissions.enterprise_withdrawal_commission, 'XAF')}</p>
                 </div>
@@ -360,16 +388,16 @@ const MainAdminDashboard = () => {
           </div>
         )}
 
-        {/* Quick Actions */}
+        {/* Quick Actions - Responsive Grid */}
         {!selectedOperation && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className={`grid ${getActionGridColumns()} gap-2 md:gap-3`}>
             <Card 
               className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-emerald-500"
               onClick={() => setSelectedOperation('batch-deposit')}
             >
-              <CardContent className="pt-4 pb-4 text-center">
-                <Users className="w-6 h-6 text-emerald-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-900">Dépôt en Lot</p>
+              <CardContent className={`${deviceInfo.isMobile ? 'pt-3 pb-3' : 'pt-4 pb-4'} text-center`}>
+                <Users className={`${deviceInfo.isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-emerald-600 mx-auto mb-2`} />
+                <p className={`${deviceInfo.isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-900`}>Dépôt en Lot</p>
               </CardContent>
             </Card>
 
@@ -377,9 +405,9 @@ const MainAdminDashboard = () => {
               className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-blue-500"
               onClick={() => setSelectedOperation('recharge')}
             >
-              <CardContent className="pt-4 pb-4 text-center">
-                <Wallet className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-900">Recharge Auto</p>
+              <CardContent className={`${deviceInfo.isMobile ? 'pt-3 pb-3' : 'pt-4 pb-4'} text-center`}>
+                <Wallet className={`${deviceInfo.isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-blue-600 mx-auto mb-2`} />
+                <p className={`${deviceInfo.isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-900`}>Recharge Auto</p>
               </CardContent>
             </Card>
 
@@ -387,9 +415,9 @@ const MainAdminDashboard = () => {
               className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-purple-500"
               onClick={() => setSelectedOperation('manage-users')}
             >
-              <CardContent className="pt-4 pb-4 text-center">
-                <UserCheck className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-900">Gestion Avancée</p>
+              <CardContent className={`${deviceInfo.isMobile ? 'pt-3 pb-3' : 'pt-4 pb-4'} text-center`}>
+                <UserCheck className={`${deviceInfo.isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-purple-600 mx-auto mb-2`} />
+                <p className={`${deviceInfo.isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-900`}>Gestion Avancée</p>
               </CardContent>
             </Card>
 
@@ -397,9 +425,9 @@ const MainAdminDashboard = () => {
               className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105 bg-white border-l-4 border-l-indigo-500"
               onClick={() => setSelectedOperation('view-data')}
             >
-              <CardContent className="pt-4 pb-4 text-center">
-                <Eye className="w-6 h-6 text-indigo-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-900">Données</p>
+              <CardContent className={`${deviceInfo.isMobile ? 'pt-3 pb-3' : 'pt-4 pb-4'} text-center`}>
+                <Eye className={`${deviceInfo.isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-indigo-600 mx-auto mb-2`} />
+                <p className={`${deviceInfo.isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-900`}>Données</p>
               </CardContent>
             </Card>
           </div>
@@ -471,7 +499,7 @@ const MainAdminDashboard = () => {
                   <h3 className="font-semibold text-blue-800 mb-2">Fonctionnalités disponibles:</h3>
                   <ul className="text-sm text-blue-700 space-y-1">
                     <li>• Modifier les informations d'un utilisateur</li>
-                    <li>• Changer le rôle (Utilisateur ↔ Agent ↔ Sous-Admin)</li>
+                    <li>• Changer le rôle (Utilisateur ↔ Agent ↔ Sous-Admin ↔ Admin)</li>
                     <li>• Bannir/Débannir l'accès</li>
                     <li>• Supprimer définitivement un compte</li>
                     <li>• Voir toutes les informations détaillées</li>
@@ -479,12 +507,14 @@ const MainAdminDashboard = () => {
                 </div>
                 
                 {users && users.length > 0 ? (
-                  <UsersDataTable
-                    users={users}
-                    onViewUser={handleViewUser}
-                    onQuickRoleChange={handleQuickRoleChange}
-                    onQuickBanToggle={handleQuickBanToggle}
-                  />
+                  <div className={deviceInfo.isMobile ? "overflow-x-auto" : ""}>
+                    <UsersDataTable
+                      users={users}
+                      onViewUser={handleViewUser}
+                      onQuickRoleChange={handleQuickRoleChange}
+                      onQuickBanToggle={handleQuickBanToggle}
+                    />
+                  </div>
                 ) : (
                   <div className="text-center py-8">
                     <p className="text-gray-500">Aucun utilisateur trouvé</p>
@@ -510,7 +540,7 @@ const MainAdminDashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className={`grid ${deviceInfo.isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'} gap-4`}>
                 <div className="bg-green-50 p-4 rounded-lg">
                   <h3 className="font-semibold text-green-800 mb-2">Transferts récents</h3>
                   <div className="space-y-2">
@@ -557,7 +587,7 @@ const MainAdminDashboard = () => {
           </Card>
         )}
 
-        {/* Quick Users List */}
+        {/* Quick Users List - Responsive */}
         {!selectedOperation && (
           <Card className="bg-white">
             <CardHeader className="pb-4">
@@ -577,16 +607,16 @@ const MainAdminDashboard = () => {
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 text-blue-600" />
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{user.full_name || 'Nom non disponible'}</p>
-                        <p className="text-xs text-gray-600">{user.phone}</p>
+                        <p className={`${deviceInfo.isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-900`}>{user.full_name || 'Nom non disponible'}</p>
+                        <p className={`${deviceInfo.isMobile ? 'text-xs' : 'text-xs'} text-gray-600`}>{user.phone}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-blue-600">
+                      <p className={`${deviceInfo.isMobile ? 'text-xs' : 'text-sm'} font-semibold text-blue-600`}>
                         {formatCurrency(user.balance, 'XAF')}
                       </p>
                       <Badge variant={user.role === 'agent' ? 'default' : 'secondary'} className="text-xs">
-                        {user.role === 'agent' ? 'Agent' : 'User'}
+                        {user.role === 'agent' ? 'Agent' : user.role === 'admin' ? 'Admin' : user.role === 'sub_admin' ? 'Sous-Admin' : 'User'}
                       </Badge>
                     </div>
                   </div>

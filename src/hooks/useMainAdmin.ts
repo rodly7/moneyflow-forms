@@ -8,7 +8,12 @@ export const useMainAdmin = () => {
     return profile?.phone === '+221773637752';
   };
 
+  const canPromoteToAdmin = () => {
+    return isMainAdmin();
+  };
+
   return {
-    isMainAdmin: isMainAdmin()
+    isMainAdmin: isMainAdmin(),
+    canPromoteToAdmin: canPromoteToAdmin()
   };
 };
