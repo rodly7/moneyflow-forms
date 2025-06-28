@@ -9,7 +9,7 @@ import { fr } from "date-fns/locale";
 import { Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/OptimizedAuthContext";
 
 interface Transaction {
   id: string;
@@ -37,12 +37,14 @@ interface TransactionsCardProps {
   transactions: Transaction[];
   withdrawals?: Withdrawal[];
   onDeleteTransaction: (id: string, type: string) => void;
+  isLoading?: boolean;
 }
 
 const TransactionsCard = ({ 
   transactions, 
   withdrawals = [], 
-  onDeleteTransaction 
+  onDeleteTransaction,
+  isLoading = false
 }: TransactionsCardProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -125,6 +127,27 @@ const TransactionsCard = ({
 
   // Show only 3 most recent transactions
   const recentOperations = allOperations.slice(0, 3);
+
+  if (isLoading) {
+    return (
+      <Card className="bg-white/90 backdrop-blur-sm shadow-xl border-0 rounded-2xl overflow-hidden mx-2 sm:mx-4">
+        <CardHeader className="py-6 px-6 bg-gradient-to-r from-gray-50 to-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-emerald-500 rounded-full">
+              <Activity className="h-5 w-5 text-white" />
+            </div>
+            <CardTitle className="text-xl font-bold text-gray-800">Historique des transactions</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="text-center py-12 px-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+            <p className="text-gray-600 font-medium">Chargement des transactions...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="bg-white/90 backdrop-blur-sm shadow-xl border-0 rounded-2xl overflow-hidden mx-2 sm:mx-4">
