@@ -19,6 +19,8 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [balance, setBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [transactions, setTransactions] = useState([]);
+  const [withdrawals, setWithdrawals] = useState([]);
 
   const fetchBalance = async () => {
     if (user?.id) {
@@ -44,6 +46,47 @@ const Dashboard = () => {
     }
   };
 
+  const fetchTransactions = async () => {
+    if (user?.id) {
+      try {
+        // Fetch transfers
+        const { data: transfersData } = await supabase
+          .from('transfers')
+          .select('*')
+          .eq('sender_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        // Fetch withdrawals
+        const { data: withdrawalsData } = await supabase
+          .from('withdrawals')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        setTransactions(transfersData?.map(t => ({
+          id: t.id,
+          type: 'transfer',
+          amount: t.amount,
+          date: new Date(t.created_at),
+          description: `Transfert vers ${t.recipient_full_name}`,
+          currency: t.currency,
+          status: t.status
+        })) || []);
+
+        setWithdrawals(withdrawalsData || []);
+      } catch (error) {
+        console.error("Erreur lors du chargement des transactions:", error);
+      }
+    }
+  };
+
+  const handleDeleteTransaction = (id: string, type: string) => {
+    // Implementation for deleting transactions
+    console.log('Delete transaction:', id, type);
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -64,6 +107,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchBalance();
+    fetchTransactions();
   }, [user]);
 
   if (!profile) {
@@ -126,7 +170,7 @@ const Dashboard = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
-          <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-xl">
+          <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -138,7 +182,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-emerald-600 to-green-600 text-white border-0 shadow-xl">
+          <Card className="bg-gradient-to-r from-emerald-600 to-green-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -150,7 +194,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 shadow-xl">
+          <Card className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -162,7 +206,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-orange-600 to-red-600 text-white border-0 shadow-xl">
+          <Card className="bg-gradient-to-r from-orange-600 to-red-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -179,7 +223,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Actions rapides */}
           <div className="lg:col-span-1">
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-blue-600">
                   <DollarSign className="w-5 h-5" />
@@ -227,13 +271,17 @@ const Dashboard = () => {
 
           {/* Transactions récentes */}
           <div className="lg:col-span-2">
-            <TransactionsCard />
+            <TransactionsCard 
+              transactions={transactions}
+              withdrawals={withdrawals}
+              onDeleteTransaction={handleDeleteTransaction}
+            />
           </div>
         </div>
 
         {/* Services additionnels */}
         <div className="mt-6">
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
             <CardHeader>
               <CardTitle className="text-blue-600">Services Additionnels</CardTitle>
             </CardHeader>
@@ -242,7 +290,7 @@ const Dashboard = () => {
                 <Button 
                   onClick={() => navigate('/bill-payments')}
                   variant="ghost"
-                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-blue-50"
+                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-blue-50 transition-all duration-200"
                 >
                   <Receipt className="w-6 h-6 text-blue-600" />
                   <span className="text-xs text-center">Paiement Factures</span>
@@ -251,7 +299,7 @@ const Dashboard = () => {
                 <Button 
                   onClick={() => navigate('/prepaid-cards')}
                   variant="ghost"
-                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-green-50"
+                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-green-50 transition-all duration-200"
                 >
                   <CreditCard className="w-6 h-6 text-green-600" />
                   <span className="text-xs text-center">Cartes Prépayées</span>
@@ -260,7 +308,7 @@ const Dashboard = () => {
                 <Button 
                   onClick={() => navigate('/transactions')}
                   variant="ghost"
-                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-purple-50"
+                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-purple-50 transition-all duration-200"
                 >
                   <Activity className="w-6 h-6 text-purple-600" />
                   <span className="text-xs text-center">Historique</span>
@@ -269,7 +317,7 @@ const Dashboard = () => {
                 <Button 
                   onClick={() => navigate('/verify-identity')}
                   variant="ghost"
-                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-orange-50"
+                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-orange-50 transition-all duration-200"
                 >
                   <User className="w-6 h-6 text-orange-600" />
                   <span className="text-xs text-center">Vérifier Identité</span>
@@ -278,7 +326,7 @@ const Dashboard = () => {
                 <Button 
                   onClick={() => navigate('/commission')}
                   variant="ghost"
-                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-red-50"
+                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-red-50 transition-all duration-200"
                 >
                   <DollarSign className="w-6 h-6 text-red-600" />
                   <span className="text-xs text-center">Commissions</span>
@@ -287,7 +335,7 @@ const Dashboard = () => {
                 <Button 
                   onClick={() => navigate('/qr-code')}
                   variant="ghost"
-                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-indigo-50"
+                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-indigo-50 transition-all duration-200"
                 >
                   <QrCode className="w-6 h-6 text-indigo-600" />
                   <span className="text-xs text-center">QR Code</span>

@@ -8,12 +8,19 @@ import { ArrowLeft, Users, TrendingUp, Shield, LogOut, RefreshCw, DollarSign, Ac
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+interface StatsData {
+  totalUsers: number;
+  totalAgents: number;
+  totalTransactions: number;
+  totalBalance: number;
+}
+
 const SubAdminDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<StatsData>({
     totalUsers: 0,
     totalAgents: 0,
     totalTransactions: 0,
@@ -154,7 +161,7 @@ const SubAdminDashboard = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
-          <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-xl">
+          <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -166,7 +173,7 @@ const SubAdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-emerald-600 to-green-600 text-white border-0 shadow-xl">
+          <Card className="bg-gradient-to-r from-emerald-600 to-green-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -178,7 +185,7 @@ const SubAdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 shadow-xl">
+          <Card className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -190,7 +197,7 @@ const SubAdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-orange-600 to-red-600 text-white border-0 shadow-xl">
+          <Card className="bg-gradient-to-r from-orange-600 to-red-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -307,7 +314,7 @@ const SubAdminDashboard = () => {
 
         {/* Quick Actions */}
         <div className="mt-6">
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
             <CardHeader>
               <CardTitle className="text-gray-800">Actions Rapides</CardTitle>
             </CardHeader>
@@ -316,7 +323,7 @@ const SubAdminDashboard = () => {
                 <Button 
                   onClick={fetchStats}
                   variant="outline"
-                  className="flex flex-col items-center gap-2 h-20 border-2 border-blue-200 hover:bg-blue-50"
+                  className="flex flex-col items-center gap-2 h-20 border-2 border-blue-200 hover:bg-blue-50 transition-all duration-200"
                   disabled={isLoadingStats}
                 >
                   <RefreshCw className={`w-5 h-5 text-blue-600 ${isLoadingStats ? 'animate-spin' : ''}`} />
@@ -325,7 +332,7 @@ const SubAdminDashboard = () => {
                 
                 <Button 
                   variant="outline"
-                  className="flex flex-col items-center gap-2 h-20 border-2 border-emerald-200 hover:bg-emerald-50"
+                  className="flex flex-col items-center gap-2 h-20 border-2 border-emerald-200 hover:bg-emerald-50 transition-all duration-200"
                 >
                   <Users className="w-5 h-5 text-emerald-600" />
                   <span className="text-xs">Utilisateurs</span>
@@ -333,7 +340,7 @@ const SubAdminDashboard = () => {
                 
                 <Button 
                   variant="outline"
-                  className="flex flex-col items-center gap-2 h-20 border-2 border-purple-200 hover:bg-purple-50"
+                  className="flex flex-col items-center gap-2 h-20 border-2 border-purple-200 hover:bg-purple-50 transition-all duration-200"
                 >
                   <TrendingUp className="w-5 h-5 text-purple-600" />
                   <span className="text-xs">Rapports</span>
@@ -341,7 +348,7 @@ const SubAdminDashboard = () => {
                 
                 <Button 
                   variant="outline"
-                  className="flex flex-col items-center gap-2 h-20 border-2 border-orange-200 hover:bg-orange-50"
+                  className="flex flex-col items-center gap-2 h-20 border-2 border-orange-200 hover:bg-orange-50 transition-all duration-200"
                 >
                   <Shield className="w-5 h-5 text-orange-600" />
                   <span className="text-xs">Support</span>
