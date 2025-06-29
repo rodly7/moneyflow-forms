@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,7 @@ interface UserData {
 interface UsersDataTableProps {
   users: UserData[];
   onViewUser: (user: UserData) => void;
-  onQuickRoleChange: (userId: string, newRole: string) => void;
+  onQuickRoleChange: (userId: string, newRole: 'user' | 'agent' | 'admin' | 'sub_admin') => void;
   onQuickBanToggle: (userId: string, currentBanStatus: boolean) => void;
 }
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -55,7 +54,7 @@ const AdminUsers = () => {
     }
   };
 
-  const handleQuickRoleChange = async (userId: string, newRole: string) => {
+  const handleQuickRoleChange = async (userId: string, newRole: 'user' | 'agent' | 'admin' | 'sub_admin') => {
     try {
       const { error } = await supabase
         .from('profiles')
