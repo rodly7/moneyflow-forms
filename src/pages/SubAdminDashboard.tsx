@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,6 +7,7 @@ import { ArrowLeft, Users, TrendingUp, Shield, LogOut, RefreshCw, DollarSign, Ac
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+// Définition simple de l'interface pour éviter la récursion de types
 interface StatsData {
   totalUsers: number;
   totalAgents: number;
@@ -40,8 +40,8 @@ const SubAdminDashboard = () => {
 
       const { data: transactions } = await supabase
         .from('transfers')
-        .select('amount, sender_country')
-        .eq('sender_country', profile?.country);
+        .select('amount')
+        .eq('recipient_country', profile?.country);
 
       const totalUsers = users?.filter(u => u.role === 'user').length || 0;
       const totalAgents = users?.filter(u => u.role === 'agent').length || 0;
@@ -84,7 +84,9 @@ const SubAdminDashboard = () => {
   };
 
   useEffect(() => {
-    fetchStats();
+    if (profile?.country) {
+      fetchStats();
+    }
   }, [profile]);
 
   if (!profile || profile.role !== 'sub_admin') {
