@@ -28,6 +28,10 @@ import BillPayments from "./pages/BillPayments";
 import PrepaidCards from "./pages/PrepaidCards";
 import VerifyIdentity from "./pages/VerifyIdentity";
 import AdminBalanceUpdate from "./pages/AdminBalanceUpdate";
+import AdminUsers from "./pages/AdminUsers";
+import AdminNotifications from "./pages/AdminNotifications";
+import AdminSettings from "./pages/AdminSettings";
+import Transfer from "./pages/Transfer";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,6 +69,7 @@ function App() {
                 <Route path="agent-services" element={<AgentServices />} />
                 <Route path="agent-reports" element={<AgentReports />} />
                 <Route path="commission" element={<Commission />} />
+                <Route path="deposit" element={<UnifiedDepositWithdrawal />} />
                 <Route path="deposit-withdrawal" element={<UnifiedDepositWithdrawal />} />
                 <Route path="agent-deposit" element={<AgentDeposit />} />
                 <Route path="agent-withdrawal-simple" element={<AgentWithdrawalSimple />} />
@@ -73,6 +78,10 @@ function App() {
                 <Route path="prepaid-cards" element={<PrepaidCards />} />
                 <Route path="verify-identity" element={<VerifyIdentity />} />
                 <Route path="admin-balance-update" element={<AdminBalanceUpdate />} />
+                <Route path="admin/users" element={<AdminUsers />} />
+                <Route path="admin/notifications" element={<AdminNotifications />} />
+                <Route path="admin/settings" element={<AdminSettings />} />
+                <Route path="transfer" element={<Transfer />} />
               </Route>
             </Routes>
           </AuthProvider>
