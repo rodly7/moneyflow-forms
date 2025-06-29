@@ -3,15 +3,13 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowUpRight, ArrowDownLeft, Plus, QrCode, CreditCard, Receipt, RefreshCw, LogOut, Wallet, User, Bell, TrendingUp, Activity, DollarSign } from "lucide-react";
+import { ArrowUpRight, QrCode, RefreshCw, LogOut, Wallet, Activity, DollarSign, History } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import BalanceCard from "@/components/dashboard/BalanceCard";
-import TransactionsCard from "@/components/dashboard/TransactionsCard";
-import ProfileHeader from "@/components/dashboard/ProfileHeader";
-import ActionButtons from "@/components/dashboard/ActionButtons";
+import UserProfileInfo from "@/components/profile/UserProfileInfo";
+import NotificationsCard from "@/components/notifications/NotificationsCard";
+import QRCodeGenerator from "@/components/QRCodeGenerator";
 
 const Dashboard = () => {
   const { user, profile, signOut } = useAuth();
@@ -19,8 +17,7 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [balance, setBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
-  const [transactions, setTransactions] = useState([]);
-  const [withdrawals, setWithdrawals] = useState([]);
+  const [showQRDialog, setShowQRDialog] = useState(false);
 
   const fetchBalance = async () => {
     if (user?.id) {
@@ -46,47 +43,6 @@ const Dashboard = () => {
     }
   };
 
-  const fetchTransactions = async () => {
-    if (user?.id) {
-      try {
-        // Fetch transfers
-        const { data: transfersData } = await supabase
-          .from('transfers')
-          .select('*')
-          .eq('sender_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(10);
-
-        // Fetch withdrawals
-        const { data: withdrawalsData } = await supabase
-          .from('withdrawals')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(10);
-
-        setTransactions(transfersData?.map(t => ({
-          id: t.id,
-          type: 'transfer',
-          amount: t.amount,
-          date: new Date(t.created_at),
-          description: `Transfert vers ${t.recipient_full_name}`,
-          currency: t.currency,
-          status: t.status
-        })) || []);
-
-        setWithdrawals(withdrawalsData || []);
-      } catch (error) {
-        console.error("Erreur lors du chargement des transactions:", error);
-      }
-    }
-  };
-
-  const handleDeleteTransaction = (id: string, type: string) => {
-    // Implementation for deleting transactions
-    console.log('Delete transaction:', id, type);
-  };
-
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -107,7 +63,6 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchBalance();
-    fetchTransactions();
   }, [user]);
 
   if (!profile) {
@@ -123,6 +78,22 @@ const Dashboard = () => {
     );
   }
 
+  // Redirection pour les autres rôles
+  if (profile.role === 'agent') {
+    navigate('/agent-dashboard');
+    return null;
+  }
+
+  if (profile.role === 'admin') {
+    navigate('/admin-dashboard');
+    return null;
+  }
+
+  if (profile.role === 'sub_admin') {
+    navigate('/sub-admin-dashboard');
+    return null;
+  }
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
       {/* Background decorative elements */}
@@ -130,20 +101,12 @@ const Dashboard = () => {
       <div className="absolute bottom-1/4 right-1/4 w-48 h-48 md:w-96 md:h-96 bg-purple-200/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
       
       <div className="relative z-10 container mx-auto px-4 py-4 md:py-8 max-w-6xl">
-        {/* Enhanced Header */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4 backdrop-blur-sm bg-white/70 rounded-2xl p-4 md:p-6 shadow-lg border border-white/20">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-              <User className="w-5 h-5 md:w-6 md:h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Tableau de bord
-              </h1>
-              <p className="text-sm text-gray-600 hidden sm:block">
-                Bienvenue, {profile.full_name || 'Utilisateur'}
-              </p>
-            </div>
+            <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Tableau de bord - Utilisateur
+            </h1>
           </div>
           <div className="flex items-center gap-2">
             <Button 
@@ -168,183 +131,86 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
-          <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm">Solde Principal</p>
-                  <p className="text-2xl md:text-3xl font-bold">{balance.toLocaleString()} XAF</p>
-                </div>
-                <Wallet className="w-8 h-8 text-blue-200" />
-              </div>
-            </CardContent>
-          </Card>
+        {/* Profile Info */}
+        <UserProfileInfo />
 
-          <Card className="bg-gradient-to-r from-emerald-600 to-green-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-emerald-100 text-sm">Pays</p>
-                  <p className="text-lg md:text-xl font-bold">{profile.country}</p>
-                </div>
-                <TrendingUp className="w-8 h-8 text-emerald-200" />
+        {/* Balance Card */}
+        <Card className="mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-xl">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-100 text-sm">Solde Principal</p>
+                <p className="text-2xl md:text-3xl font-bold">{balance.toLocaleString()} XAF</p>
               </div>
-            </CardContent>
-          </Card>
+              <Wallet className="w-8 h-8 text-blue-200" />
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100 text-sm">Statut</p>
-                  <p className="text-lg md:text-xl font-bold">Actif</p>
-                </div>
-                <Activity className="w-8 h-8 text-purple-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-orange-600 to-red-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-orange-100 text-sm">Notifications</p>
-                  <p className="text-2xl md:text-3xl font-bold">0</p>
-                </div>
-                <Bell className="w-8 h-8 text-orange-200" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Actions rapides */}
-          <div className="lg:col-span-1">
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Actions utilisateur */}
+          <div className="space-y-6">
+            {/* Actions Rapides */}
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-blue-600">
                   <DollarSign className="w-5 h-5" />
-                  Actions Rapides
+                  Actions Disponibles
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button 
                   onClick={() => navigate('/transfer')}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold h-12 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold h-12 shadow-lg"
                 >
                   <ArrowUpRight className="mr-2 h-5 w-5" />
-                  Envoyer de l'argent
+                  Transférer de l'argent
                 </Button>
                 
                 <Button 
-                  onClick={() => navigate('/receive')}
+                  onClick={() => setShowQRDialog(true)}
                   variant="outline"
-                  className="w-full border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 font-semibold h-12 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
-                >
-                  <ArrowDownLeft className="mr-2 h-5 w-5" />
-                  Recevoir de l'argent
-                </Button>
-                
-                <Button 
-                  onClick={() => navigate('/qr-code')}
-                  variant="outline"
-                  className="w-full border-2 border-purple-500 text-purple-600 hover:bg-purple-50 font-semibold h-12 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                  className="w-full border-2 border-purple-500 text-purple-600 hover:bg-purple-50 font-semibold h-12 shadow-md"
                 >
                   <QrCode className="mr-2 h-5 w-5" />
-                  Mon QR Code
-                </Button>
-                
-                <Button 
-                  onClick={() => navigate('/withdraw')}
-                  variant="outline"
-                  className="w-full border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold h-12 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
-                >
-                  <ArrowDownLeft className="mr-2 h-5 w-5" />
-                  Retirer
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Transactions récentes */}
-          <div className="lg:col-span-2">
-            <TransactionsCard 
-              transactions={transactions}
-              withdrawals={withdrawals}
-              onDeleteTransaction={handleDeleteTransaction}
-            />
-          </div>
-        </div>
-
-        {/* Services additionnels */}
-        <div className="mt-6">
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-            <CardHeader>
-              <CardTitle className="text-blue-600">Services Additionnels</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                <Button 
-                  onClick={() => navigate('/bill-payments')}
-                  variant="ghost"
-                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-blue-50 transition-all duration-200"
-                >
-                  <Receipt className="w-6 h-6 text-blue-600" />
-                  <span className="text-xs text-center">Paiement Factures</span>
-                </Button>
-                
-                <Button 
-                  onClick={() => navigate('/prepaid-cards')}
-                  variant="ghost"
-                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-green-50 transition-all duration-200"
-                >
-                  <CreditCard className="w-6 h-6 text-green-600" />
-                  <span className="text-xs text-center">Cartes Prépayées</span>
+                  Mon QR Code (pour retrait)
                 </Button>
                 
                 <Button 
                   onClick={() => navigate('/transactions')}
-                  variant="ghost"
-                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-purple-50 transition-all duration-200"
+                  variant="outline"
+                  className="w-full border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 font-semibold h-12 shadow-md"
                 >
-                  <Activity className="w-6 h-6 text-purple-600" />
-                  <span className="text-xs text-center">Historique</span>
+                  <History className="mr-2 h-5 w-5" />
+                  Historique des transactions
                 </Button>
-                
-                <Button 
-                  onClick={() => navigate('/verify-identity')}
-                  variant="ghost"
-                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-orange-50 transition-all duration-200"
-                >
-                  <User className="w-6 h-6 text-orange-600" />
-                  <span className="text-xs text-center">Vérifier Identité</span>
-                </Button>
-                
-                <Button 
-                  onClick={() => navigate('/commission')}
-                  variant="ghost"
-                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-red-50 transition-all duration-200"
-                >
-                  <DollarSign className="w-6 h-6 text-red-600" />
-                  <span className="text-xs text-center">Commissions</span>
-                </Button>
-                
-                <Button 
-                  onClick={() => navigate('/qr-code')}
-                  variant="ghost"
-                  className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-indigo-50 transition-all duration-200"
-                >
-                  <QrCode className="w-6 h-6 text-indigo-600" />
-                  <span className="text-xs text-center">QR Code</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            {/* Information importante */}
+            <Card className="bg-gradient-to-r from-orange-50 to-red-50 border-l-4 border-orange-500">
+              <CardContent className="p-4">
+                <h3 className="font-semibold text-orange-800 mb-2">Information importante</h3>
+                <div className="space-y-2 text-sm text-orange-700">
+                  <p>• Pour effectuer un retrait, vous devez présenter votre QR Code à un agent</p>
+                  <p>• Vos transferts sont traités instantanément</p>
+                  <p>• Consultez régulièrement vos notifications pour les mises à jour</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Notifications */}
+          <div>
+            <NotificationsCard />
+          </div>
         </div>
       </div>
+
+      <QRCodeGenerator 
+        isOpen={showQRDialog}
+        onClose={() => setShowQRDialog(false)}
+      />
     </div>
   );
 };

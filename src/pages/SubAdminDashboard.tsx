@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Users, TrendingUp, Shield, LogOut, RefreshCw, DollarSign, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import UserProfileInfo from "@/components/profile/UserProfileInfo";
+import NotificationsCard from "@/components/notifications/NotificationsCard";
 
-// Définition simple de l'interface pour éviter la récursion de types
 interface StatsData {
   totalUsers: number;
   totalAgents: number;
@@ -29,19 +31,21 @@ const SubAdminDashboard = () => {
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   const fetchStats = async () => {
+    if (!profile?.country) return;
+    
     setIsLoadingStats(true);
     try {
       // Récupérer les statistiques pour le pays du sous-admin
       const { data: users } = await supabase
         .from('profiles')
         .select('id, role, balance')
-        .eq('country', profile?.country)
+        .eq('country', profile.country)
         .neq('role', 'admin');
 
       const { data: transactions } = await supabase
         .from('transfers')
         .select('amount')
-        .eq('recipient_country', profile?.country);
+        .eq('recipient_country', profile.country);
 
       const totalUsers = users?.filter(u => u.role === 'user').length || 0;
       const totalAgents = users?.filter(u => u.role === 'agent').length || 0;
@@ -161,6 +165,9 @@ const SubAdminDashboard = () => {
           </div>
         </div>
 
+        {/* Profile Info */}
+        <UserProfileInfo />
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
           <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
@@ -212,152 +219,58 @@ const SubAdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-          {/* Gestion Utilisateurs */}
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3 text-blue-600">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
-                  <Users className="w-6 h-6 text-white" />
-                </div>
-                Gestion Utilisateurs
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Gérez les utilisateurs et agents de {profile.country}.
-              </p>
-              <div className="space-y-2">
-                <p className="text-sm text-gray-500">
-                  • Voir les profils utilisateurs
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Services Grid */}
+          <div className="grid grid-cols-1 gap-6">
+            {/* Gestion Utilisateurs */}
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-3 text-blue-600">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                    <Users className="w-6 h-6 text-white" />
+                  </div>
+                  Gestion Utilisateurs
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 text-sm mb-4">
+                  Consultez les utilisateurs et agents de {profile.country}.
                 </p>
-                <p className="text-sm text-gray-500">
-                  • Gérer les agents
-                </p>
-                <p className="text-sm text-gray-500">
-                  • Statistiques régionales
-                </p>
-              </div>
-              <Button 
-                className="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold h-12 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-              >
-                Accéder à la gestion
-              </Button>
-            </CardContent>
-          </Card>
+                <Button 
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold h-10 shadow-lg text-sm"
+                >
+                  Consulter les utilisateurs
+                </Button>
+              </CardContent>
+            </Card>
 
-          {/* Rapports et Statistiques */}
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3 text-emerald-600">
-                <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-white" />
-                </div>
-                Rapports & Analyses
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Consultez les rapports détaillés pour votre région.
-              </p>
-              <div className="space-y-2">
-                <p className="text-sm text-gray-500">
-                  • Rapports de transactions
+            {/* Rapports */}
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-3 text-emerald-600">
+                  <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  Rapports
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 text-sm mb-4">
+                  Consultez les rapports pour votre région.
                 </p>
-                <p className="text-sm text-gray-500">
-                  • Analyses de performance
-                </p>
-                <p className="text-sm text-gray-500">
-                  • Statistiques temporelles
-                </p>
-              </div>
-              <Button 
-                className="w-full mt-4 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-semibold h-12 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-              >
-                Voir les rapports
-              </Button>
-            </CardContent>
-          </Card>
+                <Button 
+                  className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-semibold h-10 shadow-lg text-sm"
+                >
+                  Voir les rapports
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* Support et Assistance */}
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3 text-purple-600">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                  <Shield className="w-6 h-6 text-white" />
-                </div>
-                Support & Assistance
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Outils de support et assistance utilisateurs.
-              </p>
-              <div className="space-y-2">
-                <p className="text-sm text-gray-500">
-                  • Support technique
-                </p>
-                <p className="text-sm text-gray-500">
-                  • Résolution de problèmes
-                </p>
-                <p className="text-sm text-gray-500">
-                  • Communication utilisateurs
-                </p>
-              </div>
-              <Button 
-                className="w-full mt-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold h-12 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-              >
-                Outils de support
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mt-6">
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-            <CardHeader>
-              <CardTitle className="text-gray-800">Actions Rapides</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <Button 
-                  onClick={fetchStats}
-                  variant="outline"
-                  className="flex flex-col items-center gap-2 h-20 border-2 border-blue-200 hover:bg-blue-50 transition-all duration-200"
-                  disabled={isLoadingStats}
-                >
-                  <RefreshCw className={`w-5 h-5 text-blue-600 ${isLoadingStats ? 'animate-spin' : ''}`} />
-                  <span className="text-xs">Actualiser</span>
-                </Button>
-                
-                <Button 
-                  variant="outline"
-                  className="flex flex-col items-center gap-2 h-20 border-2 border-emerald-200 hover:bg-emerald-50 transition-all duration-200"
-                >
-                  <Users className="w-5 h-5 text-emerald-600" />
-                  <span className="text-xs">Utilisateurs</span>
-                </Button>
-                
-                <Button 
-                  variant="outline"
-                  className="flex flex-col items-center gap-2 h-20 border-2 border-purple-200 hover:bg-purple-50 transition-all duration-200"
-                >
-                  <TrendingUp className="w-5 h-5 text-purple-600" />
-                  <span className="text-xs">Rapports</span>
-                </Button>
-                
-                <Button 
-                  variant="outline"
-                  className="flex flex-col items-center gap-2 h-20 border-2 border-orange-200 hover:bg-orange-50 transition-all duration-200"
-                >
-                  <Shield className="w-5 h-5 text-orange-600" />
-                  <span className="text-xs">Support</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Notifications */}
+          <div>
+            <NotificationsCard />
+          </div>
         </div>
       </div>
     </div>

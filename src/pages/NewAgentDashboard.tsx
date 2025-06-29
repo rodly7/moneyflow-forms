@@ -1,37 +1,55 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Plus, ArrowRight, RefreshCw, LogOut, Shield, TrendingUp, Wallet, Users, Activity } from "lucide-react";
+import { ArrowUpRight, Camera, RefreshCw, LogOut, Wallet, Activity, DollarSign, History, Percent } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import UserProfileInfo from "@/components/profile/UserProfileInfo";
+import NotificationsCard from "@/components/notifications/NotificationsCard";
 
 const NewAgentDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [agentBalance, setAgentBalance] = useState<number>(0);
+  const [balance, setBalance] = useState<number>(0);
+  const [commissionBalance, setCommissionBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
-  const fetchAgentBalance = async () => {
+  const fetchBalances = async () => {
     if (user?.id) {
       setIsLoadingBalance(true);
       try {
-        const { data, error } = await supabase
+        // Récupérer le solde principal
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('balance')
           .eq('id', user.id)
           .single();
         
-        if (error) throw error;
-        setAgentBalance(data.balance || 0);
+        if (profileError) throw profileError;
+        setBalance(profileData.balance || 0);
+
+        // Récupérer le solde de commission
+        const { data: agentData, error: agentError } = await supabase
+          .from('agents')
+          .select('commission_balance')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (agentError) {
+          console.log("Agent data not found, setting commission to 0");
+          setCommissionBalance(0);
+        } else {
+          setCommissionBalance(agentData.commission_balance || 0);
+        }
       } catch (error) {
-        console.error("Erreur lors du chargement du solde agent:", error);
+        console.error("Erreur lors du chargement des soldes:", error);
         toast({
           title: "Erreur",
-          description: "Impossible de charger votre solde",
+          description: "Impossible de charger vos soldes",
           variant: "destructive"
         });
       }
@@ -42,7 +60,7 @@ const NewAgentDashboard = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/agent-auth');
+      navigate('/auth');
       toast({
         title: "Déconnexion réussie",
         description: "À bientôt !",
@@ -58,25 +76,16 @@ const NewAgentDashboard = () => {
   };
 
   useEffect(() => {
-    fetchAgentBalance();
-  }, [user?.id]);
+    fetchBalances();
+  }, [user]);
 
-  if (!profile || profile.role !== 'agent') {
+  if (!profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-red-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-2xl border-0 bg-white/90 backdrop-blur-sm">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
           <CardContent className="pt-8 text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Shield className="w-8 h-8 text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-red-600 mb-4">Accès refusé</h2>
-            <p className="text-gray-600 mb-6">Cette page est réservée aux agents autorisés.</p>
-            <Button 
-              onClick={() => navigate('/dashboard')} 
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-            >
-              Retour au tableau de bord
-            </Button>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Chargement de votre profil...</p>
           </CardContent>
         </Card>
       </div>
@@ -84,37 +93,24 @@ const NewAgentDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
+    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-50 via-blue-50 to-purple-50 relative overflow-hidden">
       {/* Background decorative elements */}
-      <div className="absolute top-1/4 left-1/4 w-32 h-32 md:w-64 md:h-64 bg-blue-200/20 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-48 h-48 md:w-96 md:h-96 bg-purple-200/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      <div className="absolute top-1/4 left-1/4 w-32 h-32 md:w-64 md:h-64 bg-emerald-200/20 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-48 h-48 md:w-96 md:h-96 bg-blue-200/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
       
       <div className="relative z-10 container mx-auto px-4 py-4 md:py-8 max-w-6xl">
-        {/* Enhanced Header */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4 backdrop-blur-sm bg-white/70 rounded-2xl p-4 md:p-6 shadow-lg border border-white/20">
           <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate('/dashboard')} 
-              className="text-gray-700 hover:bg-blue-50 border border-blue-200 hover:border-blue-300"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Retour</span>
-            </Button>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Tableau de Bord Agent
-              </h1>
-              <p className="text-sm text-gray-600 hidden sm:block">
-                {profile.full_name} - {profile.country}
-              </p>
-            </div>
+            <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
+              Tableau de bord - Agent
+            </h1>
           </div>
           <div className="flex items-center gap-2">
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={fetchAgentBalance}
+              onClick={fetchBalances}
               disabled={isLoadingBalance}
               className="hover:bg-green-50 border border-green-200"
             >
@@ -133,28 +129,19 @@ const NewAgentDashboard = () => {
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
-          <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-xl">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm">Solde Agent</p>
-                  <p className="text-2xl md:text-3xl font-bold">{agentBalance.toLocaleString()} XAF</p>
-                </div>
-                <Wallet className="w-8 h-8 text-blue-200" />
-              </div>
-            </CardContent>
-          </Card>
+        {/* Profile Info */}
+        <UserProfileInfo />
 
+        {/* Balance Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
           <Card className="bg-gradient-to-r from-emerald-600 to-green-600 text-white border-0 shadow-xl">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-emerald-100 text-sm">Pays</p>
-                  <p className="text-lg md:text-xl font-bold">{profile.country}</p>
+                  <p className="text-emerald-100 text-sm">Solde Principal</p>
+                  <p className="text-2xl md:text-3xl font-bold">{balance.toLocaleString()} XAF</p>
                 </div>
-                <TrendingUp className="w-8 h-8 text-emerald-200" />
+                <Wallet className="w-8 h-8 text-emerald-200" />
               </div>
             </CardContent>
           </Card>
@@ -163,146 +150,82 @@ const NewAgentDashboard = () => {
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm">Clients Actifs</p>
-                  <p className="text-2xl md:text-3xl font-bold">--</p>
+                  <p className="text-purple-100 text-sm">Commissions</p>
+                  <p className="text-2xl md:text-3xl font-bold">{commissionBalance.toLocaleString()} XAF</p>
                 </div>
-                <Users className="w-8 h-8 text-purple-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-orange-600 to-red-600 text-white border-0 shadow-xl">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-orange-100 text-sm">Transactions</p>
-                  <p className="text-2xl md:text-3xl font-bold">--</p>
-                </div>
-                <Activity className="w-8 h-8 text-orange-200" />
+                <Percent className="w-8 h-8 text-purple-200" />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Service Transfert */}
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3 text-blue-600">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                  <ArrowRight className="w-6 h-6 text-white" />
-                </div>
-                Services de Transfert
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Effectuez des transferts pour vos clients vers tous les pays disponibles.
-              </p>
-              <Button 
-                onClick={() => navigate('/agent-services')}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold h-12 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-              >
-                Accéder aux transferts
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Service Dépôt/Retrait */}
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3 text-emerald-600">
-                <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full flex items-center justify-center">
-                  <Plus className="w-6 h-6 text-white" />
-                </div>
-                Dépôt et Retrait
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Gérez les dépôts et retraits de vos clients en toute sécurité.
-              </p>
-              <Button 
-                onClick={() => navigate('/deposit-withdrawal')}
-                className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-semibold h-12 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-              >
-                Accéder aux dépôts/retraits
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Service Rapports */}
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3 text-purple-600">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-white" />
-                </div>
-                Rapports & Statistiques
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Consultez vos rapports d'activité et statistiques détaillées.
-              </p>
-              <Button 
-                onClick={() => navigate('/agent-reports')}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold h-12 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-              >
-                Voir les rapports
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mt-8">
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader>
-              <CardTitle className="text-gray-800">Actions Rapides</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Actions agent */}
+          <div className="space-y-6">
+            {/* Actions Rapides */}
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-emerald-600">
+                  <DollarSign className="w-5 h-5" />
+                  Actions Disponibles
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 <Button 
-                  onClick={() => navigate('/agent-services')}
-                  variant="outline"
-                  className="flex flex-col items-center gap-2 h-20 border-2 border-blue-200 hover:bg-blue-50"
+                  onClick={() => navigate('/transfer')}
+                  className="w-full bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white font-semibold h-12 shadow-lg"
                 >
-                  <ArrowRight className="w-5 h-5 text-blue-600" />
-                  <span className="text-xs">Transfert</span>
+                  <ArrowUpRight className="mr-2 h-5 w-5" />
+                  Transférer de l'argent
                 </Button>
                 
                 <Button 
-                  onClick={() => navigate('/deposit-withdrawal')}
+                  onClick={() => navigate('/deposit')}
                   variant="outline"
-                  className="flex flex-col items-center gap-2 h-20 border-2 border-emerald-200 hover:bg-emerald-50"
+                  className="w-full border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 font-semibold h-12 shadow-md"
                 >
-                  <Plus className="w-5 h-5 text-emerald-600" />
-                  <span className="text-xs">Dépôt</span>
+                  <Wallet className="mr-2 h-5 w-5" />
+                  Dépôt / Retrait client
                 </Button>
                 
                 <Button 
-                  onClick={() => navigate('/agent-reports')}
+                  onClick={() => navigate('/commission')}
                   variant="outline"
-                  className="flex flex-col items-center gap-2 h-20 border-2 border-purple-200 hover:bg-purple-50"
+                  className="w-full border-2 border-purple-500 text-purple-600 hover:bg-purple-50 font-semibold h-12 shadow-md"
                 >
-                  <TrendingUp className="w-5 h-5 text-purple-600" />
-                  <span className="text-xs">Rapports</span>
+                  <Percent className="mr-2 h-5 w-5" />
+                  Mes Commissions
                 </Button>
                 
                 <Button 
-                  onClick={fetchAgentBalance}
+                  onClick={() => navigate('/transactions')}
                   variant="outline"
-                  className="flex flex-col items-center gap-2 h-20 border-2 border-orange-200 hover:bg-orange-50"
-                  disabled={isLoadingBalance}
+                  className="w-full border-2 border-blue-500 text-blue-600 hover:bg-blue-50 font-semibold h-12 shadow-md"
                 >
-                  <RefreshCw className={`w-5 h-5 text-orange-600 ${isLoadingBalance ? 'animate-spin' : ''}`} />
-                  <span className="text-xs">Actualiser</span>
+                  <History className="mr-2 h-5 w-5" />
+                  Historique des transactions
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            {/* Information importante */}
+            <Card className="bg-gradient-to-r from-emerald-50 to-blue-50 border-l-4 border-emerald-500">
+              <CardContent className="p-4">
+                <h3 className="font-semibold text-emerald-800 mb-2">Information Agent</h3>
+                <div className="space-y-2 text-sm text-emerald-700">
+                  <p>• Pour les retraits clients, scannez obligatoirement leur QR Code</p>
+                  <p>• Vous gagnez des commissions sur chaque opération</p>
+                  <p>• Les dépôts clients sont sans frais pour eux</p>
+                  <p>• Consultez régulièrement vos notifications</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Notifications */}
+          <div>
+            <NotificationsCard />
+          </div>
         </div>
       </div>
     </div>
