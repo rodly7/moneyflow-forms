@@ -1,110 +1,62 @@
 
-import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Shield, LogOut, Eye, Users, Plus, BarChart3, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, Users, TrendingUp, Shield, LogOut, RefreshCw, DollarSign, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency } from "@/integrations/supabase/client";
 import { supabase } from "@/integrations/supabase/client";
-import { useSubAdmin } from "@/hooks/useSubAdmin";
-import SubAdminUsersTable from "@/components/admin/SubAdminUsersTable";
-
-interface UserData {
-  id: string;
-  full_name: string | null;
-  phone: string;
-  balance: number;
-  country: string | null;
-  role: 'user' | 'agent' | 'admin' | 'sub_admin';
-  is_banned?: boolean;
-  banned_reason?: string | null;
-  created_at: string;
-}
 
 const SubAdminDashboard = () => {
-  const { profile, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isSubAdmin, canViewUsers, canDepositToAgent } = useSubAdmin();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'deposits'>('overview');
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalAgents: 0,
+    totalTransactions: 0,
+    totalBalance: 0
+  });
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-  const fetchUsers = async () => {
-    if (!canViewUsers) return;
-    
-    setIsLoadingUsers(true);
+  const fetchStats = async () => {
+    setIsLoadingStats(true);
     try {
-      const { data: usersData, error } = await supabase
+      // Récupérer les statistiques pour le pays du sous-admin
+      const { data: users } = await supabase
         .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('id, role, balance')
+        .eq('country', profile?.country)
+        .neq('role', 'admin');
 
-      if (error) {
-        throw error;
-      }
+      const { data: transactions } = await supabase
+        .from('transfers')
+        .select('amount, sender_country')
+        .eq('sender_country', profile?.country);
 
-      setUsers(usersData || []);
+      const totalUsers = users?.filter(u => u.role === 'user').length || 0;
+      const totalAgents = users?.filter(u => u.role === 'agent').length || 0;
+      const totalBalance = users?.reduce((sum, u) => sum + (u.balance || 0), 0) || 0;
+      const totalTransactions = transactions?.length || 0;
+
+      setStats({
+        totalUsers,
+        totalAgents,
+        totalTransactions,
+        totalBalance
+      });
     } catch (error) {
-      console.error('Erreur lors de la récupération des utilisateurs:', error);
+      console.error("Erreur lors du chargement des statistiques:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de récupérer la liste des utilisateurs",
+        description: "Impossible de charger les statistiques",
         variant: "destructive"
       });
-    } finally {
-      setIsLoadingUsers(false);
     }
+    setIsLoadingStats(false);
   };
-
-  useEffect(() => {
-    if (activeTab === 'users') {
-      fetchUsers();
-    }
-  }, [activeTab]);
-
-  if (!profile) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md mx-auto backdrop-blur-xl bg-white/80 shadow-2xl border border-white/50 rounded-3xl">
-          <CardContent className="pt-8">
-            <div className="text-center space-y-6">
-              <div className="relative">
-                <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-500/30 border-t-purple-500 mx-auto"></div>
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/10 to-pink-500/10 animate-pulse"></div>
-              </div>
-              <p className="text-purple-600 font-semibold text-xl">Chargement du profil...</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!isSubAdmin) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-orange-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md mx-auto backdrop-blur-xl bg-white/80 shadow-2xl border border-white/50 rounded-3xl">
-          <CardContent className="pt-8">
-            <div className="text-center space-y-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-orange-500 rounded-2xl flex items-center justify-center mx-auto">
-                <Shield className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-red-600 mb-4">Accès refusé</h2>
-                <p className="text-gray-600 mb-4">Cette interface est réservée aux sous-administrateurs.</p>
-                <Button onClick={() => navigate('/dashboard')} className="w-full rounded-full h-12 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg">
-                  Retour au tableau de bord
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   const handleSignOut = async () => {
     try {
@@ -124,218 +76,280 @@ const SubAdminDashboard = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-100 relative overflow-hidden">
-      {/* Enhanced Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-indigo-400/20 to-blue-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+  useEffect(() => {
+    fetchStats();
+  }, [profile]);
+
+  if (!profile || profile.role !== 'sub_admin') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-red-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-2xl border-0 bg-white/90 backdrop-blur-sm">
+          <CardContent className="pt-8 text-center">
+            <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Shield className="w-8 h-8 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-red-600 mb-4">Accès refusé</h2>
+            <p className="text-gray-600 mb-6">Cette page est réservée aux sous-administrateurs.</p>
+            <Button 
+              onClick={() => navigate('/dashboard')} 
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+            >
+              Retour au tableau de bord
+            </Button>
+          </CardContent>
+        </Card>
       </div>
+    );
+  }
 
-      <div className="relative z-10 w-full mx-auto space-y-8 px-4 py-6 max-w-6xl">
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute top-1/4 left-1/4 w-32 h-32 md:w-64 md:h-64 bg-indigo-200/20 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-48 h-48 md:w-96 md:h-96 bg-purple-200/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      
+      <div className="relative z-10 container mx-auto px-4 py-4 md:py-8 max-w-6xl">
         {/* Enhanced Header */}
-        <div className="flex items-center justify-between backdrop-blur-xl bg-white/80 rounded-3xl p-6 shadow-2xl border border-white/50">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-purple-600 via-pink-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg animate-pulse">
-              <Shield className="w-7 h-7 text-white" />
-            </div>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4 backdrop-blur-sm bg-white/70 rounded-2xl p-4 md:p-6 shadow-lg border border-white/20">
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/dashboard')} 
+              className="text-gray-700 hover:bg-blue-50 border border-blue-200 hover:border-blue-300"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Retour</span>
+            </Button>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Sous-Administrateur</h1>
-              <p className="text-purple-600 text-lg">Bienvenue, {profile.full_name}</p>
+              <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                Sous-Administration
+              </h1>
+              <p className="text-sm text-gray-600">
+                Gestion pour {profile.country}
+              </p>
             </div>
           </div>
-          <Button 
-            onClick={handleSignOut} 
-            variant="ghost" 
-            className="text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300 rounded-full px-6 py-3 transition-all duration-300"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Déconnexion
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={fetchStats}
+              disabled={isLoadingStats}
+              className="hover:bg-green-50 border border-green-200"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoadingStats ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline ml-1">Actualiser</span>
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleSignOut}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline ml-1">Déconnexion</span>
+            </Button>
+          </div>
         </div>
 
-        {/* Enhanced Navigation */}
-        <div className="flex gap-3 bg-white/80 backdrop-blur-xl p-3 rounded-2xl shadow-xl border border-white/50">
-          <Button
-            variant={activeTab === 'overview' ? 'default' : 'ghost'}
-            onClick={() => setActiveTab('overview')}
-            className="rounded-full px-6 py-3 transition-all duration-300"
-          >
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Vue d'ensemble
-          </Button>
-          <Button
-            variant={activeTab === 'users' ? 'default' : 'ghost'}
-            onClick={() => setActiveTab('users')}
-            disabled={!canViewUsers}
-            className="rounded-full px-6 py-3 transition-all duration-300"
-          >
-            <Users className="w-4 h-4 mr-2" />
-            Utilisateurs
-          </Button>
-          <Button
-            variant={activeTab === 'deposits' ? 'default' : 'ghost'}
-            onClick={() => setActiveTab('deposits')}
-            disabled={!canDepositToAgent}
-            className="rounded-full px-6 py-3 transition-all duration-300"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Dépôts Agent
-          </Button>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
+          <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-xl">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm">Utilisateurs</p>
+                  <p className="text-2xl md:text-3xl font-bold">{stats.totalUsers}</p>
+                </div>
+                <Users className="w-8 h-8 text-blue-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-emerald-600 to-green-600 text-white border-0 shadow-xl">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-emerald-100 text-sm">Agents</p>
+                  <p className="text-2xl md:text-3xl font-bold">{stats.totalAgents}</p>
+                </div>
+                <Shield className="w-8 h-8 text-emerald-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 shadow-xl">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-100 text-sm">Transactions</p>
+                  <p className="text-2xl md:text-3xl font-bold">{stats.totalTransactions}</p>
+                </div>
+                <Activity className="w-8 h-8 text-purple-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-orange-600 to-red-600 text-white border-0 shadow-xl">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-orange-100 text-sm">Solde Total</p>
+                  <p className="text-xl md:text-2xl font-bold">{(stats.totalBalance / 1000).toFixed(0)}K XAF</p>
+                </div>
+                <DollarSign className="w-8 h-8 text-orange-200" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Contenu selon l'onglet actif */}
-        {activeTab === 'overview' && (
-          <div className="space-y-8">
-            {/* Enhanced Balance Card */}
-            <Card className="bg-gradient-to-br from-purple-600 via-pink-600 to-indigo-600 text-white border-0 shadow-2xl rounded-3xl">
-              <CardContent className="pt-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                    <Shield className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-purple-100">Solde</h2>
-                    <p className="text-3xl font-bold drop-shadow-lg">{formatCurrency(profile.balance, 'XAF')}</p>
-                  </div>
+        {/* Services Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+          {/* Gestion Utilisateurs */}
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-3 text-blue-600">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                  <Users className="w-6 h-6 text-white" />
                 </div>
-              </CardContent>
-            </Card>
+                Gestion Utilisateurs
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-4">
+                Gérez les utilisateurs et agents de {profile.country}.
+              </p>
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500">
+                  • Voir les profils utilisateurs
+                </p>
+                <p className="text-sm text-gray-500">
+                  • Gérer les agents
+                </p>
+                <p className="text-sm text-gray-500">
+                  • Statistiques régionales
+                </p>
+              </div>
+              <Button 
+                className="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold h-12 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+              >
+                Accéder à la gestion
+              </Button>
+            </CardContent>
+          </Card>
 
-            {/* Enhanced Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="backdrop-blur-xl bg-white/80 shadow-xl border border-white/50 rounded-2xl hover:shadow-2xl transition-all duration-300">
-                <CardContent className="pt-8">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                      <Users className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 font-medium">Total Utilisateurs</p>
-                      <p className="text-3xl font-bold text-purple-600">{users.length}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="backdrop-blur-xl bg-white/80 shadow-xl border border-white/50 rounded-2xl hover:shadow-2xl transition-all duration-300">
-                <CardContent className="pt-8">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
-                      <Shield className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 font-medium">Agents</p>
-                      <p className="text-3xl font-bold text-emerald-600">
-                        {users.filter(u => u.role === 'agent').length}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="backdrop-blur-xl bg-white/80 shadow-xl border border-white/50 rounded-2xl hover:shadow-2xl transition-all duration-300">
-                <CardContent className="pt-8">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-                      <Eye className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 font-medium">Accès Limité</p>
-                      <p className="text-sm text-blue-600 font-semibold">Consultation seule</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Enhanced Limitations Card */}
-            <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200 shadow-xl rounded-2xl">
-              <CardHeader>
-                <CardTitle className="text-yellow-800 text-xl flex items-center gap-3">
-                  <Sparkles className="w-6 h-6" />
-                  Limitations du Sous-Administrateur
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm text-yellow-700 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <p>Vous pouvez uniquement <strong>consulter</strong> les informations des utilisateurs</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <p>Vous ne pouvez pas modifier, supprimer ou bannir des comptes</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <p>Vous ne pouvez pas changer les rôles des utilisateurs</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <p>Vous ne pouvez pas effectuer de recharges automatiques</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <p>Vous pouvez faire des dépôts vers les agents uniquement</p>
-                  </div>
+          {/* Rapports et Statistiques */}
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-3 text-emerald-600">
+                <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-white" />
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                Rapports & Analyses
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-4">
+                Consultez les rapports détaillés pour votre région.
+              </p>
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500">
+                  • Rapports de transactions
+                </p>
+                <p className="text-sm text-gray-500">
+                  • Analyses de performance
+                </p>
+                <p className="text-sm text-gray-500">
+                  • Statistiques temporelles
+                </p>
+              </div>
+              <Button 
+                className="w-full mt-4 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-semibold h-12 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+              >
+                Voir les rapports
+              </Button>
+            </CardContent>
+          </Card>
 
-        {activeTab === 'users' && canViewUsers && (
-          <div className="space-y-6">
-            <Card className="backdrop-blur-xl bg-white/90 shadow-2xl border border-white/50 rounded-2xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Consultation des Utilisateurs
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoadingUsers ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-                    <p>Chargement des utilisateurs...</p>
-                  </div>
-                ) : (
-                  <SubAdminUsersTable users={users} />
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === 'deposits' && canDepositToAgent && (
-          <div className="space-y-6">
-            <Card className="backdrop-blur-xl bg-white/90 shadow-2xl border border-white/50 rounded-2xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plus className="w-5 h-5" />
-                  Dépôts vers les Agents
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <Plus className="w-8 h-8 text-white" />
-                  </div>
-                  <p className="text-gray-600 mb-6 text-lg">
-                    Fonctionnalité de dépôt vers les agents
-                  </p>
-                  <Button 
-                    onClick={() => navigate('/agent-deposit')}
-                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-full px-8 py-3 h-12 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-                  >
-                    Accéder aux dépôts agent
-                  </Button>
+          {/* Support et Assistance */}
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-3 text-purple-600">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                  <Shield className="w-6 h-6 text-white" />
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                Support & Assistance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-4">
+                Outils de support et assistance utilisateurs.
+              </p>
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500">
+                  • Support technique
+                </p>
+                <p className="text-sm text-gray-500">
+                  • Résolution de problèmes
+                </p>
+                <p className="text-sm text-gray-500">
+                  • Communication utilisateurs
+                </p>
+              </div>
+              <Button 
+                className="w-full mt-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold h-12 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+              >
+                Outils de support
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-6">
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-gray-800">Actions Rapides</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <Button 
+                  onClick={fetchStats}
+                  variant="outline"
+                  className="flex flex-col items-center gap-2 h-20 border-2 border-blue-200 hover:bg-blue-50"
+                  disabled={isLoadingStats}
+                >
+                  <RefreshCw className={`w-5 h-5 text-blue-600 ${isLoadingStats ? 'animate-spin' : ''}`} />
+                  <span className="text-xs">Actualiser</span>
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  className="flex flex-col items-center gap-2 h-20 border-2 border-emerald-200 hover:bg-emerald-50"
+                >
+                  <Users className="w-5 h-5 text-emerald-600" />
+                  <span className="text-xs">Utilisateurs</span>
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  className="flex flex-col items-center gap-2 h-20 border-2 border-purple-200 hover:bg-purple-50"
+                >
+                  <TrendingUp className="w-5 h-5 text-purple-600" />
+                  <span className="text-xs">Rapports</span>
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  className="flex flex-col items-center gap-2 h-20 border-2 border-orange-200 hover:bg-orange-50"
+                >
+                  <Shield className="w-5 h-5 text-orange-600" />
+                  <span className="text-xs">Support</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

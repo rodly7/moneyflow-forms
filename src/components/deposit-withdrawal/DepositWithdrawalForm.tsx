@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -166,6 +167,8 @@ const DepositWithdrawalForm = () => {
       setAmount("");
       setClientData(null);
       fetchAgentBalance();
+      // Naviguer vers le tableau de bord agent au lieu du dashboard général
+      navigate('/agent-dashboard');
     }
   };
 
@@ -199,6 +202,8 @@ const DepositWithdrawalForm = () => {
       setClientData(null);
       setScannedUserData(null);
       fetchAgentBalance();
+      // Naviguer vers le tableau de bord agent au lieu du dashboard général
+      navigate('/agent-dashboard');
     }
   };
 
@@ -240,6 +245,8 @@ const DepositWithdrawalForm = () => {
       setAmount("");
       setClientData(null);
       fetchAgentBalance();
+      // Naviguer vers le tableau de bord agent au lieu du dashboard général
+      navigate('/agent-dashboard');
     }
   };
 
@@ -247,26 +254,40 @@ const DepositWithdrawalForm = () => {
   const withdrawalFees = amount ? calculateWithdrawalFees(Number(amount)) : null;
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 py-4 px-0 sm:py-8 sm:px-4">
-      <div className="container max-w-lg mx-auto space-y-6">
-        <div className="flex items-center justify-between mb-4">
-          <Button variant="ghost" onClick={() => navigate('/dashboard')} className="text-gray-700">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour
-          </Button>
-          <h1 className="text-2xl font-bold">Services Agent</h1>
-          <div className="w-10"></div>
+    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute top-1/4 left-1/4 w-32 h-32 md:w-64 md:h-64 bg-emerald-200/20 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-48 h-48 md:w-96 md:h-96 bg-blue-200/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      
+      <div className="relative z-10 container mx-auto px-4 py-4 md:py-8 max-w-4xl">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4 backdrop-blur-sm bg-white/70 rounded-2xl p-4 md:p-6 shadow-lg border border-white/20">
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/agent-dashboard')} 
+              className="text-gray-700 hover:bg-blue-50 border border-blue-200"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Retour</span>
+            </Button>
+            <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
+              Services Agent
+            </h1>
+          </div>
+          <div className="w-4"></div>
         </div>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center">
-                <Wallet className="w-5 h-5 mr-2 text-emerald-600" />
-                <span className="font-medium">Votre solde:</span>
+        {/* Balance Card */}
+        <Card className="mb-6 bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex items-center gap-3">
+                <Wallet className="w-6 h-6 text-emerald-600" />
+                <span className="font-medium text-lg">Votre solde:</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`font-bold text-lg ${agentBalance > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              <div className="flex items-center gap-3">
+                <span className={`font-bold text-xl md:text-2xl ${agentBalance > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                   {formatCurrency(agentBalance, 'XAF')}
                 </span>
                 <Button
@@ -274,302 +295,307 @@ const DepositWithdrawalForm = () => {
                   size="sm"
                   onClick={fetchAgentBalance}
                   disabled={isLoadingBalance}
-                  className="h-8 w-8 p-0"
+                  className="h-10 w-10 p-0 hover:bg-emerald-50"
                 >
-                  <RefreshCw className={`w-4 h-4 ${isLoadingBalance ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`w-5 h-5 ${isLoadingBalance ? 'animate-spin' : ''}`} />
                 </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="deposit" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="deposit" className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Dépôt (Sans frais)
-            </TabsTrigger>
-            <TabsTrigger value="withdrawal" className="flex items-center gap-2">
-              <Minus className="w-4 h-4" />
-              Retrait (1,5%)
-            </TabsTrigger>
-          </TabsList>
+        {/* Main Tabs */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/30 overflow-hidden">
+          <Tabs defaultValue="deposit" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-gray-100/50 m-2 rounded-xl h-12">
+              <TabsTrigger value="deposit" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md h-10">
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Dépôt (Sans frais)</span>
+                <span className="sm:hidden">Dépôt</span>
+              </TabsTrigger>
+              <TabsTrigger value="withdrawal" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md h-10">
+                <Minus className="w-4 h-4" />
+                <span className="hidden sm:inline">Retrait (1,5%)</span>
+                <span className="sm:hidden">Retrait</span>
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="deposit">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-emerald-600">
-                  <Plus className="w-5 h-5" />
-                  Dépôt Client
-                </CardTitle>
-                <p className="text-sm text-gray-600">
-                  La recherche se fait automatiquement pendant que vous tapez
-                </p>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleDepositSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone-deposit">Numéro du client</Label>
-                    <div className="relative">
-                      <Input
-                        id="phone-deposit"
-                        type="tel"
-                        placeholder="Entrez le numéro du client"
-                        value={phoneNumber}
-                        onChange={handlePhoneChange}
-                        required
-                        className="h-12"
-                      />
-                      {isSearching && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {clientData && (
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-md space-y-2">
-                      <div className="flex items-center text-green-800">
-                        <User className="w-4 h-4 mr-2" />
-                        <span className="font-medium">{clientData.full_name || 'Nom non disponible'}</span>
-                      </div>
-                      <div className="text-sm text-green-600">
-                        Pays: {clientData.country || 'Non spécifié'}
-                      </div>
-                      <div className="text-xs text-green-500 flex items-center gap-1">
-                        <Shield className="w-3 h-3" />
-                        Solde masqué pour la sécurité
-                      </div>
-                    </div>
-                  )}
-
-                  {phoneNumber.length >= 8 && !clientData && !isSearching && (
-                    <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-                      <p className="text-red-700 text-sm">
-                        Aucun client trouvé avec ce numéro
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="amount-deposit">Montant du dépôt (XAF)</Label>
-                    <Input
-                      id="amount-deposit"
-                      type="number"
-                      placeholder="Entrez le montant"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      required
-                      className="h-12 text-lg"
-                      disabled={!clientData}
-                    />
-                  </div>
-
-                  {amount && depositFees && (
-                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-md">
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>Montant:</span>
-                          <span className="font-medium">{formatCurrency(Number(amount), 'XAF')}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Frais:</span>
-                          <span className="font-medium text-emerald-600">{formatCurrency(depositFees.totalFee, 'XAF')}</span>
-                        </div>
-                        <div className="flex justify-between font-semibold border-t pt-2">
-                          <span>Total à débiter:</span>
-                          <span>{formatCurrency(Number(amount), 'XAF')}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 text-lg"
-                    disabled={isProcessing || !clientData || !amount || Number(amount) > agentBalance}
-                  >
-                    {isProcessing ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        <span>Traitement...</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center">
-                        <Plus className="mr-2 h-5 w-5" />
-                        <span>Effectuer le dépôt</span>
-                      </div>
-                    )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="withdrawal">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-orange-600">
-                  <Minus className="w-5 h-5" />
-                  Retrait Client
-                </CardTitle>
-                <div className="flex items-center justify-between">
+            <TabsContent value="deposit" className="p-4 md:p-6">
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-emerald-50">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-emerald-600">
+                    <Plus className="w-5 h-5" />
+                    Dépôt Client
+                  </CardTitle>
                   <p className="text-sm text-gray-600">
-                    Scannez le QR code du client pour effectuer le retrait
+                    La recherche se fait automatiquement pendant que vous tapez
                   </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowQRScanner(true)}
-                    className="bg-emerald-600 text-white hover:bg-emerald-700"
-                  >
-                    <Camera className="w-4 h-4 mr-2" />
-                    Scanner QR
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleWithdrawalSubmit} className="space-y-4">
-                  {scannedUserData && (
-                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-md space-y-2">
-                      <div className="flex items-center text-emerald-800">
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        <span className="font-medium">QR Code scanné avec succès</span>
-                      </div>
-                      <div className="text-sm text-emerald-700">
-                        <p><strong>Nom:</strong> {scannedUserData.fullName}</p>
-                        <p><strong>Téléphone:</strong> {scannedUserData.phone}</p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setScannedUserData(null);
-                          setPhoneNumber("");
-                          setClientData(null);
-                        }}
-                        className="mt-2"
-                      >
-                        Effacer et scanner un nouveau QR
-                      </Button>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone-withdrawal">Numéro du client</Label>
-                    <div className="relative">
-                      <Input
-                        id="phone-withdrawal"
-                        type="tel"
-                        placeholder="Scanner le QR code du client"
-                        value={phoneNumber}
-                        onChange={handlePhoneChange}
-                        required
-                        className="h-12 bg-gray-100"
-                        disabled={true}
-                      />
-                      {isSearching && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      🔒 Saisie désactivée - Utilisez uniquement le scanner QR pour identifier le client
-                    </p>
-                  </div>
-
-                  {clientData && (
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-md space-y-2">
-                      <div className="flex items-center text-green-800">
-                        <User className="w-4 h-4 mr-2" />
-                        <span className="font-medium">{clientData.full_name || 'Nom non disponible'}</span>
-                      </div>
-                      <div className="text-sm text-green-600">
-                        Pays: {clientData.country || 'Non spécifié'}
-                      </div>
-                      <div className="text-xs text-green-500 flex items-center gap-1">
-                        <Shield className="w-3 h-3" />
-                        Solde masqué pour la sécurité
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleDepositSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone-deposit">Numéro du client</Label>
+                      <div className="relative">
+                        <Input
+                          id="phone-deposit"
+                          type="tel"
+                          placeholder="Entrez le numéro du client"
+                          value={phoneNumber}
+                          onChange={handlePhoneChange}
+                          required
+                          className="h-12 text-base"
+                        />
+                        {isSearching && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
 
-                  {!scannedUserData && !clientData && (
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
-                      <p className="text-blue-700 text-sm">
-                        📱 Veuillez scanner le QR code du client pour effectuer le retrait
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="amount-withdrawal">Montant du retrait (XAF)</Label>
-                    <Input
-                      id="amount-withdrawal"
-                      type="number"
-                      placeholder="Entrez le montant"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      required
-                      className="h-12 text-lg"
-                      disabled={!scannedUserData && !clientData}
-                    />
-                  </div>
-
-                  {amount && withdrawalFees && (
-                    <div className="p-4 bg-orange-50 border border-orange-200 rounded-md">
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>Montant:</span>
-                          <span className="font-medium">{formatCurrency(Number(amount), 'XAF')}</span>
+                    {clientData && (
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-md space-y-2">
+                        <div className="flex items-center text-green-800">
+                          <User className="w-4 h-4 mr-2" />
+                          <span className="font-medium">{clientData.full_name || 'Nom non disponible'}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span>Frais (1,5%):</span>
-                          <span className="font-medium text-orange-600">{formatCurrency(withdrawalFees.totalFee, 'XAF')}</span>
+                        <div className="text-sm text-green-600">
+                          Pays: {clientData.country || 'Non spécifié'}
                         </div>
-                        <div className="flex justify-between">
-                          <span>Votre commission (0,5%):</span>
-                          <span className="font-medium text-emerald-600">{formatCurrency(withdrawalFees.agentCommission, 'XAF')}</span>
+                        <div className="text-xs text-green-500 flex items-center gap-1">
+                          <Shield className="w-3 h-3" />
+                          Solde masqué pour la sécurité
                         </div>
-                        <div className="flex justify-between font-semibold border-t pt-2">
-                          <span>Total à débiter du client:</span>
-                          <span>{formatCurrency(Number(amount) + withdrawalFees.totalFee, 'XAF')}</span>
-                        </div>
-                        <div className="text-xs text-gray-600 mt-2">
-                          Note: Le solde du client sera vérifié lors du traitement
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-orange-600 hover:bg-orange-700 h-12 text-lg"
-                    disabled={isProcessing || isQRProcessing || (!scannedUserData && !clientData) || !amount}
-                  >
-                    {(isProcessing || isQRProcessing) ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        <span>Traitement...</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center">
-                        <Minus className="mr-2 h-5 w-5" />
-                        <span>
-                          {scannedUserData ? 'Confirmer retrait QR' : 'Effectuer le retrait'}
-                        </span>
                       </div>
                     )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+
+                    {phoneNumber.length >= 8 && !clientData && !isSearching && (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                        <p className="text-red-700 text-sm">
+                          Aucun client trouvé avec ce numéro
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="amount-deposit">Montant du dépôt (XAF)</Label>
+                      <Input
+                        id="amount-deposit"
+                        type="number"
+                        placeholder="Entrez le montant"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        required
+                        className="h-12 text-lg"
+                        disabled={!clientData}
+                      />
+                    </div>
+
+                    {amount && depositFees && (
+                      <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-md">
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Montant:</span>
+                            <span className="font-medium">{formatCurrency(Number(amount), 'XAF')}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Frais:</span>
+                            <span className="font-medium text-emerald-600">{formatCurrency(depositFees.totalFee, 'XAF')}</span>
+                          </div>
+                          <div className="flex justify-between font-semibold border-t pt-2">
+                            <span>Total à débiter:</span>
+                            <span>{formatCurrency(Number(amount), 'XAF')}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 text-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                      disabled={isProcessing || !clientData || !amount || Number(amount) > agentBalance}
+                    >
+                      {isProcessing ? (
+                        <div className="flex items-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          <span>Traitement...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center">
+                          <Plus className="mr-2 h-5 w-5" />
+                          <span>Effectuer le dépôt</span>
+                        </div>
+                      )}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="withdrawal" className="p-4 md:p-6">
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-orange-50">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-orange-600">
+                    <Minus className="w-5 h-5" />
+                    Retrait Client
+                  </CardTitle>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <p className="text-sm text-gray-600">
+                      Scannez le QR code du client pour effectuer le retrait
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowQRScanner(true)}
+                      className="bg-emerald-600 text-white hover:bg-emerald-700 border-0"
+                    >
+                      <Camera className="w-4 h-4 mr-2" />
+                      Scanner QR
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleWithdrawalSubmit} className="space-y-4">
+                    {scannedUserData && (
+                      <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-md space-y-2">
+                        <div className="flex items-center text-emerald-800">
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          <span className="font-medium">QR Code scanné avec succès</span>
+                        </div>
+                        <div className="text-sm text-emerald-700 space-y-1">
+                          <p><strong>Nom:</strong> {scannedUserData.fullName}</p>
+                          <p><strong>Téléphone:</strong> {scannedUserData.phone}</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setScannedUserData(null);
+                            setPhoneNumber("");
+                            setClientData(null);
+                          }}
+                          className="mt-2"
+                        >
+                          Effacer et scanner un nouveau QR
+                        </Button>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="phone-withdrawal">Numéro du client</Label>
+                      <div className="relative">
+                        <Input
+                          id="phone-withdrawal"
+                          type="tel"
+                          placeholder="Scanner le QR code du client"
+                          value={phoneNumber}
+                          onChange={handlePhoneChange}
+                          required
+                          className="h-12 bg-gray-100 text-base"
+                          disabled={true}
+                        />
+                        {isSearching && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        🔒 Saisie désactivée - Utilisez uniquement le scanner QR pour identifier le client
+                      </p>
+                    </div>
+
+                    {clientData && (
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-md space-y-2">
+                        <div className="flex items-center text-green-800">
+                          <User className="w-4 h-4 mr-2" />
+                          <span className="font-medium">{clientData.full_name || 'Nom non disponible'}</span>
+                        </div>
+                        <div className="text-sm text-green-600">
+                          Pays: {clientData.country || 'Non spécifié'}
+                        </div>
+                        <div className="text-xs text-green-500 flex items-center gap-1">
+                          <Shield className="w-3 h-3" />
+                          Solde masqué pour la sécurité
+                        </div>
+                      </div>
+                    )}
+
+                    {!scannedUserData && !clientData && (
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+                        <p className="text-blue-700 text-sm">
+                          📱 Veuillez scanner le QR code du client pour effectuer le retrait
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="amount-withdrawal">Montant du retrait (XAF)</Label>
+                      <Input
+                        id="amount-withdrawal"
+                        type="number"
+                        placeholder="Entrez le montant"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        required
+                        className="h-12 text-lg"
+                        disabled={!scannedUserData && !clientData}
+                      />
+                    </div>
+
+                    {amount && withdrawalFees && (
+                      <div className="p-4 bg-orange-50 border border-orange-200 rounded-md">
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Montant:</span>
+                            <span className="font-medium">{formatCurrency(Number(amount), 'XAF')}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Frais (1,5%):</span>
+                            <span className="font-medium text-orange-600">{formatCurrency(withdrawalFees.totalFee, 'XAF')}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Votre commission (0,5%):</span>
+                            <span className="font-medium text-emerald-600">{formatCurrency(withdrawalFees.agentCommission, 'XAF')}</span>
+                          </div>
+                          <div className="flex justify-between font-semibold border-t pt-2">
+                            <span>Total à débiter du client:</span>
+                            <span>{formatCurrency(Number(amount) + withdrawalFees.totalFee, 'XAF')}</span>
+                          </div>
+                          <div className="text-xs text-gray-600 mt-2">
+                            Note: Le solde du client sera vérifié lors du traitement
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-orange-600 hover:bg-orange-700 h-12 text-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                      disabled={isProcessing || isQRProcessing || (!scannedUserData && !clientData) || !amount}
+                    >
+                      {(isProcessing || isQRProcessing) ? (
+                        <div className="flex items-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          <span>Traitement...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center">
+                          <Minus className="mr-2 h-5 w-5" />
+                          <span>
+                            {scannedUserData ? 'Confirmer retrait QR' : 'Effectuer le retrait'}
+                          </span>
+                        </div>
+                      )}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
 
       <QRScanner
