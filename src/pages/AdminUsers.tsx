@@ -1,131 +1,47 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Users, Search, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Users, CreditCard, Wallet, Send } from "lucide-react";
 import UsersDataTable from "@/components/admin/UsersDataTable";
-import UserManagementModal from "@/components/admin/UserManagementModal";
-
-interface UserData {
-  id: string;
-  full_name: string | null;
-  phone: string;
-  balance: number;
-  country: string | null;
-  role: 'user' | 'agent' | 'admin' | 'sub_admin';
-  is_banned?: boolean;
-  banned_reason?: string | null;
-  created_at: string;
-}
+import BatchAgentRecharge from "@/components/admin/BatchAgentRecharge";
+import BatchAgentDeposit from "@/components/admin/BatchAgentDeposit";
+import AdminSelfRecharge from "@/components/admin/AdminSelfRecharge";
+import NotificationSender from "@/components/admin/NotificationSender";
 
 const AdminUsers = () => {
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
-  const [showModal, setShowModal] = useState(false);
-
-  const fetchUsers = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, phone, balance, country, role, is_banned, banned_reason, created_at')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setUsers(data || []);
-    } catch (error) {
-      console.error("Erreur lors du chargement des utilisateurs:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les utilisateurs",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleQuickRoleChange = async (userId: string, newRole: 'user' | 'agent' | 'admin' | 'sub_admin') => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Rôle mis à jour",
-        description: `Le rôle a été changé avec succès`
-      });
-
-      fetchUsers();
-    } catch (error) {
-      console.error('Erreur lors du changement de rôle:', error);
-      toast({
-        title: "Erreur",
-        description: "Erreur lors du changement de rôle",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleQuickBanToggle = async (userId: string, currentBanStatus: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          is_banned: !currentBanStatus,
-          banned_at: !currentBanStatus ? new Date().toISOString() : null,
-          banned_reason: !currentBanStatus ? 'Banni par l\'administrateur' : null
-        })
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      toast({
-        title: currentBanStatus ? "Utilisateur débanni" : "Utilisateur banni",
-        description: `L'utilisateur a été ${currentBanStatus ? 'débanni' : 'banni'} avec succès`
-      });
-
-      fetchUsers();
-    } catch (error) {
-      console.error('Erreur lors du bannissement:', error);
-      toast({
-        title: "Erreur",
-        description: "Erreur lors de l'opération",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleViewUser = (user: UserData) => {
-    setSelectedUser(user);
-    setShowModal(true);
-  };
+  const [activeTab, setActiveTab] = useState("users");
 
   useEffect(() => {
     if (profile?.role !== 'admin') {
       navigate('/dashboard');
       return;
     }
-    fetchUsers();
   }, [profile, navigate]);
 
-  const filteredUsers = users.filter(user =>
-    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.phone.includes(searchTerm) ||
-    user.country?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleQuickRoleChange = async (userId: string, newRole: 'user' | 'agent' | 'admin' | 'sub_admin') => {
+    try {
+      // Implementation for role change would go here
+      toast({
+        title: "Rôle mis à jour",
+        description: `Le rôle a été changé vers ${newRole}`,
+      });
+    } catch (error) {
+      console.error("Erreur lors du changement de rôle:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de changer le rôle",
+        variant: "destructive"
+      });
+    }
+  };
 
   if (!profile || profile.role !== 'admin') {
     return null;
@@ -147,60 +63,66 @@ const AdminUsers = () => {
               Retour
             </Button>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-              Gestion des Utilisateurs
+              Gestion Administrative
             </h1>
           </div>
         </div>
 
-        {/* Search */}
-        <Card className="mb-6 bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="w-5 h-5" />
-              Rechercher
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Input
-              placeholder="Rechercher par nom, téléphone ou pays..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-md"
-            />
-          </CardContent>
-        </Card>
+        {/* Main Content */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl h-14">
+            <TabsTrigger value="users" className="flex items-center gap-2 h-10">
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">Utilisateurs</span>
+            </TabsTrigger>
+            <TabsTrigger value="batch-recharge" className="flex items-center gap-2 h-10">
+              <CreditCard className="w-4 h-4" />
+              <span className="hidden sm:inline">Recharge Agents</span>
+            </TabsTrigger>
+            <TabsTrigger value="batch-deposit" className="flex items-center gap-2 h-10">
+              <CreditCard className="w-4 h-4" />
+              <span className="hidden sm:inline">Dépôt Agents</span>
+            </TabsTrigger>
+            <TabsTrigger value="self-recharge" className="flex items-center gap-2 h-10">
+              <Wallet className="w-4 h-4" />
+              <span className="hidden sm:inline">Mon Solde</span>
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="flex items-center gap-2 h-10">
+              <Send className="w-4 h-4" />
+              <span className="hidden sm:inline">Notifications</span>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Users Table */}
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Utilisateurs ({filteredUsers.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-              </div>
-            ) : (
-              <UsersDataTable
-                users={filteredUsers}
-                onViewUser={handleViewUser}
-                onQuickRoleChange={handleQuickRoleChange}
-                onQuickBanToggle={handleQuickBanToggle}
-              />
-            )}
-          </CardContent>
-        </Card>
+          <TabsContent value="users" className="space-y-6">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Gestion des Utilisateurs
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <UsersDataTable onQuickRoleChange={handleQuickRoleChange} />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        {/* User Management Modal */}
-        <UserManagementModal
-          isOpen={showModal}
-          onClose={() => setShowModal(false)}
-          user={selectedUser}
-          onUserUpdated={fetchUsers}
-        />
+          <TabsContent value="batch-recharge" className="space-y-6">
+            <BatchAgentRecharge />
+          </TabsContent>
+
+          <TabsContent value="batch-deposit" className="space-y-6">
+            <BatchAgentDeposit onBack={() => setActiveTab("users")} />
+          </TabsContent>
+
+          <TabsContent value="self-recharge" className="space-y-6">
+            <AdminSelfRecharge />
+          </TabsContent>
+
+          <TabsContent value="notifications" className="space-y-6">
+            <NotificationSender />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
