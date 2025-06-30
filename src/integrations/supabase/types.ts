@@ -9,6 +9,50 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      agent_challenges: {
+        Row: {
+          agent_id: string
+          completed: boolean
+          created_at: string
+          current_operations: number
+          date: string
+          id: string
+          reward_points: number
+          target_operations: number
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          completed?: boolean
+          created_at?: string
+          current_operations?: number
+          date: string
+          id?: string
+          reward_points?: number
+          target_operations: number
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          completed?: boolean
+          created_at?: string
+          current_operations?: number
+          date?: string
+          id?: string
+          reward_points?: number
+          target_operations?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_challenges_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "auth_users_agents_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_reports: {
         Row: {
           agent_id: string
