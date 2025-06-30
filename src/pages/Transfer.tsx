@@ -25,9 +25,9 @@ const Transfer = () => {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
-      <div className="container mx-auto max-w-2xl">
+      <div className="w-full">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 mb-6 w-full">
           <Button
             variant="ghost"
             size="sm"
@@ -43,20 +43,20 @@ const Transfer = () => {
         </div>
 
         {/* Transfer Form Card */}
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl w-full">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-blue-600">
               <Send className="w-5 h-5" />
               Nouveau Transfert
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="w-full">
             <TransferForm />
           </CardContent>
         </Card>
 
         {/* Info Card */}
-        <Card className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-blue-500">
+        <Card className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-blue-500 w-full">
           <CardContent className="p-4">
             <div className="space-y-2 text-sm text-blue-700">
               <p>• Les transferts sont traités instantanément</p>

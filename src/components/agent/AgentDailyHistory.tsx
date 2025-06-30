@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -125,7 +124,7 @@ const AgentDailyHistory = () => {
   };
 
   return (
-    <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+    <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calendar className="w-5 h-5" />
@@ -143,7 +142,7 @@ const AgentDailyHistory = () => {
           </Badge>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="w-full">
         {isLoading ? (
           <div className="flex items-center justify-center p-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -155,11 +154,11 @@ const AgentDailyHistory = () => {
             <p className="text-sm">Sélectionnez une autre date pour voir l'historique</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 w-full">
             {activities.map((activity) => (
               <div
                 key={activity.id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors w-full"
               >
                 <div className="flex items-center gap-4">
                   <div className={`p-2 rounded-full ${getTypeColor(activity.type)}`}>

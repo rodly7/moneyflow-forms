@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -81,7 +80,7 @@ const NewAgentDashboard = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 flex items-center justify-center p-4">
+      <div className="min-h-screen w-full bg-gradient-to-br from-emerald-50 via-white to-blue-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
           <CardContent className="pt-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-4"></div>
@@ -98,9 +97,9 @@ const NewAgentDashboard = () => {
       <div className="absolute top-1/4 left-1/4 w-32 h-32 md:w-64 md:h-64 bg-emerald-200/20 rounded-full blur-3xl animate-pulse"></div>
       <div className="absolute bottom-1/4 right-1/4 w-48 h-48 md:w-96 md:h-96 bg-blue-200/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
       
-      <div className="relative z-10 container mx-auto px-4 py-4 md:py-8 max-w-6xl">
+      <div className="relative z-10 w-full px-4 py-4 md:py-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4 backdrop-blur-sm bg-white/70 rounded-2xl p-4 md:p-6 shadow-lg border border-white/20">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4 backdrop-blur-sm bg-white/70 rounded-2xl p-4 md:p-6 shadow-lg border border-white/20 w-full">
           <div className="flex items-center gap-3">
             <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
               Tableau de bord - Agent
@@ -130,10 +129,12 @@ const NewAgentDashboard = () => {
         </div>
 
         {/* Profile Info */}
-        <UserProfileInfo />
+        <div className="w-full mb-6">
+          <UserProfileInfo />
+        </div>
 
         {/* Balance Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6 w-full">
           <Card className="bg-gradient-to-r from-emerald-600 to-green-600 text-white border-0 shadow-xl">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
@@ -159,11 +160,11 @@ const NewAgentDashboard = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
           {/* Actions agent */}
-          <div className="space-y-6">
+          <div className="space-y-6 w-full">
             {/* Actions Rapides */}
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl w-full">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-emerald-600">
                   <DollarSign className="w-5 h-5" />
@@ -218,7 +219,7 @@ const NewAgentDashboard = () => {
             </Card>
 
             {/* Information importante */}
-            <Card className="bg-gradient-to-r from-emerald-50 to-blue-50 border-l-4 border-emerald-500">
+            <Card className="bg-gradient-to-r from-emerald-50 to-blue-50 border-l-4 border-emerald-500 w-full">
               <CardContent className="p-4">
                 <h3 className="font-semibold text-emerald-800 mb-2">Information Agent</h3>
                 <div className="space-y-2 text-sm text-emerald-700">
@@ -233,7 +234,7 @@ const NewAgentDashboard = () => {
           </div>
 
           {/* Notifications */}
-          <div>
+          <div className="w-full">
             <NotificationsCard />
           </div>
         </div>

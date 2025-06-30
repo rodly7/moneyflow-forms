@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -93,9 +92,9 @@ const AgentServices = () => {
       <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-200/20 rounded-full blur-3xl animate-pulse"></div>
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-200/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
       
-      <div className="relative z-10 container max-w-lg mx-auto space-y-6">
+      <div className="relative z-10 w-full space-y-6 px-4">
         {/* Enhanced Header */}
-        <div className="flex items-center justify-between mb-6 backdrop-blur-sm bg-white/70 rounded-2xl p-4 shadow-lg border border-white/20">
+        <div className="flex items-center justify-between mb-6 backdrop-blur-sm bg-white/70 rounded-2xl p-4 shadow-lg border border-white/20 w-full">
           <Button 
             variant="ghost" 
             onClick={() => navigate('/agent-dashboard')} 
@@ -130,7 +129,7 @@ const AgentServices = () => {
         </div>
 
         {/* Enhanced Balance Card */}
-        <Card className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white border-0 shadow-2xl backdrop-blur-sm">
+        <Card className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white border-0 shadow-2xl backdrop-blur-sm w-full">
           <CardContent className="p-8">
             <div className="text-center">
               <div className="flex items-center justify-center gap-2 mb-4">
@@ -148,7 +147,7 @@ const AgentServices = () => {
         </Card>
 
         {/* Enhanced Tabs */}
-        <div className="backdrop-blur-sm bg-white/70 rounded-2xl shadow-xl border border-white/30 overflow-hidden">
+        <div className="backdrop-blur-sm bg-white/70 rounded-2xl shadow-xl border border-white/30 overflow-hidden w-full">
           <Tabs defaultValue="transfer" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-gray-100/50 m-2 rounded-xl">
               <TabsTrigger value="transfer" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md">
@@ -161,9 +160,9 @@ const AgentServices = () => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="transfer" className="p-4">
-              <div className="space-y-4">
-                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/50 shadow-md">
+            <TabsContent value="transfer" className="p-4 w-full">
+              <div className="space-y-4 w-full">
+                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/50 shadow-md w-full">
                   <CardContent className="p-6">
                     <div className="flex items-center gap-3 mb-3">
                       <Shield className="w-6 h-6 text-blue-600" />
@@ -174,12 +173,14 @@ const AgentServices = () => {
                     </p>
                   </CardContent>
                 </Card>
-                <TransferForm />
+                <div className="w-full">
+                  <TransferForm />
+                </div>
               </div>
             </TabsContent>
 
-            <TabsContent value="deposit" className="p-4">
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+            <TabsContent value="deposit" className="p-4 w-full">
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50 w-full">
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-3 text-blue-600">
                     <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">

@@ -37,8 +37,8 @@ const AgentPerformanceDashboard = () => {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
-      <div className="container mx-auto max-w-7xl">
-        <div className="flex items-center justify-between mb-6">
+      <div className="w-full">
+        <div className="flex items-center justify-between mb-6 w-full">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -55,7 +55,7 @@ const AgentPerformanceDashboard = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="history" className="space-y-6">
+        <Tabs defaultValue="history" className="space-y-6 w-full">
           <TabsList className="grid w-full grid-cols-6 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl h-14">
             <TabsTrigger value="history" className="flex items-center gap-2 h-10">
               <Calendar className="w-4 h-4" />
@@ -83,27 +83,27 @@ const AgentPerformanceDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="history">
+          <TabsContent value="history" className="w-full">
             <AgentDailyHistory />
           </TabsContent>
 
-          <TabsContent value="commissions">
+          <TabsContent value="commissions" className="w-full">
             <AgentCommissions />
           </TabsContent>
 
-          <TabsContent value="yesterday">
+          <TabsContent value="yesterday" className="w-full">
             <AgentYesterdaySummary />
           </TabsContent>
 
-          <TabsContent value="challenge">
+          <TabsContent value="challenge" className="w-full">
             <AgentPersonalChallenge />
           </TabsContent>
 
-          <TabsContent value="zones">
+          <TabsContent value="zones" className="w-full">
             <AgentZoneAnalysis />
           </TabsContent>
 
-          <TabsContent value="ranking">
+          <TabsContent value="ranking" className="w-full">
             <AgentRanking />
           </TabsContent>
         </Tabs>
