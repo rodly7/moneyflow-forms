@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -33,6 +32,7 @@ import AdminNotifications from "./pages/AdminNotifications";
 import AdminSettings from "./pages/AdminSettings";
 import AdminAgentReports from "./pages/AdminAgentReports";
 import Transfer from "./pages/Transfer";
+import AgentPerformanceDashboard from "./pages/AgentPerformanceDashboard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -84,6 +84,7 @@ function App() {
                 <Route path="admin/settings" element={<AdminSettings />} />
                 <Route path="admin/agent-reports" element={<AdminAgentReports />} />
                 <Route path="transfer" element={<Transfer />} />
+                <Route path="/agent-performance" element={<AgentPerformanceDashboard />} />
               </Route>
             </Routes>
           </AuthProvider>

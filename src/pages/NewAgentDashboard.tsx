@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUpRight, Camera, RefreshCw, LogOut, Wallet, Activity, DollarSign, History, Percent } from "lucide-react";
+import { ArrowUpRight, Camera, RefreshCw, LogOut, Wallet, Activity, DollarSign, History, Percent, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -205,6 +205,15 @@ const NewAgentDashboard = () => {
                   <History className="mr-2 h-5 w-5" />
                   Historique des transactions
                 </Button>
+
+                <Button 
+                  onClick={() => navigate('/agent-performance')}
+                  variant="outline"
+                  className="w-full border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold h-12 shadow-md"
+                >
+                  <BarChart3 className="mr-2 h-5 w-5" />
+                  Tableau de Performance
+                </Button>
               </CardContent>
             </Card>
 
@@ -217,6 +226,7 @@ const NewAgentDashboard = () => {
                   <p>• Vous gagnez des commissions sur chaque opération</p>
                   <p>• Les dépôts clients sont sans frais pour eux</p>
                   <p>• Consultez régulièrement vos notifications</p>
+                  <p>• Utilisez le tableau de performance pour améliorer vos résultats</p>
                 </div>
               </CardContent>
             </Card>
