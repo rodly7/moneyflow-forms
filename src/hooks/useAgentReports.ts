@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AgentReportData {
+  agent_id: string;
+  agent_name: string;
   period: 'daily' | 'weekly' | 'monthly' | 'yearly';
   totalTransfers: number;
   totalWithdrawals: number;
@@ -23,11 +25,9 @@ export const useAgentReports = () => {
 
   const TARGET_BALANCE = 100000; // 100,000 FCFA
 
-  const generateReport = async (period: 'daily' | 'weekly' | 'monthly' | 'yearly'): Promise<AgentReportData | null> => {
-    if (!user?.id) return null;
-
+  const generateReport = async (agentId: string, period: 'daily' | 'weekly' | 'monthly' | 'yearly'): Promise<AgentReportData | null> => {
     try {
-      console.log(`📊 Génération du rapport ${period} pour l'agent:`, user.id);
+      console.log(`📊 Génération du rapport ${period} pour l'agent:`, agentId);
       
       const now = new Date();
       let startDate: Date;
@@ -48,13 +48,24 @@ export const useAgentReports = () => {
           break;
       }
 
-      console.log(`📅 Période de rapport: ${startDate.toISOString()} à ${endDate.toISOString()}`);
+      // Récupérer les informations de l'agent
+      const { data: agentProfile, error: agentError } = await supabase
+        .from('profiles')
+        .select('id, full_name, balance')
+        .eq('id', agentId)
+        .eq('role', 'agent')
+        .single();
+
+      if (agentError || !agentProfile) {
+        console.error('❌ Erreur agent:', agentError);
+        return null;
+      }
 
       // Récupérer les transferts de l'agent
       const { data: transfers, error: transfersError } = await supabase
         .from('transfers')
         .select('amount, fees, created_at')
-        .eq('sender_id', user.id)
+        .eq('sender_id', agentId)
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
 
@@ -63,11 +74,12 @@ export const useAgentReports = () => {
         throw transfersError;
       }
 
-      // Récupérer les retraits de l'agent
+      // Récupérer les retraits traités par l'agent
       const { data: withdrawals, error: withdrawalsError } = await supabase
-        .from('withdrawals')
+        .from('withdrawal_requests')
         .select('amount, created_at')
-        .eq('user_id', user.id)
+        .eq('agent_id', agentId)
+        .eq('status', 'completed')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
 
@@ -76,35 +88,22 @@ export const useAgentReports = () => {
         throw withdrawalsError;
       }
 
-      // Récupérer les dépôts/recharges
+      // Récupérer les dépôts/recharges effectués par l'agent
       const { data: deposits, error: depositsError } = await supabase
         .from('recharges')
         .select('amount, created_at')
-        .eq('provider_transaction_id', user.id)
+        .eq('user_id', agentId)
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
 
       if (depositsError) {
         console.error('❌ Erreur dépôts:', depositsError);
-        // Ne pas faire échouer le rapport si les dépôts ne sont pas disponibles
-      }
-
-      // Récupérer le solde actuel
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('balance')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) {
-        console.error('❌ Erreur profil:', profileError);
-        throw profileError;
       }
 
       const transfersData = transfers || [];
       const withdrawalsData = withdrawals || [];
       const depositsData = deposits || [];
-      const currentBalance = profile?.balance || 0;
+      const currentBalance = agentProfile.balance || 0;
 
       // Calculer les commissions (approximation basée sur les frais)
       const totalCommissions = transfersData.reduce((sum, t) => sum + (Number(t.fees) || 0), 0);
@@ -112,6 +111,8 @@ export const useAgentReports = () => {
       const amountToAdd = Math.max(0, TARGET_BALANCE - currentBalance);
 
       const reportData: AgentReportData = {
+        agent_id: agentId,
+        agent_name: agentProfile.full_name || 'Agent',
         period,
         totalTransfers: transfersData.length,
         totalWithdrawals: withdrawalsData.length,
@@ -123,7 +124,7 @@ export const useAgentReports = () => {
         endDate
       };
 
-      console.log(`✅ Rapport ${period} généré:`, reportData);
+      console.log(`✅ Rapport ${period} généré pour l'agent ${agentProfile.full_name}:`, reportData);
       return reportData;
     } catch (error) {
       console.error(`❌ Erreur lors de la génération du rapport ${period}:`, error);
@@ -132,25 +133,47 @@ export const useAgentReports = () => {
   };
 
   const generateAllReports = async () => {
-    if (!user?.id) {
-      console.log('⚠️ Pas d\'utilisateur connecté pour générer les rapports');
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('🔄 Génération de tous les rapports pour l\'agent:', user.id);
+      console.log('🔄 Génération de tous les rapports d\'agents');
       
+      // Récupérer tous les agents
+      const { data: agents, error: agentsError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('role', 'agent');
+
+      if (agentsError) {
+        throw agentsError;
+      }
+
+      if (!agents || agents.length === 0) {
+        console.log('⚠️ Aucun agent trouvé');
+        setReports([]);
+        return;
+      }
+
       const periods: ('daily' | 'weekly' | 'monthly' | 'yearly')[] = ['daily', 'weekly', 'monthly', 'yearly'];
-      const reportPromises = periods.map(period => generateReport(period));
-      const results = await Promise.all(reportPromises);
+      const allReports: AgentReportData[] = [];
+
+      // Générer les rapports pour chaque agent et chaque période
+      for (const agent of agents) {
+        for (const period of periods) {
+          try {
+            const report = await generateReport(agent.id, period);
+            if (report) {
+              allReports.push(report);
+            }
+          } catch (error) {
+            console.error(`❌ Erreur pour l'agent ${agent.full_name}, période ${period}:`, error);
+          }
+        }
+      }
       
-      const validReports = results.filter((report): report is AgentReportData => report !== null);
-      setReports(validReports);
-      
-      console.log('✅ Tous les rapports générés avec succès:', validReports.length);
+      setReports(allReports);
+      console.log('✅ Tous les rapports générés avec succès:', allReports.length);
     } catch (error) {
       console.error('❌ Erreur lors de la génération des rapports:', error);
       setError(error instanceof Error ? error.message : 'Erreur inconnue');
@@ -159,14 +182,18 @@ export const useAgentReports = () => {
     }
   };
 
-  const getReportByPeriod = (period: 'daily' | 'weekly' | 'monthly' | 'yearly') => {
-    return reports.find(report => report.period === period);
+  const getReportsByAgent = (agentId: string) => {
+    return reports.filter(report => report.agent_id === agentId);
+  };
+
+  const getReportsByPeriod = (period: 'daily' | 'weekly' | 'monthly' | 'yearly') => {
+    return reports.filter(report => report.period === period);
   };
 
   // Auto-génération des rapports au chargement et toutes les heures
   useEffect(() => {
     if (user?.id) {
-      console.log('🚀 Initialisation des rapports automatiques pour:', user.id);
+      console.log('🚀 Initialisation des rapports automatiques');
       generateAllReports();
       
       // Programmer la génération automatique des rapports toutes les heures
@@ -188,6 +215,7 @@ export const useAgentReports = () => {
     error,
     generateReport,
     generateAllReports,
-    getReportByPeriod
+    getReportsByAgent,
+    getReportsByPeriod
   };
 };

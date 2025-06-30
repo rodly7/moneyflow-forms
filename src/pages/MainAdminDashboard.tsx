@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -223,11 +222,34 @@ const MainAdminDashboard = () => {
             </CardContent>
           </Card>
 
+          {/* Rapports des Agents */}
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-3 text-green-600">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-white" />
+                </div>
+                Rapports des Agents
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-4">
+                Consultez les rapports journaliers, hebdomadaires, mensuels et annuels des agents.
+              </p>
+              <Button 
+                onClick={() => navigate('/admin/agent-reports')}
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold h-12 shadow-lg"
+              >
+                Voir les rapports
+              </Button>
+            </CardContent>
+          </Card>
+
           {/* Notifications */}
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
             <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3 text-emerald-600">
-                <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full flex items-center justify-center">
+              <CardTitle className="flex items-center gap-3 text-orange-600">
+                <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
                   <MessageSquare className="w-6 h-6 text-white" />
                 </div>
                 Notifications
@@ -239,7 +261,7 @@ const MainAdminDashboard = () => {
               </p>
               <Button 
                 onClick={() => navigate('/admin/notifications')}
-                className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-semibold h-12 shadow-lg"
+                className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-semibold h-12 shadow-lg"
               >
                 Gérer les notifications
               </Button>

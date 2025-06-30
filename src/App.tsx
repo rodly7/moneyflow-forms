@@ -31,6 +31,7 @@ import AdminBalanceUpdate from "./pages/AdminBalanceUpdate";
 import AdminUsers from "./pages/AdminUsers";
 import AdminNotifications from "./pages/AdminNotifications";
 import AdminSettings from "./pages/AdminSettings";
+import AdminAgentReports from "./pages/AdminAgentReports";
 import Transfer from "./pages/Transfer";
 
 const queryClient = new QueryClient({
@@ -81,6 +82,7 @@ function App() {
                 <Route path="admin/users" element={<AdminUsers />} />
                 <Route path="admin/notifications" element={<AdminNotifications />} />
                 <Route path="admin/settings" element={<AdminSettings />} />
+                <Route path="admin/agent-reports" element={<AdminAgentReports />} />
                 <Route path="transfer" element={<Transfer />} />
               </Route>
             </Routes>
