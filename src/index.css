@@ -51,6 +51,23 @@
     width: 100%;
     overflow-x: hidden;
   }
+  
+  /* Ensure all containers take full width */
+  .container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+  
+  /* Full width utility classes */
+  .w-full-screen {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+  
+  .max-w-full-screen {
+    max-width: 100vw !important;
+  }
 }
 
 .form-step-enter {

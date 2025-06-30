@@ -241,22 +241,24 @@ const AgentPersonalChallenge = () => {
 
   if (isLoading) {
     return (
-      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-        <CardContent className="p-8">
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="w-full max-w-full">
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl w-full">
+          <CardContent className="p-8">
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   const progressPercentage = challenge ? (todayStats.total / challenge.target_operations) * 100 : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-full space-y-6">
       {/* Stats actuelles */}
-      <Card className="bg-gradient-to-r from-orange-600 to-red-600 text-white border-0 shadow-xl">
+      <Card className="bg-gradient-to-r from-orange-600 to-red-600 text-white border-0 shadow-xl w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Flame className="w-5 h-5" />
@@ -286,7 +288,7 @@ const AgentPersonalChallenge = () => {
       </Card>
 
       {/* Défi personnel */}
-      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="w-5 h-5 text-orange-600" />

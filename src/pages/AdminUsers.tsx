@@ -6,13 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Users, CreditCard, Wallet, Send } from "lucide-react";
+import { ArrowLeft, Users, CreditCard, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import UsersDataTable from "@/components/admin/UsersDataTable";
 import BatchAgentRecharge from "@/components/admin/BatchAgentRecharge";
 import BatchAgentDeposit from "@/components/admin/BatchAgentDeposit";
 import AdminSelfRecharge from "@/components/admin/AdminSelfRecharge";
-import NotificationSender from "@/components/admin/NotificationSender";
 
 interface UserData {
   id: string;
@@ -144,9 +143,9 @@ const AdminUsers = () => {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 p-4">
-      <div className="container mx-auto max-w-7xl">
+      <div className="w-full max-w-none">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 w-full">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -164,8 +163,8 @@ const AdminUsers = () => {
         </div>
 
         {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl h-14">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full">
+          <TabsList className="grid w-full grid-cols-4 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl h-14">
             <TabsTrigger value="users" className="flex items-center gap-2 h-10">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Utilisateurs</span>
@@ -182,51 +181,51 @@ const AdminUsers = () => {
               <Wallet className="w-4 h-4" />
               <span className="hidden sm:inline">Mon Solde</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2 h-10">
-              <Send className="w-4 h-4" />
-              <span className="hidden sm:inline">Notifications</span>
-            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="users" className="space-y-6">
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+          <TabsContent value="users" className="space-y-6 w-full">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl w-full">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
                   Gestion des Utilisateurs
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="w-full overflow-x-auto">
                 {loading ? (
                   <div className="flex items-center justify-center p-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
                   </div>
                 ) : (
-                  <UsersDataTable 
-                    users={users}
-                    onViewUser={handleViewUser}
-                    onQuickRoleChange={handleQuickRoleChange}
-                    onQuickBanToggle={handleQuickBanToggle}
-                  />
+                  <div className="w-full">
+                    <UsersDataTable 
+                      users={users}
+                      onViewUser={handleViewUser}
+                      onQuickRoleChange={handleQuickRoleChange}
+                      onQuickBanToggle={handleQuickBanToggle}
+                    />
+                  </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="batch-recharge" className="space-y-6">
-            <BatchAgentRecharge />
+          <TabsContent value="batch-recharge" className="space-y-6 w-full">
+            <div className="w-full">
+              <BatchAgentRecharge />
+            </div>
           </TabsContent>
 
-          <TabsContent value="batch-deposit" className="space-y-6">
-            <BatchAgentDeposit onBack={() => setActiveTab("users")} />
+          <TabsContent value="batch-deposit" className="space-y-6 w-full">
+            <div className="w-full">
+              <BatchAgentDeposit onBack={() => setActiveTab("users")} />
+            </div>
           </TabsContent>
 
-          <TabsContent value="self-recharge" className="space-y-6">
-            <AdminSelfRecharge />
-          </TabsContent>
-
-          <TabsContent value="notifications" className="space-y-6">
-            <NotificationSender />
+          <TabsContent value="self-recharge" className="space-y-6 w-full">
+            <div className="w-full">
+              <AdminSelfRecharge />
+            </div>
           </TabsContent>
         </Tabs>
       </div>
