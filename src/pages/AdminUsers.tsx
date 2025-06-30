@@ -7,28 +7,77 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Users, CreditCard, Wallet, Send } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import UsersDataTable from "@/components/admin/UsersDataTable";
 import BatchAgentRecharge from "@/components/admin/BatchAgentRecharge";
 import BatchAgentDeposit from "@/components/admin/BatchAgentDeposit";
 import AdminSelfRecharge from "@/components/admin/AdminSelfRecharge";
 import NotificationSender from "@/components/admin/NotificationSender";
 
+interface UserData {
+  id: string;
+  full_name: string | null;
+  phone: string;
+  balance: number;
+  country: string | null;
+  role: 'user' | 'agent' | 'admin' | 'sub_admin';
+  is_banned?: boolean;
+  banned_reason?: string | null;
+  created_at: string;
+}
+
 const AdminUsers = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("users");
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (profile?.role !== 'admin') {
       navigate('/dashboard');
       return;
     }
+    fetchUsers();
   }, [profile, navigate]);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des utilisateurs:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les utilisateurs",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleQuickRoleChange = async (userId: string, newRole: 'user' | 'agent' | 'admin' | 'sub_admin') => {
     try {
-      // Implementation for role change would go here
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      // Mettre à jour la liste locale
+      setUsers(prev => prev.map(user => 
+        user.id === userId ? { ...user, role: newRole } : user
+      ));
+
       toast({
         title: "Rôle mis à jour",
         description: `Le rôle a été changé vers ${newRole}`,
@@ -41,6 +90,52 @@ const AdminUsers = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleQuickBanToggle = async (userId: string, currentBanStatus: boolean) => {
+    try {
+      const newBanStatus = !currentBanStatus;
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          is_banned: newBanStatus,
+          banned_at: newBanStatus ? new Date().toISOString() : null,
+          banned_reason: newBanStatus ? 'Banni par l\'administrateur' : null
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      // Mettre à jour la liste locale
+      setUsers(prev => prev.map(user => 
+        user.id === userId ? { 
+          ...user, 
+          is_banned: newBanStatus,
+          banned_reason: newBanStatus ? 'Banni par l\'administrateur' : null
+        } : user
+      ));
+
+      toast({
+        title: newBanStatus ? "Utilisateur banni" : "Utilisateur débanni",
+        description: newBanStatus ? "L'utilisateur a été banni avec succès" : "L'utilisateur a été débanni avec succès",
+      });
+    } catch (error) {
+      console.error("Erreur lors du bannissement:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de modifier le statut de bannissement",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleViewUser = (user: UserData) => {
+    // Pour l'instant, on affiche les détails dans un toast
+    // Plus tard, on pourra ouvrir une modal détaillée
+    toast({
+      title: "Détails utilisateur",
+      description: `${user.full_name || 'Sans nom'} - ${user.phone} - Solde: ${user.balance} FCFA`,
+    });
   };
 
   if (!profile || profile.role !== 'admin') {
@@ -102,7 +197,18 @@ const AdminUsers = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <UsersDataTable onQuickRoleChange={handleQuickRoleChange} />
+                {loading ? (
+                  <div className="flex items-center justify-center p-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                  </div>
+                ) : (
+                  <UsersDataTable 
+                    users={users}
+                    onViewUser={handleViewUser}
+                    onQuickRoleChange={handleQuickRoleChange}
+                    onQuickBanToggle={handleQuickBanToggle}
+                  />
+                )}
               </CardContent>
             </Card>
           </TabsContent>
