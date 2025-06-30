@@ -78,32 +78,21 @@ const AgentPersonalChallenge = () => {
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // Using supabase.rpc or direct query with proper typing
+      // Query the agent_challenges table directly
       const { data: existingChallenge, error } = await supabase
-        .rpc('get_agent_challenge', {
-          agent_id_param: user.id,
-          date_param: today
-        });
+        .from('agent_challenges')
+        .select('*')
+        .eq('agent_id', user.id)
+        .eq('date', today)
+        .maybeSingle();
 
       if (error) {
-        console.log('No existing challenge found, using alternative method');
-        // Fallback to direct query if RPC doesn't exist
-        const { data: fallbackData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .limit(1);
-        
-        // We'll create a simple challenge tracking in localStorage for now
-        const storedChallenge = localStorage.getItem(`challenge_${user.id}_${today}`);
-        if (storedChallenge) {
-          setChallenge(JSON.parse(storedChallenge));
-        }
+        console.log('Error fetching challenge:', error);
         return;
       }
 
-      if (existingChallenge && existingChallenge.length > 0) {
-        setChallenge(existingChallenge[0] as Challenge);
+      if (existingChallenge) {
+        setChallenge(existingChallenge);
       }
     } catch (error) {
       console.error('Erreur lors du chargement du défi:', error);
@@ -160,15 +149,27 @@ const AgentPersonalChallenge = () => {
         if (stats.total >= challenge.target_operations && !challenge.completed) {
           updatedChallenge.completed = true;
           
+          // Update in database
+          await supabase
+            .from('agent_challenges')
+            .update({ 
+              current_operations: stats.total,
+              completed: true 
+            })
+            .eq('id', challenge.id);
+          
           toast({
             title: "🎉 Défi accompli !",
             description: `Félicitations ! Vous avez atteint votre objectif de ${challenge.target_operations} opérations !`,
           });
+        } else if (stats.total !== challenge.current_operations) {
+          // Update current operations in database
+          await supabase
+            .from('agent_challenges')
+            .update({ current_operations: stats.total })
+            .eq('id', challenge.id);
         }
         
-        // Update in localStorage
-        const today = new Date().toISOString().split('T')[0];
-        localStorage.setItem(`challenge_${user.id}_${today}`, JSON.stringify(updatedChallenge));
         setChallenge(updatedChallenge);
       }
     } catch (error) {
@@ -183,17 +184,23 @@ const AgentPersonalChallenge = () => {
       const today = new Date().toISOString().split('T')[0];
       const rewardPoints = Math.round(targetOperations * 10);
 
-      const newChallenge: Challenge = {
-        id: crypto.randomUUID(),
-        target_operations: targetOperations,
-        current_operations: todayStats.total,
-        date: today,
-        completed: false,
-        reward_points: rewardPoints
-      };
+      const { data: newChallenge, error } = await supabase
+        .from('agent_challenges')
+        .insert({
+          agent_id: user.id,
+          target_operations: targetOperations,
+          current_operations: todayStats.total,
+          date: today,
+          completed: false,
+          reward_points: rewardPoints
+        })
+        .select()
+        .single();
 
-      // Store in localStorage for now
-      localStorage.setItem(`challenge_${user.id}_${today}`, JSON.stringify(newChallenge));
+      if (error) {
+        throw error;
+      }
+
       setChallenge(newChallenge);
       
       toast({
