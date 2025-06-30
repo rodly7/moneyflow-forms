@@ -175,7 +175,7 @@ const Transactions = () => {
   const renderTransaction = (transaction: Transaction) => (
     <div 
       key={transaction.id} 
-      className="flex flex-col p-3 rounded-lg border hover:bg-gray-50 transition-colors"
+      className="flex flex-col p-3 rounded-lg border hover:bg-gray-50 transition-colors w-full"
     >
       <div className="flex justify-between items-start w-full">
         <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -248,8 +248,8 @@ const Transactions = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-500/20 to-blue-500/20 p-4">
-      <div className="container max-w-2xl mx-auto">
+    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 p-4">
+      <div className="w-full">
         <Button
           variant="ghost"
           onClick={() => navigate('/')}
@@ -259,12 +259,12 @@ const Transactions = () => {
           Retour
         </Button>
 
-        <Card className="shadow-lg">
+        <Card className="shadow-lg w-full">
           <CardHeader className="py-4 px-4">
             <CardTitle className="text-lg font-semibold">Historique des transactions</CardTitle>
           </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="space-y-3">
+          <CardContent className="p-4 pt-0 w-full">
+            <div className="space-y-3 w-full">
               {processedTransactions.length > 0 ? (
                 processedTransactions.map(renderTransaction)
               ) : (

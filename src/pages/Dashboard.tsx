@@ -67,7 +67,7 @@ const Dashboard = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
           <CardContent className="pt-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -100,9 +100,9 @@ const Dashboard = () => {
       <div className="absolute top-1/4 left-1/4 w-32 h-32 md:w-64 md:h-64 bg-blue-200/20 rounded-full blur-3xl animate-pulse"></div>
       <div className="absolute bottom-1/4 right-1/4 w-48 h-48 md:w-96 md:h-96 bg-purple-200/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
       
-      <div className="relative z-10 container mx-auto px-4 py-4 md:py-8 max-w-6xl">
+      <div className="relative z-10 w-full px-4 py-4 md:py-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4 backdrop-blur-sm bg-white/70 rounded-2xl p-4 md:p-6 shadow-lg border border-white/20">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4 backdrop-blur-sm bg-white/70 rounded-2xl p-4 md:p-6 shadow-lg border border-white/20 w-full">
           <div className="flex items-center gap-3">
             <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Tableau de bord - Utilisateur
@@ -132,10 +132,12 @@ const Dashboard = () => {
         </div>
 
         {/* Profile Info */}
-        <UserProfileInfo />
+        <div className="w-full">
+          <UserProfileInfo />
+        </div>
 
         {/* Balance Card */}
-        <Card className="mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-xl">
+        <Card className="mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-xl w-full">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -147,18 +149,18 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
           {/* Actions utilisateur */}
-          <div className="space-y-6">
+          <div className="space-y-6 w-full">
             {/* Actions Rapides */}
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl w-full">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-blue-600">
                   <DollarSign className="w-5 h-5" />
                   Actions Disponibles
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-3 w-full">
                 <Button 
                   onClick={() => navigate('/transfer')}
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold h-12 shadow-lg"
@@ -188,7 +190,7 @@ const Dashboard = () => {
             </Card>
 
             {/* Information importante */}
-            <Card className="bg-gradient-to-r from-orange-50 to-red-50 border-l-4 border-orange-500">
+            <Card className="bg-gradient-to-r from-orange-50 to-red-50 border-l-4 border-orange-500 w-full">
               <CardContent className="p-4">
                 <h3 className="font-semibold text-orange-800 mb-2">Information importante</h3>
                 <div className="space-y-2 text-sm text-orange-700">
@@ -201,7 +203,7 @@ const Dashboard = () => {
           </div>
 
           {/* Notifications */}
-          <div>
+          <div className="w-full">
             <NotificationsCard />
           </div>
         </div>

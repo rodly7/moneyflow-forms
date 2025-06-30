@@ -46,9 +46,9 @@ const TransferForm = () => {
   // Écran de confirmation pour transfert en attente
   if (pendingTransferInfo) {
     return (
-      <div className="w-full px-2 sm:px-0">
-        <Card className="backdrop-blur-md bg-white/80 shadow-xl rounded-xl border-0 overflow-hidden">
-          <div className="p-4 md:p-6">
+      <div className="w-full">
+        <Card className="backdrop-blur-md bg-white/80 shadow-xl rounded-xl border-0 overflow-hidden w-full">
+          <div className="p-4 md:p-6 w-full">
             <div className="text-center mb-6">
               <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold">Transfert en attente</h2>
@@ -57,7 +57,7 @@ const TransferForm = () => {
               </p>
             </div>
             
-            <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+            <div className="space-y-4 bg-gray-50 p-4 rounded-lg w-full">
               <div>
                 <p className="text-sm text-gray-500">Téléphone du destinataire</p>
                 <p className="font-medium">{pendingTransferInfo.recipientPhone}</p>
@@ -87,7 +87,7 @@ const TransferForm = () => {
             <div className="flex justify-center mt-6">
               <Button 
                 onClick={resetForm} 
-                className={`${
+                className={`w-full ${
                   userRole === 'agent' 
                     ? 'bg-blue-600 hover:bg-blue-700' 
                     : 'bg-emerald-600 hover:bg-emerald-700'
@@ -104,26 +104,28 @@ const TransferForm = () => {
 
   // Formulaire de transfert principal
   return (
-    <div className="w-full px-2 sm:px-0">
-      <Card className="backdrop-blur-md bg-white/80 shadow-xl rounded-xl border-0 overflow-hidden">
-        <div className="p-4 md:p-6">
+    <div className="w-full">
+      <Card className="backdrop-blur-md bg-white/80 shadow-xl rounded-xl border-0 overflow-hidden w-full">
+        <div className="p-4 md:p-6 w-full">
           {/* En-tête adapté selon le rôle */}
           {userRole === 'agent' && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md w-full">
               <p className="text-blue-700 text-sm font-medium">
                 💼 Mode Agent: Effectuez des transferts pour vos clients depuis {profile?.country || 'votre pays'}
               </p>
             </div>
           )}
 
-          <div className="mb-6">
+          <div className="mb-6 w-full">
             <TransferStepper steps={steps} currentStep={currentStep} />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <CurrentStepComponent {...data} updateFields={updateFields} />
+          <form onSubmit={handleSubmit} className="space-y-6 w-full">
+            <div className="w-full">
+              <CurrentStepComponent {...data} updateFields={updateFields} />
+            </div>
             
-            <div className="mt-6 flex flex-col sm:flex-row justify-between gap-3">
+            <div className="mt-6 flex flex-col sm:flex-row justify-between gap-3 w-full">
               {currentStep !== 0 && (
                 <Button 
                   type="button" 
