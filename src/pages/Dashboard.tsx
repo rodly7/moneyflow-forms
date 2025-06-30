@@ -8,8 +8,8 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import UserProfileInfo from "@/components/profile/UserProfileInfo";
-import NotificationsCard from "@/components/notifications/NotificationsCard";
 import QRCodeGenerator from "@/components/QRCodeGenerator";
+import { formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
   const { user, profile, signOut } = useAuth();
@@ -94,6 +94,12 @@ const Dashboard = () => {
     return null;
   }
 
+  // Déterminer la devise basée sur le pays de l'utilisateur
+  const userCurrency = getCurrencyForCountry(profile.country || "Cameroun");
+  
+  // Convertir le solde de XAF (devise de base) vers la devise de l'utilisateur
+  const convertedBalance = convertCurrency(balance, "XAF", userCurrency);
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
       {/* Background decorative elements */}
@@ -142,16 +148,23 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-100 text-sm">Solde Principal</p>
-                <p className="text-2xl md:text-3xl font-bold">{balance.toLocaleString()} XAF</p>
+                <p className="text-2xl md:text-3xl font-bold">
+                  {formatCurrency(convertedBalance, userCurrency)}
+                </p>
+                {userCurrency !== "XAF" && (
+                  <p className="text-xs text-blue-200 mt-1">
+                    Converti de {formatCurrency(balance, "XAF")}
+                  </p>
+                )}
               </div>
               <Wallet className="w-8 h-8 text-blue-200" />
             </div>
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+        <div className="w-full">
           {/* Actions utilisateur */}
-          <div className="space-y-6 w-full">
+          <div className="w-full">
             {/* Actions Rapides */}
             <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl w-full">
               <CardHeader className="pb-4">
@@ -190,7 +203,7 @@ const Dashboard = () => {
             </Card>
 
             {/* Information importante */}
-            <Card className="bg-gradient-to-r from-orange-50 to-red-50 border-l-4 border-orange-500 w-full">
+            <Card className="mt-6 bg-gradient-to-r from-orange-50 to-red-50 border-l-4 border-orange-500 w-full">
               <CardContent className="p-4">
                 <h3 className="font-semibold text-orange-800 mb-2">Information importante</h3>
                 <div className="space-y-2 text-sm text-orange-700">
@@ -200,11 +213,6 @@ const Dashboard = () => {
                 </div>
               </CardContent>
             </Card>
-          </div>
-
-          {/* Notifications */}
-          <div className="w-full">
-            <NotificationsCard />
           </div>
         </div>
       </div>

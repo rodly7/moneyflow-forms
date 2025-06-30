@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import UserProfileInfo from "@/components/profile/UserProfileInfo";
-import NotificationsCard from "@/components/notifications/NotificationsCard";
+import { formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
 
 const NewAgentDashboard = () => {
   const { user, profile, signOut } = useAuth();
@@ -91,6 +92,13 @@ const NewAgentDashboard = () => {
     );
   }
 
+  // Déterminer la devise basée sur le pays de l'agent
+  const agentCurrency = getCurrencyForCountry(profile.country || "Cameroun");
+  
+  // Convertir les soldes de XAF (devise de base) vers la devise de l'agent
+  const convertedBalance = convertCurrency(balance, "XAF", agentCurrency);
+  const convertedCommissionBalance = convertCurrency(commissionBalance, "XAF", agentCurrency);
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-50 via-blue-50 to-purple-50 relative overflow-hidden">
       {/* Background decorative elements */}
@@ -140,7 +148,14 @@ const NewAgentDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-emerald-100 text-sm">Solde Principal</p>
-                  <p className="text-2xl md:text-3xl font-bold">{balance.toLocaleString()} XAF</p>
+                  <p className="text-2xl md:text-3xl font-bold">
+                    {formatCurrency(convertedBalance, agentCurrency)}
+                  </p>
+                  {agentCurrency !== "XAF" && (
+                    <p className="text-xs text-emerald-200 mt-1">
+                      Converti de {formatCurrency(balance, "XAF")}
+                    </p>
+                  )}
                 </div>
                 <Wallet className="w-8 h-8 text-emerald-200" />
               </div>
@@ -152,7 +167,14 @@ const NewAgentDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-purple-100 text-sm">Commissions</p>
-                  <p className="text-2xl md:text-3xl font-bold">{commissionBalance.toLocaleString()} XAF</p>
+                  <p className="text-2xl md:text-3xl font-bold">
+                    {formatCurrency(convertedCommissionBalance, agentCurrency)}
+                  </p>
+                  {agentCurrency !== "XAF" && (
+                    <p className="text-xs text-purple-200 mt-1">
+                      Converti de {formatCurrency(commissionBalance, "XAF")}
+                    </p>
+                  )}
                 </div>
                 <Percent className="w-8 h-8 text-purple-200" />
               </div>
@@ -160,9 +182,9 @@ const NewAgentDashboard = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+        <div className="w-full">
           {/* Actions agent */}
-          <div className="space-y-6 w-full">
+          <div className="w-full">
             {/* Actions Rapides */}
             <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl w-full">
               <CardHeader className="pb-4">
@@ -219,7 +241,7 @@ const NewAgentDashboard = () => {
             </Card>
 
             {/* Information importante */}
-            <Card className="bg-gradient-to-r from-emerald-50 to-blue-50 border-l-4 border-emerald-500 w-full">
+            <Card className="mt-6 bg-gradient-to-r from-emerald-50 to-blue-50 border-l-4 border-emerald-500 w-full">
               <CardContent className="p-4">
                 <h3 className="font-semibold text-emerald-800 mb-2">Information Agent</h3>
                 <div className="space-y-2 text-sm text-emerald-700">
@@ -231,11 +253,6 @@ const NewAgentDashboard = () => {
                 </div>
               </CardContent>
             </Card>
-          </div>
-
-          {/* Notifications */}
-          <div className="w-full">
-            <NotificationsCard />
           </div>
         </div>
       </div>
