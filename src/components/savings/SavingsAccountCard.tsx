@@ -35,7 +35,7 @@ const SavingsAccountCard = ({ account, onDeposit, onWithdraw }: SavingsAccountCa
     <Card className="w-full bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-green-700">
-          <Piggy Bank className="w-5 h-5" />
+          <PiggyBank className="w-5 h-5" />
           {account.name}
         </CardTitle>
       </CardHeader>
