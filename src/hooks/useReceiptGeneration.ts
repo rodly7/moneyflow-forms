@@ -1,63 +1,66 @@
 
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { generateReceipt, downloadReceipt } from "@/components/receipts/ReceiptGenerator";
-
-interface TransactionData {
-  id: string;
-  type: 'transfer' | 'withdrawal' | 'deposit' | 'savings';
-  amount: number;
-  recipient_name?: string;
-  recipient_phone?: string;
-  fees?: number;
-  status?: string;
-}
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export const useReceiptGeneration = () => {
-  const { user, profile } = useAuth();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { toast } = useToast();
 
-  const generateAndSaveReceipt = async (transaction: TransactionData) => {
-    if (!user || !profile) return;
-
+  const generateReceipt = async (transactionId: string, transactionType: string) => {
+    setIsGenerating(true);
+    
     try {
-      // Sauvegarder les données du reçu en base
+      // Use transfers table instead of non-existent transaction_receipts
+      const { data: existingTransfer, error: fetchError } = await supabase
+        .from('transfers')
+        .select('*')
+        .eq('id', transactionId)
+        .single();
+
+      if (fetchError || !existingTransfer) {
+        throw new Error('Transaction non trouvée');
+      }
+
+      // Generate receipt data from transfer
       const receiptData = {
-        amount: transaction.amount,
-        recipient_name: transaction.recipient_name,
-        recipient_phone: transaction.recipient_phone,
-        fees: transaction.fees,
-        status: transaction.status || 'completed'
+        id: existingTransfer.id,
+        transaction_id: existingTransfer.id,
+        transaction_type: transactionType,
+        receipt_data: {
+          amount: existingTransfer.amount,
+          fees: existingTransfer.fees,
+          recipient: existingTransfer.recipient_full_name,
+          phone: existingTransfer.recipient_phone,
+          country: existingTransfer.recipient_country,
+          status: existingTransfer.status,
+          date: existingTransfer.created_at
+        },
+        created_at: existingTransfer.created_at,
+        user_id: existingTransfer.sender_id
       };
 
-      await supabase
-        .from('transaction_receipts' as any)
-        .insert({
-          user_id: user.id,
-          transaction_id: transaction.id,
-          transaction_type: transaction.type,
-          receipt_data: receiptData
-        });
+      toast({
+        title: "Reçu généré",
+        description: "Le reçu de transaction a été généré avec succès",
+      });
 
-      // Générer et télécharger le PDF
-      const userData = {
-        full_name: profile.full_name || 'Utilisateur',
-        phone: profile.phone,
-        country: profile.country || 'Non défini'
-      };
-
-      const transactionForPDF = {
-        ...transaction,
-        created_at: new Date().toISOString(),
-        status: transaction.status || 'completed'
-      };
-
-      const doc = generateReceipt(transactionForPDF, userData);
-      downloadReceipt(doc, transaction.id);
-
+      return receiptData;
     } catch (error) {
-      console.error('Erreur lors de la génération du reçu:', error);
+      console.error('Erreur génération reçu:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de générer le reçu",
+        variant: "destructive"
+      });
+      return null;
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  return { generateAndSaveReceipt };
+  return {
+    generateReceipt,
+    isGenerating
+  };
 };

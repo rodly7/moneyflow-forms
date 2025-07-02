@@ -19,15 +19,11 @@ const Layout = () => {
     if (publicPaths.includes(location.pathname)) {
       // Si l'utilisateur est connecté et sur une page publique, rediriger vers le dashboard approprié
       if (user && profile) {
-        const isMainAdmin = profile.phone === '+221773637752';
-        const isSubAdmin = profile.role === 'sub_admin';
-        const isAgent = profile.role === 'agent';
-        
-        if (isMainAdmin) {
+        if (profile.role === 'admin') {
           navigate('/admin-dashboard', { replace: true });
-        } else if (isSubAdmin) {
+        } else if (profile.role === 'sub_admin') {
           navigate('/sub-admin-dashboard', { replace: true });
-        } else if (isAgent) {
+        } else if (profile.role === 'agent') {
           navigate('/agent-dashboard', { replace: true });
         } else {
           navigate('/dashboard', { replace: true });

@@ -21,6 +21,8 @@ import Savings from "./pages/Savings";
 import Receipts from "./pages/Receipts";
 import QRCode from "./pages/QRCode";
 import AgentAuth from "./pages/AgentAuth";
+import AgentServices from "./pages/AgentServices";
+import DepositWithdrawalForm from "./components/deposit-withdrawal/DepositWithdrawalForm";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +46,8 @@ function App() {
                 <Route path="transfer" element={<Transfer />} />
                 <Route path="transactions" element={<Transactions />} />
                 <Route path="deposit" element={<UnifiedDepositWithdrawal />} />
+                <Route path="deposit-withdrawal" element={<DepositWithdrawalForm />} />
+                <Route path="agent-services" element={<AgentServices />} />
                 <Route path="commission" element={<Commission />} />
                 <Route path="agent-performance" element={<AgentPerformanceDashboard />} />
                 <Route path="savings" element={<Savings />} />

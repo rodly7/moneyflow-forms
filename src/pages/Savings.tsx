@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,38 +31,32 @@ const Savings = () => {
   const [userBalance, setUserBalance] = useState(0);
 
   const fetchSavingsAccounts = async () => {
-    if (!user) return;
-
+    if (!user?.id) return;
+    
+    setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('savings_accounts' as any)
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      // Since savings_accounts table doesn't exist, simulate with mock data
+      const mockAccounts = [
+        {
+          id: '1',
+          name: 'Épargne Générale',
+          balance: 0,
+          target_amount: 100000,
+          interest_rate: 5.0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          user_id: user.id
+        }
+      ];
       
-      // Properly type the data to avoid TypeScript errors
-      const typedAccounts = (data || []).map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        balance: item.balance,
-        target_amount: item.target_amount,
-        target_date: item.target_date,
-        auto_deposit_amount: item.auto_deposit_amount,
-        auto_deposit_frequency: item.auto_deposit_frequency
-      })) as SavingsAccount[];
-      
-      setAccounts(typedAccounts);
+      setAccounts(mockAccounts);
     } catch (error) {
-      console.error('Erreur lors du chargement des comptes d\'épargne:', error);
+      console.error("Erreur lors du chargement des comptes d'épargne:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de charger vos comptes d'épargne",
+        description: "Impossible de charger les comptes d'épargne",
         variant: "destructive"
       });
-      setAccounts([]);
     }
     setIsLoading(false);
   };

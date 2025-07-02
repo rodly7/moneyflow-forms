@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,30 +21,44 @@ const ReceiptsList = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchReceipts = async () => {
-    if (!user) return;
-
+    if (!user?.id) return;
+    
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from('transaction_receipts' as any)
+        .from('transfers') // Use transfers table instead of non-existent transaction_receipts
         .select('*')
-        .eq('user_id', user.id)
+        .eq('sender_id', user.id)
         .order('created_at', { ascending: false });
-
+      
       if (error) throw error;
       
-      // Properly type the data to avoid TypeScript errors
-      const typedReceipts = (data || []).map((item: any) => ({
-        id: item.id,
-        transaction_id: item.transaction_id,
-        transaction_type: item.transaction_type,
-        receipt_data: item.receipt_data,
-        created_at: item.created_at
-      })) as Receipt[];
+      // Map transfer data to receipt format
+      const mappedReceipts = (data || []).map((transfer: any) => ({
+        id: transfer.id,
+        transaction_id: transfer.id,
+        transaction_type: 'transfer',
+        receipt_data: {
+          amount: transfer.amount,
+          fees: transfer.fees,
+          recipient: transfer.recipient_full_name,
+          phone: transfer.recipient_phone,
+          country: transfer.recipient_country,
+          status: transfer.status,
+          date: transfer.created_at
+        },
+        created_at: transfer.created_at,
+        user_id: transfer.sender_id
+      }));
       
-      setReceipts(typedReceipts);
+      setReceipts(mappedReceipts);
     } catch (error) {
-      console.error('Erreur lors du chargement des reçus:', error);
-      setReceipts([]);
+      console.error("Erreur lors du chargement des reçus:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les reçus",
+        variant: "destructive"
+      });
     }
     setIsLoading(false);
   };

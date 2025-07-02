@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -12,24 +11,49 @@ import { formatCurrency } from "@/integrations/supabase/client";
 interface SavingsDepositModalProps {
   isOpen: boolean;
   onClose: () => void;
-  accountId: string;
-  accountName: string;
-  userBalance: number;
-  onDepositSuccess: () => void;
+  account: any;
+  onSuccess: () => void;
 }
 
 const SavingsDepositModal = ({ 
   isOpen, 
   onClose, 
-  accountId, 
-  accountName, 
-  userBalance,
-  onDepositSuccess 
+  account, 
+  onSuccess 
 }: SavingsDepositModalProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [amount, setAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [userBalance, setUserBalance] = useState(0);
+
+  const fetchUserBalance = async () => {
+    if (!user?.id) return;
+    
+    setIsLoadingBalance(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('balance')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      
+      // Cast data to ensure it has the correct type
+      const profileData = data as { balance: number };
+      setUserBalance(profileData.balance || 0);
+    } catch (error) {
+      console.error("Erreur lors du chargement du solde:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger votre solde",
+        variant: "destructive"
+      });
+    }
+    setIsLoadingBalance(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +94,7 @@ const SavingsDepositModal = ({
       const { data: currentAccount, error: fetchError } = await supabase
         .from('savings_accounts' as any)
         .select('balance')
-        .eq('id', accountId)
+        .eq('id', account.id)
         .eq('user_id', user.id)
         .single();
 
@@ -87,7 +111,7 @@ const SavingsDepositModal = ({
           balance: newBalance,
           updated_at: new Date().toISOString()
         })
-        .eq('id', accountId)
+        .eq('id', account.id)
         .eq('user_id', user.id);
 
       if (savingsError) throw savingsError;
@@ -96,7 +120,7 @@ const SavingsDepositModal = ({
       const { error: depositError } = await supabase
         .from('savings_deposits' as any)
         .insert({
-          savings_account_id: accountId,
+          savings_account_id: account.id,
           user_id: user.id,
           amount: depositAmount,
           type: 'manual'
@@ -106,10 +130,10 @@ const SavingsDepositModal = ({
 
       toast({
         title: "Dépôt effectué",
-        description: `${formatCurrency(depositAmount, "XAF")} transféré vers ${accountName}`,
+        description: `${formatCurrency(depositAmount, "XAF")} transféré vers ${account.name}`,
       });
 
-      onDepositSuccess();
+      onSuccess();
       onClose();
       setAmount("");
     } catch (error) {
@@ -128,7 +152,7 @@ const SavingsDepositModal = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle>Dépôt vers {accountName}</DialogTitle>
+          <DialogTitle>Dépôt vers {account.name}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
