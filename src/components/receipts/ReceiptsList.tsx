@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Download, FileText, Calendar } from "lucide-react";
 import { generateReceipt, downloadReceipt } from "./ReceiptGenerator";
 import { formatCurrency } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Receipt {
   id: string;
@@ -17,6 +19,7 @@ interface Receipt {
 
 const ReceiptsList = () => {
   const { user, profile } = useAuth();
+  const { toast } = useToast();
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -26,14 +29,13 @@ const ReceiptsList = () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from('transfers') // Use transfers table instead of non-existent transaction_receipts
+        .from('transfers')
         .select('*')
         .eq('sender_id', user.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       
-      // Map transfer data to receipt format
       const mappedReceipts = (data || []).map((transfer: any) => ({
         id: transfer.id,
         transaction_id: transfer.id,

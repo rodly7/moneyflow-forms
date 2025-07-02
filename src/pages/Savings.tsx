@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,10 +15,14 @@ interface SavingsAccount {
   id: string;
   name: string;
   balance: number;
-  target_amount: number | null;
+  target_amount: number;
   target_date: string | null;
   auto_deposit_amount: number | null;
   auto_deposit_frequency: string | null;
+  interest_rate: number;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
 }
 
 const Savings = () => {
@@ -27,7 +32,7 @@ const Savings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
-  const [selectedAccount, setSelectedAccount] = useState<{ id: string; name: string } | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<SavingsAccount | null>(null);
   const [userBalance, setUserBalance] = useState(0);
 
   const fetchSavingsAccounts = async () => {
@@ -35,13 +40,15 @@ const Savings = () => {
     
     setIsLoading(true);
     try {
-      // Since savings_accounts table doesn't exist, simulate with mock data
-      const mockAccounts = [
+      const mockAccounts: SavingsAccount[] = [
         {
           id: '1',
           name: 'Épargne Générale',
           balance: 0,
           target_amount: 100000,
+          target_date: null,
+          auto_deposit_amount: null,
+          auto_deposit_frequency: null,
           interest_rate: 5.0,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -78,15 +85,12 @@ const Savings = () => {
     }
   };
 
-  const handleDeposit = (accountId: string) => {
-    const account = accounts.find(acc => acc.id === accountId);
-    if (account) {
-      setSelectedAccount({ id: accountId, name: account.name });
-      setShowDepositModal(true);
-    }
+  const handleDeposit = (account: SavingsAccount) => {
+    setSelectedAccount(account);
+    setShowDepositModal(true);
   };
 
-  const handleWithdraw = (accountId: string) => {
+  const handleWithdraw = (account: SavingsAccount) => {
     toast({
       title: "Fonctionnalité à venir",
       description: "Le retrait depuis l'épargne sera bientôt disponible",
@@ -111,7 +115,6 @@ const Savings = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 p-4">
       <div className="max-w-4xl mx-auto">
-        {/* En-tête */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <PiggyBank className="w-8 h-8 text-green-600" />
@@ -126,7 +129,6 @@ const Savings = () => {
           </Button>
         </div>
 
-        {/* Résumé */}
         <Card className="mb-6 bg-gradient-to-r from-green-600 to-emerald-600 text-white">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -152,7 +154,6 @@ const Savings = () => {
           </CardContent>
         </Card>
 
-        {/* Liste des comptes d'épargne */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
@@ -183,17 +184,15 @@ const Savings = () => {
                 key={account.id}
                 account={account}
                 onDeposit={handleDeposit}
-                onWithdraw={handleWithdraw}
               />
             ))}
           </div>
         )}
 
-        {/* Modales */}
         <CreateSavingsAccountModal
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
-          onAccountCreated={() => {
+          onSuccess={() => {
             fetchSavingsAccounts();
             fetchUserBalance();
           }}
@@ -206,10 +205,8 @@ const Savings = () => {
               setShowDepositModal(false);
               setSelectedAccount(null);
             }}
-            accountId={selectedAccount.id}
-            accountName={selectedAccount.name}
-            userBalance={userBalance}
-            onDepositSuccess={() => {
+            account={selectedAccount}
+            onSuccess={() => {
               fetchSavingsAccounts();
               fetchUserBalance();
             }}

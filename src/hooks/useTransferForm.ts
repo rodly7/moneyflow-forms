@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,7 +36,7 @@ const FORM_STEPS: TransferStep[] = [
 export function useTransferForm() {
   const { user, profile, userRole } = useAuth();
   const { toast } = useToast();
-  const { generateAndSaveReceipt } = useReceiptGeneration();
+  const { generateReceipt } = useReceiptGeneration();
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [pendingTransferInfo, setPendingTransferInfo] = useState<PendingTransferInfo | null>(null);
@@ -82,7 +83,6 @@ export function useTransferForm() {
       return next();
     }
     
-    // Dernière étape - demander confirmation
     setShowTransferConfirmation(true);
   };
 
@@ -129,7 +129,6 @@ export function useTransferForm() {
 
       console.log('Résultat du transfert:', result);
 
-      // Vérifier si c'est un transfert en attente (UUID de pending_transfers)
       const { data: pendingTransfer, error: pendingError } = await supabase
         .from('pending_transfers')
         .select('claim_code, recipient_phone')
@@ -137,7 +136,6 @@ export function useTransferForm() {
         .single();
 
       if (!pendingError && pendingTransfer) {
-        // C'est un transfert en attente
         setPendingTransferInfo({
           recipientPhone: pendingTransfer.recipient_phone,
           claimCode: pendingTransfer.claim_code
@@ -148,34 +146,14 @@ export function useTransferForm() {
           description: "Le destinataire recevra un code pour réclamer l'argent",
         });
         
-        // Générer le reçu pour transfert en attente
-        await generateAndSaveReceipt({
-          id: result,
-          type: 'transfer',
-          amount: data.transfer.amount,
-          recipient_name: data.recipient.fullName,
-          recipient_phone: data.recipient.phone,
-          fees: fee,
-          status: 'pending'
-        });
+        await generateReceipt(result, 'transfer');
       } else {
-        // Transfert direct réussi
         toast({
           title: "Transfert réussi",
           description: `${data.transfer.amount.toLocaleString('fr-FR')} FCFA envoyé à ${data.recipient.fullName}`,
         });
         
-        // Générer le reçu pour transfert direct
-        await generateAndSaveReceipt({
-          id: result,
-          type: 'transfer',
-          amount: data.transfer.amount,
-          recipient_name: data.recipient.fullName,
-          recipient_phone: data.recipient.phone,
-          fees: fee,
-          status: 'completed'
-        });
-
+        await generateReceipt(result, 'transfer');
         resetForm();
       }
 

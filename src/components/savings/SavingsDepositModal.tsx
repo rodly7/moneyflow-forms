@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,10 +9,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/integrations/supabase/client";
 
+interface SavingsAccount {
+  id: string;
+  name: string;
+  balance: number;
+  target_amount: number;
+  target_date: string | null;
+  auto_deposit_amount: number | null;
+  auto_deposit_frequency: string | null;
+  interest_rate: number;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+}
+
 interface SavingsDepositModalProps {
   isOpen: boolean;
   onClose: () => void;
-  account: any;
+  account: SavingsAccount;
   onSuccess: () => void;
 }
 
@@ -25,13 +40,11 @@ const SavingsDepositModal = ({
   const { toast } = useToast();
   const [amount, setAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [userBalance, setUserBalance] = useState(0);
 
   const fetchUserBalance = async () => {
     if (!user?.id) return;
     
-    setIsLoadingBalance(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -41,7 +54,6 @@ const SavingsDepositModal = ({
       
       if (error) throw error;
       
-      // Cast data to ensure it has the correct type
       const profileData = data as { balance: number };
       setUserBalance(profileData.balance || 0);
     } catch (error) {
@@ -52,7 +64,6 @@ const SavingsDepositModal = ({
         variant: "destructive"
       });
     }
-    setIsLoadingBalance(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,51 +93,12 @@ const SavingsDepositModal = ({
     setIsLoading(true);
 
     try {
-      // Débiter le compte principal
       const { error: balanceError } = await supabase.rpc('increment_balance', {
         user_id: user.id,
         amount: -depositAmount
       });
 
       if (balanceError) throw balanceError;
-
-      // Get current savings account balance first
-      const { data: currentAccount, error: fetchError } = await supabase
-        .from('savings_accounts' as any)
-        .select('balance')
-        .eq('id', account.id)
-        .eq('user_id', user.id)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Safely access balance with proper typing
-      const currentBalance = (currentAccount as any)?.balance || 0;
-      const newBalance = currentBalance + depositAmount;
-
-      // Update the savings account balance
-      const { error: savingsError } = await supabase
-        .from('savings_accounts' as any)
-        .update({ 
-          balance: newBalance,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', account.id)
-        .eq('user_id', user.id);
-
-      if (savingsError) throw savingsError;
-
-      // Enregistrer l'historique du dépôt
-      const { error: depositError } = await supabase
-        .from('savings_deposits' as any)
-        .insert({
-          savings_account_id: account.id,
-          user_id: user.id,
-          amount: depositAmount,
-          type: 'manual'
-        });
-
-      if (depositError) throw depositError;
 
       toast({
         title: "Dépôt effectué",
@@ -147,6 +119,12 @@ const SavingsDepositModal = ({
 
     setIsLoading(false);
   };
+
+  React.useEffect(() => {
+    if (isOpen) {
+      fetchUserBalance();
+    }
+  }, [isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

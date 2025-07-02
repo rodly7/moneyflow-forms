@@ -10,6 +10,9 @@ interface SavingsAccount {
   name: string;
   balance: number;
   target_amount: number;
+  target_date: string | null;
+  auto_deposit_amount: number | null;
+  auto_deposit_frequency: string | null;
   interest_rate: number;
   created_at: string;
   updated_at: string;
