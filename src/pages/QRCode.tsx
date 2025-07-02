@@ -5,8 +5,8 @@ import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useTransferForm } from "@/hooks/useTransferForm";
 import { useState } from "react";
+import { useQRWithdrawal } from "@/hooks/useQRWithdrawal";
 import {
   InputOTP,
   InputOTPGroup,
@@ -15,7 +15,7 @@ import {
 
 const QRCode = () => {
   const [code, setCode] = useState("");
-  const { confirmWithdrawal, isLoading } = useTransferForm();
+  const { processQRWithdrawal, isProcessing } = useQRWithdrawal();
   const { toast } = useToast();
 
   const handleVerify = async () => {
@@ -28,10 +28,12 @@ const QRCode = () => {
       return;
     }
 
-    const success = await confirmWithdrawal(code);
-    if (!success) {
-      setCode("");
-    }
+    // This is a simplified implementation - in a real app, you'd scan QR code for user data
+    toast({
+      title: "Fonctionnalité en développement",
+      description: "La confirmation de retrait par QR code sera bientôt disponible",
+    });
+    setCode("");
   };
 
   return (
@@ -74,9 +76,9 @@ const QRCode = () => {
             <Button 
               className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700"
               onClick={handleVerify}
-              disabled={isLoading || code.length !== 6}
+              disabled={isProcessing || code.length !== 6}
             >
-              {isLoading ? "Vérification..." : "Confirmer le retrait"}
+              {isProcessing ? "Vérification..." : "Confirmer le retrait"}
             </Button>
           </CardContent>
         </Card>

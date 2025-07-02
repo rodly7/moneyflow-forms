@@ -25,7 +25,6 @@ const ReceiptsList = () => {
     if (!user) return;
 
     try {
-      // Use a simple query that doesn't rely on the types.ts file
       const { data, error } = await supabase
         .from('transaction_receipts' as any)
         .select('*')
@@ -33,9 +32,20 @@ const ReceiptsList = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setReceipts(data || []);
+      
+      // Properly type the data to avoid TypeScript errors
+      const typedReceipts = (data || []).map((item: any) => ({
+        id: item.id,
+        transaction_id: item.transaction_id,
+        transaction_type: item.transaction_type,
+        receipt_data: item.receipt_data,
+        created_at: item.created_at
+      })) as Receipt[];
+      
+      setReceipts(typedReceipts);
     } catch (error) {
       console.error('Erreur lors du chargement des reçus:', error);
+      setReceipts([]);
     }
     setIsLoading(false);
   };

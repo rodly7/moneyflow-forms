@@ -30,7 +30,7 @@ export const useReceiptGeneration = () => {
       };
 
       await supabase
-        .from('transaction_receipts')
+        .from('transaction_receipts' as any)
         .insert({
           user_id: user.id,
           transaction_id: transaction.id,

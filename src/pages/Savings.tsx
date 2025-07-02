@@ -35,7 +35,6 @@ const Savings = () => {
     if (!user) return;
 
     try {
-      // Use a simple query that doesn't rely on the types.ts file
       const { data, error } = await supabase
         .from('savings_accounts' as any)
         .select('*')
@@ -44,7 +43,19 @@ const Savings = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setAccounts(data || []);
+      
+      // Properly type the data to avoid TypeScript errors
+      const typedAccounts = (data || []).map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        balance: item.balance,
+        target_amount: item.target_amount,
+        target_date: item.target_date,
+        auto_deposit_amount: item.auto_deposit_amount,
+        auto_deposit_frequency: item.auto_deposit_frequency
+      })) as SavingsAccount[];
+      
+      setAccounts(typedAccounts);
     } catch (error) {
       console.error('Erreur lors du chargement des comptes d\'épargne:', error);
       toast({
@@ -52,6 +63,7 @@ const Savings = () => {
         description: "Impossible de charger vos comptes d'épargne",
         variant: "destructive"
       });
+      setAccounts([]);
     }
     setIsLoading(false);
   };

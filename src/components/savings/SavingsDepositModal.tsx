@@ -76,7 +76,9 @@ const SavingsDepositModal = ({
 
       if (fetchError) throw fetchError;
 
-      const newBalance = (currentAccount?.balance || 0) + depositAmount;
+      // Safely access balance with proper typing
+      const currentBalance = (currentAccount as any)?.balance || 0;
+      const newBalance = currentBalance + depositAmount;
 
       // Update the savings account balance
       const { error: savingsError } = await supabase
