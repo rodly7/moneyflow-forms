@@ -34,8 +34,9 @@ const CreateSavingsAccountModal = ({ isOpen, onClose, onAccountCreated }: Create
     setIsLoading(true);
 
     try {
+      // Use a simple insert that doesn't rely on the types.ts file
       const { error } = await supabase
-        .from('savings_accounts')
+        .from('savings_accounts' as any)
         .insert({
           user_id: user.id,
           name: formData.name,

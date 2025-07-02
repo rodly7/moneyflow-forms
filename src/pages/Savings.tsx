@@ -35,8 +35,9 @@ const Savings = () => {
     if (!user) return;
 
     try {
+      // Use a simple query that doesn't rely on the types.ts file
       const { data, error } = await supabase
-        .from('savings_accounts')
+        .from('savings_accounts' as any)
         .select('*')
         .eq('user_id', user.id)
         .eq('is_active', true)

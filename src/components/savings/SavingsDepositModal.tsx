@@ -66,11 +66,23 @@ const SavingsDepositModal = ({
 
       if (balanceError) throw balanceError;
 
-      // Créditer le compte d'épargne
+      // Get current savings account balance first
+      const { data: currentAccount, error: fetchError } = await supabase
+        .from('savings_accounts' as any)
+        .select('balance')
+        .eq('id', accountId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const newBalance = (currentAccount?.balance || 0) + depositAmount;
+
+      // Update the savings account balance
       const { error: savingsError } = await supabase
-        .from('savings_accounts')
+        .from('savings_accounts' as any)
         .update({ 
-          balance: depositAmount,
+          balance: newBalance,
           updated_at: new Date().toISOString()
         })
         .eq('id', accountId)
@@ -80,7 +92,7 @@ const SavingsDepositModal = ({
 
       // Enregistrer l'historique du dépôt
       const { error: depositError } = await supabase
-        .from('savings_deposits')
+        .from('savings_deposits' as any)
         .insert({
           savings_account_id: accountId,
           user_id: user.id,

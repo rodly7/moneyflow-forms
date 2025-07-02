@@ -25,11 +25,12 @@ const ReceiptsList = () => {
     if (!user) return;
 
     try {
+      // Use a simple query that doesn't rely on the types.ts file
       const { data, error } = await supabase
-        .from('transaction_receipts')
+        .from('transaction_receipts' as any)
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { descending: true });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setReceipts(data || []);
