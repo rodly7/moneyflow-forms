@@ -1,15 +1,16 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUpRight, QrCode, RefreshCw, LogOut, Wallet, Activity, DollarSign, History } from "lucide-react";
+import { ArrowUpRight, QrCode, RefreshCw, LogOut, Wallet, Activity, DollarSign, History, PiggyBank, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import UserProfileInfo from "@/components/profile/UserProfileInfo";
 import QRCodeGenerator from "@/components/QRCodeGenerator";
+import NotificationSystem from "@/components/notifications/NotificationSystem";
 import { formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
+import { useBalanceCheck } from "@/hooks/useBalanceCheck";
 
 const Dashboard = () => {
   const { user, profile, signOut } = useAuth();
@@ -18,6 +19,9 @@ const Dashboard = () => {
   const [balance, setBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [showQRDialog, setShowQRDialog] = useState(false);
+
+  // Utiliser le hook de vérification du solde
+  useBalanceCheck(balance);
 
   const fetchBalance = async () => {
     if (user?.id) {
@@ -115,6 +119,7 @@ const Dashboard = () => {
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <NotificationSystem />
             <Button 
               variant="ghost" 
               size="sm" 
@@ -190,6 +195,24 @@ const Dashboard = () => {
                   <QrCode className="mr-2 h-5 w-5" />
                   Mon QR Code (pour retrait)
                 </Button>
+
+                <Button 
+                  onClick={() => navigate('/savings')}
+                  variant="outline"
+                  className="w-full border-2 border-green-500 text-green-600 hover:bg-green-50 font-semibold h-12 shadow-md"
+                >
+                  <PiggyBank className="mr-2 h-5 w-5" />
+                  Mes Épargnes
+                </Button>
+
+                <Button 
+                  onClick={() => navigate('/receipts')}
+                  variant="outline"
+                  className="w-full border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold h-12 shadow-md"
+                >
+                  <FileText className="mr-2 h-5 w-5" />
+                  Mes Reçus
+                </Button>
                 
                 <Button 
                   onClick={() => navigate('/transactions')}
@@ -210,6 +233,8 @@ const Dashboard = () => {
                   <p>• Pour effectuer un retrait, vous devez présenter votre QR Code à un agent</p>
                   <p>• Vos transferts sont traités instantanément</p>
                   <p>• Consultez régulièrement vos notifications pour les mises à jour</p>
+                  <p>• Téléchargez vos reçus depuis la section "Mes Reçus"</p>
+                  <p>• Créez des comptes d'épargne pour atteindre vos objectifs financiers</p>
                 </div>
               </CardContent>
             </Card>

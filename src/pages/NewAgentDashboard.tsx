@@ -1,14 +1,15 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUpRight, Camera, RefreshCw, LogOut, Wallet, Activity, DollarSign, History, Percent, BarChart3 } from "lucide-react";
+import { ArrowUpRight, Camera, RefreshCw, LogOut, Wallet, Activity, DollarSign, History, Percent, BarChart3, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import UserProfileInfo from "@/components/profile/UserProfileInfo";
+import NotificationSystem from "@/components/notifications/NotificationSystem";
 import { formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
+import { useBalanceCheck } from "@/hooks/useBalanceCheck";
 
 const NewAgentDashboard = () => {
   const { user, profile, signOut } = useAuth();
@@ -17,6 +18,9 @@ const NewAgentDashboard = () => {
   const [balance, setBalance] = useState<number>(0);
   const [commissionBalance, setCommissionBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+
+  // Utiliser le hook de vérification du solde
+  useBalanceCheck(balance);
 
   const fetchBalances = async () => {
     if (user?.id) {
@@ -114,6 +118,7 @@ const NewAgentDashboard = () => {
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <NotificationSystem />
             <Button 
               variant="ghost" 
               size="sm" 
@@ -219,6 +224,15 @@ const NewAgentDashboard = () => {
                   <Percent className="mr-2 h-5 w-5" />
                   Mes Commissions
                 </Button>
+
+                <Button 
+                  onClick={() => navigate('/receipts')}
+                  variant="outline"
+                  className="w-full border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold h-12 shadow-md"
+                >
+                  <FileText className="mr-2 h-5 w-5" />
+                  Mes Reçus
+                </Button>
                 
                 <Button 
                   onClick={() => navigate('/transactions')}
@@ -250,6 +264,7 @@ const NewAgentDashboard = () => {
                   <p>• Les dépôts clients sont sans frais pour eux</p>
                   <p>• Consultez régulièrement vos notifications</p>
                   <p>• Utilisez le tableau de performance pour améliorer vos résultats</p>
+                  <p>• Téléchargez vos reçus pour vos transactions</p>
                 </div>
               </CardContent>
             </Card>
