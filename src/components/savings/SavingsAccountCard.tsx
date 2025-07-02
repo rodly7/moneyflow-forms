@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { PiggyBank, Target, Calendar, Plus } from "lucide-react";
+import { PiggyBank, Plus, Minus } from "lucide-react";
 import { formatCurrency } from "@/integrations/supabase/client";
 
 interface SavingsAccount {
@@ -26,65 +26,42 @@ const SavingsAccountCard = ({ account, onDeposit, onWithdraw }: SavingsAccountCa
     ? Math.min((account.balance / account.target_amount) * 100, 100)
     : 0;
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString('fr-FR');
-  };
-
   return (
-    <Card className="w-full bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+    <Card className="hover:shadow-lg transition-shadow">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-green-700">
-          <PiggyBank className="w-5 h-5" />
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <PiggyBank className="w-5 h-5 text-green-600" />
           {account.name}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="text-center">
-          <p className="text-2xl font-bold text-green-600">
-            {formatCurrency(account.balance, "XAF")}
-          </p>
-          <p className="text-sm text-gray-600">Solde épargné</p>
+        <div>
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm text-gray-600">Solde actuel</span>
+            <span className="text-xl font-bold text-green-600">
+              {formatCurrency(account.balance, "XAF")}
+            </span>
+          </div>
+          
+          {account.target_amount && (
+            <>
+              <Progress value={progressPercentage} className="mb-2" />
+              <div className="flex justify-between text-sm text-gray-600">
+                <span>Objectif: {formatCurrency(account.target_amount, "XAF")}</span>
+                <span>{progressPercentage.toFixed(1)}%</span>
+              </div>
+            </>
+          )}
         </div>
 
-        {account.target_amount && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-1">
-                <Target className="w-4 h-4" />
-                Objectif
-              </span>
-              <span className="font-medium">
-                {formatCurrency(account.target_amount, "XAF")}
-              </span>
-            </div>
-            <Progress value={progressPercentage} className="h-2" />
-            <p className="text-xs text-center text-gray-600">
-              {progressPercentage.toFixed(1)}% de l'objectif atteint
-            </p>
-          </div>
-        )}
-
         {account.target_date && (
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Calendar className="w-4 h-4" />
-            <span>Échéance : {formatDate(account.target_date)}</span>
+          <div className="text-sm text-gray-600">
+            <span>Date cible: {new Date(account.target_date).toLocaleDateString('fr-FR')}</span>
           </div>
         )}
 
-        {account.auto_deposit_amount && account.auto_deposit_frequency && (
-          <div className="bg-blue-50 p-2 rounded-md">
-            <p className="text-sm text-blue-700">
-              Dépôt automatique : {formatCurrency(account.auto_deposit_amount, "XAF")} 
-              {account.auto_deposit_frequency === 'daily' && ' par jour'}
-              {account.auto_deposit_frequency === 'weekly' && ' par semaine'}
-              {account.auto_deposit_frequency === 'monthly' && ' par mois'}
-            </p>
-          </div>
-        )}
-
-        <div className="flex gap-2 pt-2">
-          <Button 
+        <div className="flex gap-2">
+          <Button
             onClick={() => onDeposit(account.id)}
             className="flex-1 bg-green-600 hover:bg-green-700"
             size="sm"
@@ -92,12 +69,13 @@ const SavingsAccountCard = ({ account, onDeposit, onWithdraw }: SavingsAccountCa
             <Plus className="w-4 h-4 mr-1" />
             Déposer
           </Button>
-          <Button 
+          <Button
             onClick={() => onWithdraw(account.id)}
             variant="outline"
-            className="flex-1 border-green-600 text-green-600 hover:bg-green-50"
+            className="flex-1"
             size="sm"
           >
+            <Minus className="w-4 h-4 mr-1" />
             Retirer
           </Button>
         </div>
