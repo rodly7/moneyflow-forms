@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Piggy Bank, Target, Calendar, Plus } from "lucide-react";
+import { PiggyBank, Target, Calendar, Plus } from "lucide-react";
 import { formatCurrency } from "@/integrations/supabase/client";
 
 interface SavingsAccount {
