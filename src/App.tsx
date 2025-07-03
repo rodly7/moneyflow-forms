@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,6 +23,9 @@ import AgentAuth from "./pages/AgentAuth";
 import AgentServices from "./pages/AgentServices";
 import DepositWithdrawalForm from "./components/deposit-withdrawal/DepositWithdrawalForm";
 import AdminTreasury from "./pages/AdminTreasury";
+import AdminUsers from "./pages/AdminUsers";
+import AdminAgentReports from "./pages/AdminAgentReports";
+import AdminSettings from "./pages/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +47,9 @@ function App() {
                 <Route path="admin-dashboard" element={<MainAdminDashboard />} />
                 <Route path="main-admin" element={<MainAdminDashboard />} />
                 <Route path="admin/treasury" element={<AdminTreasury />} />
+                <Route path="admin/users" element={<AdminUsers />} />
+                <Route path="admin/agent-reports" element={<AdminAgentReports />} />
+                <Route path="admin/settings" element={<AdminSettings />} />
                 <Route path="sub-admin-dashboard" element={<SubAdminDashboard />} />
                 <Route path="transfer" element={<Transfer />} />
                 <Route path="transactions" element={<Transactions />} />
