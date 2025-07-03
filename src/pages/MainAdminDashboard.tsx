@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -201,7 +200,7 @@ const MainAdminDashboard = () => {
         </div>
 
         {/* Admin Services Grid */}
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           {/* Gestion Utilisateurs */}
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
             <CardHeader className="pb-4">
@@ -244,6 +243,29 @@ const MainAdminDashboard = () => {
                 className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold h-12 shadow-lg"
               >
                 Voir les rapports
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Système de Trésorerie */}
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-3 text-emerald-600">
+                <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-white" />
+                </div>
+                Système de Trésorerie
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-4">
+                Gérez les flux de trésorerie, agents fiables et équilibrage des soldes.
+              </p>
+              <Button 
+                onClick={() => navigate('/admin/treasury')}
+                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold h-12 shadow-lg"
+              >
+                Accéder à la trésorerie
               </Button>
             </CardContent>
           </Card>

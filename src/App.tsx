@@ -42,6 +42,8 @@ function App() {
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="agent-dashboard" element={<NewAgentDashboard />} />
                 <Route path="admin-dashboard" element={<MainAdminDashboard />} />
+                <Route path="main-admin" element={<MainAdminDashboard />} />
+                <Route path="admin/treasury" element={<AdminTreasury />} />
                 <Route path="sub-admin-dashboard" element={<SubAdminDashboard />} />
                 <Route path="transfer" element={<Transfer />} />
                 <Route path="transactions" element={<Transactions />} />
