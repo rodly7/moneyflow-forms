@@ -259,6 +259,59 @@ export type Database = {
         }
         Relationships: []
       }
+      flutterwave_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          customer_email: string | null
+          flw_ref: string | null
+          id: string
+          payment_method: string | null
+          status: string
+          transaction_id: string
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          flw_ref?: string | null
+          id?: string
+          payment_method?: string | null
+          status?: string
+          transaction_id: string
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          flw_ref?: string | null
+          id?: string
+          payment_method?: string | null
+          status?: string
+          transaction_id?: string
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flutterwave_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "auth_users_agents_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_recipients: {
         Row: {
           id: string
