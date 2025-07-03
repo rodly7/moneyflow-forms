@@ -215,17 +215,18 @@ const SubAdminDashboard = () => {
 
   if (!profile || profile.role !== 'sub_admin') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-red-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-2xl border-0 bg-white/90 backdrop-blur-sm">
+      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-red-100 flex items-center justify-center p-4 animate-fade-in">
+        <Card className="w-full max-w-md shadow-2xl border-0 bg-white/90 backdrop-blur-sm hover-lift">
           <CardContent className="pt-8 text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce-gentle">
               <Shield className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-red-600 mb-4">Accès refusé</h2>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent mb-4">Accès refusé</h2>
             <p className="text-gray-600 mb-6">Cette page est réservée aux sous-administrateurs.</p>
             <Button 
               onClick={() => navigate('/dashboard')} 
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+              className="w-full"
+              variant="default"
             >
               Retour au tableau de bord
             </Button>
@@ -236,43 +237,43 @@ const SubAdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 p-4">
+    <div className="min-h-screen w-full bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-100 p-6 animate-fade-in">
       <div className="w-full max-w-none">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6 w-full">
+        <div className="flex items-center justify-between mb-8 w-full">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/dashboard')}
-              className="hover:bg-white/50"
+              className="hover:bg-white/50 glass rounded-xl"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Retour
             </Button>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-              Sous-Administration
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent animate-scale-in">
+              🎛️ Sous-Administration
             </h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm" 
               onClick={() => {
                 fetchStats();
                 fetchUsers();
               }}
               disabled={isLoadingStats}
-              className="hover:bg-green-50 border border-green-200"
+              className="glass hover:bg-emerald-50/80 border-emerald-200 text-emerald-700"
             >
               <RefreshCw className={`w-4 h-4 ${isLoadingStats ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline ml-1">Actualiser</span>
             </Button>
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm" 
               onClick={handleSignOut}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200"
+              className="glass hover:bg-red-50/80 border-red-200 text-red-700"
             >
               <LogOut className="w-4 h-4" />
               <span className="hidden sm:inline ml-1">Déconnexion</span>
@@ -281,51 +282,59 @@ const SubAdminDashboard = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
-          <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-            <CardContent className="p-4 md:p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-slide-up">
+          <Card className="bg-gradient-to-br from-blue-500 to-cyan-600 text-white border-0 shadow-xl hover:shadow-2xl hover-lift">
+            <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm">Utilisateurs</p>
-                  <p className="text-2xl md:text-3xl font-bold">{stats.totalUsers}</p>
+                  <p className="text-blue-100 text-sm font-medium">👥 Utilisateurs</p>
+                  <p className="text-3xl font-bold mt-1">{stats.totalUsers}</p>
                 </div>
-                <Users className="w-8 h-8 text-blue-200" />
+                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <Users className="w-8 h-8 text-white" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-emerald-600 to-green-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-            <CardContent className="p-4 md:p-6">
+          <Card className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-0 shadow-xl hover:shadow-2xl hover-lift">
+            <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-emerald-100 text-sm">Agents</p>
-                  <p className="text-2xl md:text-3xl font-bold">{stats.totalAgents}</p>
+                  <p className="text-emerald-100 text-sm font-medium">🛡️ Agents</p>
+                  <p className="text-3xl font-bold mt-1">{stats.totalAgents}</p>
                 </div>
-                <Shield className="w-8 h-8 text-emerald-200" />
+                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <Shield className="w-8 h-8 text-white" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-            <CardContent className="p-4 md:p-6">
+          <Card className="bg-gradient-to-br from-purple-500 to-pink-600 text-white border-0 shadow-xl hover:shadow-2xl hover-lift">
+            <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm">Transactions</p>
-                  <p className="text-2xl md:text-3xl font-bold">{stats.totalTransactions}</p>
+                  <p className="text-purple-100 text-sm font-medium">📊 Transactions</p>
+                  <p className="text-3xl font-bold mt-1">{stats.totalTransactions}</p>
                 </div>
-                <Activity className="w-8 h-8 text-purple-200" />
+                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <Activity className="w-8 h-8 text-white" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-orange-600 to-red-600 text-white border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-            <CardContent className="p-4 md:p-6">
+          <Card className="bg-gradient-to-br from-orange-500 to-red-600 text-white border-0 shadow-xl hover:shadow-2xl hover-lift">
+            <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-orange-100 text-sm">Solde Total</p>
-                  <p className="text-xl md:text-2xl font-bold">{(stats.totalBalance / 1000).toFixed(0)}K XAF</p>
+                  <p className="text-orange-100 text-sm font-medium">💰 Solde Total</p>
+                  <p className="text-2xl font-bold mt-1">{(stats.totalBalance / 1000).toFixed(0)}K XAF</p>
                 </div>
-                <DollarSign className="w-8 h-8 text-orange-200" />
+                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <DollarSign className="w-8 h-8 text-white" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -333,35 +342,37 @@ const SubAdminDashboard = () => {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl h-14">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2 h-10">
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Gestion Utilisateurs</span>
+          <TabsList className="grid w-full grid-cols-2 glass shadow-lg rounded-2xl h-16 p-2">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2 h-12 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-md transition-all duration-300">
+              <Users className="w-5 h-5" />
+              <span className="font-medium">👥 Gestion Utilisateurs</span>
             </TabsTrigger>
-            <TabsTrigger value="deposits" className="flex items-center gap-2 h-10">
-              <UserPlus className="w-4 h-4" />
-              <span className="hidden sm:inline">Dépôts Agents</span>
+            <TabsTrigger value="deposits" className="flex items-center gap-2 h-12 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-md transition-all duration-300">
+              <UserPlus className="w-5 h-5" />
+              <span className="font-medium">💳 Dépôts Agents</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard" className="space-y-6 w-full">
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl w-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Consultation des Utilisateurs
+          <TabsContent value="dashboard" className="space-y-6 w-full animate-fade-in">
+            <Card className="glass border-0 shadow-xl w-full">
+              <CardHeader className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80">
+                <CardTitle className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500 rounded-lg text-white">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  👀 Consultation des Utilisateurs
                 </CardTitle>
-                <p className="text-sm text-gray-600">
-                  Vous pouvez consulter tous les utilisateurs mais ne pouvez pas modifier leurs informations.
+                <p className="text-sm text-slate-600 bg-blue-50/50 p-3 rounded-lg border-l-4 border-blue-400">
+                  📋 Vous pouvez consulter tous les utilisateurs mais ne pouvez pas modifier leurs informations.
                 </p>
               </CardHeader>
-              <CardContent className="w-full overflow-x-auto">
+              <CardContent className="w-full overflow-x-auto p-6">
                 <div className="w-full">
                   <UsersDataTable 
                     users={users}
                     onViewUser={handleViewUser}
-                    onQuickRoleChange={() => {}} // Fonction vide pour les sous-admins
-                    onQuickBanToggle={() => {}} // Fonction vide pour les sous-admins
+                    onQuickRoleChange={() => {}}
+                    onQuickBanToggle={() => {}}
                     isSubAdmin={true}
                   />
                 </div>
@@ -369,36 +380,44 @@ const SubAdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="deposits" className="space-y-6 w-full">
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl w-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <UserPlus className="w-5 h-5" />
-                  Dépôts en Lot pour Agents
+          <TabsContent value="deposits" className="space-y-6 w-full animate-fade-in">
+            <Card className="glass border-0 shadow-xl w-full">
+              <CardHeader className="bg-gradient-to-r from-emerald-50/80 to-teal-50/80">
+                <CardTitle className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-500 rounded-lg text-white">
+                    <UserPlus className="w-6 h-6" />
+                  </div>
+                  💰 Dépôts en Lot pour Agents
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6 p-6">
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button
                     onClick={handleAutoBatchDeposit}
-                    className="bg-orange-600 hover:bg-orange-700"
+                    variant="warning"
+                    size="lg"
                     disabled={!canDepositToAgent}
+                    className="flex-1"
                   >
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Dépôt Auto (Agents &lt; 50k)
+                    <UserPlus className="w-5 h-5 mr-2" />
+                    🚀 Dépôt Auto (Agents &lt; 50k)
                   </Button>
                   <Button
                     onClick={() => setShowBatchDeposit(true)}
                     variant="outline"
+                    size="lg"
                     disabled={!canDepositToAgent}
+                    className="flex-1 glass border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50/80"
                   >
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Dépôt Manuel Personnalisé
+                    <UserPlus className="w-5 h-5 mr-2" />
+                    ⚙️ Dépôt Manuel Personnalisé
                   </Button>
                 </div>
                 
                 {showBatchDeposit && canDepositToAgent && (
-                  <BatchAgentDeposit onBack={() => setShowBatchDeposit(false)} />
+                  <div className="glass p-6 rounded-xl border-2 border-dashed border-emerald-300 animate-scale-in">
+                    <BatchAgentDeposit onBack={() => setShowBatchDeposit(false)} />
+                  </div>
                 )}
               </CardContent>
             </Card>

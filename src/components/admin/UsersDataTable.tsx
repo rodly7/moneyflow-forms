@@ -39,19 +39,19 @@ const UsersDataTable = ({
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'admin': return 'bg-red-100 text-red-800';
-      case 'sub_admin': return 'bg-orange-100 text-orange-800';
-      case 'agent': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'admin': return 'bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg';
+      case 'sub_admin': return 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg';
+      case 'agent': return 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg';
+      default: return 'bg-gradient-to-r from-slate-500 to-gray-500 text-white shadow-lg';
     }
   };
 
   const getRoleLabel = (role: string) => {
     switch (role) {
-      case 'admin': return 'Admin';
-      case 'sub_admin': return 'Sous-Admin';
-      case 'agent': return 'Agent';
-      default: return 'Utilisateur';
+      case 'admin': return '👑 Admin';
+      case 'sub_admin': return '🛡️ Sous-Admin';
+      case 'agent': return '🔧 Agent';
+      default: return '👤 Utilisateur';
     }
   };
 
@@ -68,61 +68,66 @@ const UsersDataTable = ({
     return (
       <div className="space-y-4">
         {users.map((user) => (
-          <div key={user.id} className="bg-white p-4 rounded-lg shadow border">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Badge className={`${getRoleColor(user.role)} flex items-center gap-1`}>
+          <div key={user.id} className="glass p-5 rounded-xl shadow-lg border border-violet-100/50 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 animate-fade-in">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Badge className={`${getRoleColor(user.role)} flex items-center gap-1 px-3 py-1 rounded-full`}>
                   {getRoleIcon(user.role)}
                   {getRoleLabel(user.role)}
                 </Badge>
                 {user.is_banned && (
-                  <Badge variant="destructive">Banni</Badge>
+                  <Badge className="bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg">🚫 Banni</Badge>
                 )}
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onViewUser(user)}
+                className="glass border-2 border-violet-200 hover:bg-violet-50/80 hover:border-violet-300"
               >
-                <Eye className="w-3 h-3" />
+                <Eye className="w-4 h-4" />
               </Button>
             </div>
             
-            <div className="space-y-2 text-sm">
-              <div>
-                <span className="font-medium">Nom:</span> {user.full_name || 'Non renseigné'}
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-violet-600">👤 Nom:</span> 
+                <span className="text-slate-700">{user.full_name || 'Non renseigné'}</span>
               </div>
-              <div>
-                <span className="font-medium">Téléphone:</span> {user.phone}
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-violet-600">📱 Téléphone:</span> 
+                <span className="text-slate-700">{user.phone}</span>
               </div>
-              <div>
-                <span className="font-medium">Pays:</span> {user.country || 'Non renseigné'}
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-violet-600">🌍 Pays:</span> 
+                <span className="text-slate-700">{user.country || 'Non renseigné'}</span>
               </div>
-              <div>
-                <span className="font-medium">Solde:</span> 
-                <span className="text-green-600 font-semibold ml-1">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-violet-600">💰 Solde:</span>
+                <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-bold">
                   {formatCurrency(user.balance, 'XAF')}
                 </span>
               </div>
-              <div>
-                <span className="font-medium">Créé:</span> {new Date(user.created_at).toLocaleDateString()}
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-violet-600">📅 Créé:</span> 
+                <span className="text-slate-700">{new Date(user.created_at).toLocaleDateString()}</span>
               </div>
             </div>
 
             {!isSubAdmin && (
-              <div className="flex gap-2 mt-3">
+              <div className="flex gap-3 mt-4 pt-4 border-t border-violet-100">
                 <Select 
                   value={user.role} 
                   onValueChange={(value) => onQuickRoleChange(user.id, value as any)}
                 >
-                  <SelectTrigger className="flex-1 h-8">
+                  <SelectTrigger className="flex-1 h-10 glass border-2 border-violet-200">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="user">Utilisateur</SelectItem>
-                    <SelectItem value="agent">Agent</SelectItem>
-                    <SelectItem value="sub_admin">Sous-Admin</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                  <SelectContent className="glass backdrop-blur-lg">
+                    <SelectItem value="user">👤 Utilisateur</SelectItem>
+                    <SelectItem value="agent">🔧 Agent</SelectItem>
+                    <SelectItem value="sub_admin">🛡️ Sous-Admin</SelectItem>
+                    <SelectItem value="admin">👑 Admin</SelectItem>
                   </SelectContent>
                 </Select>
                 
@@ -130,9 +135,9 @@ const UsersDataTable = ({
                   variant={user.is_banned ? "outline" : "destructive"}
                   size="sm"
                   onClick={() => onQuickBanToggle(user.id, user.is_banned || false)}
-                  className="px-3"
+                  className="px-4"
                 >
-                  {user.is_banned ? <UserCheck className="w-3 h-3" /> : <Ban className="w-3 h-3" />}
+                  {user.is_banned ? <UserCheck className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
                 </Button>
               </div>
             )}
@@ -143,33 +148,33 @@ const UsersDataTable = ({
   }
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="glass rounded-xl overflow-hidden border border-violet-100/50 shadow-xl">
       <Table>
         <TableHeader>
-          <TableRow className="bg-gray-50">
-            <TableHead>Utilisateur</TableHead>
-            <TableHead>Téléphone</TableHead>
-            <TableHead>Rôle</TableHead>
-            <TableHead>Pays</TableHead>
-            <TableHead>Solde</TableHead>
-            <TableHead>Statut</TableHead>
-            <TableHead>Créé</TableHead>
-            <TableHead>Actions</TableHead>
+          <TableRow className="bg-gradient-to-r from-violet-50/80 to-purple-50/80 border-b border-violet-100">
+            <TableHead className="font-bold text-violet-700">👤 Utilisateur</TableHead>
+            <TableHead className="font-bold text-violet-700">📱 Téléphone</TableHead>
+            <TableHead className="font-bold text-violet-700">🎭 Rôle</TableHead>
+            <TableHead className="font-bold text-violet-700">🌍 Pays</TableHead>
+            <TableHead className="font-bold text-violet-700">💰 Solde</TableHead>
+            <TableHead className="font-bold text-violet-700">📊 Statut</TableHead>
+            <TableHead className="font-bold text-violet-700">📅 Créé</TableHead>
+            <TableHead className="font-bold text-violet-700">⚡ Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {users.map((user) => (
-            <TableRow key={user.id} className="hover:bg-gray-50">
+            <TableRow key={user.id} className="hover:bg-violet-50/50 transition-all duration-300 border-b border-violet-50">
               <TableCell>
                 <div>
-                  <p className="font-medium">{user.full_name || 'Non renseigné'}</p>
-                  <p className="text-sm text-gray-500">{user.id.substring(0, 8)}...</p>
+                  <p className="font-semibold text-slate-800">{user.full_name || 'Non renseigné'}</p>
+                  <p className="text-xs text-violet-500 font-mono bg-violet-50 px-2 py-1 rounded-md inline-block mt-1">{user.id.substring(0, 8)}...</p>
                 </div>
               </TableCell>
-              <TableCell>{user.phone}</TableCell>
+              <TableCell className="font-medium text-slate-700">{user.phone}</TableCell>
               <TableCell>
                 {isSubAdmin ? (
-                  <Badge className={`${getRoleColor(user.role)} flex items-center gap-1 w-fit`}>
+                  <Badge className={`${getRoleColor(user.role)} flex items-center gap-1 w-fit px-3 py-1`}>
                     {getRoleIcon(user.role)}
                     {getRoleLabel(user.role)}
                   </Badge>
@@ -178,63 +183,64 @@ const UsersDataTable = ({
                     value={user.role} 
                     onValueChange={(value) => onQuickRoleChange(user.id, value as any)}
                   >
-                    <SelectTrigger className="w-32">
+                    <SelectTrigger className="w-36 glass border-2 border-violet-200">
                       <SelectValue>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2">
                           {getRoleIcon(user.role)}
                           {getRoleLabel(user.role)}
                         </div>
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="glass backdrop-blur-lg">
                       <SelectItem value="user">
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4" />
-                          Utilisateur
+                          👤 Utilisateur
                         </div>
                       </SelectItem>
                       <SelectItem value="agent">
                         <div className="flex items-center gap-2">
                           <UserCheck className="w-4 h-4" />
-                          Agent
+                          🔧 Agent
                         </div>
                       </SelectItem>
                       <SelectItem value="sub_admin">
                         <div className="flex items-center gap-2">
                           <Shield className="w-4 h-4" />
-                          Sous-Admin
+                          🛡️ Sous-Admin
                         </div>
                       </SelectItem>
                       <SelectItem value="admin">
                         <div className="flex items-center gap-2 text-red-700">
                           <Crown className="w-4 h-4" />
-                          Admin
+                          👑 Admin
                         </div>
                       </SelectItem>
                     </SelectContent>
                   </Select>
                 )}
               </TableCell>
-              <TableCell>{user.country || 'Non renseigné'}</TableCell>
+              <TableCell className="text-slate-700">{user.country || 'Non renseigné'}</TableCell>
               <TableCell>
-                <span className="font-semibold text-green-600">
+                <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-bold text-lg">
                   {formatCurrency(user.balance, 'XAF')}
                 </span>
               </TableCell>
               <TableCell>
                 {user.is_banned ? (
-                  <Badge variant="destructive">Banni</Badge>
+                  <Badge className="bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg">🚫 Banni</Badge>
                 ) : (
-                  <Badge variant="outline" className="text-green-600 border-green-600">Actif</Badge>
+                  <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg">✅ Actif</Badge>
                 )}
               </TableCell>
-              <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+              <TableCell className="text-slate-600">{new Date(user.created_at).toLocaleDateString()}</TableCell>
               <TableCell>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => onViewUser(user)}
+                    className="glass border-2 border-violet-200 hover:bg-violet-50/80 hover:border-violet-300"
                   >
                     <Eye className="w-4 h-4" />
                   </Button>
@@ -244,6 +250,7 @@ const UsersDataTable = ({
                       variant={user.is_banned ? "outline" : "destructive"}
                       size="sm"
                       onClick={() => onQuickBanToggle(user.id, user.is_banned || false)}
+                      className={user.is_banned ? "glass border-2 border-green-200 hover:bg-green-50/80 text-green-700" : ""}
                     >
                       {user.is_banned ? <UserCheck className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
                     </Button>
