@@ -23,6 +23,7 @@ import QRCode from "./pages/QRCode";
 import AgentAuth from "./pages/AgentAuth";
 import AgentServices from "./pages/AgentServices";
 import DepositWithdrawalForm from "./components/deposit-withdrawal/DepositWithdrawalForm";
+import AdminTreasury from "./pages/AdminTreasury";
 
 const queryClient = new QueryClient();
 

@@ -47,21 +47,36 @@ const TrustedAgentsTable = ({ onUpdate }: TrustedAgentsTableProps) => {
     try {
       setLoading(true);
       
-      // Get agents with their profile balance
-      const { data: agentsData, error } = await supabase
+      // Get agents first
+      const { data: agentsData, error: agentsError } = await supabase
         .from('agents')
-        .select(`
-          *,
-          profiles!inner(balance)
-        `)
+        .select('*')
         .eq('status', 'active');
 
-      if (error) throw error;
+      if (agentsError) throw agentsError;
 
-      const enrichedAgents = agentsData?.map(agent => ({
-        ...agent,
-        user_balance: agent.profiles?.balance || 0
-      })) || [];
+      if (!agentsData || agentsData.length === 0) {
+        setAgents([]);
+        return;
+      }
+
+      // Get profiles for each agent
+      const userIds = agentsData.map(agent => agent.user_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, balance')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Combine agents with their profile balance
+      const enrichedAgents = agentsData.map(agent => {
+        const profile = profilesData?.find(p => p.id === agent.user_id);
+        return {
+          ...agent,
+          user_balance: profile?.balance || 0
+        };
+      });
 
       setAgents(enrichedAgents);
     } catch (error) {

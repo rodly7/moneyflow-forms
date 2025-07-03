@@ -82,15 +82,43 @@ const BalanceFlowTable = ({ onUpdate }: BalanceFlowTableProps) => {
   };
 
   const fetchAgents = async () => {
-    const { data: agentsData } = await supabase
-      .from('agents')
-      .select(`
-        *,
-        profiles!inner(balance)
-      `)
-      .eq('status', 'active');
+    try {
+      // Get agents first
+      const { data: agentsData, error: agentsError } = await supabase
+        .from('agents')
+        .select('*')
+        .eq('status', 'active');
 
-    setAgents(agentsData || []);
+      if (agentsError) throw agentsError;
+
+      if (!agentsData || agentsData.length === 0) {
+        setAgents([]);
+        return;
+      }
+
+      // Get profiles for each agent
+      const userIds = agentsData.map(agent => agent.user_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, balance')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Combine agents with their profile balance
+      const enrichedAgents = agentsData.map(agent => {
+        const profile = profilesData?.find(p => p.id === agent.user_id);
+        return {
+          ...agent,
+          balance: profile?.balance || 0
+        };
+      });
+
+      setAgents(enrichedAgents);
+    } catch (error) {
+      console.error('Erreur lors du chargement des agents:', error);
+      setAgents([]);
+    }
   };
 
   const createBalanceFlow = async () => {
@@ -124,7 +152,7 @@ const BalanceFlowTable = ({ onUpdate }: BalanceFlowTableProps) => {
       }
 
       // Check if source agent has sufficient balance
-      if (fromAgentData.profiles?.balance < transferAmount) {
+      if (fromAgentData.balance < transferAmount) {
         toast({
           title: "Solde insuffisant",
           description: `L'agent ${fromAgentData.full_name} n'a pas un solde suffisant`,
@@ -226,7 +254,7 @@ const BalanceFlowTable = ({ onUpdate }: BalanceFlowTableProps) => {
                 <SelectContent>
                   {agents.map((agent) => (
                     <SelectItem key={agent.user_id} value={agent.user_id}>
-                      {agent.full_name} ({agent.country}) - {agent.profiles?.balance?.toLocaleString()} FCFA
+                      {agent.full_name} ({agent.country}) - {agent.balance?.toLocaleString()} FCFA
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -242,7 +270,7 @@ const BalanceFlowTable = ({ onUpdate }: BalanceFlowTableProps) => {
                 <SelectContent>
                   {agents.map((agent) => (
                     <SelectItem key={agent.user_id} value={agent.user_id}>
-                      {agent.full_name} ({agent.country}) - {agent.profiles?.balance?.toLocaleString()} FCFA
+                      {agent.full_name} ({agent.country}) - {agent.balance?.toLocaleString()} FCFA
                     </SelectItem>
                   ))}
                 </SelectContent>
