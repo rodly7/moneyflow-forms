@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Icons } from "@/components/ui/icons";
-import { Shield, Users } from "lucide-react";
+import { Shield, Users, Phone, Lock, Eye, EyeOff, CheckCircle2, Crown, Sparkles, Star } from "lucide-react";
 
 const AgentAuthForm = () => {
   const [loading, setLoading] = useState(false);
@@ -15,6 +15,7 @@ const AgentAuthForm = () => {
   
   const [loginPhone, setLoginPhone] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Fonction pour normaliser les numéros de téléphone
   const normalizePhoneNumber = (phoneInput: string) => {
@@ -67,80 +68,133 @@ const AgentAuthForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-indigo-600/20 to-purple-700/20"></div>
-      <div className="absolute top-1/3 left-1/3 w-40 h-40 bg-white/10 rounded-full blur-xl animate-pulse"></div>
-      <div className="absolute bottom-1/3 right-1/3 w-56 h-56 bg-white/5 rounded-full blur-2xl animate-pulse delay-1000"></div>
+    <Card className="w-full max-w-xl backdrop-blur-2xl bg-white/10 shadow-2xl border border-white/20 animate-fade-in hover:shadow-emerald-500/20 transition-all duration-500 relative overflow-hidden rounded-3xl">
+      {/* Card glow effect */}
+      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-green-500/5 opacity-60"></div>
       
-      <Card className="w-full max-w-md backdrop-blur-sm bg-white/95 shadow-2xl border-0 animate-fade-in">
-        <CardHeader className="space-y-4 text-center pb-8">
-          <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-4 animate-scale-in shadow-lg">
-            <Shield className="w-10 h-10 text-white" />
-          </div>
-          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Espace Agent
-          </CardTitle>
-          <CardDescription className="text-gray-600 text-lg flex items-center justify-center gap-2">
-            <Users className="w-5 h-5 text-blue-500" />
-            Accès professionnel sécurisé
-          </CardDescription>
-        </CardHeader>
+      <CardHeader className="space-y-6 text-center pb-8 relative z-10">
+        <div className="mx-auto w-24 h-24 bg-gradient-to-r from-emerald-400 via-teal-500 to-green-500 rounded-full flex items-center justify-center mb-6 animate-pulse-glow shadow-2xl">
+          <Crown className="w-12 h-12 text-white animate-bounce-gentle" />
+        </div>
         
-        <CardContent className="space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="loginPhone" className="text-gray-700 font-medium">Numéro de téléphone</Label>
-              <Input
-                id="loginPhone"
-                type="text"
-                placeholder="Exemple: +242061043340 ou +221773637752"
-                value={loginPhone}
-                onChange={(e) => setLoginPhone(e.target.value)}
-                required
-                className="h-12 bg-gray-50 border-gray-200 focus:border-blue-500 focus:ring-blue-500 transition-all duration-200"
-                disabled={loading}
-              />
-              <p className="text-xs text-blue-600 flex items-center gap-1">
-                💡 Utilisez le format complet avec le code pays (ex: +242...)
-              </p>
+        <div className="space-y-3">
+          <CardTitle className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-emerald-100 to-teal-100 bg-clip-text text-transparent animate-scale-in">
+            👑 Espace Agent Elite
+          </CardTitle>
+          
+          <CardDescription className="text-white/90 text-lg font-medium flex items-center justify-center gap-2">
+            <Users className="w-6 h-6 text-emerald-300" />
+            Accès professionnel sécurisé et privilégié
+          </CardDescription>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="space-y-8 relative z-10 px-8 pb-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <Label htmlFor="loginPhone" className="text-white font-semibold flex items-center gap-3 text-base">
+              <Phone className="w-5 h-5 text-emerald-300" />
+              Numéro de téléphone professionnel
+            </Label>
+            <Input
+              id="loginPhone"
+              type="text"
+              placeholder="Exemple: +242061043340 ou +221773637752"
+              value={loginPhone}
+              onChange={(e) => setLoginPhone(e.target.value)}
+              required
+              className="h-14 bg-white/15 border-white/30 text-white placeholder:text-white/70 focus:border-emerald-400 focus:ring-emerald-400/30 backdrop-blur-md transition-all duration-300 hover:bg-white/20 rounded-xl text-base"
+              disabled={loading}
+            />
+            <div className="flex items-center gap-2 text-sm text-emerald-200 font-medium bg-emerald-500/20 p-4 rounded-xl backdrop-blur-sm border border-emerald-400/30">
+              <CheckCircle2 className="w-5 h-5" />
+              <span>💡 Utilisez le format complet avec le code pays (ex: +242...)</span>
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="loginPassword" className="text-gray-700 font-medium">Mot de passe</Label>
+          <div className="space-y-4">
+            <Label htmlFor="loginPassword" className="text-white font-semibold flex items-center gap-3 text-base">
+              <Lock className="w-5 h-5 text-emerald-300" />
+              Mot de passe sécurisé
+            </Label>
+            <div className="relative">
               <Input
                 id="loginPassword"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
                 required
-                className="h-12 bg-gray-50 border-gray-200 focus:border-blue-500 focus:ring-blue-500 transition-all duration-200"
+                className="h-14 bg-white/15 border-white/30 text-white placeholder:text-white/70 focus:border-emerald-400 focus:ring-emerald-400/30 backdrop-blur-md hover:bg-white/20 transition-all duration-300 rounded-xl text-base pr-12"
                 disabled={loading}
                 minLength={6}
-                placeholder="Votre mot de passe sécurisé"
+                placeholder="Votre mot de passe professionnel"
               />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </Button>
             </div>
+          </div>
 
-            <Button
-              type="submit"
-              className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-              disabled={loading}
-            >
-              {loading && (
-                <Icons.spinner className="mr-2 h-5 w-5 animate-spin" />
-              )}
-              {loading ? "Connexion en cours..." : "Se connecter"}
-            </Button>
+          <Button
+            type="submit"
+            className="w-full h-16 bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 hover:from-emerald-600 hover:via-teal-600 hover:to-green-600 text-white font-bold shadow-2xl hover:shadow-emerald-500/30 transform hover:-translate-y-1 hover:scale-105 transition-all duration-300 text-lg rounded-xl"
+            disabled={loading}
+          >
+            {loading && (
+              <Icons.spinner className="mr-3 h-6 w-6 animate-spin" />
+            )}
+            {loading ? (
+              "⏳ Connexion en cours..."
+            ) : (
+              <>
+                <Shield className="mr-3 h-6 w-6" />
+                🔐 Accéder à l'espace agent
+              </>
+            )}
+          </Button>
 
-            <div className="text-center pt-4">
-              <p className="text-sm text-gray-500">
-                Accès réservé aux agents autorisés uniquement
-              </p>
+          <div className="bg-gradient-to-r from-emerald-50/10 to-teal-50/10 backdrop-blur-md p-6 rounded-2xl border border-emerald-400/30 mt-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-emerald-500/20 rounded-full">
+                <Star className="w-5 h-5 text-emerald-300" />
+              </div>
+              <h3 className="text-white font-bold text-lg">👑 Privilèges Agent Elite</h3>
             </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+            <div className="space-y-3 text-sm text-emerald-100">
+              <div className="flex items-start gap-3">
+                <span className="text-emerald-400 mt-1">•</span>
+                <span>Accès exclusif aux outils de gestion avancés</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-emerald-400 mt-1">•</span>
+                <span>Commissions privilégiées sur toutes vos opérations</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-emerald-400 mt-1">•</span>
+                <span>Interface professionnelle dédiée aux agents</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-emerald-400 mt-1">•</span>
+                <span>Support prioritaire et assistance technique</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center pt-4">
+            <p className="text-sm text-emerald-200 font-medium bg-emerald-500/10 p-3 rounded-xl backdrop-blur-sm border border-emerald-400/20">
+              <Shield className="w-4 h-4 inline mr-2" />
+              Accès réservé aux agents autorisés uniquement
+            </p>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 
