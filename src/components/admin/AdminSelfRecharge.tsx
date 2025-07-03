@@ -41,10 +41,10 @@ const AdminSelfRecharge = () => {
     setIsProcessing(true);
 
     try {
-      const { error } = await supabase.rpc('secure_increment_balance', {
-        target_user_id: user.id,
-        amount: rechargeAmount,
-        operation_type: 'admin_self_recharge'
+      // Utilisation de la fonction increment_balance standard pour éviter les ambiguïtés
+      const { error } = await supabase.rpc('increment_balance', {
+        user_id: user.id,
+        amount: rechargeAmount
       });
 
       if (error) throw error;
@@ -71,6 +71,9 @@ const AdminSelfRecharge = () => {
       // Reset form
       setAmount("");
       setReason("");
+
+      // Recharger la page pour mettre à jour le solde affiché
+      window.location.reload();
 
     } catch (error) {
       console.error('Erreur lors de la recharge:', error);

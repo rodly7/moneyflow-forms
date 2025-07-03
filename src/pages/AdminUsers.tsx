@@ -6,11 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Users, CreditCard, Wallet } from "lucide-react";
+import { ArrowLeft, Users, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import UsersDataTable from "@/components/admin/UsersDataTable";
-import BatchAgentRecharge from "@/components/admin/BatchAgentRecharge";
-import BatchAgentDeposit from "@/components/admin/BatchAgentDeposit";
 import AdminSelfRecharge from "@/components/admin/AdminSelfRecharge";
 
 interface UserData {
@@ -164,18 +162,10 @@ const AdminUsers = () => {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl h-14">
+          <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl h-14">
             <TabsTrigger value="users" className="flex items-center gap-2 h-10">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Utilisateurs</span>
-            </TabsTrigger>
-            <TabsTrigger value="batch-recharge" className="flex items-center gap-2 h-10">
-              <CreditCard className="w-4 h-4" />
-              <span className="hidden sm:inline">Recharge Agents</span>
-            </TabsTrigger>
-            <TabsTrigger value="batch-deposit" className="flex items-center gap-2 h-10">
-              <CreditCard className="w-4 h-4" />
-              <span className="hidden sm:inline">Dépôt Agents</span>
             </TabsTrigger>
             <TabsTrigger value="self-recharge" className="flex items-center gap-2 h-10">
               <Wallet className="w-4 h-4" />
@@ -208,18 +198,6 @@ const AdminUsers = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="batch-recharge" className="space-y-6 w-full">
-            <div className="w-full">
-              <BatchAgentRecharge />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="batch-deposit" className="space-y-6 w-full">
-            <div className="w-full">
-              <BatchAgentDeposit onBack={() => setActiveTab("users")} />
-            </div>
           </TabsContent>
 
           <TabsContent value="self-recharge" className="space-y-6 w-full">
