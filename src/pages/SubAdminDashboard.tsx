@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Users, TrendingUp, Shield, LogOut, RefreshCw, DollarSign, Activity, UserPlus, Star, Sparkles } from "lucide-react";
+import { ArrowLeft, Users, TrendingUp, Shield, LogOut, RefreshCw, DollarSign, Activity, UserPlus, Star, Sparkles, Heart, Gem, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import UserProfileInfo from "@/components/profile/UserProfileInfo";
@@ -238,33 +238,47 @@ const SubAdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen w-full sub-admin-theme p-6 animate-fade-in">
-      <div className="w-full max-w-none">
-        {/* Enhanced Header */}
-        <div className="flex items-center justify-between mb-8 w-full">
-          <div className="flex items-center gap-6">
+    <div className="min-h-screen w-full bg-gradient-to-br from-pink-50 via-rose-50 to-purple-100 relative overflow-hidden animate-fade-in">
+      {/* Enhanced elegant background */}
+      <div className="absolute inset-0">
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-pink-600/8 via-rose-600/8 to-purple-600/8"></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-pink-400/25 to-rose-400/25 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-gradient-to-r from-rose-400/25 to-purple-400/25 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-pink-300/15 to-rose-300/15 rounded-full blur-3xl animate-bounce-gentle"></div>
+        
+        {/* Floating elegant particles */}
+        <div className="absolute top-10 left-10 w-6 h-6 bg-pink-500/70 rounded-full animate-pulse shadow-lg"></div>
+        <div className="absolute top-20 right-20 w-8 h-8 bg-rose-500/70 rounded-full animate-pulse delay-500 shadow-lg"></div>
+        <div className="absolute bottom-20 left-20 w-7 h-7 bg-purple-500/70 rounded-full animate-pulse delay-1000 shadow-lg"></div>
+        <div className="absolute bottom-10 right-10 w-5 h-5 bg-pink-400/70 rounded-full animate-pulse delay-1500 shadow-lg"></div>
+        <div className="absolute top-1/3 left-1/5 w-4 h-4 bg-rose-400/60 rounded-full animate-bounce-gentle delay-2000"></div>
+        <div className="absolute bottom-1/3 right-1/5 w-6 h-6 bg-purple-400/60 rounded-full animate-bounce-gentle delay-3000"></div>
+      </div>
+      
+      <div className="relative z-10 w-full px-4 py-6 md:py-8">
+        {/* Enhanced Elegant Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4 backdrop-blur-xl bg-white/25 rounded-3xl p-6 md:p-8 shadow-2xl border border-white/40 w-full hover:shadow-pink-500/25 hover:bg-white/30 transition-all duration-500 hover:scale-[1.02]">
+          <div className="flex items-center gap-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/dashboard')}
-              className="glass hover:bg-white/30 rounded-2xl text-white border-white/20 border backdrop-blur-md shadow-lg hover-lift"
+              className="glass hover:bg-white/40 rounded-2xl text-pink-700 border-pink-300/30 border backdrop-blur-md shadow-lg hover-lift mr-2"
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
               <span className="font-medium">Retour</span>
             </Button>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md shadow-lg animate-pulse-glow">
-                <Sparkles className="w-7 h-7 text-white" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold text-white animate-scale-in drop-shadow-lg">
-                  🎛️ Sous-Administration
-                </h1>
-                <p className="text-white/80 font-medium">Espace de gestion privilégié</p>
-              </div>
+            <div className="w-16 h-16 bg-gradient-to-r from-pink-500 via-rose-500 to-purple-500 rounded-3xl flex items-center justify-center shadow-2xl animate-pulse-glow">
+              <Heart className="w-8 h-8 text-white animate-bounce-gentle" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 bg-clip-text text-transparent">
+                💖 Sous-Administration Élégante
+              </h1>
+              <p className="text-pink-700/90 text-base font-semibold">Espace de gestion privilégié et raffiné</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <Button 
               variant="ghost" 
               size="sm" 
@@ -273,30 +287,40 @@ const SubAdminDashboard = () => {
                 fetchUsers();
               }}
               disabled={isLoadingStats}
-              className="glass hover:bg-white/30 border-white/20 border text-white backdrop-blur-md shadow-lg hover-lift"
+              className="hover:bg-pink-50/80 border-2 border-pink-300/50 backdrop-blur-sm bg-white/60 text-pink-700 hover:text-pink-800 shadow-xl hover:shadow-pink-500/30 transition-all duration-300 rounded-2xl font-medium h-12 px-4"
             >
               <RefreshCw className={`w-5 h-5 ${isLoadingStats ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline ml-2 font-medium">Actualiser</span>
+              <span className="hidden sm:inline ml-2">Actualiser</span>
             </Button>
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={handleSignOut}
-              className="glass hover:bg-red-500/30 border-red-300/30 border text-white backdrop-blur-md shadow-lg hover-lift transition-all duration-300"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50/80 border-2 border-red-300/50 backdrop-blur-sm bg-white/60 shadow-xl hover:shadow-red-500/30 transition-all duration-300 rounded-2xl font-medium h-12 px-4"
             >
               <LogOut className="w-5 h-5" />
-              <span className="hidden sm:inline ml-2 font-medium">Déconnexion</span>
+              <span className="hidden sm:inline ml-2">Déconnexion</span>
             </Button>
           </div>
         </div>
 
-        {/* Enhanced Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10 animate-slide-up">
-          <Card className="bg-gradient-to-br from-blue-500 via-blue-600 to-cyan-600 text-white border-0 shadow-2xl hover:shadow-3xl hover-lift animate-pulse-glow">
-            <CardContent className="p-8">
+        {/* Profile Info */}
+        <div className="w-full mb-8">
+          <UserProfileInfo />
+        </div>
+
+        {/* Enhanced Elegant Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 mb-10 animate-slide-up">
+          <Card className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white border-0 shadow-2xl hover:shadow-blue-500/50 transform hover:-translate-y-3 hover:scale-105 transition-all duration-500 overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-400/30 to-purple-400/30 animate-pulse"></div>
+            <div className="absolute top-4 right-4 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+            <CardContent className="p-8 relative z-10">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm font-semibold uppercase tracking-wide">👥 Utilisateurs</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="w-5 h-5 text-blue-200 animate-pulse" />
+                    <p className="text-blue-100 text-sm font-semibold uppercase tracking-wide">👥 Utilisateurs</p>
+                  </div>
                   <p className="text-4xl font-bold mt-2 drop-shadow-lg">{stats.totalUsers}</p>
                   <p className="text-blue-200 text-xs mt-1">Comptes actifs</p>
                 </div>
@@ -307,11 +331,16 @@ const SubAdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 text-white border-0 shadow-2xl hover:shadow-3xl hover-lift animate-pulse-glow">
-            <CardContent className="p-8">
+          <Card className="bg-gradient-to-r from-emerald-600 via-teal-600 to-green-600 text-white border-0 shadow-2xl hover:shadow-emerald-500/50 transform hover:-translate-y-3 hover:scale-105 transition-all duration-500 overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/30 to-green-400/30 animate-pulse"></div>
+            <div className="absolute top-4 right-4 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+            <CardContent className="p-8 relative z-10">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-emerald-100 text-sm font-semibold uppercase tracking-wide">🛡️ Agents</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="w-5 h-5 text-emerald-200 animate-pulse" />
+                    <p className="text-emerald-100 text-sm font-semibold uppercase tracking-wide">🛡️ Agents</p>
+                  </div>
                   <p className="text-4xl font-bold mt-2 drop-shadow-lg">{stats.totalAgents}</p>
                   <p className="text-emerald-200 text-xs mt-1">Partenaires certifiés</p>
                 </div>
@@ -322,11 +351,16 @@ const SubAdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-500 via-purple-600 to-pink-600 text-white border-0 shadow-2xl hover:shadow-3xl hover-lift animate-pulse-glow">
-            <CardContent className="p-8">
+          <Card className="bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white border-0 shadow-2xl hover:shadow-purple-500/50 transform hover:-translate-y-3 hover:scale-105 transition-all duration-500 overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-400/30 to-pink-400/30 animate-pulse"></div>
+            <div className="absolute top-4 right-4 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+            <CardContent className="p-8 relative z-10">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm font-semibold uppercase tracking-wide">📊 Transactions</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Star className="w-5 h-5 text-purple-200 animate-pulse" />
+                    <p className="text-purple-100 text-sm font-semibold uppercase tracking-wide">📊 Transactions</p>
+                  </div>
                   <p className="text-4xl font-bold mt-2 drop-shadow-lg">{stats.totalTransactions}</p>
                   <p className="text-purple-200 text-xs mt-1">Opérations totales</p>
                 </div>
@@ -337,11 +371,16 @@ const SubAdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 text-white border-0 shadow-2xl hover:shadow-3xl hover-lift animate-pulse-glow">
-            <CardContent className="p-8">
+          <Card className="bg-gradient-to-r from-orange-600 via-pink-600 to-red-600 text-white border-0 shadow-2xl hover:shadow-orange-500/50 transform hover:-translate-y-3 hover:scale-105 transition-all duration-500 overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-400/30 to-red-400/30 animate-pulse"></div>
+            <div className="absolute top-4 right-4 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+            <CardContent className="p-8 relative z-10">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-orange-100 text-sm font-semibold uppercase tracking-wide">💰 Solde Total</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Gem className="w-5 h-5 text-orange-200 animate-pulse" />
+                    <p className="text-orange-100 text-sm font-semibold uppercase tracking-wide">💰 Solde Total</p>
+                  </div>
                   <p className="text-3xl font-bold mt-2 drop-shadow-lg">{(stats.totalBalance / 1000).toFixed(0)}K XAF</p>
                   <p className="text-orange-200 text-xs mt-1">Fonds disponibles</p>
                 </div>
