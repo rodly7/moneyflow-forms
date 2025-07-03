@@ -4,11 +4,16 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Users, TrendingUp, Shield, LogOut, RefreshCw, DollarSign, Activity } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Users, TrendingUp, Shield, LogOut, RefreshCw, DollarSign, Activity, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import UserProfileInfo from "@/components/profile/UserProfileInfo";
 import NotificationsCard from "@/components/notifications/NotificationsCard";
+import UsersDataTable from "@/components/admin/UsersDataTable";
+import BatchAgentDeposit from "@/components/admin/BatchAgentDeposit";
+import UserManagementModal from "@/components/admin/UserManagementModal";
+import { useSubAdmin } from "@/hooks/useSubAdmin";
 
 interface StatsData {
   totalUsers: number;
@@ -17,47 +22,63 @@ interface StatsData {
   totalBalance: number;
 }
 
+interface UserData {
+  id: string;
+  full_name: string | null;
+  phone: string;
+  balance: number;
+  country: string | null;
+  role: 'user' | 'agent' | 'admin' | 'sub_admin';
+  is_banned?: boolean;
+  banned_reason?: string | null;
+  created_at: string;
+}
+
 const SubAdminDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isSubAdmin, canDepositToAgent } = useSubAdmin();
   
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [stats, setStats] = useState<StatsData>({
     totalUsers: 0,
     totalAgents: 0,
     totalTransactions: 0,
     totalBalance: 0
   });
+  const [users, setUsers] = useState<UserData[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [showBatchDeposit, setShowBatchDeposit] = useState(false);
 
   const fetchStats = async () => {
-    if (!profile?.country) return;
-    
     setIsLoadingStats(true);
     try {
-      // Récupérer les statistiques pour le pays du sous-admin
-      const { data: users } = await supabase
+      // Récupérer tous les utilisateurs (les sous-admins peuvent voir tous les utilisateurs)
+      const { data: allUsers } = await supabase
         .from('profiles')
-        .select('id, role, balance')
-        .eq('country', profile.country)
-        .neq('role', 'admin');
+        .select('id, role, balance, country')
+        .order('created_at', { ascending: false });
 
       const { data: transactions } = await supabase
         .from('transfers')
-        .select('amount')
-        .eq('recipient_country', profile.country);
+        .select('amount');
 
-      const totalUsers = users?.filter(u => u.role === 'user').length || 0;
-      const totalAgents = users?.filter(u => u.role === 'agent').length || 0;
-      const totalBalance = users?.reduce((sum, u) => sum + (u.balance || 0), 0) || 0;
-      const totalTransactions = transactions?.length || 0;
+      if (allUsers) {
+        const totalUsers = allUsers.filter(u => u.role === 'user').length;
+        const totalAgents = allUsers.filter(u => u.role === 'agent').length;
+        const totalBalance = allUsers.reduce((sum, u) => sum + (u.balance || 0), 0);
+        const totalTransactions = transactions?.length || 0;
 
-      setStats({
-        totalUsers,
-        totalAgents,
-        totalTransactions,
-        totalBalance
-      });
+        setStats({
+          totalUsers,
+          totalAgents,
+          totalTransactions,
+          totalBalance
+        });
+      }
     } catch (error) {
       console.error("Erreur lors du chargement des statistiques:", error);
       toast({
@@ -67,6 +88,102 @@ const SubAdminDashboard = () => {
       });
     }
     setIsLoadingStats(false);
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des utilisateurs:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les utilisateurs",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleViewUser = (user: UserData) => {
+    setSelectedUser(user);
+    setShowUserModal(true);
+  };
+
+  const handleAutoBatchDeposit = async () => {
+    if (!canDepositToAgent) {
+      toast({
+        title: "Action non autorisée",
+        description: "Vous n'avez pas les permissions pour effectuer cette action",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Récupérer les agents avec un solde < 50,000
+      const { data: lowBalanceAgents, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'agent')
+        .lt('balance', 50000);
+
+      if (error) throw error;
+
+      if (!lowBalanceAgents || lowBalanceAgents.length === 0) {
+        toast({
+          title: "Aucun agent trouvé",
+          description: "Aucun agent n'a un solde inférieur à 50,000 FCFA",
+        });
+        return;
+      }
+
+      const depositAmount = 50000;
+      const totalAmount = depositAmount * lowBalanceAgents.length;
+
+      // Vérifier le solde du sous-admin
+      if (profile && profile.balance < totalAmount) {
+        toast({
+          title: "Solde insuffisant",
+          description: `Solde requis: ${totalAmount.toLocaleString()} FCFA`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Effectuer les dépôts
+      for (const agent of lowBalanceAgents) {
+        await supabase.rpc('increment_balance', {
+          user_id: agent.id,
+          amount: depositAmount
+        });
+      }
+
+      // Débiter le sous-admin
+      await supabase.rpc('increment_balance', {
+        user_id: profile?.id,
+        amount: -totalAmount
+      });
+
+      toast({
+        title: "Dépôts automatiques effectués",
+        description: `${lowBalanceAgents.length} agent(s) rechargé(s) de 50,000 FCFA chacun`,
+      });
+
+      fetchUsers();
+      fetchStats();
+    } catch (error) {
+      console.error('Erreur lors du dépôt automatique:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors du dépôt automatique",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleSignOut = async () => {
@@ -88,10 +205,13 @@ const SubAdminDashboard = () => {
   };
 
   useEffect(() => {
-    if (profile?.country) {
-      fetchStats();
+    if (profile?.role !== 'sub_admin') {
+      navigate('/dashboard');
+      return;
     }
-  }, [profile]);
+    fetchStats();
+    fetchUsers();
+  }, [profile, navigate]);
 
   if (!profile || profile.role !== 'sub_admin') {
     return (
@@ -116,37 +236,32 @@ const SubAdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 relative overflow-hidden">
-      {/* Background decorative elements */}
-      <div className="absolute top-1/4 left-1/4 w-32 h-32 md:w-64 md:h-64 bg-indigo-200/20 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-48 h-48 md:w-96 md:h-96 bg-purple-200/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-      
-      <div className="relative z-10 container mx-auto px-4 py-4 md:py-8 max-w-6xl">
-        {/* Enhanced Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4 backdrop-blur-sm bg-white/70 rounded-2xl p-4 md:p-6 shadow-lg border border-white/20">
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate('/dashboard')} 
-              className="text-gray-700 hover:bg-blue-50 border border-blue-200 hover:border-blue-300"
+    <div className="min-h-screen w-full bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 p-4">
+      <div className="w-full max-w-none">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6 w-full">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/dashboard')}
+              className="hover:bg-white/50"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Retour</span>
+              Retour
             </Button>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Sous-Administration
-              </h1>
-              <p className="text-sm text-gray-600">
-                Gestion pour {profile.country}
-              </p>
-            </div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              Sous-Administration
+            </h1>
           </div>
           <div className="flex items-center gap-2">
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={fetchStats}
+              onClick={() => {
+                fetchStats();
+                fetchUsers();
+              }}
               disabled={isLoadingStats}
               className="hover:bg-green-50 border border-green-200"
             >
@@ -164,9 +279,6 @@ const SubAdminDashboard = () => {
             </Button>
           </div>
         </div>
-
-        {/* Profile Info */}
-        <UserProfileInfo />
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
@@ -219,59 +331,91 @@ const SubAdminDashboard = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Services Grid */}
-          <div className="grid grid-cols-1 gap-6">
-            {/* Gestion Utilisateurs */}
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-3 text-blue-600">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
-                    <Users className="w-6 h-6 text-white" />
-                  </div>
-                  Gestion Utilisateurs
+        {/* Main Content */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full">
+          <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl h-14">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2 h-10">
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">Gestion Utilisateurs</span>
+            </TabsTrigger>
+            <TabsTrigger value="deposits" className="flex items-center gap-2 h-10">
+              <UserPlus className="w-4 h-4" />
+              <span className="hidden sm:inline">Dépôts Agents</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="dashboard" className="space-y-6 w-full">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl w-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Consultation des Utilisateurs
                 </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 text-sm mb-4">
-                  Consultez les utilisateurs et agents de {profile.country}.
+                <p className="text-sm text-gray-600">
+                  Vous pouvez consulter tous les utilisateurs mais ne pouvez pas modifier leurs informations.
                 </p>
-                <Button 
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold h-10 shadow-lg text-sm"
-                >
-                  Consulter les utilisateurs
-                </Button>
+              </CardHeader>
+              <CardContent className="w-full overflow-x-auto">
+                <div className="w-full">
+                  <UsersDataTable 
+                    users={users}
+                    onViewUser={handleViewUser}
+                    onQuickRoleChange={() => {}} // Fonction vide pour les sous-admins
+                    onQuickBanToggle={() => {}} // Fonction vide pour les sous-admins
+                    isSubAdmin={true}
+                  />
+                </div>
               </CardContent>
             </Card>
+          </TabsContent>
 
-            {/* Rapports */}
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-3 text-emerald-600">
-                  <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6 text-white" />
-                  </div>
-                  Rapports
+          <TabsContent value="deposits" className="space-y-6 w-full">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl w-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserPlus className="w-5 h-5" />
+                  Dépôts en Lot pour Agents
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 text-sm mb-4">
-                  Consultez les rapports pour votre région.
-                </p>
-                <Button 
-                  className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-semibold h-10 shadow-lg text-sm"
-                >
-                  Voir les rapports
-                </Button>
+              <CardContent className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button
+                    onClick={handleAutoBatchDeposit}
+                    className="bg-orange-600 hover:bg-orange-700"
+                    disabled={!canDepositToAgent}
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Dépôt Auto (Agents &lt; 50k)
+                  </Button>
+                  <Button
+                    onClick={() => setShowBatchDeposit(true)}
+                    variant="outline"
+                    disabled={!canDepositToAgent}
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Dépôt Manuel Personnalisé
+                  </Button>
+                </div>
+                
+                {showBatchDeposit && canDepositToAgent && (
+                  <BatchAgentDeposit onBack={() => setShowBatchDeposit(false)} />
+                )}
               </CardContent>
             </Card>
-          </div>
+          </TabsContent>
+        </Tabs>
 
-          {/* Notifications */}
-          <div>
-            <NotificationsCard />
-          </div>
-        </div>
+        {/* Modal de consultation des utilisateurs (lecture seule pour sous-admins) */}
+        <UserManagementModal
+          isOpen={showUserModal}
+          onClose={() => {
+            setShowUserModal(false);
+            setSelectedUser(null);
+          }}
+          user={selectedUser}
+          onUserUpdated={fetchUsers}
+          isSubAdmin={true}
+        />
       </div>
     </div>
   );

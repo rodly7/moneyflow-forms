@@ -14,12 +14,12 @@ export const useSubAdmin = () => {
   };
 
   const canViewUsers = () => {
-    // Les sous-admins peuvent seulement voir les utilisateurs
+    // Les sous-admins peuvent voir tous les utilisateurs
     return isSubAdmin();
   };
 
   const canRecharge = () => {
-    // Les sous-admins ne peuvent pas faire de recharge
+    // Les sous-admins ne peuvent pas faire de recharge personnelle
     return false;
   };
 
@@ -28,11 +28,17 @@ export const useSubAdmin = () => {
     return isSubAdmin();
   };
 
+  const canViewAllData = () => {
+    // Les sous-admins peuvent voir toutes les données comme les admins
+    return isSubAdmin();
+  };
+
   return {
     isSubAdmin: isSubAdmin(),
     canManageUsers: canManageUsers(),
     canViewUsers: canViewUsers(),
     canRecharge: canRecharge(),
-    canDepositToAgent: canDepositToAgent()
+    canDepositToAgent: canDepositToAgent(),
+    canViewAllData: canViewAllData()
   };
 };

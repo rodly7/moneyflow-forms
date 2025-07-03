@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/integrations/supabase/client';
-import { User, Shield, Ban, UserCheck, UserX, Edit3, Trash2, Crown } from 'lucide-react';
+import { User, Shield, Ban, UserCheck, UserX, Edit3, Trash2, Crown, Eye } from 'lucide-react';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 
 interface UserData {
@@ -32,9 +31,10 @@ interface UserManagementModalProps {
   onClose: () => void;
   user: UserData | null;
   onUserUpdated: () => void;
+  isSubAdmin?: boolean;
 }
 
-const UserManagementModal = ({ isOpen, onClose, user, onUserUpdated }: UserManagementModalProps) => {
+const UserManagementModal = ({ isOpen, onClose, user, onUserUpdated, isSubAdmin = false }: UserManagementModalProps) => {
   const { toast } = useToast();
   const deviceInfo = useDeviceDetection();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -244,9 +244,9 @@ const UserManagementModal = ({ isOpen, onClose, user, onUserUpdated }: UserManag
       <DialogContent className={`${deviceInfo.isMobile ? 'max-w-sm mx-2' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
+            {isSubAdmin ? <Eye className="w-5 h-5" /> : <User className="w-5 h-5" />}
             <span className={deviceInfo.isMobile ? 'text-sm' : ''}>
-              Gestion utilisateur - {user.full_name || user.phone}
+              {isSubAdmin ? 'Consultation utilisateur' : 'Gestion utilisateur'} - {user.full_name || user.phone}
             </span>
           </DialogTitle>
         </DialogHeader>
@@ -269,152 +269,35 @@ const UserManagementModal = ({ isOpen, onClose, user, onUserUpdated }: UserManag
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {editMode ? (
-                <div className={`grid ${deviceInfo.isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'} gap-4`}>
-                  <div>
-                    <Label htmlFor="full_name">Nom complet</Label>
-                    <Input
-                      id="full_name"
-                      value={formData.full_name}
-                      onChange={(e) => setFormData(prev => ({...prev, full_name: e.target.value}))}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="phone">Téléphone</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="country">Pays</Label>
-                    <Input
-                      id="country"
-                      value={formData.country}
-                      onChange={(e) => setFormData(prev => ({...prev, country: e.target.value}))}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="balance">Solde (FCFA)</Label>
-                    <Input
-                      id="balance"
-                      type="number"
-                      value={formData.balance}
-                      onChange={(e) => setFormData(prev => ({...prev, balance: Number(e.target.value)}))}
-                    />
-                  </div>
-                  <div className={deviceInfo.isMobile ? 'col-span-1' : 'col-span-2'}>
-                    <Label htmlFor="role">Rôle</Label>
-                    <Select value={formData.role} onValueChange={(value) => setFormData(prev => ({...prev, role: value as any}))}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="user">Utilisateur</SelectItem>
-                        <SelectItem value="agent">Agent</SelectItem>
-                        <SelectItem value="sub_admin">Sous-Administrateur</SelectItem>
-                        <SelectItem value="admin">
-                          <div className="flex items-center gap-2 text-red-700">
-                            <Crown className="w-4 h-4" />
-                            Administrateur
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {formData.role === 'admin' && (
-                      <p className="text-xs text-red-600 mt-1">
-                        ⚠️ Attention: Vous êtes sur le point de promouvoir cet utilisateur au rôle d'administrateur avec tous les privilèges.
-                      </p>
-                    )}
-                  </div>
+              {/* Mode consultation pour sous-admins */}
+              <div className={`grid ${deviceInfo.isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'} gap-4`}>
+                <div>
+                  <p className="text-sm text-gray-600">Nom:</p>
+                  <p className="font-medium">{user.full_name || 'Non renseigné'}</p>
                 </div>
-              ) : (
-                <div className={`grid ${deviceInfo.isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'} gap-4`}>
-                  <div>
-                    <p className="text-sm text-gray-600">Nom:</p>
-                    <p className="font-medium">{user.full_name || 'Non renseigné'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Téléphone:</p>
-                    <p className="font-medium">{user.phone}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Pays:</p>
-                    <p className="font-medium">{user.country || 'Non renseigné'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Solde:</p>
-                    <p className="font-medium text-green-600">{formatCurrency(user.balance, 'XAF')}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Créé le:</p>
-                    <p className="font-medium">{new Date(user.created_at).toLocaleDateString()}</p>
-                  </div>
+                <div>
+                  <p className="text-sm text-gray-600">Téléphone:</p>
+                  <p className="font-medium">{user.phone}</p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Actions principales - Responsive */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className={`${deviceInfo.isMobile ? 'text-base' : 'text-lg'}`}>Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={`flex ${deviceInfo.isMobile ? 'flex-col space-y-2' : 'flex-wrap'} gap-2`}>
-                {editMode ? (
-                  <>
-                    <Button onClick={handleUpdateUser} disabled={isProcessing} className="w-full sm:w-auto">
-                      <UserCheck className="w-4 h-4 mr-2" />
-                      Sauvegarder
-                    </Button>
-                    <Button variant="outline" onClick={() => setEditMode(false)} className="w-full sm:w-auto">
-                      Annuler
-                    </Button>
-                  </>
-                ) : (
-                  <Button onClick={() => setEditMode(true)} variant="outline" className="w-full sm:w-auto">
-                    <Edit3 className="w-4 h-4 mr-2" />
-                    Modifier
-                  </Button>
-                )}
-
-                {user.is_banned ? (
-                  <Button onClick={handleUnbanUser} disabled={isProcessing} variant="outline" className="w-full sm:w-auto">
-                    <UserCheck className="w-4 h-4 mr-2" />
-                    Débannir
-                  </Button>
-                ) : (
-                  <Button onClick={handleBanUser} disabled={isProcessing} variant="destructive" className="w-full sm:w-auto">
-                    <Ban className="w-4 h-4 mr-2" />
-                    Bannir
-                  </Button>
-                )}
-
-                <Button onClick={handleDeleteUser} disabled={isProcessing} variant="destructive" className="w-full sm:w-auto">
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Supprimer
-                </Button>
+                <div>
+                  <p className="text-sm text-gray-600">Pays:</p>
+                  <p className="font-medium">{user.country || 'Non renseigné'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Solde:</p>
+                  <p className="font-medium text-green-600">{formatCurrency(user.balance, 'XAF')}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Créé le:</p>
+                  <p className="font-medium">{new Date(user.created_at).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">ID Utilisateur:</p>
+                  <p className="font-medium text-xs">{user.id}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
-
-          {/* Gestion du bannissement */}
-          {!user.is_banned && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className={`${deviceInfo.isMobile ? 'text-base' : 'text-lg'}`}>Raison du bannissement (optionnel)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  placeholder="Raison du bannissement..."
-                  value={banData.reason}
-                  onChange={(e) => setBanData(prev => ({...prev, reason: e.target.value}))}
-                />
-              </CardContent>
-            </Card>
-          )}
 
           {/* Informations de bannissement */}
           {user.is_banned && user.banned_reason && (
@@ -424,6 +307,23 @@ const UserManagementModal = ({ isOpen, onClose, user, onUserUpdated }: UserManag
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700">{user.banned_reason}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Message d'information pour sous-admins */}
+          {isSubAdmin && (
+            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <Eye className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-blue-800 mb-2">Mode Consultation</h3>
+                    <p className="text-sm text-blue-700">
+                      En tant que sous-administrateur, vous pouvez consulter les informations des utilisateurs mais ne pouvez pas les modifier.
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
