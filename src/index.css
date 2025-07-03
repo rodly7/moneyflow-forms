@@ -26,18 +26,23 @@
     --ring: 262 83% 58%;
     --radius: 0.75rem;
     
-    /* Custom gradient variables */
+    /* Enhanced gradient variables */
     --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     --gradient-success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     --gradient-warning: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
     --gradient-danger: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
     --gradient-info: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    --gradient-emerald: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    --gradient-purple: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    --gradient-orange: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    --gradient-cyan: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
     
     /* Glass morphism variables */
     --glass-bg: rgba(255, 255, 255, 0.25);
     --glass-border: rgba(255, 255, 255, 0.18);
     --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    --glass-hover: rgba(255, 255, 255, 0.35);
   }
 }
 
@@ -86,16 +91,23 @@
 }
 
 @layer components {
-  /* Glass morphism effects */
+  /* Enhanced glass morphism effects */
   .glass {
     background: var(--glass-bg);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
+    transition: all 0.3s ease;
   }
   
-  /* Gradient backgrounds */
+  .glass:hover {
+    background: var(--glass-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.45);
+  }
+  
+  /* Enhanced gradient backgrounds */
   .bg-gradient-primary {
     background: var(--gradient-primary);
   }
@@ -120,62 +132,132 @@
     background: var(--gradient-info);
   }
   
+  .bg-gradient-emerald {
+    background: var(--gradient-emerald);
+  }
+  
+  .bg-gradient-purple {
+    background: var(--gradient-purple);
+  }
+  
+  .bg-gradient-orange {
+    background: var(--gradient-orange);
+  }
+  
+  .bg-gradient-cyan {
+    background: var(--gradient-cyan);
+  }
+  
   /* Enhanced hover effects */
   .hover-lift {
-    @apply transform transition-all duration-300 hover:-translate-y-2 hover:shadow-xl;
+    @apply transform transition-all duration-300 hover:-translate-y-3 hover:shadow-2xl hover:scale-105;
   }
   
   .hover-glow {
-    @apply transition-all duration-300 hover:shadow-lg hover:shadow-primary/25;
+    @apply transition-all duration-300 hover:shadow-2xl hover:shadow-primary/30;
+  }
+  
+  .hover-float {
+    @apply transform transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:rotate-1;
   }
   
   /* Interactive animations */
   .animate-fade-in {
-    animation: fadeIn 0.6s ease-out;
+    animation: fadeIn 0.8s ease-out;
   }
   
   .animate-slide-up {
-    animation: slideUp 0.6s ease-out;
+    animation: slideUp 0.8s ease-out;
   }
   
   .animate-scale-in {
-    animation: scaleIn 0.4s ease-out;
+    animation: scaleIn 0.6s ease-out;
+  }
+  
+  .animate-bounce-gentle {
+    animation: bounceGentle 3s ease-in-out infinite;
+  }
+  
+  .animate-pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+  
+  /* Button enhancement classes */
+  .btn-gradient {
+    @apply bg-gradient-primary text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1;
+  }
+  
+  .btn-glass {
+    @apply glass text-slate-700 font-medium py-3 px-6 rounded-xl hover:text-slate-900 transition-all duration-300;
   }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(30px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(40px); }
+  from { opacity: 0; transform: translateY(50px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: scale(0.8) rotate(-5deg); }
+  to { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes bounceGentle {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.6);
+    transform: scale(1.02);
+  }
 }
 
 .form-step-enter {
   opacity: 0;
-  transform: translateX(10px);
+  transform: translateX(20px) scale(0.95);
 }
 
 .form-step-enter-active {
   opacity: 1;
-  transform: translateX(0);
-  transition: opacity 300ms, transform 300ms;
+  transform: translateX(0) scale(1);
+  transition: opacity 400ms, transform 400ms;
 }
 
 .form-step-exit {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateX(0) scale(1);
 }
 
 .form-step-exit-active {
   opacity: 0;
-  transform: translateX(-10px);
-  transition: opacity 300ms, transform 300ms;
+  transform: translateX(-20px) scale(0.95);
+  transition: opacity 400ms, transform 400ms;
+}
+
+/* Custom role-based color schemes */
+.admin-theme {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+}
+
+.agent-theme {
+  background: linear-gradient(135deg, #26d0ce 0%, #1dd1a1 100%);
+}
+
+.user-theme {
+  background: linear-gradient(135deg, #5f27cd 0%, #341f97 100%);
+}
+
+.sub-admin-theme {
+  background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
 }

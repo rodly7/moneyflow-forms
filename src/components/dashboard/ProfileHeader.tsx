@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ProfileEditForm from "@/components/ProfileEditForm";
 import QRCodeGenerator from "@/components/QRCodeGenerator";
-import { LogOut, Star, Edit3, Camera, User, QrCode } from "lucide-react";
+import { LogOut, Star, Edit3, Camera, User, QrCode, Sparkles, Crown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -32,6 +32,29 @@ const ProfileHeader = ({ profile }: ProfileHeaderProps) => {
   };
 
   const isAgent = userRole === 'agent' || userRole === 'admin';
+  const isAdmin = userRole === 'admin';
+  const isSubAdmin = userRole === 'sub_admin';
+
+  const getRoleIcon = () => {
+    if (isAdmin) return <Crown className="h-5 w-5" />;
+    if (isSubAdmin) return <Sparkles className="h-5 w-5" />;
+    if (isAgent) return <Star className="h-5 w-5" />;
+    return null;
+  };
+
+  const getRoleLabel = () => {
+    if (isAdmin) return "Administrateur";
+    if (isSubAdmin) return "Sous-Administrateur";
+    if (isAgent) return "Agent Certifié";
+    return "Utilisateur";
+  };
+
+  const getRoleGradient = () => {
+    if (isAdmin) return "from-red-500 to-pink-600";
+    if (isSubAdmin) return "from-purple-500 to-pink-500";
+    if (isAgent) return "from-amber-400 to-orange-500";
+    return "from-blue-500 to-cyan-500";
+  };
 
   const handleLogout = async () => {
     try {
@@ -44,41 +67,43 @@ const ProfileHeader = ({ profile }: ProfileHeaderProps) => {
 
   return (
     <>
-      <Card className="bg-white/90 backdrop-blur-sm shadow-xl border-0 rounded-3xl overflow-hidden">
-        <CardContent className="p-6">
+      <Card className="glass shadow-2xl border-0 rounded-3xl overflow-hidden backdrop-blur-lg hover-lift animate-fade-in">
+        <CardContent className="p-8">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-8">
               <Dialog>
                 <DialogTrigger asChild>
                   <div className="cursor-pointer relative group">
-                    <Avatar className="h-20 w-20 ring-4 ring-emerald-100 transition-all duration-300 group-hover:ring-emerald-200 group-hover:scale-105">
+                    <Avatar className="h-28 w-28 ring-4 ring-white/30 transition-all duration-500 group-hover:ring-white/50 group-hover:scale-110 shadow-2xl">
                       <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || ''} />
-                      <AvatarFallback className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xl font-bold">
+                      <AvatarFallback className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-2xl font-bold shadow-inner">
                         {profile?.avatar_url ? (
                           getInitials(profile?.full_name || '')
                         ) : (
-                          <User className="h-8 w-8" />
+                          <User className="h-12 w-12" />
                         )}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg">
+                    <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full p-3 opacity-0 group-hover:opacity-100 transition-all duration-500 shadow-xl hover:scale-110">
                       {profile?.avatar_url ? (
-                        <Edit3 className="h-4 w-4 text-white" />
+                        <Edit3 className="h-5 w-5 text-white" />
                       ) : (
-                        <Camera className="h-4 w-4 text-white" />
+                        <Camera className="h-5 w-5 text-white" />
                       )}
                     </div>
                     {!profile?.avatar_url && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <span className="text-white text-xs font-medium">Ajouter</span>
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 backdrop-blur-sm">
+                        <span className="text-white text-sm font-semibold">Ajouter</span>
                       </div>
                     )}
                   </div>
                 </DialogTrigger>
-                <DialogContent className="rounded-2xl max-w-md">
+                <DialogContent className="rounded-3xl max-w-md glass backdrop-blur-lg border-white/20">
                   <DialogHeader>
-                    <DialogTitle className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                      <Camera className="h-5 w-5 text-emerald-600" />
+                    <DialogTitle className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                      <div className="p-2 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl">
+                        <Camera className="h-6 w-6 text-white" />
+                      </div>
                       Modifier votre profil
                     </DialogTitle>
                   </DialogHeader>
@@ -87,44 +112,48 @@ const ProfileHeader = ({ profile }: ProfileHeaderProps) => {
               </Dialog>
               
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-1">
-                  <h2 className="text-2xl font-bold text-gray-800">{profile?.full_name || 'Utilisateur'}</h2>
-                  {isAgent && (
-                    <div className="flex items-center bg-gradient-to-r from-amber-400 to-orange-500 text-white px-3 py-1 rounded-full shadow-md">
-                      <Star className="h-4 w-4 mr-1" />
-                      <span className="text-sm font-medium">Agent</span>
+                <div className="flex items-center gap-4 mb-2">
+                  <h2 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                    {profile?.full_name || 'Utilisateur'}
+                  </h2>
+                  {(isAgent || isAdmin || isSubAdmin) && (
+                    <div className={`flex items-center bg-gradient-to-r ${getRoleGradient()} text-white px-4 py-2 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105`}>
+                      {getRoleIcon()}
+                      <span className="text-sm font-semibold ml-2">{getRoleLabel()}</span>
                     </div>
                   )}
                 </div>
-                <p className="text-base text-gray-600 font-medium mb-1">{profile?.phone}</p>
-                <p className="text-sm text-gray-500">Membre depuis aujourd'hui</p>
+                <p className="text-lg text-gray-600 font-semibold mb-2 flex items-center gap-2">
+                  📱 {profile?.phone}
+                </p>
+                <p className="text-sm text-gray-500 mb-3">✨ Membre depuis aujourd'hui</p>
                 {!profile?.avatar_url && (
-                  <p className="text-xs text-emerald-600 font-medium mt-2 flex items-center gap-1">
-                    <Camera className="h-3 w-3" />
+                  <p className="text-sm text-emerald-600 font-semibold flex items-center gap-2 glass p-3 rounded-xl w-fit">
+                    <Camera className="h-4 w-4" />
                     Cliquez sur l'avatar pour ajouter une photo
                   </p>
                 )}
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Button 
                 variant="ghost" 
                 size="icon"
-                className="text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-all duration-300 h-12 w-12"
+                className="text-gray-500 hover:text-emerald-600 glass hover:bg-emerald-50/80 rounded-2xl transition-all duration-300 h-14 w-14 shadow-lg hover:shadow-xl hover:scale-110"
                 onClick={() => setShowQRDialog(true)}
                 title="Mon QR Code"
               >
-                <QrCode className="w-6 h-6" />
+                <QrCode className="w-7 h-7" />
               </Button>
               
               <Button 
                 variant="ghost" 
                 size="icon"
-                className="text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-all duration-300 h-12 w-12"
+                className="text-gray-500 hover:text-red-500 glass hover:bg-red-50/80 rounded-2xl transition-all duration-300 h-14 w-14 shadow-lg hover:shadow-xl hover:scale-110"
                 onClick={handleLogout}
               >
-                <LogOut className="w-6 h-6" />
+                <LogOut className="w-7 h-7" />
               </Button>
             </div>
           </div>
