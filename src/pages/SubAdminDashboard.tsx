@@ -545,7 +545,7 @@ const SubAdminDashboard = () => {
                         </div>
                         <div>
                           <h3 className="font-bold text-amber-800 text-lg">🚀 Dépôt Automatique</h3>
-                          <p className="text-amber-600 text-sm">Recharge tous les agents < 50k FCFA</p>
+                          <p className="text-amber-600 text-sm">Recharge tous les agents &lt; 50k FCFA</p>
                         </div>
                       </div>
                       <Button
