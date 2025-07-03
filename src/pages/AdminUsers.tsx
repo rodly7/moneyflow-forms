@@ -6,10 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Users, Wallet } from "lucide-react";
+import { ArrowLeft, Users, Wallet, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import UsersDataTable from "@/components/admin/UsersDataTable";
 import AdminSelfRecharge from "@/components/admin/AdminSelfRecharge";
+import BatchAgentDeposit from "@/components/admin/BatchAgentDeposit";
+import UserManagementModal from "@/components/admin/UserManagementModal";
 
 interface UserData {
   id: string;
@@ -30,6 +32,9 @@ const AdminUsers = () => {
   const [activeTab, setActiveTab] = useState("users");
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showBatchDeposit, setShowBatchDeposit] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [showUserModal, setShowUserModal] = useState(false);
 
   useEffect(() => {
     if (profile?.role !== 'admin') {
@@ -127,12 +132,70 @@ const AdminUsers = () => {
   };
 
   const handleViewUser = (user: UserData) => {
-    // Pour l'instant, on affiche les détails dans un toast
-    // Plus tard, on pourra ouvrir une modal détaillée
-    toast({
-      title: "Détails utilisateur",
-      description: `${user.full_name || 'Sans nom'} - ${user.phone} - Solde: ${user.balance} FCFA`,
-    });
+    setSelectedUser(user);
+    setShowUserModal(true);
+  };
+
+  const handleAutoBatchDeposit = async () => {
+    try {
+      // Récupérer les agents avec un solde < 50,000
+      const { data: lowBalanceAgents, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'agent')
+        .lt('balance', 50000);
+
+      if (error) throw error;
+
+      if (!lowBalanceAgents || lowBalanceAgents.length === 0) {
+        toast({
+          title: "Aucun agent trouvé",
+          description: "Aucun agent n'a un solde inférieur à 50,000 FCFA",
+        });
+        return;
+      }
+
+      const depositAmount = 50000;
+      const totalAmount = depositAmount * lowBalanceAgents.length;
+
+      // Vérifier le solde de l'admin
+      if (profile && profile.balance < totalAmount) {
+        toast({
+          title: "Solde insuffisant",
+          description: `Solde requis: ${totalAmount.toLocaleString()} FCFA`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Effectuer les dépôts
+      for (const agent of lowBalanceAgents) {
+        await supabase.rpc('increment_balance', {
+          user_id: agent.id,
+          amount: depositAmount
+        });
+      }
+
+      // Débiter l'admin
+      await supabase.rpc('increment_balance', {
+        user_id: profile?.id,
+        amount: -totalAmount
+      });
+
+      toast({
+        title: "Dépôts automatiques effectués",
+        description: `${lowBalanceAgents.length} agent(s) rechargé(s) de 50,000 FCFA chacun`,
+      });
+
+      fetchUsers();
+    } catch (error) {
+      console.error('Erreur lors du dépôt automatique:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors du dépôt automatique",
+        variant: "destructive"
+      });
+    }
   };
 
   if (!profile || profile.role !== 'admin') {
@@ -162,10 +225,14 @@ const AdminUsers = () => {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl h-14">
+          <TabsList className="grid w-full grid-cols-3 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl h-14">
             <TabsTrigger value="users" className="flex items-center gap-2 h-10">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Utilisateurs</span>
+            </TabsTrigger>
+            <TabsTrigger value="batch-deposit" className="flex items-center gap-2 h-10">
+              <UserPlus className="w-4 h-4" />
+              <span className="hidden sm:inline">Dépôts Agents</span>
             </TabsTrigger>
             <TabsTrigger value="self-recharge" className="flex items-center gap-2 h-10">
               <Wallet className="w-4 h-4" />
@@ -200,12 +267,56 @@ const AdminUsers = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="batch-deposit" className="space-y-6 w-full">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl w-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserPlus className="w-5 h-5" />
+                  Dépôts en Lot pour Agents
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button
+                    onClick={handleAutoBatchDeposit}
+                    className="bg-orange-600 hover:bg-orange-700"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Dépôt Auto (Agents &lt; 50k)
+                  </Button>
+                  <Button
+                    onClick={() => setShowBatchDeposit(true)}
+                    variant="outline"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Dépôt Manuel Personnalisé
+                  </Button>
+                </div>
+                
+                {showBatchDeposit && (
+                  <BatchAgentDeposit onBack={() => setShowBatchDeposit(false)} />
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="self-recharge" className="space-y-6 w-full">
             <div className="w-full">
               <AdminSelfRecharge />
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Modal de gestion des utilisateurs */}
+        <UserManagementModal
+          isOpen={showUserModal}
+          onClose={() => {
+            setShowUserModal(false);
+            setSelectedUser(null);
+          }}
+          user={selectedUser}
+          onUserUpdated={fetchUsers}
+        />
       </div>
     </div>
   );
