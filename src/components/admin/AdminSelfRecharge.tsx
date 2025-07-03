@@ -18,6 +18,9 @@ const AdminSelfRecharge = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
+  // Limite maximale pour éviter l'erreur "Amount too large"
+  const MAX_AMOUNT = 10000000; // 10 millions FCFA
+
   const handleSelfRecharge = async () => {
     if (!amount || !user?.id) {
       toast({
@@ -38,16 +41,29 @@ const AdminSelfRecharge = () => {
       return;
     }
 
+    // Vérifier la limite maximale
+    if (rechargeAmount > MAX_AMOUNT) {
+      toast({
+        title: "Montant trop élevé",
+        description: `Le montant maximum autorisé est de ${formatCurrency(MAX_AMOUNT, 'XAF')}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
-      // Utilisation de la fonction increment_balance standard pour éviter les ambiguïtés
+      // Utilisation de la fonction increment_balance standard
       const { error } = await supabase.rpc('increment_balance', {
         user_id: user.id,
         amount: rechargeAmount
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur RPC:', error);
+        throw error;
+      }
 
       // Log de l'opération
       await supabase
@@ -75,11 +91,23 @@ const AdminSelfRecharge = () => {
       // Recharger la page pour mettre à jour le solde affiché
       window.location.reload();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de la recharge:', error);
+      
+      let errorMessage = "Erreur lors de la recharge de votre solde";
+      
+      // Gestion spécifique des erreurs
+      if (error?.message?.includes('Amount too large')) {
+        errorMessage = `Montant trop élevé. Maximum autorisé: ${formatCurrency(MAX_AMOUNT, 'XAF')}`;
+      } else if (error?.message?.includes('Insufficient balance')) {
+        errorMessage = "Solde insuffisant pour cette opération";
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Erreur",
-        description: "Erreur lors de la recharge de votre solde",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -122,7 +150,11 @@ const AdminSelfRecharge = () => {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="h-12 bg-gray-50 border-gray-200 focus:border-green-500 focus:ring-green-500"
+              max={MAX_AMOUNT}
             />
+            <p className="text-xs text-gray-500">
+              Montant maximum: {formatCurrency(MAX_AMOUNT, 'XAF')}
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -140,7 +172,7 @@ const AdminSelfRecharge = () => {
         </div>
 
         {/* Aperçu du nouveau solde */}
-        {amount && Number(amount) > 0 && (
+        {amount && Number(amount) > 0 && Number(amount) <= MAX_AMOUNT && (
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
@@ -156,11 +188,26 @@ const AdminSelfRecharge = () => {
           </div>
         )}
 
+        {/* Avertissement si montant trop élevé */}
+        {amount && Number(amount) > MAX_AMOUNT && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-red-900 mb-2">Montant trop élevé</h4>
+                <p className="text-sm text-red-700">
+                  Le montant maximum autorisé est de {formatCurrency(MAX_AMOUNT, 'XAF')}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Action */}
         <div className="flex justify-end">
           <Button
             onClick={handleSelfRecharge}
-            disabled={isProcessing || !amount || Number(amount) <= 0}
+            disabled={isProcessing || !amount || Number(amount) <= 0 || Number(amount) > MAX_AMOUNT}
             className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-full px-8 h-12"
           >
             {isProcessing ? (
