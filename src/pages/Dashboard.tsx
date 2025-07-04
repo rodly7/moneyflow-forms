@@ -3,7 +3,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUpRight, QrCode, RefreshCw, LogOut, Wallet, Activity, DollarSign, History, PiggyBank, FileText, Sparkles, Crown, Star, Zap, Heart } from "lucide-react";
+import { ArrowUpRight, QrCode, RefreshCw, LogOut, Wallet, Activity, DollarSign, History, PiggyBank, FileText, Sparkles, Crown, Star, Zap, Heart, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,7 @@ const Dashboard = () => {
   const [balance, setBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [showQRDialog, setShowQRDialog] = useState(false);
+  const [showBalance, setShowBalance] = useState(false);
 
   // Utiliser le hook de vérification du solde
   useBalanceCheck(balance);
@@ -237,9 +238,24 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <div>
+                  <div className="flex items-center justify-center gap-4 mb-4">
+                    <div className="text-center">
+                      <p className="text-white/80 text-sm mb-1">👤 {profile?.full_name || 'Utilisateur'}</p>
+                      {profile?.address && (
+                        <p className="text-white/70 text-xs">📍 {profile.address}</p>
+                      )}
+                    </div>
+                    <button 
+                      onClick={() => setShowBalance(!showBalance)}
+                      className="text-white/80 hover:text-white transition-colors"
+                      aria-label={showBalance ? "Masquer le solde" : "Afficher le solde"}
+                    >
+                      {showBalance ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                   <p className="text-white/80 text-sm mb-2">Solde disponible</p>
                   <p className="text-4xl font-bold bg-gradient-to-r from-yellow-200 to-yellow-400 bg-clip-text text-transparent">
-                    {formatCurrency(convertedBalance, userCurrency)}
+                    {showBalance ? formatCurrency(convertedBalance, userCurrency) : "••••••"}
                   </p>
                 </div>
                 <div className="flex justify-center space-x-1">

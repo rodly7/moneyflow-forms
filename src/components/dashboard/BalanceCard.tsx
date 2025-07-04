@@ -27,12 +27,14 @@ interface BalanceCardProps {
   balance: number;
   userCountry: string;
   currency?: string;
+  userProfile?: any;
 }
 
 const BalanceCard = ({ 
   balance, 
   userCountry,
-  currency
+  currency,
+  userProfile
 }: BalanceCardProps) => {
   const [showBalance, setShowBalance] = useState(false);
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
@@ -138,11 +140,19 @@ const BalanceCard = ({
     <>
       <Card className="mx-4 overflow-hidden border-0 shadow-lg relative bg-gradient-to-r from-emerald-500 to-teal-600">
         <CardContent className="p-6 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <h3 className="font-medium text-white/80 text-xs">
-                Solde disponible
-              </h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div>
+                <h3 className="font-medium text-white/80 text-xs mb-1">
+                  Solde disponible
+                </h3>
+                <div className="text-xs text-white/70">
+                  👤 {userProfile?.full_name || 'Utilisateur'}
+                  {userProfile?.address && (
+                    <div className="mt-0.5">📍 {userProfile.address}</div>
+                  )}
+                </div>
+              </div>
             </div>
             
             <div className="flex items-center gap-2">
