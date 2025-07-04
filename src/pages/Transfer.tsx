@@ -24,45 +24,22 @@ const Transfer = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-3">
-      <div className="max-w-4xl mx-auto space-y-3">
-        {/* Compact Header */}
-        <div className="flex items-center gap-3 p-3 bg-card rounded-lg border">
-          <Button variant="outline" size="sm" onClick={handleBackClick}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour
+    <div className="min-h-screen bg-background p-4">
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Minimal Header */}
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={handleBackClick} className="h-8 w-8 p-0">
+            <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Send className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold">Transfert d'Argent</h1>
-              <p className="text-xs text-muted-foreground">Envoyez de l'argent</p>
-            </div>
-          </div>
+          <h1 className="text-lg font-medium">Transfert d'Argent</h1>
         </div>
 
-        {/* Compact Form */}
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-4">
+        {/* Clean Form */}
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-6">
             <TransferForm />
           </CardContent>
         </Card>
-
-        {/* Compact Info */}
-        <div className="bg-muted/30 p-3 rounded-lg">
-          <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-              <span>Transferts instantanés</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-              <span>SMS de confirmation</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

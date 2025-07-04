@@ -113,60 +113,31 @@ const Savings = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-3">
-      <div className="max-w-4xl mx-auto space-y-3">
-        {/* Compact Header */}
-        <div className="flex items-center justify-between p-3 bg-card rounded-lg border">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-              <PiggyBank className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold">Mes Épargnes</h1>
-              <p className="text-xs text-muted-foreground">{accounts.length} comptes</p>
-            </div>
-          </div>
-          <Button onClick={() => setShowCreateModal(true)} size="sm" className="bg-green-600 hover:bg-green-700">
+    <div className="min-h-screen bg-background p-4">
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Clean Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-medium">Mes Épargnes</h1>
+          <Button onClick={() => setShowCreateModal(true)} size="sm" variant="outline">
             <Plus className="w-4 h-4 mr-2" />
             Nouveau
           </Button>
         </div>
 
-        {/* Compact Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          <Card className="bg-gradient-to-r from-green-600 to-emerald-600 text-white border-0">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100 text-xs">Total épargné</p>
-                  <p className="text-lg font-bold">{formatCurrency(totalSavings, "XAF")}</p>
-                </div>
-                <TrendingUp className="w-5 h-5 opacity-80" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-xs">Comptes</p>
-                  <p className="text-lg font-bold">{accounts.length}</p>
-                </div>
-                <PiggyBank className="w-5 h-5 opacity-80" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100 text-xs">Disponible</p>
-                  <p className="text-lg font-bold">{formatCurrency(userBalance, "XAF")}</p>
-                </div>
-                <TrendingUp className="w-5 h-5 opacity-80" />
-              </div>
-            </CardContent>
-          </Card>
+        {/* Simple Stats */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="text-center p-4 bg-card rounded-lg border">
+            <p className="text-xs text-muted-foreground mb-1">Total épargné</p>
+            <p className="text-lg font-medium">{formatCurrency(totalSavings, "XAF")}</p>
+          </div>
+          <div className="text-center p-4 bg-card rounded-lg border">
+            <p className="text-xs text-muted-foreground mb-1">Comptes</p>
+            <p className="text-lg font-medium">{accounts.length}</p>
+          </div>
+          <div className="text-center p-4 bg-card rounded-lg border">
+            <p className="text-xs text-muted-foreground mb-1">Disponible</p>
+            <p className="text-lg font-medium">{formatCurrency(userBalance, "XAF")}</p>
+          </div>
         </div>
 
         {isLoading ? (

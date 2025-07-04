@@ -136,26 +136,25 @@ const MobileOptimizedDashboard = memo(({
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile Header */}
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
-        <div className="flex items-center justify-between p-4">
-          <div>
-            <h1 className="text-lg font-bold">Mon Espace</h1>
-            <p className="text-xs text-muted-foreground">Dashboard mobile</p>
-          </div>
-          <div className="flex items-center gap-2">
+      {/* Minimal Mobile Header */}
+      <div className="sticky top-0 z-50 bg-background border-b">
+        <div className="flex items-center justify-between p-3">
+          <h1 className="text-lg font-medium">Mon Espace</h1>
+          <div className="flex items-center gap-1">
             <Button 
-              variant="outline" 
+              variant="ghost" 
               size="sm" 
               onClick={debouncedRefresh}
               disabled={isLoading}
+              className="h-8 w-8 p-0"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
             <Button 
-              variant="outline" 
+              variant="ghost" 
               size="sm" 
               onClick={handleSignOut}
+              className="h-8 w-8 p-0"
             >
               <LogOut className="w-4 h-4" />
             </Button>
@@ -163,33 +162,34 @@ const MobileOptimizedDashboard = memo(({
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-4 space-y-4 pb-20">
-        <MobileBalanceCard balance={convertedBalance} currency={userCurrency} />
-        <MobileActionGrid onAction={handleAction} />
-        
-        {/* Tips Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">💡 Conseils rapides</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="text-xs text-muted-foreground">
-              • Utilisez votre QR Code pour les retraits
-            </div>
-            <div className="text-xs text-muted-foreground">
-              • Vos transferts sont instantanés
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Debug info (development only) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed bottom-20 right-4 bg-primary text-primary-foreground p-2 rounded text-xs z-50">
-          {deviceInfo.isMobile ? 'Mobile' : 'Desktop'} | Renders: {renderCount}
+      {/* Clean Content */}
+      <div className="p-4 space-y-6 pb-20">
+        {/* Ultra Clean Balance */}
+        <div className="text-center py-8">
+          <p className="text-sm text-muted-foreground mb-2">Solde disponible</p>
+          <p className="text-2xl font-light">{formatCurrency(convertedBalance, userCurrency)}</p>
         </div>
-      )}
+
+        {/* Minimal Actions */}
+        <div className="grid grid-cols-2 gap-4">
+          {[
+            { key: 'transfer', icon: ArrowUpRight, label: 'Transférer' },
+            { key: 'qr-code', icon: QrCode, label: 'Mon QR' },
+            { key: 'savings', icon: PiggyBank, label: 'Épargnes' },
+            { key: 'transactions', icon: History, label: 'Historique' },
+          ].map(({ key, icon: Icon, label }) => (
+            <Button
+              key={key}
+              onClick={() => handleAction(key)}
+              variant="outline"
+              className="h-16 flex-col gap-2 border-2"
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-xs">{label}</span>
+            </Button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 });

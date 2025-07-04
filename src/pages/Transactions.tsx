@@ -173,57 +173,41 @@ const Transactions = () => {
   };
 
   const renderTransaction = (transaction: Transaction) => (
-    <div key={transaction.id} className="p-3 hover:bg-muted/50 transition-colors">
+    <div key={transaction.id} className="p-4 hover:bg-muted/30 transition-colors">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+          <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
             {getIcon(transaction.type)}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="font-medium text-sm truncate">{transaction.description}</p>
-              {transaction.userType && (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  transaction.userType === 'agent' 
-                    ? 'bg-purple-100 text-purple-700' 
-                    : 'bg-blue-100 text-blue-700'
-                }`}>
-                  {transaction.userType === 'agent' ? 'Agent' : 'User'}
-                </span>
-              )}
-            </div>
+            <p className="font-medium text-sm truncate">{transaction.description}</p>
             <p className="text-xs text-muted-foreground">
-              {format(transaction.date, 'dd MMM yyyy', { locale: fr })}
+              {format(transaction.date, 'dd MMM', { locale: fr })}
             </p>
           </div>
         </div>
         <div className="text-right">
-          <p className={`font-semibold text-sm ${
+          <p className={`font-medium text-sm ${
             transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
           }`}>
-            {transaction.amount > 0 ? '+' : ''}
             {new Intl.NumberFormat('fr-FR', {
               style: 'currency',
               currency: transaction.currency || 'XAF',
               maximumFractionDigits: 0
             }).format(transaction.amount)}
           </p>
-          <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-            transaction.status === 'completed' ? 'bg-green-100 text-green-700' : 
-            transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
-            'bg-muted text-muted-foreground'
-          }`}>
-            {transaction.status === 'completed' ? 'OK' : 
+          <p className="text-xs text-muted-foreground">
+            {transaction.status === 'completed' ? 'Terminé' : 
              transaction.status === 'pending' ? 'En cours' : transaction.status}
-          </span>
+          </p>
         </div>
       </div>
       
       {transaction.showCode && transaction.verification_code && (
-        <div className="mt-2 p-2 bg-muted rounded-lg">
+        <div className="mt-3 p-3 bg-muted/50 rounded-lg">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-xs text-muted-foreground mb-1">Code (5 min):</p>
+              <p className="text-xs text-muted-foreground mb-1">Code de vérification:</p>
               <p className="font-mono font-bold text-sm">{transaction.verification_code}</p>
             </div>
             <Button
@@ -245,38 +229,32 @@ const Transactions = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background p-3">
-      <div className="max-w-4xl mx-auto space-y-3">
-        {/* Compact Header */}
-        <div className="flex items-center gap-3 p-3 bg-card rounded-lg border">
-          <Button variant="outline" size="sm" onClick={() => navigate('/')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour
-          </Button>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <ArrowRightLeft className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold">Transactions</h1>
-              <p className="text-xs text-muted-foreground">{processedTransactions.length} opérations</p>
-            </div>
+    <div className="min-h-screen bg-background p-4">
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Minimal Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="h-8 w-8 p-0">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <h1 className="text-lg font-medium">Transactions</h1>
           </div>
+          <p className="text-sm text-muted-foreground">{processedTransactions.length} opérations</p>
         </div>
 
-        {/* Compact Transactions List */}
-        <Card className="border-0 shadow-lg">
+        {/* Clean Transactions List */}
+        <Card className="border-0 shadow-sm">
           <CardContent className="p-0">
             {processedTransactions.length > 0 ? (
               <div className="divide-y">
                 {processedTransactions.map(renderTransaction)}
               </div>
             ) : (
-              <div className="text-center py-12 px-4">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                  <ArrowRightLeft className="w-8 h-8 text-muted-foreground" />
+              <div className="text-center py-16">
+                <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
+                  <ArrowRightLeft className="w-6 h-6 text-muted-foreground" />
                 </div>
-                <p className="text-muted-foreground">Aucune transaction effectuée</p>
+                <p className="text-sm text-muted-foreground">Aucune transaction</p>
               </div>
             )}
           </CardContent>
