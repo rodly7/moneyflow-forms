@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,11 +12,16 @@ import QRCodeGenerator from "@/components/QRCodeGenerator";
 import NotificationSystem from "@/components/notifications/NotificationSystem";
 import { formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
 import { useBalanceCheck } from "@/hooks/useBalanceCheck";
+import { useDeviceDetection } from "@/hooks/useDeviceDetection";
+import { usePerformanceMonitor, useDebounce } from "@/hooks/usePerformanceOptimization";
+import MobileOptimizedDashboard from "@/components/mobile/MobileOptimizedDashboard";
 
 const Dashboard = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const deviceInfo = useDeviceDetection();
+  const { renderCount } = usePerformanceMonitor('Dashboard');
   const [balance, setBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [showQRDialog, setShowQRDialog] = useState(false);
@@ -24,7 +29,7 @@ const Dashboard = () => {
   // Utiliser le hook de vérification du solde
   useBalanceCheck(balance);
 
-  const fetchBalance = async () => {
+  const fetchBalance = useDebounce(async () => {
     if (user?.id) {
       setIsLoadingBalance(true);
       try {
@@ -46,7 +51,7 @@ const Dashboard = () => {
       }
       setIsLoadingBalance(false);
     }
-  };
+  }, 300);
 
   const handleSignOut = async () => {
     try {
@@ -104,6 +109,24 @@ const Dashboard = () => {
   
   // Convertir le solde de XAF (devise de base) vers la devise de l'utilisateur
   const convertedBalance = convertCurrency(balance, "XAF", userCurrency);
+
+  // Use mobile-optimized dashboard on mobile devices
+  if (deviceInfo.isMobile) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      }>
+        <MobileOptimizedDashboard
+          userBalance={balance}
+          userProfile={profile}
+          onRefresh={fetchBalance}
+          isLoading={isLoadingBalance}
+        />
+      </Suspense>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-4">
