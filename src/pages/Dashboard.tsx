@@ -195,33 +195,73 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4">
       <div className="max-w-5xl mx-auto space-y-6">
-        {/* Attractive Header */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-1 rounded-2xl shadow-xl">
-          <div className="bg-background rounded-2xl p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <UserProfileInfo />
+        {/* Professional Header */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-1 rounded-3xl shadow-xl">
+          <div className="bg-white rounded-3xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl">
+                  <Crown className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-800">Espace Utilisateur</h1>
+                  <p className="text-gray-600">Dashboard personnel</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <NotificationSystem />
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">
+                  <NotificationSystem />
+                </div>
                 <Button 
-                  variant="outline" 
+                  variant="ghost" 
                   size="sm" 
                   onClick={fetchBalance}
                   disabled={isLoadingBalance}
-                  className="h-9 w-9 p-0 hover:scale-110 transition-transform"
+                  className="p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
                 >
-                  <RefreshCw className={`h-4 w-4 ${isLoadingBalance ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-5 w-5 ${isLoadingBalance ? 'animate-spin' : ''}`} />
                 </Button>
                 <Button 
-                  variant="outline" 
+                  variant="ghost" 
                   size="sm" 
                   onClick={handleSignOut}
-                  className="h-9 w-9 p-0 hover:scale-110 transition-transform"
+                  className="p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-5 w-5" />
                 </Button>
               </div>
+            </div>
+            
+            {/* User Info Section */}
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                  {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800">{profile?.full_name || 'Utilisateur'}</h2>
+                  <div className="flex items-center gap-4 text-gray-600">
+                    <span>{profile?.phone || 'Téléphone non renseigné'}</span>
+                    {profile?.country && (
+                      <>
+                        <span>•</span>
+                        <span>{profile.country}</span>
+                      </>
+                    )}
+                  </div>
+                  {profile?.address && (
+                    <div className="flex items-center gap-2 text-gray-500 mt-1">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <span>{profile.address}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              {profile?.is_verified && (
+                <div className="p-2 bg-green-500 rounded-full">
+                  <Star className="w-6 h-6 text-white" />
+                </div>
+              )}
             </div>
           </div>
         </div>
