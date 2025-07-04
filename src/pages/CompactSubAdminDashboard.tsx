@@ -262,6 +262,8 @@ const CompactSubAdminDashboard = () => {
                 <UsersDataTable 
                   users={users}
                   onViewUser={handleViewUser}
+                  onQuickRoleChange={() => {}}
+                  onQuickBanToggle={() => {}}
                 />
               </CardContent>
             </Card>
