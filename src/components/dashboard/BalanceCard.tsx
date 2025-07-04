@@ -1,12 +1,13 @@
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
 import { Eye, EyeOff, RefreshCw } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useRealTimeQuery } from "@/hooks/useOptimizedQuery";
+import { useDebounce } from "@/hooks/usePerformanceOptimization";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -42,7 +43,6 @@ const BalanceCard = ({
   } | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   
   const { 
     verificationCode, 
@@ -54,30 +54,23 @@ const BalanceCard = ({
   // Déterminer la devise basée sur le pays de l'utilisateur
   const userCurrency = currency || getCurrencyForCountry(userCountry);
 
-  // Query pour récupérer le solde en temps réel
-  const { data: realTimeBalance, isLoading: isLoadingBalance, refetch: refetchBalance } = useQuery({
+  // Query optimisée pour récupérer le solde en temps réel
+  const { data: realTimeBalance, isLoading: isLoadingBalance, refetch: refetchBalance } = useRealTimeQuery({
     queryKey: ['user-balance', user?.id],
     queryFn: async () => {
       if (!user?.id) return balance;
       
-      console.log("🔄 Récupération du solde en temps réel...");
       const { data, error } = await supabase
         .from('profiles')
         .select('balance')
         .eq('id', user.id)
         .single();
       
-      if (error) {
-        console.error("❌ Erreur lors de la récupération du solde:", error);
-        throw error;
-      }
+      if (error) throw error;
       
-      const currentBalance = Number(data.balance) || 0;
-      console.log("✅ Solde en temps réel:", currentBalance, "FCFA");
-      return currentBalance;
+      return Number(data.balance) || 0;
     },
-    refetchInterval: 30000,
-    staleTime: 10000,
+    enabled: !!user?.id,
   });
 
   // Utilise le solde en temps réel si disponible, sinon le solde passé en props
@@ -91,11 +84,9 @@ const BalanceCard = ({
     ? formatCurrency(convertedBalance, userCurrency)
     : "••••••";
 
-  const handleRefreshBalance = async () => {
+  const handleRefreshBalance = useDebounce(async () => {
     try {
-      console.log("🔄 Actualisation manuelle du solde...");
       await refetchBalance();
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
       toast({
         title: "Solde actualisé",
         description: "Le solde a été mis à jour avec succès"
@@ -108,7 +99,7 @@ const BalanceCard = ({
         variant: "destructive"
       });
     }
-  };
+  }, 1000);
 
   const handleVerifyWithdrawal = async () => {
     if (verificationCode.length !== 6) {
@@ -277,4 +268,4 @@ const BalanceCard = ({
   );
 };
 
-export default BalanceCard;
+export default memo(BalanceCard);
