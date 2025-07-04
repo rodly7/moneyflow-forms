@@ -54,10 +54,12 @@ const AdminSelfRecharge = () => {
     setIsProcessing(true);
 
     try {
-      // Utilisation de la fonction increment_balance standard
-      const { error } = await supabase.rpc('increment_balance', {
-        user_id: user.id,
-        amount: rechargeAmount
+      // Utilisation de la fonction sécurisée
+      const { error } = await supabase.rpc('secure_increment_balance', {
+        target_user_id: user.id,
+        amount: rechargeAmount,
+        operation_type: 'admin_self_recharge',
+        performed_by: user.id
       });
 
       if (error) {

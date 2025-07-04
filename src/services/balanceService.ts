@@ -31,27 +31,9 @@ export const creditUserBalance = async (userId: string, amount: number): Promise
 };
 
 export const creditPlatformCommission = async (commission: number): Promise<number | null> => {
-  const { data: adminData, error: adminError } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('phone', '+221773637752')
-    .maybeSingle();
-    
-  if (!adminError && adminData) {
-    const { data: newBalance, error: creditError } = await supabase.rpc('increment_balance', {
-      user_id: adminData.id,
-      amount: commission
-    });
-
-    if (creditError) {
-      console.error("Erreur lors du crédit de la commission:", creditError);
-      return null;
-    }
-
-    return Number(newBalance) || 0;
-  }
-
-  return null;
+  // Utiliser le service sécurisé pour créditer la commission
+  const { secureCreditPlatformCommission } = await import('./secureBalanceService');
+  return await secureCreditPlatformCommission(commission);
 };
 
 export const getUserBalance = async (userId: string): Promise<number> => {
@@ -76,11 +58,14 @@ export const processTransferWithFees = async (
   amount: number
 ): Promise<boolean> => {
   try {
+    // Utiliser les fonctions sécurisées
+    const { secureDebitUserBalance, secureCreditUserBalance } = await import('./secureBalanceService');
+    
     // Débiter l'expéditeur
-    await debitUserBalance(senderId, amount);
+    await secureDebitUserBalance(senderId, amount, 'transfer_debit');
     
     // Créditer le destinataire
-    await creditUserBalance(recipientId, amount);
+    await secureCreditUserBalance(recipientId, amount, 'transfer_credit');
     
     // Créditer automatiquement les frais sur le compte admin
     await creditTransactionFees('transfer', amount);
@@ -98,8 +83,11 @@ export const processWithdrawalWithFees = async (
   amount: number
 ): Promise<boolean> => {
   try {
+    // Utiliser la fonction sécurisée
+    const { secureDebitUserBalance } = await import('./secureBalanceService');
+    
     // Débiter l'utilisateur
-    await debitUserBalance(userId, amount);
+    await secureDebitUserBalance(userId, amount, 'withdrawal_debit');
     
     // Créditer automatiquement les frais sur le compte admin
     await creditTransactionFees('withdrawal', amount);

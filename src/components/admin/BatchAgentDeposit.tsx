@@ -142,27 +142,33 @@ const BatchAgentDeposit = ({ onBack }: BatchAgentDepositProps) => {
 
       for (const deposit of deposits) {
         try {
-          // Debit admin/sub-admin
-          const { error: debitError } = await supabase.rpc('increment_balance', {
-            user_id: user?.id,
-            amount: -deposit.amount
+          // Debit admin/sub-admin with secure function
+          const { error: debitError } = await supabase.rpc('secure_increment_balance', {
+            target_user_id: user?.id,
+            amount: -deposit.amount,
+            operation_type: 'batch_agent_deposit_debit',
+            performed_by: user?.id
           });
 
           if (debitError) {
             throw new Error(`Erreur lors du débit: ${debitError.message}`);
           }
 
-          // Credit agent
-          const { error: creditError } = await supabase.rpc('increment_balance', {
-            user_id: deposit.agentId,
-            amount: deposit.amount
+          // Credit agent with secure function
+          const { error: creditError } = await supabase.rpc('secure_increment_balance', {
+            target_user_id: deposit.agentId,
+            amount: deposit.amount,
+            operation_type: 'batch_agent_deposit_credit',
+            performed_by: user?.id
           });
 
           if (creditError) {
             // Rollback debit if credit fails
-            await supabase.rpc('increment_balance', {
-              user_id: user?.id,
-              amount: deposit.amount
+            await supabase.rpc('secure_increment_balance', {
+              target_user_id: user?.id,
+              amount: deposit.amount,
+              operation_type: 'batch_agent_deposit_rollback',
+              performed_by: user?.id
             });
             throw new Error(`Erreur lors du crédit: ${creditError.message}`);
           }

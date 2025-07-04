@@ -168,18 +168,22 @@ const AdminUsers = () => {
         return;
       }
 
-      // Effectuer les dépôts
+      // Effectuer les dépôts avec les fonctions sécurisées
       for (const agent of lowBalanceAgents) {
-        await supabase.rpc('increment_balance', {
-          user_id: agent.id,
-          amount: depositAmount
+        await supabase.rpc('secure_increment_balance', {
+          target_user_id: agent.id,
+          amount: depositAmount,
+          operation_type: 'admin_agent_deposit',
+          performed_by: profile?.id
         });
       }
 
-      // Débiter l'admin
-      await supabase.rpc('increment_balance', {
-        user_id: profile?.id,
-        amount: -totalAmount
+      // Débiter l'admin avec fonction sécurisée
+      await supabase.rpc('secure_increment_balance', {
+        target_user_id: profile?.id,
+        amount: -totalAmount,
+        operation_type: 'admin_batch_deposit',
+        performed_by: profile?.id
       });
 
       toast({
