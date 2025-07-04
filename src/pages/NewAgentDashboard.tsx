@@ -105,227 +105,180 @@ const NewAgentDashboard = () => {
   const convertedCommissionBalance = convertCurrency(commissionBalance, "XAF", agentCurrency);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-50 via-teal-50 to-green-100 relative overflow-hidden animate-fade-in">
-      {/* Enhanced magical background */}
-      <div className="absolute inset-0">
-        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-emerald-600/8 via-teal-600/8 to-green-600/8"></div>
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-emerald-400/25 to-teal-400/25 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-gradient-to-r from-teal-400/25 to-green-400/25 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-emerald-300/15 to-teal-300/15 rounded-full blur-3xl animate-bounce-gentle"></div>
-        
-        {/* Floating professional particles */}
-        <div className="absolute top-10 left-10 w-6 h-6 bg-emerald-500/70 rounded-full animate-pulse shadow-lg"></div>
-        <div className="absolute top-20 right-20 w-8 h-8 bg-teal-500/70 rounded-full animate-pulse delay-500 shadow-lg"></div>
-        <div className="absolute bottom-20 left-20 w-7 h-7 bg-green-500/70 rounded-full animate-pulse delay-1000 shadow-lg"></div>
-        <div className="absolute bottom-10 right-10 w-5 h-5 bg-emerald-400/70 rounded-full animate-pulse delay-1500 shadow-lg"></div>
-        <div className="absolute top-1/3 left-1/5 w-4 h-4 bg-teal-400/60 rounded-full animate-bounce-gentle delay-2000"></div>
-        <div className="absolute bottom-1/3 right-1/5 w-6 h-6 bg-green-400/60 rounded-full animate-bounce-gentle delay-3000"></div>
-      </div>
-      
-      <div className="relative z-10 w-full px-4 py-6 md:py-8">
-        {/* Enhanced Professional Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4 backdrop-blur-xl bg-white/25 rounded-3xl p-6 md:p-8 shadow-2xl border border-white/40 w-full hover:shadow-emerald-500/25 hover:bg-white/30 transition-all duration-500 hover:scale-[1.02]">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 rounded-3xl flex items-center justify-center shadow-2xl animate-pulse-glow">
-              <Trophy className="w-8 h-8 text-white animate-bounce-gentle" />
+    <div className="min-h-screen bg-background p-4">
+      <div className="max-w-5xl mx-auto space-y-6">
+        {/* Header compact */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+              <Trophy className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-green-600 bg-clip-text text-transparent">
-                👑 Agent Professionnel Elite
-              </h1>
-              <p className="text-emerald-700/90 text-base font-semibold">Votre centre de contrôle privilégié</p>
+              <h1 className="text-xl font-bold">Espace Agent</h1>
+              <p className="text-sm text-muted-foreground">Dashboard professionnel</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <NotificationSystem />
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm" 
               onClick={fetchBalances}
               disabled={isLoadingBalance}
-              className="hover:bg-emerald-50/80 border-2 border-emerald-300/50 backdrop-blur-sm bg-white/60 text-emerald-700 hover:text-emerald-800 shadow-xl hover:shadow-emerald-500/30 transition-all duration-300 rounded-2xl font-medium h-12 px-4"
             >
-              <RefreshCw className={`w-5 h-5 ${isLoadingBalance ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline ml-2">Actualiser</span>
+              <RefreshCw className={`w-4 h-4 ${isLoadingBalance ? 'animate-spin' : ''}`} />
             </Button>
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm" 
               onClick={handleSignOut}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50/80 border-2 border-red-300/50 backdrop-blur-sm bg-white/60 shadow-xl hover:shadow-red-500/30 transition-all duration-300 rounded-2xl font-medium h-12 px-4"
             >
-              <LogOut className="w-5 h-5" />
-              <span className="hidden sm:inline ml-2">Déconnexion</span>
+              <LogOut className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
-        {/* Profile Info */}
-        <div className="w-full mb-8">
-          <UserProfileInfo />
-        </div>
+        {/* Profile Info compact */}
+        <UserProfileInfo />
 
-        {/* Enhanced Dual Balance Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-8 w-full">
-          <Card className="bg-gradient-to-r from-emerald-600 via-teal-600 to-green-600 text-white border-0 shadow-2xl hover:shadow-emerald-500/50 transform hover:-translate-y-3 hover:scale-105 transition-all duration-500 overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/30 to-teal-400/30 animate-pulse"></div>
-            <div className="absolute top-4 right-4 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-            <CardContent className="p-8 md:p-10 relative z-10">
+        {/* Balance Cards simplifiés */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
+            <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="flex items-center gap-3 mb-3">
-                    <Sparkles className="w-6 h-6 text-emerald-200 animate-pulse" />
-                    <p className="text-emerald-100 text-base font-semibold">💰 Solde Principal</p>
-                  </div>
-                  <p className="text-4xl md:text-5xl font-bold mb-3 drop-shadow-lg">
+                  <p className="text-emerald-100 text-sm font-medium flex items-center gap-2">
+                    <Wallet className="w-4 h-4" />
+                    Solde Principal
+                  </p>
+                  <p className="text-3xl font-bold mt-1">
                     {formatCurrency(convertedBalance, agentCurrency)}
                   </p>
                   {agentCurrency !== "XAF" && (
-                    <p className="text-sm text-emerald-200 font-medium">
-                      Converti de {formatCurrency(balance, "XAF")}
+                    <p className="text-xs text-emerald-200 mt-1">
+                      {formatCurrency(balance, "XAF")}
                     </p>
                   )}
                 </div>
-                <div className="w-20 h-20 bg-gradient-to-r from-white/25 to-white/15 rounded-3xl flex items-center justify-center backdrop-blur-sm shadow-xl">
-                  <Wallet className="w-10 h-10 text-white animate-bounce-gentle" />
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-white" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white border-0 shadow-2xl hover:shadow-purple-500/50 transform hover:-translate-y-3 hover:scale-105 transition-all duration-500 overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-400/30 to-pink-400/30 animate-pulse"></div>
-            <div className="absolute top-4 right-4 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-            <CardContent className="p-8 md:p-10 relative z-10">
+          <Card className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+            <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="flex items-center gap-3 mb-3">
-                    <Star className="w-6 h-6 text-purple-200 animate-pulse" />
-                    <p className="text-purple-100 text-base font-semibold">💎 Commissions Elite</p>
-                  </div>
-                  <p className="text-4xl md:text-5xl font-bold mb-3 drop-shadow-lg">
+                  <p className="text-purple-100 text-sm font-medium flex items-center gap-2">
+                    <Percent className="w-4 h-4" />
+                    Commissions
+                  </p>
+                  <p className="text-3xl font-bold mt-1">
                     {formatCurrency(convertedCommissionBalance, agentCurrency)}
                   </p>
                   {agentCurrency !== "XAF" && (
-                    <p className="text-sm text-purple-200 font-medium">
-                      Converti de {formatCurrency(commissionBalance, "XAF")}
+                    <p className="text-xs text-purple-200 mt-1">
+                      {formatCurrency(commissionBalance, "XAF")}
                     </p>
                   )}
                 </div>
-                <div className="w-20 h-20 bg-gradient-to-r from-white/25 to-white/15 rounded-3xl flex items-center justify-center backdrop-blur-sm shadow-xl">
-                  <Percent className="w-10 h-10 text-white animate-bounce-gentle" />
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Star className="w-6 h-6 text-white" />
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="w-full">
-          {/* Enhanced Professional Actions */}
-          <Card className="bg-white/35 backdrop-blur-xl border-2 border-white/30 shadow-2xl w-full hover:shadow-emerald-500/25 transition-all duration-500 overflow-hidden hover:bg-white/40">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/60 to-teal-50/60"></div>
-            <CardHeader className="pb-6 relative z-10">
-              <CardTitle className="flex items-center gap-4 text-emerald-800">
-                <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-3xl flex items-center justify-center shadow-xl">
-                  <Zap className="w-6 h-6 text-white" />
-                </div>
-                <span className="text-xl font-bold">🚀 Actions Professionnelles</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5 relative z-10">
-              <Button 
-                onClick={() => navigate('/transfer')}
-                className="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-green-600 hover:from-emerald-700 hover:via-teal-700 hover:to-green-700 text-white font-bold h-16 shadow-2xl hover:shadow-emerald-500/40 transform hover:-translate-y-2 hover:scale-105 transition-all duration-300 rounded-3xl text-lg"
-              >
-                <ArrowUpRight className="mr-4 h-7 w-7" />
-                💸 Transférer de l'argent
-              </Button>
-              
-              <Button 
-                onClick={() => navigate('/deposit')}
-                variant="outline"
-                className="w-full border-3 border-emerald-400/70 text-emerald-800 hover:bg-emerald-50/80 hover:border-emerald-500 font-bold h-16 shadow-xl hover:shadow-emerald-500/30 transform hover:-translate-y-2 hover:scale-105 transition-all duration-300 rounded-3xl text-lg backdrop-blur-sm bg-white/70"
-              >
-                <Wallet className="mr-4 h-7 w-7" />
-                🏦 Dépôt / Retrait client
-              </Button>
-              
-              <Button 
-                onClick={() => navigate('/commission')}
-                variant="outline"
-                className="w-full border-3 border-purple-400/70 text-purple-800 hover:bg-purple-50/80 hover:border-purple-500 font-bold h-16 shadow-xl hover:shadow-purple-500/30 transform hover:-translate-y-2 hover:scale-105 transition-all duration-300 rounded-3xl text-lg backdrop-blur-sm bg-white/70"
-              >
-                <Percent className="mr-4 h-7 w-7" />
-                💎 Mes Commissions Elite
-              </Button>
+        {/* Actions simplifiées */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5" />
+              Actions Agent
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button 
+              onClick={() => navigate('/transfer')}
+              className="w-full justify-start h-12"
+            >
+              <ArrowUpRight className="mr-3 h-5 w-5" />
+              Transférer de l'argent
+            </Button>
+            
+            <Button 
+              onClick={() => navigate('/deposit')}
+              variant="outline"
+              className="w-full justify-start h-12"
+            >
+              <Wallet className="mr-3 h-5 w-5" />
+              Dépôt / Retrait client
+            </Button>
+            
+            <Button 
+              onClick={() => navigate('/commission')}
+              variant="outline"
+              className="w-full justify-start h-12"
+            >
+              <Percent className="mr-3 h-5 w-5" />
+              Mes Commissions
+            </Button>
 
-              <Button 
-                onClick={() => navigate('/receipts')}
-                variant="outline"
-                className="w-full border-3 border-orange-400/70 text-orange-800 hover:bg-orange-50/80 hover:border-orange-500 font-bold h-16 shadow-xl hover:shadow-orange-500/30 transform hover:-translate-y-2 hover:scale-105 transition-all duration-300 rounded-3xl text-lg backdrop-blur-sm bg-white/70"
-              >
-                <FileText className="mr-4 h-7 w-7" />
-                📄 Mes Reçus
-              </Button>
-              
-              <Button 
-                onClick={() => navigate('/transactions')}
-                variant="outline"
-                className="w-full border-3 border-blue-400/70 text-blue-800 hover:bg-blue-50/80 hover:border-blue-500 font-bold h-16 shadow-xl hover:shadow-blue-500/30 transform hover:-translate-y-2 hover:scale-105 transition-all duration-300 rounded-3xl text-lg backdrop-blur-sm bg-white/70"
-              >
-                <History className="mr-4 h-7 w-7" />
-                📊 Historique des transactions
-              </Button>
+            <Button 
+              onClick={() => navigate('/receipts')}
+              variant="outline"
+              className="w-full justify-start h-12"
+            >
+              <FileText className="mr-3 h-5 w-5" />
+              Mes Reçus
+            </Button>
+            
+            <Button 
+              onClick={() => navigate('/transactions')}
+              variant="outline"
+              className="w-full justify-start h-12"
+            >
+              <History className="mr-3 h-5 w-5" />
+              Historique
+            </Button>
 
-              <Button 
-                onClick={() => navigate('/agent-performance')}
-                variant="outline"
-                className="w-full border-3 border-yellow-400/70 text-yellow-800 hover:bg-yellow-50/80 hover:border-yellow-500 font-bold h-16 shadow-xl hover:shadow-yellow-500/30 transform hover:-translate-y-2 hover:scale-105 transition-all duration-300 rounded-3xl text-lg backdrop-blur-sm bg-white/70"
-              >
-                <BarChart3 className="mr-4 h-7 w-7" />
-                📈 Tableau de Performance
-              </Button>
-            </CardContent>
-          </Card>
+            <Button 
+              onClick={() => navigate('/agent-performance')}
+              variant="outline"
+              className="w-full justify-start h-12"
+            >
+              <BarChart3 className="mr-3 h-5 w-5" />
+              Performance
+            </Button>
+          </CardContent>
+        </Card>
 
-          {/* Enhanced Professional Information */}
-          <Card className="mt-8 bg-gradient-to-r from-emerald-50/90 via-teal-50/90 to-green-50/90 border-l-8 border-emerald-500 backdrop-blur-xl shadow-2xl w-full hover:shadow-emerald-500/25 transition-all duration-500">
-            <CardContent className="p-8">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-xl">
-                  <Shield className="w-6 h-6 text-white animate-pulse" />
-                </div>
-                <h3 className="font-bold text-emerald-900 text-xl">👑 Guide Agent Professionnel</h3>
-              </div>
-              <div className="space-y-4 text-sm text-emerald-800 font-medium">
-                <div className="flex items-start gap-4 p-4 bg-white/60 rounded-2xl backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
-                  <span className="text-2xl">📱</span>
-                  <p>Scannez obligatoirement le QR Code client pour les retraits sécurisés</p>
-                </div>
-                <div className="flex items-start gap-4 p-4 bg-white/60 rounded-2xl backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
-                  <span className="text-2xl">💎</span>
-                  <p>Gagnez des commissions attractives sur chaque opération réussie</p>
-                </div>
-                <div className="flex items-start gap-4 p-4 bg-white/60 rounded-2xl backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
-                  <span className="text-2xl">🏦</span>
-                  <p>Les dépôts clients sont gratuits et augmentent votre volume</p>
-                </div>
-                <div className="flex items-start gap-4 p-4 bg-white/60 rounded-2xl backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
-                  <span className="text-2xl">🔔</span>
-                  <p>Restez informé avec nos notifications en temps réel</p>
-                </div>
-                <div className="flex items-start gap-4 p-4 bg-white/60 rounded-2xl backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
-                  <span className="text-2xl">📈</span>
-                  <p>Analysez vos performances pour maximiser vos revenus</p>
-                </div>
-                <div className="flex items-start gap-4 p-4 bg-white/60 rounded-2xl backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
-                  <span className="text-2xl">📄</span>
-                  <p>Archivez vos reçus pour un suivi professionnel optimal</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Guide Agent simplifié */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              Guide Agent
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+              <span className="text-lg">📱</span>
+              <p className="text-sm">Scannez le QR Code client pour les retraits sécurisés</p>
+            </div>
+            <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+              <span className="text-lg">💎</span>
+              <p className="text-sm">Gagnez des commissions sur chaque opération</p>
+            </div>
+            <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+              <span className="text-lg">🏦</span>
+              <p className="text-sm">Les dépôts clients augmentent votre volume</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
