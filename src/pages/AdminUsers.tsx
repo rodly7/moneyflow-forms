@@ -6,12 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Users, Wallet, UserPlus } from "lucide-react";
+import { ArrowLeft, Users, Wallet, UserPlus, AlertTriangle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import UsersDataTable from "@/components/admin/UsersDataTable";
 import AdminSelfRecharge from "@/components/admin/AdminSelfRecharge";
 import BatchAgentDeposit from "@/components/admin/BatchAgentDeposit";
 import UserManagementModal from "@/components/admin/UserManagementModal";
+import { AdminUserService, AdminUserData } from "@/services/adminUserService";
 
 interface UserData {
   id: string;
@@ -30,11 +31,13 @@ const AdminUsers = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("users");
-  const [users, setUsers] = useState<UserData[]>([]);
+  const [users, setUsers] = useState<AdminUserData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showBatchDeposit, setShowBatchDeposit] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [selectedUser, setSelectedUser] = useState<AdminUserData | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (profile?.role !== 'admin') {
@@ -44,51 +47,70 @@ const AdminUsers = () => {
     fetchUsers();
   }, [profile, navigate]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (showToast = false) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setUsers(data || []);
-    } catch (error) {
-      console.error('Erreur lors du chargement des utilisateurs:', error);
+      setError(null);
+      
+      const result = await AdminUserService.fetchAllUsers();
+      
+      if (result.success) {
+        setUsers(result.data || []);
+        if (showToast) {
+          toast({
+            title: "✅ Données actualisées",
+            description: `${result.data?.length || 0} utilisateurs chargés`,
+          });
+        }
+      } else {
+        setError(result.message);
+        toast({
+          title: "Erreur",
+          description: result.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      const errorMessage = error.message || "Erreur système lors du chargement";
+      console.error('Erreur critique:', error);
+      setError(errorMessage);
       toast({
-        title: "Erreur",
-        description: "Impossible de charger les utilisateurs",
+        title: "Erreur critique",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   const handleQuickRoleChange = async (userId: string, newRole: 'user' | 'agent' | 'admin' | 'sub_admin') => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', userId);
+      const result = await AdminUserService.changeUserRole(userId, newRole, profile?.id);
+      
+      if (result.success) {
+        // Mettre à jour la liste locale
+        setUsers(prev => prev.map(user => 
+          user.id === userId ? { ...user, role: newRole } : user
+        ));
 
-      if (error) throw error;
-
-      // Mettre à jour la liste locale
-      setUsers(prev => prev.map(user => 
-        user.id === userId ? { ...user, role: newRole } : user
-      ));
-
-      toast({
-        title: "Rôle mis à jour",
-        description: `Le rôle a été changé vers ${newRole}`,
-      });
-    } catch (error) {
+        toast({
+          title: "✅ Rôle mis à jour",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Erreur",
+          description: result.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
       console.error("Erreur lors du changement de rôle:", error);
       toast({
-        title: "Erreur",
-        description: "Impossible de changer le rôle",
+        title: "Erreur critique",
+        description: error.message || "Impossible de changer le rôle",
         variant: "destructive"
       });
     }
@@ -96,107 +118,94 @@ const AdminUsers = () => {
 
   const handleQuickBanToggle = async (userId: string, currentBanStatus: boolean) => {
     try {
-      const newBanStatus = !currentBanStatus;
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          is_banned: newBanStatus,
-          banned_at: newBanStatus ? new Date().toISOString() : null,
-          banned_reason: newBanStatus ? 'Banni par l\'administrateur' : null
-        })
-        .eq('id', userId);
+      const result = await AdminUserService.toggleUserBan(
+        userId, 
+        currentBanStatus, 
+        'Action administrative',
+        profile?.id
+      );
+      
+      if (result.success) {
+        const newBanStatus = !currentBanStatus;
+        
+        // Mettre à jour la liste locale
+        setUsers(prev => prev.map(user => 
+          user.id === userId ? { 
+            ...user, 
+            is_banned: newBanStatus,
+            banned_reason: newBanStatus ? 'Action administrative' : null
+          } : user
+        ));
 
-      if (error) throw error;
-
-      // Mettre à jour la liste locale
-      setUsers(prev => prev.map(user => 
-        user.id === userId ? { 
-          ...user, 
-          is_banned: newBanStatus,
-          banned_reason: newBanStatus ? 'Banni par l\'administrateur' : null
-        } : user
-      ));
-
-      toast({
-        title: newBanStatus ? "Utilisateur banni" : "Utilisateur débanni",
-        description: newBanStatus ? "L'utilisateur a été banni avec succès" : "L'utilisateur a été débanni avec succès",
-      });
-    } catch (error) {
+        toast({
+          title: newBanStatus ? "🚫 Utilisateur banni" : "✅ Utilisateur débanni",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Erreur",
+          description: result.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
       console.error("Erreur lors du bannissement:", error);
       toast({
-        title: "Erreur",
-        description: "Impossible de modifier le statut de bannissement",
+        title: "Erreur critique",
+        description: error.message || "Impossible de modifier le statut de bannissement",
         variant: "destructive"
       });
     }
   };
 
-  const handleViewUser = (user: UserData) => {
+  const handleViewUser = (user: AdminUserData) => {
     setSelectedUser(user);
     setShowUserModal(true);
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchUsers(true);
+  };
+
   const handleAutoBatchDeposit = async () => {
-    try {
-      // Récupérer les agents avec un solde < 50,000
-      const { data: lowBalanceAgents, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'agent')
-        .lt('balance', 50000);
-
-      if (error) throw error;
-
-      if (!lowBalanceAgents || lowBalanceAgents.length === 0) {
-        toast({
-          title: "Aucun agent trouvé",
-          description: "Aucun agent n'a un solde inférieur à 50,000 FCFA",
-        });
-        return;
-      }
-
-      const depositAmount = 50000;
-      const totalAmount = depositAmount * lowBalanceAgents.length;
-
-      // Vérifier le solde de l'admin
-      if (profile && profile.balance < totalAmount) {
-        toast({
-          title: "Solde insuffisant",
-          description: `Solde requis: ${totalAmount.toLocaleString()} FCFA`,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Effectuer les dépôts avec les fonctions sécurisées
-      for (const agent of lowBalanceAgents) {
-        await supabase.rpc('secure_increment_balance', {
-          target_user_id: agent.id,
-          amount: depositAmount,
-          operation_type: 'admin_agent_deposit',
-          performed_by: profile?.id
-        });
-      }
-
-      // Débiter l'admin avec fonction sécurisée
-      await supabase.rpc('secure_increment_balance', {
-        target_user_id: profile?.id,
-        amount: -totalAmount,
-        operation_type: 'admin_batch_deposit',
-        performed_by: profile?.id
-      });
-
-      toast({
-        title: "Dépôts automatiques effectués",
-        description: `${lowBalanceAgents.length} agent(s) rechargé(s) de 50,000 FCFA chacun`,
-      });
-
-      fetchUsers();
-    } catch (error) {
-      console.error('Erreur lors du dépôt automatique:', error);
+    if (!profile?.id) {
       toast({
         title: "Erreur",
-        description: "Erreur lors du dépôt automatique",
+        description: "Profil administrateur non trouvé",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const result = await AdminUserService.performAutoBatchDeposit(
+        profile.id,
+        profile.balance || 0,
+        50000,
+        50000
+      );
+
+      if (result.success) {
+        toast({
+          title: "✅ Dépôts automatiques effectués",
+          description: result.message,
+        });
+        
+        // Actualiser la liste des utilisateurs
+        await fetchUsers();
+      } else {
+        toast({
+          title: "Information",
+          description: result.message,
+          variant: result.message.includes("Solde insuffisant") ? "destructive" : "default"
+        });
+      }
+    } catch (error: any) {
+      console.error('Erreur lors du dépôt automatique:', error);
+      toast({
+        title: "Erreur critique",
+        description: error.message || "Erreur lors du dépôt automatique",
         variant: "destructive"
       });
     }
@@ -224,6 +233,26 @@ const AdminUsers = () => {
             <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
               Gestion Administrative
             </h1>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              variant="outline"
+              size="sm"
+              className="hover:bg-white/50"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+            </Button>
+            
+            {error && (
+              <div className="flex items-center gap-2 text-red-600 bg-red-50 px-3 py-1 rounded-full text-sm">
+                <AlertTriangle className="w-4 h-4" />
+                Problème de connexion
+              </div>
+            )}
           </div>
         </div>
 
@@ -254,11 +283,44 @@ const AdminUsers = () => {
               </CardHeader>
               <CardContent className="w-full overflow-x-auto">
                 {loading ? (
-                  <div className="flex items-center justify-center p-8">
+                  <div className="flex flex-col items-center justify-center p-8 space-y-4">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                    <p className="text-gray-600">Chargement des utilisateurs...</p>
+                  </div>
+                ) : error ? (
+                  <div className="flex flex-col items-center justify-center p-8 space-y-4">
+                    <AlertTriangle className="w-12 h-12 text-red-500" />
+                    <div className="text-center">
+                      <p className="text-red-600 font-medium">Erreur de connexion</p>
+                      <p className="text-gray-600 text-sm mt-1">{error}</p>
+                      <Button 
+                        onClick={() => fetchUsers()} 
+                        variant="outline" 
+                        className="mt-4"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Réessayer
+                      </Button>
+                    </div>
+                  </div>
+                ) : users.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center p-8 space-y-4">
+                    <Users className="w-12 h-12 text-gray-400" />
+                    <div className="text-center">
+                      <p className="text-gray-600 font-medium">Aucun utilisateur</p>
+                      <p className="text-gray-500 text-sm mt-1">Aucun utilisateur trouvé dans le système</p>
+                    </div>
                   </div>
                 ) : (
                   <div className="w-full">
+                    <div className="mb-4 flex items-center justify-between">
+                      <p className="text-sm text-gray-600">
+                        {users.length} utilisateur(s) • {users.filter(u => u.role === 'agent').length} agent(s) • {users.filter(u => u.is_banned).length} banni(s)
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Dernière actualisation: {new Date().toLocaleTimeString()}
+                      </p>
+                    </div>
                     <UsersDataTable 
                       users={users}
                       onViewUser={handleViewUser}
