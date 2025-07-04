@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, TrendingUp, Shield, LogOut, RefreshCw, DollarSign, Activity, Settings, Crown, Sparkles, Zap, Star, Flame, Gem } from "lucide-react";
+import { Users, TrendingUp, Shield, LogOut, RefreshCw, DollarSign, Activity, Settings, Crown, Sparkles, Zap, Star, Flame, Gem, Bell, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import UserProfileInfo from "@/components/profile/UserProfileInfo";
@@ -153,6 +153,18 @@ const MainAdminDashboard = () => {
       icon: Users,
       onClick: () => navigate('/admin/users'),
       variant: "default" as const
+    },
+    {
+      label: "Envoyer des notifications",
+      icon: Bell,
+      onClick: () => navigate('/admin/notifications'),
+      variant: "outline" as const
+    },
+    {
+      label: "Monitoring transactions",
+      icon: BarChart3,
+      onClick: () => navigate('/admin/transaction-monitor'),
+      variant: "outline" as const
     },
     {
       label: "Voir les rapports",

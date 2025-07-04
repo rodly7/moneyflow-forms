@@ -33,6 +33,8 @@ const AdminTreasury = lazy(() => import("./pages/AdminTreasury"));
 const AdminUsers = lazy(() => import("./pages/AdminUsers"));
 const AdminAgentReports = lazy(() => import("./pages/AdminAgentReports"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
+const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));
+const AdminTransactionMonitor = lazy(() => import("./pages/AdminTransactionMonitor"));
 
 // Optimized query client for mobile
 const queryClient = new QueryClient({
@@ -104,6 +106,8 @@ function App() {
                   <Route path="admin/users" element={<Suspense fallback={<MobileLoader />}><AdminUsers /></Suspense>} />
                   <Route path="admin/agent-reports" element={<Suspense fallback={<MobileLoader />}><AdminAgentReports /></Suspense>} />
                   <Route path="admin/settings" element={<Suspense fallback={<MobileLoader />}><AdminSettings /></Suspense>} />
+                  <Route path="admin/notifications" element={<Suspense fallback={<MobileLoader />}><AdminNotifications /></Suspense>} />
+                  <Route path="admin/transaction-monitor" element={<Suspense fallback={<MobileLoader />}><AdminTransactionMonitor /></Suspense>} />
                   <Route path="sub-admin-dashboard" element={<Suspense fallback={<MobileLoader />}><SubAdminDashboard /></Suspense>} />
                   <Route path="transfer" element={<Suspense fallback={<MobileLoader />}><Transfer /></Suspense>} />
                   <Route path="transactions" element={<Suspense fallback={<MobileLoader />}><Transactions /></Suspense>} />
