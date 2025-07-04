@@ -67,15 +67,22 @@ const UserProfileInfo = () => {
             {getRoleIcon(profile.role)}
           </Badge>
         </div>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span>{profile.phone}</span>
-          <span>•</span>
-          <span>{profile.country || 'Non spécifié'}</span>
-          {profile.is_verified && (
-            <>
-              <span>•</span>
-              <span className="text-green-600">✓ Vérifié</span>
-            </>
+        <div className="space-y-1">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span>{profile.phone}</span>
+            <span>•</span>
+            <span>{profile.country || 'Non spécifié'}</span>
+            {profile.is_verified && (
+              <>
+                <span>•</span>
+                <span className="text-green-600">✓ Vérifié</span>
+              </>
+            )}
+          </div>
+          {profile.address && (
+            <div className="text-xs text-muted-foreground">
+              📍 {profile.address}
+            </div>
           )}
         </div>
       </div>

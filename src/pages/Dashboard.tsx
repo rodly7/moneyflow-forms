@@ -202,6 +202,7 @@ const Dashboard = () => {
                 <UserProfileInfo />
               </div>
               <div className="flex items-center gap-2">
+                <NotificationSystem />
                 <Button 
                   variant="outline" 
                   size="sm" 
