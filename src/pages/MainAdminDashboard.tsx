@@ -224,37 +224,6 @@ const MainAdminDashboard = () => {
             </CardContent>
           </Card>
         </div>
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold h-14 shadow-2xl hover:shadow-purple-500/40 transform hover:-translate-y-1 transition-all duration-300 rounded-2xl text-base"
-              >
-                🏦 Accéder à la trésorerie
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Paramètres */}
-          <Card className="bg-white/35 backdrop-blur-xl border-2 border-white/30 shadow-2xl hover:shadow-orange-500/40 transform hover:-translate-y-3 hover:scale-105 transition-all duration-500 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-50/60 to-red-50/60"></div>
-            <CardHeader className="pb-4 relative z-10">
-              <CardTitle className="flex items-center gap-3 text-orange-800">
-                <div className="w-14 h-14 bg-gradient-to-r from-orange-500 to-red-500 rounded-3xl flex items-center justify-center shadow-xl">
-                  <Settings className="w-7 h-7 text-white" />
-                </div>
-                <span className="text-lg font-bold">⚙️ Paramètres</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="relative z-10">
-              <p className="text-orange-700 mb-6 font-medium text-sm">
-                Configurez les paramètres système et les limites de transaction avec contrôle total.
-              </p>
-              <Button 
-                onClick={() => navigate('/admin/settings')}
-                className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-bold h-14 shadow-2xl hover:shadow-orange-500/40 transform hover:-translate-y-1 transition-all duration-300 rounded-2xl text-base"
-              >
-                ⚙️ Paramètres système
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   );
