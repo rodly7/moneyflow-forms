@@ -24,48 +24,45 @@ const Transfer = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
-      <div className="w-full">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6 w-full">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleBackClick}
-            className="hover:bg-white/50"
-          >
+    <div className="min-h-screen bg-background p-3">
+      <div className="max-w-4xl mx-auto space-y-3">
+        {/* Compact Header */}
+        <div className="flex items-center gap-3 p-3 bg-card rounded-lg border">
+          <Button variant="outline" size="sm" onClick={handleBackClick}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
           </Button>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Transfert d'Argent
-          </h1>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <Send className="w-4 h-4 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold">Transfert d'Argent</h1>
+              <p className="text-xs text-muted-foreground">Envoyez de l'argent</p>
+            </div>
+          </div>
         </div>
 
-        {/* Transfer Form Card */}
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl w-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-600">
-              <Send className="w-5 h-5" />
-              Nouveau Transfert
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="w-full">
+        {/* Compact Form */}
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-4">
             <TransferForm />
           </CardContent>
         </Card>
 
-        {/* Info Card */}
-        <Card className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-blue-500 w-full">
-          <CardContent className="p-4">
-            <div className="space-y-2 text-sm text-blue-700">
-              <p>• Les transferts sont traités instantanément</p>
-              <p>• Des frais peuvent s'appliquer selon le montant</p>
-              <p>• Vérifiez bien les informations du destinataire</p>
-              <p>• Un SMS de confirmation sera envoyé</p>
+        {/* Compact Info */}
+        <div className="bg-muted/30 p-3 rounded-lg">
+          <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+              <span>Transferts instantanés</span>
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+              <span>SMS de confirmation</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

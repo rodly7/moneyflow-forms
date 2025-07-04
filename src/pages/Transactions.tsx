@@ -173,36 +173,33 @@ const Transactions = () => {
   };
 
   const renderTransaction = (transaction: Transaction) => (
-    <div 
-      key={transaction.id} 
-      className="flex flex-col p-3 rounded-lg border hover:bg-gray-50 transition-colors w-full"
-    >
-      <div className="flex justify-between items-start w-full">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div className="p-2 rounded-full bg-gray-100 shrink-0">
+    <div key={transaction.id} className="p-3 hover:bg-muted/50 transition-colors">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
             {getIcon(transaction.type)}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-medium text-sm text-gray-900 truncate">{transaction.description}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-medium text-sm truncate">{transaction.description}</p>
               {transaction.userType && (
-                <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
                   transaction.userType === 'agent' 
                     ? 'bg-purple-100 text-purple-700' 
                     : 'bg-blue-100 text-blue-700'
                 }`}>
-                  {transaction.userType === 'agent' ? 'Agent' : 'Utilisateur'}
+                  {transaction.userType === 'agent' ? 'Agent' : 'User'}
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {format(transaction.date, 'PPP', { locale: fr })}
+            <p className="text-xs text-muted-foreground">
+              {format(transaction.date, 'dd MMM yyyy', { locale: fr })}
             </p>
           </div>
         </div>
-        <div className="text-right shrink-0 ml-2">
-          <p className={`font-semibold text-sm whitespace-nowrap ${
-            transaction.amount > 0 ? 'text-green-500' : 'text-red-500'
+        <div className="text-right">
+          <p className={`font-semibold text-sm ${
+            transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
           }`}>
             {transaction.amount > 0 ? '+' : ''}
             {new Intl.NumberFormat('fr-FR', {
@@ -211,29 +208,29 @@ const Transactions = () => {
               maximumFractionDigits: 0
             }).format(transaction.amount)}
           </p>
-          <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap inline-block mt-1 ${
+          <span className={`text-xs px-1.5 py-0.5 rounded-full ${
             transaction.status === 'completed' ? 'bg-green-100 text-green-700' : 
             transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
-            'bg-gray-100 text-gray-700'
+            'bg-muted text-muted-foreground'
           }`}>
-            {transaction.status === 'completed' ? 'Complété' : 
-             transaction.status === 'pending' ? 'En attente' : transaction.status}
+            {transaction.status === 'completed' ? 'OK' : 
+             transaction.status === 'pending' ? 'En cours' : transaction.status}
           </span>
         </div>
       </div>
       
       {transaction.showCode && transaction.verification_code && (
-        <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200 w-full">
-          <div className="flex justify-between items-center">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-gray-500 mb-1">Code de vérification (valide 5 min):</p>
-              <p className="font-mono font-medium tracking-wider text-sm break-all">{transaction.verification_code}</p>
+        <div className="mt-2 p-2 bg-muted rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground mb-1">Code (5 min):</p>
+              <p className="font-mono font-bold text-sm">{transaction.verification_code}</p>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => copyToClipboard(transaction.verification_code!, transaction.id)}
-              className="h-8 w-8 p-0 shrink-0 ml-2"
+              className="h-8 w-8 p-0"
             >
               {copiedCodes[transaction.id] ? (
                 <Check className="h-4 w-4 text-green-500" />
@@ -248,33 +245,40 @@ const Transactions = () => {
   );
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 p-4">
-      <div className="w-full">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/')}
-          className="mb-4"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour
-        </Button>
-
-        <Card className="shadow-lg w-full">
-          <CardHeader className="py-4 px-4">
-            <CardTitle className="text-lg font-semibold">Historique des transactions</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 w-full">
-            <div className="space-y-3 w-full">
-              {processedTransactions.length > 0 ? (
-                processedTransactions.map(renderTransaction)
-              ) : (
-                <div className="text-center py-8 px-4">
-                  <p className="text-gray-500 bg-gray-50 rounded-lg p-6">
-                    Aucune transaction effectuée
-                  </p>
-                </div>
-              )}
+    <div className="min-h-screen bg-background p-3">
+      <div className="max-w-4xl mx-auto space-y-3">
+        {/* Compact Header */}
+        <div className="flex items-center gap-3 p-3 bg-card rounded-lg border">
+          <Button variant="outline" size="sm" onClick={() => navigate('/')}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Retour
+          </Button>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <ArrowRightLeft className="w-4 h-4 text-primary-foreground" />
             </div>
+            <div>
+              <h1 className="text-lg font-bold">Transactions</h1>
+              <p className="text-xs text-muted-foreground">{processedTransactions.length} opérations</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Compact Transactions List */}
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-0">
+            {processedTransactions.length > 0 ? (
+              <div className="divide-y">
+                {processedTransactions.map(renderTransaction)}
+              </div>
+            ) : (
+              <div className="text-center py-12 px-4">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                  <ArrowRightLeft className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground">Aucune transaction effectuée</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

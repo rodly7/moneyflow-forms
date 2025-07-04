@@ -50,38 +50,36 @@ const UserProfileInfo = () => {
   };
 
   return (
-    <Card className="mb-6 bg-white/90 backdrop-blur-sm shadow-xl border-0">
-      <CardContent className="p-4 md:p-6">
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <Avatar className="h-16 w-16 md:h-20 md:w-20">
-            <AvatarImage src={profile.avatar_url || undefined} />
-            <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-lg font-bold">
-              {profile.full_name ? profile.full_name.charAt(0).toUpperCase() : 'U'}
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="flex-1 text-center sm:text-left">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-              <h2 className="text-xl md:text-2xl font-bold text-gray-800">
-                {profile.full_name || 'Utilisateur'}
-              </h2>
-              <Badge className={`${getRoleColor(profile.role)} text-white border-0 text-sm`}>
-                {getRoleIcon(profile.role)}
-                <span className="ml-1">{getRoleLabel(profile.role)}</span>
-              </Badge>
-            </div>
-            
-            <div className="space-y-1 text-sm text-gray-600">
-              <p><strong>Téléphone:</strong> {profile.phone}</p>
-              <p><strong>Pays:</strong> {profile.country || 'Non spécifié'}</p>
-              {profile.is_verified && (
-                <p className="text-green-600"><strong>✓ Compte vérifié</strong></p>
-              )}
-            </div>
-          </div>
+    <div className="flex items-center gap-3 p-2">
+      <Avatar className="h-10 w-10 ring-2 ring-primary/20">
+        <AvatarImage src={profile.avatar_url || undefined} />
+        <AvatarFallback className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-sm font-bold">
+          {profile.full_name ? profile.full_name.charAt(0).toUpperCase() : 'U'}
+        </AvatarFallback>
+      </Avatar>
+      
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-foreground truncate">
+            {profile.full_name || 'Utilisateur'}
+          </h3>
+          <Badge className={`${getRoleColor(profile.role)} text-white border-0 text-xs px-1.5 py-0.5`}>
+            {getRoleIcon(profile.role)}
+          </Badge>
         </div>
-      </CardContent>
-    </Card>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span>{profile.phone}</span>
+          <span>•</span>
+          <span>{profile.country || 'Non spécifié'}</span>
+          {profile.is_verified && (
+            <>
+              <span>•</span>
+              <span className="text-green-600">✓ Vérifié</span>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 
