@@ -1,10 +1,10 @@
-import { memo, Suspense, useMemo } from "react";
+import { memo, Suspense, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import { usePerformanceMonitor, useDebounce } from "@/hooks/usePerformanceOptimization";
-import { ArrowUpRight, QrCode, Wallet, History, PiggyBank, FileText, RefreshCw, LogOut, Heart, Sparkles } from "lucide-react";
+import { ArrowUpRight, QrCode, Wallet, History, PiggyBank, FileText, RefreshCw, LogOut, Heart, Sparkles, Crown, Star, Eye, EyeOff, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,6 +81,7 @@ const MobileOptimizedDashboard = memo(({
   const navigate = useNavigate();
   const { toast } = useToast();
   const { signOut } = useAuth();
+  const [showBalance, setShowBalance] = useState(false);
 
   const debouncedRefresh = useDebounce(onRefresh, 300);
 
@@ -136,39 +137,74 @@ const MobileOptimizedDashboard = memo(({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      {/* Stunning Mobile Header */}
+      {/* Professional Mobile Header */}
       <div className="sticky top-0 z-50 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-0.5">
-        <div className="bg-white rounded-b-2xl">
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full">
-                <Heart className="w-5 h-5 text-white" />
+        <div className="bg-white rounded-b-3xl">
+          <div className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl">
+                  <Crown className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-800">Espace Utilisateur</h1>
+                  <p className="text-gray-600 text-sm">Dashboard personnel</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Mon Espace
-                </h1>
-                <p className="text-xs text-muted-foreground">Bienvenue !</p>
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">
+                  <Bell className="w-4 h-4 text-gray-600" />
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={debouncedRefresh}
+                  disabled={isLoading}
+                  className="p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleSignOut}
+                  className="p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                </Button>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={debouncedRefresh}
-                disabled={isLoading}
-                className="h-9 w-9 p-0 hover:scale-110 transition-transform"
-              >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleSignOut}
-                className="h-9 w-9 p-0 hover:scale-110 transition-transform"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
+            
+            {/* User Info Section */}
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-lg font-bold">
+                  {userProfile?.full_name ? userProfile.full_name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-800">{userProfile?.full_name || 'Utilisateur'}</h2>
+                  <div className="flex items-center gap-3 text-gray-600 text-sm">
+                    <span>{userProfile?.phone || 'Téléphone non disponible'}</span>
+                    {userProfile?.country && (
+                      <>
+                        <span>•</span>
+                        <span>{userProfile.country}</span>
+                      </>
+                    )}
+                  </div>
+                  {userProfile?.address && (
+                    <div className="flex items-center gap-2 text-gray-500 text-sm mt-1">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <span>{userProfile.address}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              {userProfile?.is_verified && (
+                <div className="p-2 bg-green-500 rounded-full">
+                  <Star className="w-5 h-5 text-white" />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -176,22 +212,39 @@ const MobileOptimizedDashboard = memo(({
 
       {/* Gorgeous Content */}
       <div className="p-4 space-y-6 pb-20">
-        {/* Stunning Balance Card */}
+        {/* Stunning Balance Card with User Info */}
         <div className="relative group">
           <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000"></div>
-          <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-8 rounded-2xl text-white shadow-2xl">
-            <div className="text-center space-y-4">
-              <div className="flex justify-center">
-                <div className="p-3 bg-white/20 rounded-full backdrop-blur-sm">
-                  <Wallet className="h-8 w-8 text-white" />
+          <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-6 rounded-2xl text-white shadow-2xl">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-white/80 text-sm mb-1">
+                    Solde disponible
+                  </h3>
+                  <div className="text-sm text-white/70">
+                    👤 {userProfile?.full_name || 'Utilisateur'}
+                    {userProfile?.address && (
+                      <div className="mt-0.5">📍 {userProfile.address}</div>
+                    )}
+                  </div>
                 </div>
+                
+                <button 
+                  onClick={() => setShowBalance(!showBalance)}
+                  className="text-white/80 hover:text-white transition-colors p-2"
+                  aria-label={showBalance ? "Masquer le solde" : "Afficher le solde"}
+                >
+                  {showBalance ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
-              <div>
-                <p className="text-white/80 text-sm mb-2">Solde disponible</p>
+              
+              <div className="text-center">
                 <p className="text-3xl font-bold bg-gradient-to-r from-yellow-200 to-yellow-400 bg-clip-text text-transparent">
-                  {formatCurrency(convertedBalance, userCurrency)}
+                  {showBalance ? formatCurrency(convertedBalance, userCurrency) : "••••••"}
                 </p>
               </div>
+              
               <div className="flex justify-center space-x-1">
                 <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse"></div>
                 <div className="w-2 h-2 bg-white/40 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
