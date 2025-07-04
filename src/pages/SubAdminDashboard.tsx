@@ -1,18 +1,4 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Users, TrendingUp, Shield, LogOut, RefreshCw, DollarSign, Activity, UserPlus, Star, Sparkles, Heart, Gem, Zap, Eye, Settings, BarChart3, Database } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import UserProfileInfo from "@/components/profile/UserProfileInfo";
-import NotificationsCard from "@/components/notifications/NotificationsCard";
-import UsersDataTable from "@/components/admin/UsersDataTable";
-import BatchAgentDeposit from "@/components/admin/BatchAgentDeposit";
-import UserManagementModal from "@/components/admin/UserManagementModal";
-import { useSubAdmin } from "@/hooks/useSubAdmin";
+export { default } from './CompactSubAdminDashboard';
 
 interface StatsData {
   totalUsers: number;

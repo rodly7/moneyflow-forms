@@ -11,11 +11,19 @@ import UserProfileInfo from "@/components/profile/UserProfileInfo";
 import NotificationSystem from "@/components/notifications/NotificationSystem";
 import { formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
 import { useBalanceCheck } from "@/hooks/useBalanceCheck";
+import { useDeviceDetection } from "@/hooks/useDeviceDetection";
+import { usePerformanceMonitor, useDebounce } from "@/hooks/usePerformanceOptimization";
+import CompactHeader from "@/components/dashboard/CompactHeader";
+import CompactStatsGrid from "@/components/dashboard/CompactStatsGrid";
+import CompactActionGrid from "@/components/dashboard/CompactActionGrid";
+import CompactInfoCard from "@/components/dashboard/CompactInfoCard";
 
 const NewAgentDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const deviceInfo = useDeviceDetection();
+  const { renderCount } = usePerformanceMonitor('NewAgentDashboard');
   const [balance, setBalance] = useState<number>(0);
   const [commissionBalance, setCommissionBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
@@ -23,7 +31,7 @@ const NewAgentDashboard = () => {
   // Utiliser le hook de vérification du solde
   useBalanceCheck(balance);
 
-  const fetchBalances = async () => {
+  const fetchBalances = useDebounce(async () => {
     if (user?.id) {
       setIsLoadingBalance(true);
       try {
@@ -60,7 +68,7 @@ const NewAgentDashboard = () => {
       }
       setIsLoadingBalance(false);
     }
-  };
+  }, 300);
 
   const handleSignOut = async () => {
     try {
@@ -104,181 +112,111 @@ const NewAgentDashboard = () => {
   const convertedBalance = convertCurrency(balance, "XAF", agentCurrency);
   const convertedCommissionBalance = convertCurrency(commissionBalance, "XAF", agentCurrency);
 
+  // Stats pour le grid compact
+  const statsData = [
+    {
+      label: "Solde Principal",
+      value: formatCurrency(convertedBalance, agentCurrency),
+      icon: Wallet,
+      gradient: "bg-gradient-to-r from-emerald-600 to-teal-600",
+      textColor: "text-emerald-100"
+    },
+    {
+      label: "Commissions",
+      value: formatCurrency(convertedCommissionBalance, agentCurrency),
+      icon: Percent,
+      gradient: "bg-gradient-to-r from-purple-600 to-pink-600",
+      textColor: "text-purple-100"
+    }
+  ];
+
+  // Actions pour l'agent
+  const actionItems = [
+    {
+      label: "Transférer de l'argent",
+      icon: ArrowUpRight,
+      onClick: () => navigate('/transfer'),
+      variant: "default" as const
+    },
+    {
+      label: "Dépôt / Retrait client",
+      icon: Wallet,
+      onClick: () => navigate('/deposit'),
+      variant: "outline" as const
+    },
+    {
+      label: "Mes Commissions",
+      icon: Percent,
+      onClick: () => navigate('/commission'),
+      variant: "outline" as const
+    },
+    {
+      label: "Mes Reçus",
+      icon: FileText,
+      onClick: () => navigate('/receipts'),
+      variant: "outline" as const
+    },
+    {
+      label: "Historique",
+      icon: History,
+      onClick: () => navigate('/transactions'),
+      variant: "outline" as const
+    },
+    {
+      label: "Performance",
+      icon: BarChart3,
+      onClick: () => navigate('/agent-performance'),
+      variant: "outline" as const
+    }
+  ];
+
+  // Informations pour l'agent
+  const infoItems = [
+    {
+      icon: "📱",
+      text: "Scannez le QR Code client pour les retraits sécurisés"
+    },
+    {
+      icon: "💎",
+      text: "Gagnez des commissions sur chaque opération"
+    },
+    {
+      icon: "🏦",
+      text: "Les dépôts clients augmentent votre volume"
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-5xl mx-auto space-y-6">
-        {/* Header compact */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card p-4 rounded-lg shadow-sm border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">Espace Agent</h1>
-              <p className="text-sm text-muted-foreground">Dashboard professionnel</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <NotificationSystem />
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={fetchBalances}
-              disabled={isLoadingBalance}
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoadingBalance ? 'animate-spin' : ''}`} />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleSignOut}
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
+    <div className="min-h-screen bg-background p-3">
+      <div className="max-w-6xl mx-auto space-y-4">
+        <CompactHeader
+          title="Espace Agent"
+          subtitle="Dashboard professionnel"
+          icon={<Trophy className="w-4 h-4 text-primary-foreground" />}
+          onRefresh={fetchBalances}
+          onSignOut={handleSignOut}
+          isLoading={isLoadingBalance}
+        />
+
+        <div className="bg-card p-3 rounded-lg">
+          <UserProfileInfo />
         </div>
 
-        {/* Profile Info compact */}
-        <UserProfileInfo />
+        <CompactStatsGrid stats={statsData} />
 
-        {/* Balance Cards simplifiés */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-emerald-100 text-sm font-medium flex items-center gap-2">
-                    <Wallet className="w-4 h-4" />
-                    Solde Principal
-                  </p>
-                  <p className="text-3xl font-bold mt-1">
-                    {formatCurrency(convertedBalance, agentCurrency)}
-                  </p>
-                  {agentCurrency !== "XAF" && (
-                    <p className="text-xs text-emerald-200 mt-1">
-                      {formatCurrency(balance, "XAF")}
-                    </p>
-                  )}
-                </div>
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100 text-sm font-medium flex items-center gap-2">
-                    <Percent className="w-4 h-4" />
-                    Commissions
-                  </p>
-                  <p className="text-3xl font-bold mt-1">
-                    {formatCurrency(convertedCommissionBalance, agentCurrency)}
-                  </p>
-                  {agentCurrency !== "XAF" && (
-                    <p className="text-xs text-purple-200 mt-1">
-                      {formatCurrency(commissionBalance, "XAF")}
-                    </p>
-                  )}
-                </div>
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                  <Star className="w-6 h-6 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <CompactActionGrid
+            title="Actions Agent"
+            titleIcon={Zap}
+            actions={actionItems}
+          />
+          
+          <CompactInfoCard
+            title="Guide Agent"
+            titleIcon={Shield}
+            items={infoItems}
+          />
         </div>
-
-        {/* Actions simplifiées */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="w-5 h-5" />
-              Actions Agent
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button 
-              onClick={() => navigate('/transfer')}
-              className="w-full justify-start h-12"
-            >
-              <ArrowUpRight className="mr-3 h-5 w-5" />
-              Transférer de l'argent
-            </Button>
-            
-            <Button 
-              onClick={() => navigate('/deposit')}
-              variant="outline"
-              className="w-full justify-start h-12"
-            >
-              <Wallet className="mr-3 h-5 w-5" />
-              Dépôt / Retrait client
-            </Button>
-            
-            <Button 
-              onClick={() => navigate('/commission')}
-              variant="outline"
-              className="w-full justify-start h-12"
-            >
-              <Percent className="mr-3 h-5 w-5" />
-              Mes Commissions
-            </Button>
-
-            <Button 
-              onClick={() => navigate('/receipts')}
-              variant="outline"
-              className="w-full justify-start h-12"
-            >
-              <FileText className="mr-3 h-5 w-5" />
-              Mes Reçus
-            </Button>
-            
-            <Button 
-              onClick={() => navigate('/transactions')}
-              variant="outline"
-              className="w-full justify-start h-12"
-            >
-              <History className="mr-3 h-5 w-5" />
-              Historique
-            </Button>
-
-            <Button 
-              onClick={() => navigate('/agent-performance')}
-              variant="outline"
-              className="w-full justify-start h-12"
-            >
-              <BarChart3 className="mr-3 h-5 w-5" />
-              Performance
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Guide Agent simplifié */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              Guide Agent
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-              <span className="text-lg">📱</span>
-              <p className="text-sm">Scannez le QR Code client pour les retraits sécurisés</p>
-            </div>
-            <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-              <span className="text-lg">💎</span>
-              <p className="text-sm">Gagnez des commissions sur chaque opération</p>
-            </div>
-            <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-              <span className="text-lg">🏦</span>
-              <p className="text-sm">Les dépôts clients augmentent votre volume</p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

@@ -15,6 +15,10 @@ import { useBalanceCheck } from "@/hooks/useBalanceCheck";
 import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import { usePerformanceMonitor, useDebounce } from "@/hooks/usePerformanceOptimization";
 import MobileOptimizedDashboard from "@/components/mobile/MobileOptimizedDashboard";
+import CompactHeader from "@/components/dashboard/CompactHeader";
+import CompactStatsGrid from "@/components/dashboard/CompactStatsGrid";
+import CompactActionGrid from "@/components/dashboard/CompactActionGrid";
+import CompactInfoCard from "@/components/dashboard/CompactInfoCard";
 
 const Dashboard = () => {
   const { user, profile, signOut } = useAuth();
@@ -128,146 +132,96 @@ const Dashboard = () => {
     );
   }
 
+  // Desktop compact dashboard
+  const statsData = [
+    {
+      label: "Mon Solde",
+      value: formatCurrency(convertedBalance, userCurrency),
+      icon: Wallet,
+      gradient: "bg-gradient-to-r from-blue-600 to-purple-600",
+      textColor: "text-blue-100"
+    }
+  ];
+
+  const actionItems = [
+    {
+      label: "Transférer de l'argent",
+      icon: ArrowUpRight,
+      onClick: () => navigate('/transfer'),
+      variant: "default" as const
+    },
+    {
+      label: "Mon QR Code",
+      icon: QrCode,
+      onClick: () => setShowQRDialog(true),
+      variant: "outline" as const
+    },
+    {
+      label: "Mes Épargnes",
+      icon: PiggyBank,
+      onClick: () => navigate('/savings'),
+      variant: "outline" as const
+    },
+    {
+      label: "Mes Reçus",
+      icon: FileText,
+      onClick: () => navigate('/receipts'),
+      variant: "outline" as const
+    },
+    {
+      label: "Historique",
+      icon: History,
+      onClick: () => navigate('/transactions'),
+      variant: "outline" as const
+    }
+  ];
+
+  const infoItems = [
+    {
+      icon: "📱",
+      text: "Présentez votre QR Code à un agent pour effectuer un retrait"
+    },
+    {
+      icon: "⚡",
+      text: "Vos transferts sont traités instantanément"
+    },
+    {
+      icon: "🔔",
+      text: "Consultez vos notifications régulièrement"
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header compact */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card p-4 rounded-lg shadow-sm border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <Heart className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">Mon Espace</h1>
-              <p className="text-sm text-muted-foreground">Dashboard utilisateur</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <NotificationSystem />
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={fetchBalance}
-              disabled={isLoadingBalance}
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoadingBalance ? 'animate-spin' : ''}`} />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleSignOut}
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
+    <div className="min-h-screen bg-background p-3">
+      <div className="max-w-6xl mx-auto space-y-4">
+        <CompactHeader
+          title="Mon Espace"
+          subtitle="Dashboard utilisateur"
+          icon={<Heart className="w-4 h-4 text-primary-foreground" />}
+          onRefresh={fetchBalance}
+          onSignOut={handleSignOut}
+          isLoading={isLoadingBalance}
+        />
+
+        <div className="bg-card p-3 rounded-lg">
+          <UserProfileInfo />
         </div>
 
-        {/* Profile Info compact */}
-        <UserProfileInfo />
+        <CompactStatsGrid stats={statsData} />
 
-        {/* Balance Card simplifié */}
-        <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm font-medium flex items-center gap-2">
-                  <Wallet className="w-4 h-4" />
-                  Mon Solde
-                </p>
-                <p className="text-3xl font-bold mt-1">
-                  {formatCurrency(convertedBalance, userCurrency)}
-                </p>
-                {userCurrency !== "XAF" && (
-                  <p className="text-xs text-blue-200 mt-1">
-                    {formatCurrency(balance, "XAF")}
-                  </p>
-                )}
-              </div>
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Actions simplifiées */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="w-5 h-5" />
-              Actions rapides
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button 
-              onClick={() => navigate('/transfer')}
-              className="w-full justify-start h-12"
-            >
-              <ArrowUpRight className="mr-3 h-5 w-5" />
-              Transférer de l'argent
-            </Button>
-            
-            <Button 
-              onClick={() => setShowQRDialog(true)}
-              variant="outline"
-              className="w-full justify-start h-12"
-            >
-              <QrCode className="mr-3 h-5 w-5" />
-              Mon QR Code
-            </Button>
-
-            <Button 
-              onClick={() => navigate('/savings')}
-              variant="outline"
-              className="w-full justify-start h-12"
-            >
-              <PiggyBank className="mr-3 h-5 w-5" />
-              Mes Épargnes
-            </Button>
-
-            <Button 
-              onClick={() => navigate('/receipts')}
-              variant="outline"
-              className="w-full justify-start h-12"
-            >
-              <FileText className="mr-3 h-5 w-5" />
-              Mes Reçus
-            </Button>
-            
-            <Button 
-              onClick={() => navigate('/transactions')}
-              variant="outline"
-              className="w-full justify-start h-12"
-            >
-              <History className="mr-3 h-5 w-5" />
-              Historique
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Informations simplifiées */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Star className="w-5 h-5" />
-              Informations utiles
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-              <span className="text-lg">📱</span>
-              <p className="text-sm">Présentez votre QR Code à un agent pour effectuer un retrait</p>
-            </div>
-            <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-              <span className="text-lg">⚡</span>
-              <p className="text-sm">Vos transferts sont traités instantanément</p>
-            </div>
-            <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-              <span className="text-lg">🔔</span>
-              <p className="text-sm">Consultez vos notifications régulièrement</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <CompactActionGrid
+            title="Actions rapides"
+            titleIcon={Zap}
+            actions={actionItems}
+          />
+          
+          <CompactInfoCard
+            title="Informations utiles"
+            titleIcon={Star}
+            items={infoItems}
+          />
+        </div>
       </div>
 
       <QRCodeGenerator 
