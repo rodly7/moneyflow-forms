@@ -192,79 +192,145 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4">
       <div className="max-w-5xl mx-auto space-y-6">
-        {/* Ultra Clean Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <UserProfileInfo />
+        {/* Attractive Header */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-1 rounded-2xl shadow-xl">
+          <div className="bg-background rounded-2xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <UserProfileInfo />
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={fetchBalance}
+                  disabled={isLoadingBalance}
+                  className="h-9 w-9 p-0 hover:scale-110 transition-transform"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isLoadingBalance ? 'animate-spin' : ''}`} />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleSignOut}
+                  className="h-9 w-9 p-0 hover:scale-110 transition-transform"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+        </div>
+
+        {/* Stunning Balance Card */}
+        <div className="relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000"></div>
+          <Card className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 border-0 text-white shadow-2xl">
+            <CardContent className="p-8">
+              <div className="text-center space-y-4">
+                <div className="flex justify-center">
+                  <div className="p-3 bg-white/20 rounded-full backdrop-blur-sm">
+                    <Wallet className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-white/80 text-sm mb-2">Solde disponible</p>
+                  <p className="text-4xl font-bold bg-gradient-to-r from-yellow-200 to-yellow-400 bg-clip-text text-transparent">
+                    {formatCurrency(convertedBalance, userCurrency)}
+                  </p>
+                </div>
+                <div className="flex justify-center space-x-1">
+                  <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-white/40 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                  <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Beautiful Actions Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="group relative">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
             <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={fetchBalance}
-              disabled={isLoadingBalance}
-              className="h-8 w-8 p-0"
+              variant="outline" 
+              onClick={() => navigate('/transfer')}
+              className="relative w-full h-24 flex-col gap-3 bg-white border-0 hover:bg-gray-50 transition-all duration-300 hover:scale-105 shadow-lg"
             >
-              <RefreshCw className={`h-4 w-4 ${isLoadingBalance ? 'animate-spin' : ''}`} />
+              <div className="p-2 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full">
+                <ArrowUpRight className="h-6 w-6 text-white" />
+              </div>
+              <span className="text-sm font-medium">Transférer</span>
             </Button>
+          </div>
+          
+          <div className="group relative">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-green-600 to-teal-600 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
             <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleSignOut}
-              className="h-8 w-8 p-0"
+              variant="outline" 
+              onClick={() => setShowQRDialog(true)}
+              className="relative w-full h-24 flex-col gap-3 bg-white border-0 hover:bg-gray-50 transition-all duration-300 hover:scale-105 shadow-lg"
             >
-              <LogOut className="h-4 w-4" />
+              <div className="p-2 bg-gradient-to-r from-green-500 to-teal-500 rounded-full">
+                <QrCode className="h-6 w-6 text-white" />
+              </div>
+              <span className="text-sm font-medium">Mon QR</span>
+            </Button>
+          </div>
+          
+          <div className="group relative">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-600 to-green-600 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/savings')}
+              className="relative w-full h-24 flex-col gap-3 bg-white border-0 hover:bg-gray-50 transition-all duration-300 hover:scale-105 shadow-lg"
+            >
+              <div className="p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full">
+                <PiggyBank className="h-6 w-6 text-white" />
+              </div>
+              <span className="text-sm font-medium">Épargnes</span>
+            </Button>
+          </div>
+          
+          <div className="group relative">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-600 to-red-600 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/transactions')}
+              className="relative w-full h-24 flex-col gap-3 bg-white border-0 hover:bg-gray-50 transition-all duration-300 hover:scale-105 shadow-lg"
+            >
+              <div className="p-2 bg-gradient-to-r from-orange-500 to-red-500 rounded-full">
+                <History className="h-6 w-6 text-white" />
+              </div>
+              <span className="text-sm font-medium">Historique</span>
             </Button>
           </div>
         </div>
 
-        {/* Clean Balance Display */}
-        <Card className="border-0 shadow-sm">
+        {/* Attractive Tips Section */}
+        <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-l-4 border-l-indigo-500 shadow-lg">
           <CardContent className="p-6">
-            <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">Solde disponible</p>
-              <p className="text-3xl font-light">{formatCurrency(convertedBalance, userCurrency)}</p>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-indigo-100 rounded-full">
+                <Sparkles className="h-5 w-5 text-indigo-600" />
+              </div>
+              <h3 className="font-semibold text-indigo-900">Conseils utiles</h3>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                <p className="text-sm text-indigo-700">Présentez votre QR Code pour les retraits</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                <p className="text-sm text-purple-700">Vos transferts sont traités instantanément</p>
+              </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* Minimal Actions Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/transfer')}
-            className="h-20 flex-col gap-2 border-2 hover:border-primary/50"
-          >
-            <ArrowUpRight className="h-5 w-5" />
-            <span className="text-xs">Transférer</span>
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => setShowQRDialog(true)}
-            className="h-20 flex-col gap-2 border-2 hover:border-primary/50"
-          >
-            <QrCode className="h-5 w-5" />
-            <span className="text-xs">Mon QR</span>
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/savings')}
-            className="h-20 flex-col gap-2 border-2 hover:border-primary/50"
-          >
-            <PiggyBank className="h-5 w-5" />
-            <span className="text-xs">Épargnes</span>
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/transactions')}
-            className="h-20 flex-col gap-2 border-2 hover:border-primary/50"
-          >
-            <History className="h-5 w-5" />
-            <span className="text-xs">Historique</span>
-          </Button>
-        </div>
       </div>
 
       <QRCodeGenerator 

@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, PiggyBank, TrendingUp } from "lucide-react";
+import { Plus, PiggyBank, TrendingUp, Wallet } from "lucide-react";
 import SavingsAccountCard from "@/components/savings/SavingsAccountCard";
 import CreateSavingsAccountModal from "@/components/savings/CreateSavingsAccountModal";
 import SavingsDepositModal from "@/components/savings/SavingsDepositModal";
@@ -113,30 +113,73 @@ const Savings = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 p-4">
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Clean Header */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-medium">Mes Épargnes</h1>
-          <Button onClick={() => setShowCreateModal(true)} size="sm" variant="outline">
-            <Plus className="w-4 h-4 mr-2" />
-            Nouveau
-          </Button>
+        {/* Stunning Header */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 p-1 rounded-2xl shadow-xl">
+          <div className="bg-white rounded-2xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full">
+                  <PiggyBank className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                    Mes Épargnes
+                  </h1>
+                  <p className="text-sm text-muted-foreground">Gérez vos économies</p>
+                </div>
+              </div>
+              <Button 
+                onClick={() => setShowCreateModal(true)} 
+                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Nouveau
+              </Button>
+            </div>
+          </div>
         </div>
 
-        {/* Simple Stats */}
+        {/* Beautiful Stats Cards */}
         <div className="grid grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-card rounded-lg border">
-            <p className="text-xs text-muted-foreground mb-1">Total épargné</p>
-            <p className="text-lg font-medium">{formatCurrency(totalSavings, "XAF")}</p>
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
+            <div className="relative bg-gradient-to-r from-green-500 to-emerald-500 p-4 rounded-xl text-white shadow-lg">
+              <div className="text-center">
+                <div className="p-2 bg-white/20 rounded-full w-fit mx-auto mb-2">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+                <p className="text-white/80 text-xs mb-1">Total épargné</p>
+                <p className="text-sm font-bold">{formatCurrency(totalSavings, "XAF")}</p>
+              </div>
+            </div>
           </div>
-          <div className="text-center p-4 bg-card rounded-lg border">
-            <p className="text-xs text-muted-foreground mb-1">Comptes</p>
-            <p className="text-lg font-medium">{accounts.length}</p>
+          
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
+            <div className="relative bg-gradient-to-r from-blue-500 to-indigo-500 p-4 rounded-xl text-white shadow-lg">
+              <div className="text-center">
+                <div className="p-2 bg-white/20 rounded-full w-fit mx-auto mb-2">
+                  <PiggyBank className="w-5 h-5" />
+                </div>
+                <p className="text-white/80 text-xs mb-1">Comptes</p>
+                <p className="text-sm font-bold">{accounts.length}</p>
+              </div>
+            </div>
           </div>
-          <div className="text-center p-4 bg-card rounded-lg border">
-            <p className="text-xs text-muted-foreground mb-1">Disponible</p>
-            <p className="text-lg font-medium">{formatCurrency(userBalance, "XAF")}</p>
+          
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
+            <div className="relative bg-gradient-to-r from-purple-500 to-pink-500 p-4 rounded-xl text-white shadow-lg">
+              <div className="text-center">
+                <div className="p-2 bg-white/20 rounded-full w-fit mx-auto mb-2">
+                  <Wallet className="w-5 h-5" />
+                </div>
+                <p className="text-white/80 text-xs mb-1">Disponible</p>
+                <p className="text-sm font-bold">{formatCurrency(userBalance, "XAF")}</p>
+              </div>
+            </div>
           </div>
         </div>
 

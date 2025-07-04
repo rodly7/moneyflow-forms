@@ -173,21 +173,41 @@ const Transactions = () => {
   };
 
   const renderTransaction = (transaction: Transaction) => (
-    <div key={transaction.id} className="p-4 hover:bg-muted/30 transition-colors">
+    <div key={transaction.id} className="p-5 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 transition-all duration-300">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
-            {getIcon(transaction.type)}
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className="relative">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+              transaction.type === 'withdrawal' 
+                ? 'bg-gradient-to-r from-red-100 to-pink-100' 
+                : 'bg-gradient-to-r from-blue-100 to-purple-100'
+            }`}>
+              {getIcon(transaction.type)}
+            </div>
+            <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${
+              transaction.status === 'completed' ? 'bg-green-500' : 'bg-yellow-500'
+            } flex items-center justify-center`}>
+              <div className="w-2 h-2 bg-white rounded-full"></div>
+            </div>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm truncate">{transaction.description}</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="font-semibold text-gray-900 truncate">{transaction.description}</p>
+            <p className="text-sm text-gray-500 flex items-center gap-2">
               {format(transaction.date, 'dd MMM', { locale: fr })}
+              <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                transaction.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                'bg-gray-100 text-gray-600'
+              }`}>
+                {transaction.status === 'completed' ? 'Terminé' : 
+                 transaction.status === 'pending' ? 'En cours' : transaction.status}
+              </span>
             </p>
           </div>
         </div>
         <div className="text-right">
-          <p className={`font-medium text-sm ${
+          <p className={`text-lg font-bold ${
             transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
           }`}>
             {new Intl.NumberFormat('fr-FR', {
@@ -196,25 +216,28 @@ const Transactions = () => {
               maximumFractionDigits: 0
             }).format(transaction.amount)}
           </p>
-          <p className="text-xs text-muted-foreground">
-            {transaction.status === 'completed' ? 'Terminé' : 
-             transaction.status === 'pending' ? 'En cours' : transaction.status}
-          </p>
         </div>
       </div>
       
       {transaction.showCode && transaction.verification_code && (
-        <div className="mt-3 p-3 bg-muted/50 rounded-lg">
+        <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-xs text-muted-foreground mb-1">Code de vérification:</p>
-              <p className="font-mono font-bold text-sm">{transaction.verification_code}</p>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1 bg-blue-500 rounded-full">
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                </div>
+                <p className="text-xs font-semibold text-blue-700">Code de vérification:</p>
+              </div>
+              <p className="font-mono font-bold text-lg text-blue-900 tracking-wider">
+                {transaction.verification_code}
+              </p>
             </div>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => copyToClipboard(transaction.verification_code!, transaction.id)}
-              className="h-8 w-8 p-0"
+              className="ml-3 hover:scale-110 transition-transform"
             >
               {copiedCodes[transaction.id] ? (
                 <Check className="h-4 w-4 text-green-500" />
@@ -229,36 +252,67 @@ const Transactions = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-purple-50 p-4">
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Minimal Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="h-8 w-8 p-0">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <h1 className="text-lg font-medium">Transactions</h1>
+        {/* Gorgeous Header */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 p-1 rounded-2xl shadow-xl">
+          <div className="bg-white rounded-2xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => navigate('/')} 
+                  className="h-10 w-10 p-0 hover:scale-110 transition-transform"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full">
+                    <ArrowRightLeft className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-lg font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
+                      Transactions
+                    </h1>
+                    <p className="text-sm text-muted-foreground">Votre historique</p>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
+                  {processedTransactions.length}
+                </p>
+                <p className="text-xs text-muted-foreground">opérations</p>
+              </div>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">{processedTransactions.length} opérations</p>
         </div>
 
-        {/* Clean Transactions List */}
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-0">
-            {processedTransactions.length > 0 ? (
-              <div className="divide-y">
-                {processedTransactions.map(renderTransaction)}
-              </div>
-            ) : (
-              <div className="text-center py-16">
-                <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
-                  <ArrowRightLeft className="w-6 h-6 text-muted-foreground" />
+        {/* Beautiful Transactions List */}
+        <div className="relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000"></div>
+          <Card className="relative bg-white border-0 shadow-2xl">
+            <CardContent className="p-0">
+              {processedTransactions.length > 0 ? (
+                <div className="divide-y divide-gray-100">
+                  {processedTransactions.map(renderTransaction)}
                 </div>
-                <p className="text-sm text-muted-foreground">Aucune transaction</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              ) : (
+                <div className="text-center py-16">
+                  <div className="relative">
+                    <div className="p-6 bg-gradient-to-r from-emerald-100 to-blue-100 rounded-full w-24 h-24 mx-auto mb-4">
+                      <ArrowRightLeft className="w-12 h-12 text-emerald-600 mx-auto" />
+                    </div>
+                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-24 h-24 bg-gradient-to-r from-emerald-300 to-blue-300 rounded-full animate-ping opacity-20"></div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">Aucune transaction</h3>
+                  <p className="text-sm text-gray-500">Vos opérations apparaîtront ici</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
