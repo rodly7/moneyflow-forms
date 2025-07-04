@@ -50,15 +50,18 @@ const NotificationSystem = () => {
 
       if (error) throw error;
 
-      const formattedNotifications = recipients?.map(recipient => ({
-        id: recipient.notifications.id,
-        title: recipient.notifications.title,
-        message: recipient.notifications.message,
-        notification_type: recipient.notifications.notification_type,
-        priority: recipient.notifications.priority,
-        created_at: recipient.notifications.created_at,
-        read_at: recipient.read_at
-      })) || [];
+      const formattedNotifications = recipients?.map(recipient => {
+        if (!recipient.notifications) return null;
+        return {
+          id: recipient.notifications.id,
+          title: recipient.notifications.title,
+          message: recipient.notifications.message,
+          notification_type: recipient.notifications.notification_type,
+          priority: recipient.notifications.priority,
+          created_at: recipient.notifications.created_at,
+          read_at: recipient.read_at
+        };
+      }).filter(Boolean) || [];
 
       setNotifications(formattedNotifications);
       setUnreadCount(formattedNotifications.filter(n => !n.read_at).length);
