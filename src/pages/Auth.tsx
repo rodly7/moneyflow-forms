@@ -150,19 +150,19 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 layout-stable">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       {/* Back to home button */}
       <Button
         variant="ghost"
         onClick={() => navigate('/')}
-        className="fixed top-4 left-4 text-muted-foreground z-20 form-field-stable"
+        className="fixed top-4 left-4 text-muted-foreground hover:text-foreground z-20"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Accueil
       </Button>
 
-      <Card className="w-full max-w-md shadow-lg border layout-stable">
-        <CardHeader className="space-y-2 text-center pb-4 layout-stable">
+      <Card className="w-full max-w-md shadow-lg border">
+        <CardHeader className="space-y-2 text-center pb-4">
           <div className="mx-auto w-12 h-12 bg-primary rounded-full flex items-center justify-center mb-2">
             {isAgentMode ? (
               <Crown className="w-6 h-6 text-primary-foreground" />
@@ -192,13 +192,13 @@ const Auth = () => {
           </CardDescription>
         </CardHeader>
         
-        <CardContent className="p-6 layout-stable">
-          <form onSubmit={handleSubmit} className="form-container layout-stable form-no-shift" style={{contain: 'layout size paint', willChange: 'auto', height: isSignUp ? '520px' : '200px', overflow: 'hidden'}}>
+        <CardContent className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp ? (
-              <div className="form-container form-no-shift" style={{height: '480px', position: 'relative'}}>
+              <>
                 {/* Full Name */}
-                <div className="form-field-stable" style={{position: 'absolute', top: '0px', left: '0', right: '0', height: '80px'}}>
-                  <Label htmlFor="fullName" className="flex items-center gap-2" style={{marginBottom: '4px'}}>
+                <div className="space-y-2">
+                  <Label htmlFor="fullName" className="flex items-center gap-2">
                     <User className="w-4 h-4" />
                     Nom complet
                   </Label>
@@ -210,21 +210,20 @@ const Auth = () => {
                     disabled={loading}
                     placeholder="Entrez votre nom complet"
                     className="h-12"
-                    style={{position: 'absolute', bottom: '0', left: '0', right: '0'}}
                   />
                 </div>
 
                 {/* Country */}
-                <div className="form-field-stable select-stable" style={{position: 'absolute', top: '100px', left: '0', right: '0', height: '80px'}}>
-                  <Label htmlFor="country" className="flex items-center gap-2" style={{marginBottom: '4px'}}>
+                <div className="space-y-2">
+                  <Label htmlFor="country" className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
                     Pays
                   </Label>
                   <Select value={country} onValueChange={handleCountryChange}>
-                    <SelectTrigger className="h-12" style={{position: 'absolute', bottom: '0', left: '0', right: '0'}}>
+                    <SelectTrigger className="h-12">
                       <SelectValue placeholder="Sélectionnez votre pays" />
                     </SelectTrigger>
-                    <SelectContent className="select-content fixed-select-content">
+                    <SelectContent>
                       {countries.map((country) => (
                         <SelectItem key={country.name} value={country.name}>
                           {country.name}
@@ -234,17 +233,17 @@ const Auth = () => {
                   </Select>
                 </div>
 
-                {/* City - Always present with fixed height */}
-                <div className="form-field-stable select-stable" style={{position: 'absolute', top: '200px', left: '0', right: '0', height: '80px'}}>
-                  <Label htmlFor="address" className="flex items-center gap-2" style={{marginBottom: '4px'}}>
+                {/* City */}
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
                     Ville
                   </Label>
                   <Select value={address} onValueChange={setAddress} disabled={!country}>
-                    <SelectTrigger className="h-12" style={{position: 'absolute', bottom: '0', left: '0', right: '0'}}>
+                    <SelectTrigger className="h-12">
                       <SelectValue placeholder="Sélectionnez votre ville" />
                     </SelectTrigger>
-                    <SelectContent className="select-content fixed-select-content">
+                    <SelectContent>
                       {availableCities.map((city) => (
                         <SelectItem key={city} value={city}>
                           {city}
@@ -255,12 +254,12 @@ const Auth = () => {
                 </div>
 
                 {/* Phone Number */}
-                <div className="form-field-stable" style={{position: 'absolute', top: '300px', left: '0', right: '0', height: '80px'}}>
-                  <Label htmlFor="phone" className="flex items-center gap-2" style={{marginBottom: '4px'}}>
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="flex items-center gap-2">
                     <Phone className="w-4 h-4" />
                     Numéro de téléphone
                   </Label>
-                  <div className="flex gap-2" style={{position: 'absolute', bottom: '0', left: '0', right: '0'}}>
+                  <div className="flex gap-2">
                     <Input 
                       value={selectedCountryCode} 
                       readOnly 
@@ -280,12 +279,12 @@ const Auth = () => {
                 </div>
 
                 {/* Password */}
-                <div className="form-field-stable" style={{position: 'absolute', top: '400px', left: '0', right: '0', height: '80px'}}>
-                  <Label htmlFor="password" className="flex items-center gap-2" style={{marginBottom: '4px'}}>
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="flex items-center gap-2">
                     <Lock className="w-4 h-4" />
                     Mot de passe
                   </Label>
-                  <div className="relative" style={{position: 'absolute', bottom: '0', left: '0', right: '0'}}>
+                  <div className="relative">
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
@@ -303,18 +302,17 @@ const Auth = () => {
                       size="sm"
                       className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
                       onClick={() => setShowPassword(!showPassword)}
-                      style={{transform: 'translateY(-50%)'}}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </Button>
                   </div>
                 </div>
-              </div>
+              </>
             ) : (
-              <div className="form-container form-no-shift" style={{height: '160px', position: 'relative'}}>
+              <>
                 {/* Login Phone */}
-                <div className="form-field-stable" style={{position: 'absolute', top: '0px', left: '0', right: '0', height: '80px'}}>
-                  <Label htmlFor="loginPhone" className="flex items-center gap-2" style={{marginBottom: '4px'}}>
+                <div className="space-y-2">
+                  <Label htmlFor="loginPhone" className="flex items-center gap-2">
                     <Phone className="w-4 h-4" />
                     Numéro de téléphone
                   </Label>
@@ -327,17 +325,16 @@ const Auth = () => {
                     required
                     disabled={loading}
                     className="h-12"
-                    style={{position: 'absolute', bottom: '0', left: '0', right: '0'}}
                   />
                 </div>
 
                 {/* Login Password */}
-                <div className="form-field-stable" style={{position: 'absolute', top: '80px', left: '0', right: '0', height: '80px'}}>
-                  <Label htmlFor="loginPassword" className="flex items-center gap-2" style={{marginBottom: '4px'}}>
+                <div className="space-y-2">
+                  <Label htmlFor="loginPassword" className="flex items-center gap-2">
                     <Lock className="w-4 h-4" />
                     Mot de passe
                   </Label>
-                  <div className="relative" style={{position: 'absolute', bottom: '0', left: '0', right: '0'}}>
+                  <div className="relative">
                     <Input
                       id="loginPassword"
                       type={showLoginPassword ? "text" : "password"}
@@ -355,13 +352,12 @@ const Auth = () => {
                       size="sm"
                       className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
                       onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      style={{transform: 'translateY(-50%)'}}
                     >
                       {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </Button>
                   </div>
                 </div>
-              </div>
+              </>
             )}
 
             {/* Submit Button */}
