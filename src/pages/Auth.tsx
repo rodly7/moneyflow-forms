@@ -213,17 +213,17 @@ const Auth = () => {
                   />
                 </div>
 
-                {/* Country - Fixed dropdown */}
-                <div className="space-y-2">
-                  <Label htmlFor="country" className="flex items-center gap-2">
+                {/* Country - Dropdown totalement stabilisé */}
+                <div className="dropdown-container">
+                  <Label htmlFor="country" className="flex items-center gap-2 mb-2">
                     <MapPin className="w-4 h-4" />
                     Pays
                   </Label>
                   <Select value={country} onValueChange={handleCountryChange}>
-                    <SelectTrigger className="h-12">
+                    <SelectTrigger className="h-12 dropdown-trigger">
                       <SelectValue placeholder="Sélectionnez votre pays" />
                     </SelectTrigger>
-                    <SelectContent className="stable-select-content">
+                    <SelectContent className="dropdown-content">
                       {countries.map((country) => (
                         <SelectItem key={country.name} value={country.name}>
                           {country.name}
@@ -233,17 +233,17 @@ const Auth = () => {
                   </Select>
                 </div>
 
-                {/* City - Fixed dropdown with reserved space */}
-                <div className="space-y-2" style={{minHeight: '76px'}}>
-                  <Label htmlFor="address" className="flex items-center gap-2">
+                {/* City - Dropdown totalement stabilisé */}
+                <div className="dropdown-container">
+                  <Label htmlFor="address" className="flex items-center gap-2 mb-2">
                     <MapPin className="w-4 h-4" />
                     Ville
                   </Label>
                   <Select value={address} onValueChange={setAddress} disabled={!country}>
-                    <SelectTrigger className="h-12">
+                    <SelectTrigger className="h-12 dropdown-trigger">
                       <SelectValue placeholder="Sélectionnez votre ville" />
                     </SelectTrigger>
-                    <SelectContent className="stable-select-content">
+                    <SelectContent className="dropdown-content">
                       {availableCities.map((city) => (
                         <SelectItem key={city} value={city}>
                           {city}

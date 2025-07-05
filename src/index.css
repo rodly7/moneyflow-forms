@@ -153,38 +153,54 @@
     contain: layout;
   }
   
-  /* Stabilisation des champs de sélection */
-  .stable-select {
+  /* Stabilisation ABSOLUE des dropdowns - Aucun mouvement autorisé */
+  .dropdown-container {
+    min-height: 76px !important;
+    max-height: 76px !important;
+    height: 76px !important;
     position: relative;
+    contain: layout size strict !important;
+    overflow: visible;
   }
   
-  .stable-select-trigger {
+  .dropdown-trigger {
     position: relative;
     z-index: 1;
+    contain: layout !important;
   }
   
-  .stable-select-content {
+  .dropdown-content {
     position: fixed !important;
     z-index: 9999 !important;
     background: white !important;
     border: 1px solid hsl(var(--border)) !important;
     border-radius: 6px !important;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15) !important;
     max-height: 200px !important;
     overflow-y: auto !important;
-    min-width: var(--radix-select-trigger-width) !important;
+    min-width: 200px !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
   }
   
-  /* Prévention des déplacements lors de l'ouverture des select */
-  [data-state="open"] {
-    position: relative;
-    z-index: 2;
+  /* Désactivation complète des animations pour les radix components */
+  [data-radix-select-content] {
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
   }
   
-  /* Stabilisation globale des éléments */
-  .no-layout-shift {
-    contain: layout style;
-    will-change: auto;
+  [data-radix-select-trigger] {
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+  
+  [data-radix-select-viewport] {
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
   }
   
   .form-message-zone {
