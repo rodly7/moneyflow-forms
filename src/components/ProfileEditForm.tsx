@@ -67,23 +67,34 @@ const ProfileEditForm = ({ profile }: ProfileEditFormProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 py-2">
-      <AvatarUploadSection 
-        previewUrl={previewUrl}
-        fullName={fullName}
-        onFileChange={handleFileChange}
-      />
+    <form onSubmit={handleSubmit} className="form-container">
+      <div className="form-field-wrapper">
+        <AvatarUploadSection 
+          previewUrl={previewUrl}
+          fullName={fullName}
+          onFileChange={handleFileChange}
+        />
+      </div>
       
-      <ProfileFormFields 
-        fullName={fullName}
-        setFullName={setFullName}
-        phone={profile?.phone}
-      />
+      <div className="form-field-wrapper">
+        <ProfileFormFields 
+          fullName={fullName}
+          setFullName={setFullName}
+          phone={profile?.phone}
+        />
+      </div>
 
-      <IdCardUploadSection 
-        idCardPreviewUrl={idCardPreviewUrl}
-        onFileChange={handleIdCardFileChange}
-      />
+      <div className="form-field-wrapper">
+        <IdCardUploadSection 
+          idCardPreviewUrl={idCardPreviewUrl}
+          onFileChange={handleIdCardFileChange}
+        />
+      </div>
+      
+      {/* Fixed space for form messages */}
+      <div className="min-h-[20px] form-message-zone">
+        {/* Toast messages will appear here without shifting the form */}
+      </div>
       
       <Button type="submit" className="w-full" disabled={isUploading}>
         {isUploading ? "Mise à jour..." : "Enregistrer les modifications"}

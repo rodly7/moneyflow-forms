@@ -331,10 +331,10 @@ const DepositWithdrawalForm = () => {
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <form onSubmit={handleDepositSubmit} className="space-y-4">
-                    <div className="space-y-2">
+                  <form onSubmit={handleDepositSubmit} className="form-container">
+                    <div className="form-field-wrapper">
                       <Label htmlFor="phone-deposit">Numéro du client</Label>
-                      <div className="relative">
+                      <div className="stable-input-group">
                         <Input
                           id="phone-deposit"
                           type="tel"
@@ -349,34 +349,37 @@ const DepositWithdrawalForm = () => {
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
                           </div>
                         )}
+                        
+                        {/* Fixed space for search feedback */}
+                        <div className="min-h-[80px] mt-2">
+                          {clientData && (
+                            <div className="p-4 bg-green-50 border border-green-200 rounded-md space-y-2 animate-fade-in">
+                              <div className="flex items-center text-green-800">
+                                <User className="w-4 h-4 mr-2" />
+                                <span className="font-medium">{clientData.full_name || 'Nom non disponible'}</span>
+                              </div>
+                              <div className="text-sm text-green-600">
+                                Pays: {clientData.country || 'Non spécifié'}
+                              </div>
+                              <div className="text-xs text-green-500 flex items-center gap-1">
+                                <Shield className="w-3 h-3" />
+                                Solde masqué pour la sécurité
+                              </div>
+                            </div>
+                          )}
+
+                          {phoneNumber.length >= 8 && !clientData && !isSearching && (
+                            <div className="p-4 bg-red-50 border border-red-200 rounded-md animate-fade-in">
+                              <p className="text-red-700 text-sm">
+                                Aucun client trouvé avec ce numéro
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    {clientData && (
-                      <div className="p-4 bg-green-50 border border-green-200 rounded-md space-y-2">
-                        <div className="flex items-center text-green-800">
-                          <User className="w-4 h-4 mr-2" />
-                          <span className="font-medium">{clientData.full_name || 'Nom non disponible'}</span>
-                        </div>
-                        <div className="text-sm text-green-600">
-                          Pays: {clientData.country || 'Non spécifié'}
-                        </div>
-                        <div className="text-xs text-green-500 flex items-center gap-1">
-                          <Shield className="w-3 h-3" />
-                          Solde masqué pour la sécurité
-                        </div>
-                      </div>
-                    )}
-
-                    {phoneNumber.length >= 8 && !clientData && !isSearching && (
-                      <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-                        <p className="text-red-700 text-sm">
-                          Aucun client trouvé avec ce numéro
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
+                    <div className="form-field-wrapper">
                       <Label htmlFor="amount-deposit">Montant du dépôt (XAF)</Label>
                       <Input
                         id="amount-deposit"
@@ -388,26 +391,29 @@ const DepositWithdrawalForm = () => {
                         className="h-12 text-lg"
                         disabled={!clientData}
                       />
-                    </div>
-
-                    {amount && depositFees && (
-                      <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-md">
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span>Montant:</span>
-                            <span className="font-medium">{formatCurrency(Number(amount), 'XAF')}</span>
+                      
+                      {/* Fixed space for fee calculation */}
+                      <div className="min-h-[100px] mt-2">
+                        {amount && depositFees && (
+                          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-md animate-fade-in">
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span>Montant:</span>
+                                <span className="font-medium">{formatCurrency(Number(amount), 'XAF')}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Frais:</span>
+                                <span className="font-medium text-emerald-600">{formatCurrency(depositFees.totalFee, 'XAF')}</span>
+                              </div>
+                              <div className="flex justify-between font-semibold border-t pt-2">
+                                <span>Total à débiter:</span>
+                                <span>{formatCurrency(Number(amount), 'XAF')}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex justify-between">
-                            <span>Frais:</span>
-                            <span className="font-medium text-emerald-600">{formatCurrency(depositFees.totalFee, 'XAF')}</span>
-                          </div>
-                          <div className="flex justify-between font-semibold border-t pt-2">
-                            <span>Total à débiter:</span>
-                            <span>{formatCurrency(Number(amount), 'XAF')}</span>
-                          </div>
-                        </div>
+                        )}
                       </div>
-                    )}
+                    </div>
 
                     <Button 
                       type="submit" 
@@ -455,36 +461,47 @@ const DepositWithdrawalForm = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <form onSubmit={handleWithdrawalSubmit} className="space-y-4">
-                    {scannedUserData && (
-                      <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-md space-y-2">
-                        <div className="flex items-center text-emerald-800">
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          <span className="font-medium">QR Code scanné avec succès</span>
+                  <form onSubmit={handleWithdrawalSubmit} className="form-container">
+                    {/* Fixed space for QR scan feedback */}
+                    <div className="min-h-[100px] mb-4">
+                      {scannedUserData && (
+                        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-md space-y-2 animate-fade-in">
+                          <div className="flex items-center text-emerald-800">
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            <span className="font-medium">QR Code scanné avec succès</span>
+                          </div>
+                          <div className="text-sm text-emerald-700 space-y-1">
+                            <p><strong>Nom:</strong> {scannedUserData.fullName}</p>
+                            <p><strong>Téléphone:</strong> {scannedUserData.phone}</p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setScannedUserData(null);
+                              setPhoneNumber("");
+                              setClientData(null);
+                            }}
+                            className="mt-2"
+                          >
+                            Effacer et scanner un nouveau QR
+                          </Button>
                         </div>
-                        <div className="text-sm text-emerald-700 space-y-1">
-                          <p><strong>Nom:</strong> {scannedUserData.fullName}</p>
-                          <p><strong>Téléphone:</strong> {scannedUserData.phone}</p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setScannedUserData(null);
-                            setPhoneNumber("");
-                            setClientData(null);
-                          }}
-                          className="mt-2"
-                        >
-                          Effacer et scanner un nouveau QR
-                        </Button>
-                      </div>
-                    )}
+                      )}
 
-                    <div className="space-y-2">
+                      {!scannedUserData && !clientData && (
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-md animate-fade-in">
+                          <p className="text-blue-700 text-sm">
+                            📱 Veuillez scanner le QR code du client pour effectuer le retrait
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="form-field-wrapper">
                       <Label htmlFor="phone-withdrawal">Numéro du client</Label>
-                      <div className="relative">
+                      <div className="stable-input-group">
                         <Input
                           id="phone-withdrawal"
                           type="tel"
@@ -504,33 +521,28 @@ const DepositWithdrawalForm = () => {
                       <p className="text-xs text-gray-500">
                         🔒 Saisie désactivée - Utilisez uniquement le scanner QR pour identifier le client
                       </p>
+                      
+                      {/* Fixed space for client data */}
+                      <div className="min-h-[80px] mt-2">
+                        {clientData && (
+                          <div className="p-4 bg-green-50 border border-green-200 rounded-md space-y-2 animate-fade-in">
+                            <div className="flex items-center text-green-800">
+                              <User className="w-4 h-4 mr-2" />
+                              <span className="font-medium">{clientData.full_name || 'Nom non disponible'}</span>
+                            </div>
+                            <div className="text-sm text-green-600">
+                              Pays: {clientData.country || 'Non spécifié'}
+                            </div>
+                            <div className="text-xs text-green-500 flex items-center gap-1">
+                              <Shield className="w-3 h-3" />
+                              Solde masqué pour la sécurité
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                    {clientData && (
-                      <div className="p-4 bg-green-50 border border-green-200 rounded-md space-y-2">
-                        <div className="flex items-center text-green-800">
-                          <User className="w-4 h-4 mr-2" />
-                          <span className="font-medium">{clientData.full_name || 'Nom non disponible'}</span>
-                        </div>
-                        <div className="text-sm text-green-600">
-                          Pays: {clientData.country || 'Non spécifié'}
-                        </div>
-                        <div className="text-xs text-green-500 flex items-center gap-1">
-                          <Shield className="w-3 h-3" />
-                          Solde masqué pour la sécurité
-                        </div>
-                      </div>
-                    )}
-
-                    {!scannedUserData && !clientData && (
-                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
-                        <p className="text-blue-700 text-sm">
-                          📱 Veuillez scanner le QR code du client pour effectuer le retrait
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
+                    <div className="form-field-wrapper">
                       <Label htmlFor="amount-withdrawal">Montant du retrait (XAF)</Label>
                       <Input
                         id="amount-withdrawal"
@@ -542,33 +554,36 @@ const DepositWithdrawalForm = () => {
                         className="h-12 text-lg"
                         disabled={!scannedUserData && !clientData}
                       />
-                    </div>
-
-                    {amount && withdrawalFees && (
-                      <div className="p-4 bg-orange-50 border border-orange-200 rounded-md">
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span>Montant:</span>
-                            <span className="font-medium">{formatCurrency(Number(amount), 'XAF')}</span>
+                      
+                      {/* Fixed space for fee calculation */}
+                      <div className="min-h-[120px] mt-2">
+                        {amount && withdrawalFees && (
+                          <div className="p-4 bg-orange-50 border border-orange-200 rounded-md animate-fade-in">
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span>Montant:</span>
+                                <span className="font-medium">{formatCurrency(Number(amount), 'XAF')}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Frais (1,5%):</span>
+                                <span className="font-medium text-orange-600">{formatCurrency(withdrawalFees.totalFee, 'XAF')}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Votre commission (0,5%):</span>
+                                <span className="font-medium text-emerald-600">{formatCurrency(withdrawalFees.agentCommission, 'XAF')}</span>
+                              </div>
+                              <div className="flex justify-between font-semibold border-t pt-2">
+                                <span>Total à débiter du client:</span>
+                                <span>{formatCurrency(Number(amount) + withdrawalFees.totalFee, 'XAF')}</span>
+                              </div>
+                              <div className="text-xs text-gray-600 mt-2">
+                                Note: Le solde du client sera vérifié lors du traitement
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex justify-between">
-                            <span>Frais (1,5%):</span>
-                            <span className="font-medium text-orange-600">{formatCurrency(withdrawalFees.totalFee, 'XAF')}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Votre commission (0,5%):</span>
-                            <span className="font-medium text-emerald-600">{formatCurrency(withdrawalFees.agentCommission, 'XAF')}</span>
-                          </div>
-                          <div className="flex justify-between font-semibold border-t pt-2">
-                            <span>Total à débiter du client:</span>
-                            <span>{formatCurrency(Number(amount) + withdrawalFees.totalFee, 'XAF')}</span>
-                          </div>
-                          <div className="text-xs text-gray-600 mt-2">
-                            Note: Le solde du client sera vérifié lors du traitement
-                          </div>
-                        </div>
+                        )}
                       </div>
-                    )}
+                    </div>
 
                     <Button 
                       type="submit" 

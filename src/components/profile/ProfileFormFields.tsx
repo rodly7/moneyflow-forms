@@ -14,8 +14,8 @@ const ProfileFormFields = ({
   phone 
 }: ProfileFormFieldsProps) => {
   return (
-    <>
-      <div className="space-y-2">
+    <div className="form-container">
+      <div className="form-field-wrapper">
         <Label htmlFor="fullName">Nom complet *</Label>
         <Input 
           id="fullName"
@@ -24,21 +24,28 @@ const ProfileFormFields = ({
           onChange={(e) => setFullName(e.target.value)} 
           placeholder="Votre nom complet"
           required
+          className="h-12"
         />
+        {/* Fixed space for validation messages */}
+        <div className="min-h-[20px] form-message-zone">
+          {/* Validation messages will appear here */}
+        </div>
       </div>
       
-      <div className="space-y-2">
+      <div className="form-field-wrapper">
         <Label htmlFor="phone">Téléphone</Label>
         <Input 
           id="phone"
           type="text" 
           value={phone || ""} 
           disabled
-          className="bg-gray-100"
+          className="bg-gray-100 h-12"
         />
-        <p className="text-xs text-gray-500">Le numéro de téléphone ne peut pas être modifié</p>
+        <div className="min-h-[20px] form-message-zone">
+          <p className="text-xs text-gray-500">Le numéro de téléphone ne peut pas être modifié</p>
+        </div>
       </div>
-    </>
+    </div>
   );
 };
 

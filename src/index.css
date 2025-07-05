@@ -122,6 +122,43 @@
 }
 
 @layer components {
+  /* Form stability improvements */
+  .form-container {
+    @apply space-y-6;
+  }
+  
+  .form-field-wrapper {
+    @apply space-y-2 min-h-[80px];
+  }
+  
+  .form-message-zone {
+    @apply min-h-[60px] transition-all duration-300 ease-in-out;
+  }
+  
+  .form-message-zone.active {
+    @apply opacity-100 transform translate-y-0;
+  }
+  
+  .form-message-zone.inactive {
+    @apply opacity-0 transform -translate-y-2;
+  }
+  
+  .stable-input-group {
+    @apply relative;
+  }
+  
+  .stable-input-group .input-feedback {
+    @apply absolute top-full left-0 right-0 mt-2 transition-all duration-200 ease-in-out;
+  }
+  
+  .stable-input-group .input-feedback.show {
+    @apply opacity-100 transform translate-y-0;
+  }
+  
+  .stable-input-group .input-feedback.hide {
+    @apply opacity-0 transform -translate-y-2 pointer-events-none;
+  }
+
   /* Enhanced glass morphism effects */
   .glass {
     background: var(--glass-bg);
