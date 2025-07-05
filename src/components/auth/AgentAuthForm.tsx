@@ -68,17 +68,17 @@ const AgentAuthForm = () => {
   };
 
   return (
-    <Card className="w-full max-w-xl backdrop-blur-2xl bg-white/10 shadow-2xl border border-white/20 animate-fade-in hover:shadow-emerald-500/20 transition-all duration-500 relative overflow-hidden rounded-3xl">
+    <Card className="w-full max-w-xl backdrop-blur-2xl bg-white/10 shadow-2xl border border-white/20 relative overflow-hidden rounded-3xl layout-stable">
       {/* Card glow effect */}
       <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-green-500/5 opacity-60"></div>
       
       <CardHeader className="space-y-6 text-center pb-8 relative z-10">
-        <div className="mx-auto w-24 h-24 bg-gradient-to-r from-emerald-400 via-teal-500 to-green-500 rounded-full flex items-center justify-center mb-6 animate-pulse-glow shadow-2xl">
-          <Crown className="w-12 h-12 text-white animate-bounce-gentle" />
+        <div className="mx-auto w-24 h-24 bg-gradient-to-r from-emerald-400 via-teal-500 to-green-500 rounded-full flex items-center justify-center mb-6 shadow-2xl">
+          <Crown className="w-12 h-12 text-white" />
         </div>
         
         <div className="space-y-3">
-          <CardTitle className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-emerald-100 to-teal-100 bg-clip-text text-transparent animate-scale-in">
+          <CardTitle className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-emerald-100 to-teal-100 bg-clip-text text-transparent">
             👑 Espace Agent Elite
           </CardTitle>
           
@@ -103,7 +103,7 @@ const AgentAuthForm = () => {
               value={loginPhone}
               onChange={(e) => setLoginPhone(e.target.value)}
               required
-              className="h-14 bg-white/15 border-white/30 text-white placeholder:text-white/70 focus:border-emerald-400 focus:ring-emerald-400/30 backdrop-blur-md transition-all duration-300 hover:bg-white/20 rounded-xl text-base"
+              className="h-14 bg-white/15 border-white/30 text-white placeholder:text-white/70 focus:border-emerald-400 focus:ring-emerald-400/30 backdrop-blur-md rounded-xl text-base form-field-stable"
               disabled={loading}
             />
             <div className="flex items-center gap-2 text-sm text-emerald-200 font-medium bg-emerald-500/20 p-4 rounded-xl backdrop-blur-sm border border-emerald-400/30">
@@ -124,7 +124,7 @@ const AgentAuthForm = () => {
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
                 required
-                className="h-14 bg-white/15 border-white/30 text-white placeholder:text-white/70 focus:border-emerald-400 focus:ring-emerald-400/30 backdrop-blur-md hover:bg-white/20 transition-all duration-300 rounded-xl text-base pr-12"
+                className="h-14 bg-white/15 border-white/30 text-white placeholder:text-white/70 focus:border-emerald-400 focus:ring-emerald-400/30 backdrop-blur-md rounded-xl text-base pr-12 form-field-stable"
                 disabled={loading}
                 minLength={6}
                 placeholder="Votre mot de passe professionnel"
@@ -143,7 +143,7 @@ const AgentAuthForm = () => {
 
           <Button
             type="submit"
-            className="w-full h-16 bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 hover:from-emerald-600 hover:via-teal-600 hover:to-green-600 text-white font-bold shadow-2xl hover:shadow-emerald-500/30 transform hover:-translate-y-1 hover:scale-105 transition-all duration-300 text-lg rounded-xl"
+            className="w-full h-16 bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 text-white font-bold shadow-2xl text-lg rounded-xl form-field-stable"
             disabled={loading}
           >
             {loading && (

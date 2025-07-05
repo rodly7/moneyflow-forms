@@ -193,7 +193,7 @@ const Auth = () => {
         </CardHeader>
         
         <CardContent className="p-6">
-          <form onSubmit={handleSubmit} className="form-container layout-stable">
+          <form onSubmit={handleSubmit} className="form-container layout-stable form-no-shift">
             {isSignUp ? (
               <div className="form-container form-no-shift">
                 {/* Full Name */}
