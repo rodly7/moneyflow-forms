@@ -229,6 +229,44 @@
     @apply transform transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:rotate-1;
   }
   
+  /* Selection stability improvements */
+  .stable-select-wrapper {
+    @apply relative;
+  }
+  
+  .stable-select-feedback {
+    @apply min-h-[60px] transition-all duration-200 ease-in-out;
+  }
+  
+  .stable-select-feedback.show {
+    @apply opacity-100 transform translate-y-0;
+  }
+  
+  .stable-select-feedback.hide {
+    @apply opacity-0 transform -translate-y-2 pointer-events-none;
+  }
+  
+  /* Prevent layout shift from dynamic content */
+  .select-container {
+    @apply space-y-2;
+  }
+  
+  .select-field-wrapper {
+    @apply space-y-2 min-h-[100px];
+  }
+  
+  .select-conditional-content {
+    @apply min-h-[80px] transition-all duration-300 ease-in-out;
+  }
+  
+  .select-conditional-content.active {
+    @apply opacity-100 transform translate-y-0;
+  }
+  
+  .select-conditional-content.inactive {
+    @apply opacity-0 transform -translate-y-2;
+  }
+  
   /* Interactive animations */
   .animate-fade-in {
     animation: fadeIn 0.8s ease-out;

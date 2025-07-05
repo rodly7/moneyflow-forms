@@ -117,16 +117,16 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
   }, [phoneInput, selectedCountryCode]);
 
   return (
-    <div className="space-y-6">
+    <div className="form-container">
       {/* Country Selection */}
-      <div className="space-y-2">
+      <div className="select-field-wrapper">
         <Label htmlFor="country">Pays de Destination</Label>
         <Select
           value={recipient.country}
           onValueChange={handleCountryChange}
           required
         >
-          <SelectTrigger>
+          <SelectTrigger className="h-12">
             <SelectValue placeholder="Sélectionnez le pays" />
           </SelectTrigger>
           <SelectContent>
@@ -137,52 +137,62 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
             ))}
           </SelectContent>
         </Select>
-        {userRole === 'agent' && (
-          <div className="text-xs space-y-1">
-            <p className="text-blue-600">
-              🏢 Mode Agent: Tous les pays disponibles
-            </p>
-            <p className="text-gray-500">
-              Pays d'origine: {userCountry}
-            </p>
-          </div>
-        )}
+        {/* Fixed space for agent info */}
+        <div className="min-h-[60px]">
+          {userRole === 'agent' && (
+            <div className="text-xs space-y-1 animate-fade-in">
+              <p className="text-blue-600">
+                🏢 Mode Agent: Tous les pays disponibles
+              </p>
+              <p className="text-gray-500">
+                Pays d'origine: {userCountry}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Phone Number Input with Country Code */}
       {recipient.country && (
-        <PhoneInput
-          phoneInput={phoneInput}
-          countryCode={selectedCountryCode}
-          onPhoneChange={setPhoneInput}
-          isLoading={isSearching}
-          isVerified={isVerified}
-          label="Numéro de téléphone du destinataire"
-          recipientName={foundUserName}
-          onBlurComplete={handlePhoneSearch}
-        />
-      )}
-
-      {/* Manual Name Entry if user not found */}
-      {phoneInput.length >= 8 && !isVerified && !isSearching && (
-        <div className="space-y-2">
-          <Label htmlFor="fullName">Nom Complet du Bénéficiaire</Label>
-          <Input
-            id="fullName"
-            required
-            placeholder="Entrez le nom complet"
-            value={recipient.fullName}
-            onChange={(e) =>
-              updateFields({
-                recipient: { ...recipient, fullName: e.target.value },
-              })
-            }
+        <div className="form-field-wrapper">
+          <PhoneInput
+            phoneInput={phoneInput}
+            countryCode={selectedCountryCode}
+            onPhoneChange={setPhoneInput}
+            isLoading={isSearching}
+            isVerified={isVerified}
+            label="Numéro de téléphone du destinataire"
+            recipientName={foundUserName}
+            onBlurComplete={handlePhoneSearch}
           />
-          <p className="text-sm text-amber-600">
-            ⚠️ Destinataire non trouvé - Veuillez saisir le nom manuellement
-          </p>
         </div>
       )}
+
+      {/* Manual Name Entry if user not found - Fixed space */}
+      <div className="min-h-[120px]">
+        {phoneInput.length >= 8 && !isVerified && !isSearching && (
+          <div className="form-field-wrapper animate-fade-in">
+            <Label htmlFor="fullName">Nom Complet du Bénéficiaire</Label>
+            <Input
+              id="fullName"
+              required
+              placeholder="Entrez le nom complet"
+              value={recipient.fullName}
+              onChange={(e) =>
+                updateFields({
+                  recipient: { ...recipient, fullName: e.target.value },
+                })
+              }
+              className="h-12"
+            />
+            <div className="min-h-[20px] form-message-zone">
+              <p className="text-sm text-amber-600">
+                ⚠️ Destinataire non trouvé - Veuillez saisir le nom manuellement
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

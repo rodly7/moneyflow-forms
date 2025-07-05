@@ -94,7 +94,7 @@ const PhoneInput = ({
   };
   
   return (
-    <div className="space-y-2">
+    <div className="form-field-wrapper">
       <Label>{label}</Label>
       <div className="flex items-center space-x-2">
         <div className="w-24 flex-shrink-0">
@@ -102,7 +102,7 @@ const PhoneInput = ({
             type="text"
             value={countryCode}
             readOnly
-            className="bg-gray-100"
+            className="bg-gray-100 h-12"
           />
         </div>
         <div className="relative flex-1">
@@ -115,7 +115,7 @@ const PhoneInput = ({
             onBlur={handleBlur}
             onKeyUp={handleKeyUp}
             disabled={isLoading}
-            className={isVerified ? "border-green-500 focus-visible:ring-green-500 pr-10" : "pr-10"}
+            className={`h-12 ${isVerified ? "border-green-500 focus-visible:ring-green-500 pr-10" : "pr-10"}`}
             autoComplete="tel"
           />
           {isLoading && (
@@ -131,12 +131,15 @@ const PhoneInput = ({
         </div>
       </div>
       
-      {isVerified && recipientName && (
-        <div className="flex items-center text-sm text-green-600 mt-1">
-          <User className="w-3.5 h-3.5 mr-1" />
-          <span>{recipientName}</span>
-        </div>
-      )}
+      {/* Fixed space for verification status */}
+      <div className="min-h-[30px] form-message-zone">
+        {isVerified && recipientName && (
+          <div className="flex items-center text-sm text-green-600 animate-fade-in">
+            <User className="w-3.5 h-3.5 mr-1" />
+            <span>{recipientName}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

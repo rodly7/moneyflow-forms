@@ -186,9 +186,9 @@ const NotificationSender = () => {
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           {/* Configuration du message */}
-          <div className="space-y-4">
+          <div className="form-container">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="form-field-wrapper">
                 <Label htmlFor="title" className="text-gray-700 font-medium">
                   Titre de la notification
                 </Label>
@@ -201,7 +201,7 @@ const NotificationSender = () => {
                 />
               </div>
               
-              <div className="space-y-2">
+              <div className="form-field-wrapper">
                 <Label htmlFor="priority" className="text-gray-700 font-medium">
                   Priorité
                 </Label>
@@ -218,7 +218,7 @@ const NotificationSender = () => {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="form-field-wrapper">
               <Label htmlFor="message" className="text-gray-700 font-medium">
                 Message
               </Label>
@@ -234,7 +234,7 @@ const NotificationSender = () => {
           </div>
 
           {/* Sélection des destinataires */}
-          <div className="space-y-4">
+          <div className="form-container">
             <Label className="text-gray-700 font-medium text-lg">
               Destinataires
             </Label>
@@ -272,82 +272,90 @@ const NotificationSender = () => {
               </Button>
             </div>
 
-            {/* Filtres conditionnels */}
-            {notificationType === 'role' && (
-              <Select value={selectedRole} onValueChange={setSelectedRole}>
-                <SelectTrigger className="h-12 bg-gray-50 border-gray-200">
-                  <SelectValue placeholder="Sélectionner un rôle" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">Utilisateurs</SelectItem>
-                  <SelectItem value="agent">Agents</SelectItem>
-                  <SelectItem value="admin">Administrateurs</SelectItem>
-                  <SelectItem value="sub_admin">Sous-Administrateurs</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
+            {/* Filtres conditionnels avec espace réservé fixe */}
+            <div className="select-conditional-content">
+              {notificationType === 'role' && (
+                <div className="animate-fade-in">
+                  <Select value={selectedRole} onValueChange={setSelectedRole}>
+                    <SelectTrigger className="h-12 bg-gray-50 border-gray-200">
+                      <SelectValue placeholder="Sélectionner un rôle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">Utilisateurs</SelectItem>
+                      <SelectItem value="agent">Agents</SelectItem>
+                      <SelectItem value="admin">Administrateurs</SelectItem>
+                      <SelectItem value="sub_admin">Sous-Administrateurs</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
-            {notificationType === 'country' && (
-              <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-                <SelectTrigger className="h-12 bg-gray-50 border-gray-200">
-                  <SelectValue placeholder="Sélectionner un pays" />
-                </SelectTrigger>
-                <SelectContent>
-                  {countries?.map((country) => (
-                    <SelectItem key={country} value={country}>
-                      {country}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+              {notificationType === 'country' && (
+                <div className="animate-fade-in">
+                  <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                    <SelectTrigger className="h-12 bg-gray-50 border-gray-200">
+                      <SelectValue placeholder="Sélectionner un pays" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries?.map((country) => (
+                        <SelectItem key={country} value={country}>
+                          {country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
-            {notificationType === 'individual' && (
-              <div className="max-h-64 overflow-y-auto space-y-2 bg-gray-50 rounded-xl p-4">
-                {users?.map((user) => (
-                  <div
-                    key={user.id}
-                    className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Checkbox
-                        checked={selectedUsers.includes(user.id)}
-                        onCheckedChange={() => handleUserToggle(user.id)}
-                        className="w-5 h-5"
-                      />
-                      <div>
-                        <p className="font-medium text-gray-900">{user.full_name}</p>
-                        <p className="text-sm text-gray-600">{user.phone} • {user.role}</p>
+              {notificationType === 'individual' && (
+                <div className="max-h-64 overflow-y-auto space-y-2 bg-gray-50 rounded-xl p-4 animate-fade-in">
+                  {users?.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={selectedUsers.includes(user.id)}
+                          onCheckedChange={() => handleUserToggle(user.id)}
+                          className="w-5 h-5"
+                        />
+                        <div>
+                          <p className="font-medium text-gray-900">{user.full_name}</p>
+                          <p className="text-sm text-gray-600">{user.phone} • {user.role}</p>
+                        </div>
                       </div>
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Aperçu des destinataires avec espace réservé fixe */}
+          <div className="min-h-[120px]">
+            {filteredUsers.length > 0 && (
+              <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 animate-fade-in">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-purple-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-purple-900 mb-2">
+                      Aperçu de l'envoi
+                    </h4>
+                    <p className="text-sm text-purple-700">
+                      Cette notification sera envoyée à <strong>{filteredUsers.length}</strong> utilisateur(s)
+                    </p>
+                    {notificationType === 'role' && selectedRole && (
+                      <p className="text-sm text-purple-600">Rôle: {selectedRole}</p>
+                    )}
+                    {notificationType === 'country' && selectedCountry && (
+                      <p className="text-sm text-purple-600">Pays: {selectedCountry}</p>
+                    )}
                   </div>
-                ))}
+                </div>
               </div>
             )}
           </div>
-
-          {/* Aperçu des destinataires */}
-          {filteredUsers.length > 0 && (
-            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-purple-600 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-purple-900 mb-2">
-                    Aperçu de l'envoi
-                  </h4>
-                  <p className="text-sm text-purple-700">
-                    Cette notification sera envoyée à <strong>{filteredUsers.length}</strong> utilisateur(s)
-                  </p>
-                  {notificationType === 'role' && selectedRole && (
-                    <p className="text-sm text-purple-600">Rôle: {selectedRole}</p>
-                  )}
-                  {notificationType === 'country' && selectedCountry && (
-                    <p className="text-sm text-purple-600">Pays: {selectedCountry}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Actions */}
           <div className="flex justify-end gap-3">
