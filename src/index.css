@@ -22,10 +22,18 @@
   user-select: text;
 }
 
-/* Disable hover effects on mobile */
+  /* Disable hover effects on mobile */
 .mobile-device *:hover {
   transform: none !important;
   box-shadow: none !important;
+}
+
+/* Force disable all animations and transitions for performance */
+*, *::before, *::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
 }
 
 /* Optimize scrolling on mobile */

@@ -150,19 +150,19 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 layout-stable">
       {/* Back to home button */}
       <Button
         variant="ghost"
         onClick={() => navigate('/')}
-        className="fixed top-4 left-4 text-muted-foreground hover:text-foreground z-20"
+        className="fixed top-4 left-4 text-muted-foreground z-20 form-field-stable"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Accueil
       </Button>
 
-      <Card className="w-full max-w-md shadow-lg border">
-        <CardHeader className="space-y-2 text-center pb-4">
+      <Card className="w-full max-w-md shadow-lg border layout-stable">
+        <CardHeader className="space-y-2 text-center pb-4 layout-stable">
           <div className="mx-auto w-12 h-12 bg-primary rounded-full flex items-center justify-center mb-2">
             {isAgentMode ? (
               <Crown className="w-6 h-6 text-primary-foreground" />
@@ -192,8 +192,8 @@ const Auth = () => {
           </CardDescription>
         </CardHeader>
         
-        <CardContent className="p-6">
-          <form onSubmit={handleSubmit} className="form-container layout-stable form-no-shift">
+        <CardContent className="p-6 layout-stable">
+          <form onSubmit={handleSubmit} className="form-container layout-stable form-no-shift" style={{contain: 'layout style paint', willChange: 'auto'}}>
             {isSignUp ? (
               <div className="form-container form-no-shift">
                 {/* Full Name */}
