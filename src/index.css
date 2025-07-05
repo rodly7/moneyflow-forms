@@ -171,6 +171,13 @@
     will-change: auto;
   }
   
+  .fixed-select-content {
+    position: fixed !important;
+    z-index: 50 !important;
+    max-height: 200px !important;
+    overflow-y: auto !important;
+  }
+  
   /* Form stability improvements */
   .form-container {
     @apply space-y-6;

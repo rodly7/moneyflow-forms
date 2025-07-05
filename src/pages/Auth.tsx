@@ -195,9 +195,9 @@ const Auth = () => {
         <CardContent className="p-6 layout-stable">
           <form onSubmit={handleSubmit} className="form-container layout-stable form-no-shift" style={{contain: 'layout style paint', willChange: 'auto'}}>
             {isSignUp ? (
-              <div className="form-container form-no-shift">
+              <div className="form-container form-no-shift" style={{minHeight: '480px'}}>
                 {/* Full Name */}
-                <div className="form-field-stable">
+                <div className="form-field-stable" style={{height: '80px'}}>
                   <Label htmlFor="fullName" className="flex items-center gap-2">
                     <User className="w-4 h-4" />
                     Nom complet
@@ -214,7 +214,7 @@ const Auth = () => {
                 </div>
 
                 {/* Country */}
-                <div className="form-field-stable select-stable">
+                <div className="form-field-stable select-stable" style={{height: '80px'}}>
                   <Label htmlFor="country" className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
                     Pays
@@ -223,7 +223,7 @@ const Auth = () => {
                     <SelectTrigger className="h-12">
                       <SelectValue placeholder="Sélectionnez votre pays" />
                     </SelectTrigger>
-                    <SelectContent className="select-content">
+                    <SelectContent className="select-content fixed-select-content">
                       {countries.map((country) => (
                         <SelectItem key={country.name} value={country.name}>
                           {country.name}
@@ -233,8 +233,8 @@ const Auth = () => {
                   </Select>
                 </div>
 
-                {/* City */}
-                <div className="form-field-stable select-stable">
+                {/* City - Always present with fixed height */}
+                <div className="form-field-stable select-stable" style={{height: '80px'}}>
                   <Label htmlFor="address" className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
                     Ville
@@ -243,7 +243,7 @@ const Auth = () => {
                     <SelectTrigger className="h-12">
                       <SelectValue placeholder="Sélectionnez votre ville" />
                     </SelectTrigger>
-                    <SelectContent className="select-content">
+                    <SelectContent className="select-content fixed-select-content">
                       {availableCities.map((city) => (
                         <SelectItem key={city} value={city}>
                           {city}
@@ -254,7 +254,7 @@ const Auth = () => {
                 </div>
 
                 {/* Phone Number */}
-                <div className="form-field-stable">
+                <div className="form-field-stable" style={{height: '80px'}}>
                   <Label htmlFor="phone" className="flex items-center gap-2">
                     <Phone className="w-4 h-4" />
                     Numéro de téléphone
@@ -279,7 +279,7 @@ const Auth = () => {
                 </div>
 
                 {/* Password */}
-                <div className="form-field-stable">
+                <div className="form-field-stable" style={{height: '80px'}}>
                   <Label htmlFor="password" className="flex items-center gap-2">
                     <Lock className="w-4 h-4" />
                     Mot de passe
@@ -309,9 +309,9 @@ const Auth = () => {
                 </div>
               </div>
             ) : (
-              <div className="form-container form-no-shift">
+              <div className="form-container form-no-shift" style={{minHeight: '180px'}}>
                 {/* Login Phone */}
-                <div className="form-field-stable">
+                <div className="form-field-stable" style={{height: '80px'}}>
                   <Label htmlFor="loginPhone" className="flex items-center gap-2">
                     <Phone className="w-4 h-4" />
                     Numéro de téléphone
@@ -329,7 +329,7 @@ const Auth = () => {
                 </div>
 
                 {/* Login Password */}
-                <div className="form-field-stable">
+                <div className="form-field-stable" style={{height: '80px'}}>
                   <Label htmlFor="loginPassword" className="flex items-center gap-2">
                     <Lock className="w-4 h-4" />
                     Mot de passe
