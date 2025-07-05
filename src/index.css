@@ -153,6 +153,40 @@
     contain: layout;
   }
   
+  /* Stabilisation des champs de sélection */
+  .stable-select {
+    position: relative;
+  }
+  
+  .stable-select-trigger {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .stable-select-content {
+    position: fixed !important;
+    z-index: 9999 !important;
+    background: white !important;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 6px !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    max-height: 200px !important;
+    overflow-y: auto !important;
+    min-width: var(--radix-select-trigger-width) !important;
+  }
+  
+  /* Prévention des déplacements lors de l'ouverture des select */
+  [data-state="open"] {
+    position: relative;
+    z-index: 2;
+  }
+  
+  /* Stabilisation globale des éléments */
+  .no-layout-shift {
+    contain: layout style;
+    will-change: auto;
+  }
+  
   .form-message-zone {
     min-height: 60px;
     transition: opacity 200ms ease-in-out;

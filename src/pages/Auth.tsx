@@ -214,16 +214,16 @@ const Auth = () => {
                 </div>
 
                 {/* Country */}
-                <div className="space-y-2">
+                <div className="space-y-2 stable-select no-layout-shift">
                   <Label htmlFor="country" className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
                     Pays
                   </Label>
                   <Select value={country} onValueChange={handleCountryChange}>
-                    <SelectTrigger className="h-12">
+                    <SelectTrigger className="h-12 stable-select-trigger">
                       <SelectValue placeholder="Sélectionnez votre pays" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="stable-select-content">
                       {countries.map((country) => (
                         <SelectItem key={country.name} value={country.name}>
                           {country.name}
@@ -234,16 +234,16 @@ const Auth = () => {
                 </div>
 
                 {/* City */}
-                <div className="space-y-2">
+                <div className="space-y-2 stable-select no-layout-shift">
                   <Label htmlFor="address" className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
                     Ville
                   </Label>
                   <Select value={address} onValueChange={setAddress} disabled={!country}>
-                    <SelectTrigger className="h-12">
+                    <SelectTrigger className="h-12 stable-select-trigger">
                       <SelectValue placeholder="Sélectionnez votre ville" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="stable-select-content">
                       {availableCities.map((city) => (
                         <SelectItem key={city} value={city}>
                           {city}
