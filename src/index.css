@@ -34,6 +34,29 @@
   animation-delay: 0s !important;
   transition-duration: 0s !important;
   transition-delay: 0s !important;
+  transform: none !important;
+}
+
+/* Disable all hover effects globally */
+*:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  background-color: inherit !important;
+  border-color: inherit !important;
+  color: inherit !important;
+}
+
+/* Disable focus effects that could cause movement */
+*:focus {
+  transform: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Disable active states */
+*:active {
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 /* Optimize scrolling on mobile */
@@ -143,31 +166,41 @@
 @layer components {
   /* STABILITÉ ABSOLUE - Prévention des layout shifts */
   .layout-stable {
-    contain: layout style paint;
+    contain: layout style paint size !important;
     will-change: auto;
     transform: translateZ(0);
     backface-visibility: hidden;
+    position: relative;
   }
   
   .form-no-shift {
     min-height: fit-content;
-    contain: layout;
+    contain: layout size !important;
+    overflow: hidden;
   }
   
   .form-field-stable {
-    min-height: 80px;
+    min-height: 80px !important;
+    max-height: 80px !important;
+    height: 80px !important;
     transition: none !important;
     animation: none !important;
+    contain: layout size !important;
+    overflow: visible;
+    position: relative;
   }
   
   .select-stable {
     position: relative;
-    contain: layout;
+    contain: layout size !important;
+    height: 80px !important;
+    min-height: 80px !important;
+    max-height: 80px !important;
   }
   
   .select-stable .select-content {
-    position: absolute;
-    z-index: 9999;
+    position: fixed !important;
+    z-index: 9999 !important;
     will-change: auto;
   }
   
@@ -176,6 +209,9 @@
     z-index: 50 !important;
     max-height: 200px !important;
     overflow-y: auto !important;
+    background: white !important;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 6px !important;
   }
   
   /* Form stability improvements */
