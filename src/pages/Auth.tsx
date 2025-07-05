@@ -213,14 +213,14 @@ const Auth = () => {
                   />
                 </div>
 
-                {/* Country */}
-                <div className="space-y-2 stable-select no-layout-shift">
+                {/* Country - Fixed dropdown */}
+                <div className="space-y-2">
                   <Label htmlFor="country" className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
                     Pays
                   </Label>
                   <Select value={country} onValueChange={handleCountryChange}>
-                    <SelectTrigger className="h-12 stable-select-trigger">
+                    <SelectTrigger className="h-12">
                       <SelectValue placeholder="Sélectionnez votre pays" />
                     </SelectTrigger>
                     <SelectContent className="stable-select-content">
@@ -233,14 +233,14 @@ const Auth = () => {
                   </Select>
                 </div>
 
-                {/* City */}
-                <div className="space-y-2 stable-select no-layout-shift">
+                {/* City - Fixed dropdown with reserved space */}
+                <div className="space-y-2" style={{minHeight: '76px'}}>
                   <Label htmlFor="address" className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
                     Ville
                   </Label>
                   <Select value={address} onValueChange={setAddress} disabled={!country}>
-                    <SelectTrigger className="h-12 stable-select-trigger">
+                    <SelectTrigger className="h-12">
                       <SelectValue placeholder="Sélectionnez votre ville" />
                     </SelectTrigger>
                     <SelectContent className="stable-select-content">
@@ -253,7 +253,7 @@ const Auth = () => {
                   </Select>
                 </div>
 
-                {/* Phone Number */}
+                {/* Phone Number with country code */}
                 <div className="space-y-2">
                   <Label htmlFor="phone" className="flex items-center gap-2">
                     <Phone className="w-4 h-4" />
@@ -261,9 +261,9 @@ const Auth = () => {
                   </Label>
                   <div className="flex gap-2">
                     <Input 
-                      value={selectedCountryCode} 
+                      value={selectedCountryCode || "+XXX"} 
                       readOnly 
-                      className="w-20 h-12 text-center font-mono text-sm" 
+                      className="w-20 h-12 text-center font-mono text-sm bg-muted" 
                     />
                     <Input
                       id="phone"
