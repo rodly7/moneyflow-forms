@@ -193,11 +193,11 @@ const Auth = () => {
         </CardHeader>
         
         <CardContent className="p-6">
-          <form onSubmit={handleSubmit} className="form-container">
+          <form onSubmit={handleSubmit} className="form-container layout-stable">
             {isSignUp ? (
-              <div className="form-container">
+              <div className="form-container form-no-shift">
                 {/* Full Name */}
-                <div className="form-field-wrapper">
+                <div className="form-field-stable">
                   <Label htmlFor="fullName" className="flex items-center gap-2">
                     <User className="w-4 h-4" />
                     Nom complet
@@ -214,16 +214,16 @@ const Auth = () => {
                 </div>
 
                 {/* Country */}
-                <div className="space-y-2">
+                <div className="form-field-stable select-stable">
                   <Label htmlFor="country" className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
                     Pays
                   </Label>
                   <Select value={country} onValueChange={handleCountryChange}>
-                    <SelectTrigger className="h-10">
+                    <SelectTrigger className="h-12">
                       <SelectValue placeholder="Sélectionnez votre pays" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="select-content">
                       {countries.map((country) => (
                         <SelectItem key={country.name} value={country.name}>
                           {country.name}
@@ -234,16 +234,16 @@ const Auth = () => {
                 </div>
 
                 {/* City */}
-                <div className="space-y-2">
+                <div className="form-field-stable select-stable">
                   <Label htmlFor="address" className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
                     Ville
                   </Label>
                   <Select value={address} onValueChange={setAddress} disabled={!country}>
-                    <SelectTrigger className="h-10">
+                    <SelectTrigger className="h-12">
                       <SelectValue placeholder="Sélectionnez votre ville" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="select-content">
                       {availableCities.map((city) => (
                         <SelectItem key={city} value={city}>
                           {city}
@@ -254,7 +254,7 @@ const Auth = () => {
                 </div>
 
                 {/* Phone Number */}
-                <div className="space-y-2">
+                <div className="form-field-stable">
                   <Label htmlFor="phone" className="flex items-center gap-2">
                     <Phone className="w-4 h-4" />
                     Numéro de téléphone
@@ -263,7 +263,7 @@ const Auth = () => {
                     <Input 
                       value={selectedCountryCode} 
                       readOnly 
-                      className="w-20 h-10 text-center font-mono text-sm" 
+                      className="w-20 h-12 text-center font-mono text-sm" 
                     />
                     <Input
                       id="phone"
@@ -273,13 +273,13 @@ const Auth = () => {
                       onChange={handlePhoneNumberChange}
                       required
                       disabled={loading || !selectedCountryCode}
-                      className="h-10 flex-1"
+                      className="h-12 flex-1"
                     />
                   </div>
                 </div>
 
                 {/* Password */}
-                <div className="space-y-2">
+                <div className="form-field-stable">
                   <Label htmlFor="password" className="flex items-center gap-2">
                     <Lock className="w-4 h-4" />
                     Mot de passe
@@ -294,7 +294,7 @@ const Auth = () => {
                       disabled={loading}
                       minLength={6}
                       placeholder="Au moins 6 caractères"
-                      className="h-10 pr-10"
+                      className="h-12 pr-10"
                     />
                     <Button
                       type="button"
@@ -309,9 +309,9 @@ const Auth = () => {
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="form-container form-no-shift">
                 {/* Login Phone */}
-                <div className="space-y-2">
+                <div className="form-field-stable">
                   <Label htmlFor="loginPhone" className="flex items-center gap-2">
                     <Phone className="w-4 h-4" />
                     Numéro de téléphone
@@ -324,12 +324,12 @@ const Auth = () => {
                     onChange={(e) => setLoginPhone(e.target.value)}
                     required
                     disabled={loading}
-                    className="h-10"
+                    className="h-12"
                   />
                 </div>
 
                 {/* Login Password */}
-                <div className="space-y-2">
+                <div className="form-field-stable">
                   <Label htmlFor="loginPassword" className="flex items-center gap-2">
                     <Lock className="w-4 h-4" />
                     Mot de passe
@@ -344,7 +344,7 @@ const Auth = () => {
                       disabled={loading}
                       minLength={6}
                       placeholder="Votre mot de passe"
-                      className="h-10 pr-10"
+                      className="h-12 pr-10"
                     />
                     <Button
                       type="button"

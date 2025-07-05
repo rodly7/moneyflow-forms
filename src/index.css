@@ -90,6 +90,10 @@
     margin: 0;
     padding: 0;
     min-height: 100vh;
+    /* Force GPU acceleration */
+    will-change: auto;
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
   #root {
     width: 100vw !important;
@@ -97,10 +101,17 @@
     padding: 0 !important;
     margin: 0 !important;
     min-height: 100vh;
+    /* Stabilize layout */
+    contain: layout style paint;
   }
   html {
     width: 100%;
     overflow-x: hidden;
+  }
+  
+  /* Prevent layout shift */
+  *, *::before, *::after {
+    box-sizing: border-box;
   }
   
   /* Ensure all containers take full width */
@@ -122,41 +133,78 @@
 }
 
 @layer components {
+  /* STABILITÉ ABSOLUE - Prévention des layout shifts */
+  .layout-stable {
+    contain: layout style paint;
+    will-change: auto;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+  
+  .form-no-shift {
+    min-height: fit-content;
+    contain: layout;
+  }
+  
+  .form-field-stable {
+    min-height: 80px;
+    transition: none !important;
+    animation: none !important;
+  }
+  
+  .select-stable {
+    position: relative;
+    contain: layout;
+  }
+  
+  .select-stable .select-content {
+    position: absolute;
+    z-index: 9999;
+    will-change: auto;
+  }
+  
   /* Form stability improvements */
   .form-container {
     @apply space-y-6;
+    contain: layout;
   }
   
   .form-field-wrapper {
-    @apply space-y-2 min-h-[80px];
+    @apply space-y-2;
+    min-height: 80px;
+    contain: layout;
   }
   
   .form-message-zone {
-    @apply min-h-[60px] transition-all duration-300 ease-in-out;
+    min-height: 60px;
+    transition: opacity 200ms ease-in-out;
+    contain: layout;
   }
   
   .form-message-zone.active {
-    @apply opacity-100 transform translate-y-0;
+    @apply opacity-100;
   }
   
   .form-message-zone.inactive {
-    @apply opacity-0 transform -translate-y-2;
+    @apply opacity-0;
   }
   
   .stable-input-group {
     @apply relative;
+    contain: layout;
   }
   
   .stable-input-group .input-feedback {
-    @apply absolute top-full left-0 right-0 mt-2 transition-all duration-200 ease-in-out;
+    @apply absolute top-full left-0 right-0 mt-2;
+    transition: opacity 200ms ease-in-out;
   }
   
   .stable-input-group .input-feedback.show {
-    @apply opacity-100 transform translate-y-0;
+    @apply opacity-100;
   }
   
   .stable-input-group .input-feedback.hide {
-    @apply opacity-0 transform -translate-y-2 pointer-events-none;
+    @apply opacity-0 pointer-events-none;
   }
 
   /* Enhanced glass morphism effects */
