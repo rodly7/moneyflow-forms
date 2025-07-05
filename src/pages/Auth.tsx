@@ -213,44 +213,47 @@ const Auth = () => {
                   />
                 </div>
 
-                {/* Country - Dropdown totalement stabilisé */}
-                <div className="dropdown-container">
-                  <Label htmlFor="country" className="flex items-center gap-2 mb-2">
+                {/* Country - Select HTML natif */}
+                <div className="space-y-2">
+                  <Label htmlFor="country" className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
                     Pays
                   </Label>
-                  <Select value={country} onValueChange={handleCountryChange}>
-                    <SelectTrigger className="h-12 dropdown-trigger">
-                      <SelectValue placeholder="Sélectionnez votre pays" />
-                    </SelectTrigger>
-                    <SelectContent className="dropdown-content">
-                      {countries.map((country) => (
-                        <SelectItem key={country.name} value={country.name}>
-                          {country.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <select 
+                    id="country"
+                    value={country} 
+                    onChange={(e) => handleCountryChange(e.target.value)}
+                    className="h-12 w-full px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  >
+                    <option value="">Sélectionnez votre pays</option>
+                    {countries.map((country) => (
+                      <option key={country.name} value={country.name}>
+                        {country.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                {/* City - Dropdown totalement stabilisé */}
-                <div className="dropdown-container">
-                  <Label htmlFor="address" className="flex items-center gap-2 mb-2">
+                {/* City - Select HTML natif */}
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
                     Ville
                   </Label>
-                  <Select value={address} onValueChange={setAddress} disabled={!country}>
-                    <SelectTrigger className="h-12 dropdown-trigger">
-                      <SelectValue placeholder="Sélectionnez votre ville" />
-                    </SelectTrigger>
-                    <SelectContent className="dropdown-content">
-                      {availableCities.map((city) => (
-                        <SelectItem key={city} value={city}>
-                          {city}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <select 
+                    id="address"
+                    value={address} 
+                    onChange={(e) => setAddress(e.target.value)}
+                    disabled={!country}
+                    className="h-12 w-full px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Sélectionnez votre ville</option>
+                    {availableCities.map((city) => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Phone Number with country code */}

@@ -30,10 +30,17 @@
 
 /* Force disable all animations and transitions for performance */
 *, *::before, *::after {
-  animation-duration: 0s !important;
-  animation-delay: 0s !important;
-  transition-duration: 0s !important;
-  transition-delay: 0s !important;
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+/* Disable all hover, focus, and active effects */
+*:hover, *:focus, *:active {
+  transform: none !important;
+  box-shadow: none !important;
+  animation: none !important;
+  transition: none !important;
 }
 
 /* Optimize scrolling on mobile */
