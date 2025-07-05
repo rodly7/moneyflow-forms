@@ -192,12 +192,12 @@ const Auth = () => {
           </CardDescription>
         </CardHeader>
         
-        <CardContent className="space-y-4 p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <CardContent className="p-6">
+          <form onSubmit={handleSubmit} className="form-container">
             {isSignUp ? (
-              <div className="space-y-4">
+              <div className="form-container">
                 {/* Full Name */}
-                <div className="space-y-2">
+                <div className="form-field-wrapper">
                   <Label htmlFor="fullName" className="flex items-center gap-2">
                     <User className="w-4 h-4" />
                     Nom complet
@@ -209,7 +209,7 @@ const Auth = () => {
                     required
                     disabled={loading}
                     placeholder="Entrez votre nom complet"
-                    className="h-10"
+                    className="h-12"
                   />
                 </div>
 
