@@ -42,7 +42,7 @@ const CompactHeader = memo(({
             size="default" 
             onClick={() => navigate('/notifications')}
           >
-            <MessageSquare className="w-4 h-4" />
+            <MessageSquare className="w-3.5 h-3.5" />
           </Button>
         )}
         {onRefresh && (
@@ -52,7 +52,7 @@ const CompactHeader = memo(({
             onClick={onRefresh}
             disabled={isLoading}
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
         )}
         <Button 
@@ -60,7 +60,7 @@ const CompactHeader = memo(({
           size="default" 
           onClick={onSignOut}
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-3.5 h-3.5" />
         </Button>
       </div>
     </div>
