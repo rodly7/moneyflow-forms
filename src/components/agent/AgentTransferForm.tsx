@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowRight, User, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -216,20 +215,22 @@ export const AgentTransferForm = () => {
           {/* Sélection du pays de destination */}
           <div className="space-y-2">
             <Label htmlFor="country">Pays de destination</Label>
-            <Select value={recipientCountry} onValueChange={setRecipientCountry} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionnez le pays" />
-              </SelectTrigger>
-              <SelectContent>
-                {countries
-                  .filter(country => country.name !== userCountry) // Exclure le pays de l'agent
-                  .map((country) => (
-                    <SelectItem key={country.name} value={country.name}>
-                      {country.name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+            <select 
+              id="country"
+              value={recipientCountry} 
+              onChange={(e) => setRecipientCountry(e.target.value)}
+              required
+              className="h-12 w-full px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              <option value="">Sélectionnez le pays</option>
+              {countries
+                .filter(country => country.name !== userCountry) // Exclure le pays de l'agent
+                .map((country) => (
+                  <option key={country.name} value={country.name}>
+                    {country.name}
+                  </option>
+                ))}
+            </select>
             <p className="text-xs text-blue-600">
               Note: Seuls les transferts internationaux sont autorisés pour les agents
             </p>

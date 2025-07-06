@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -205,16 +204,16 @@ const NotificationSender = () => {
                 <Label htmlFor="priority" className="text-gray-700 font-medium">
                   Priorité
                 </Label>
-                <Select value={priority} onValueChange={(value: any) => setPriority(value)}>
-                  <SelectTrigger className="h-12 bg-gray-50 border-gray-200">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">🟢 Faible</SelectItem>
-                    <SelectItem value="normal">🟡 Normal</SelectItem>
-                    <SelectItem value="high">🔴 Élevée</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select 
+                  id="priority"
+                  value={priority} 
+                  onChange={(e) => setPriority(e.target.value as any)}
+                  className="h-12 w-full px-3 rounded-md border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  <option value="low">🟢 Faible</option>
+                  <option value="normal">🟡 Normal</option>
+                  <option value="high">🔴 Élevée</option>
+                </select>
               </div>
             </div>
 
@@ -276,34 +275,34 @@ const NotificationSender = () => {
             <div className="select-conditional-content">
               {notificationType === 'role' && (
                 <div className="animate-fade-in">
-                  <Select value={selectedRole} onValueChange={setSelectedRole}>
-                    <SelectTrigger className="h-12 bg-gray-50 border-gray-200">
-                      <SelectValue placeholder="Sélectionner un rôle" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user">Utilisateurs</SelectItem>
-                      <SelectItem value="agent">Agents</SelectItem>
-                      <SelectItem value="admin">Administrateurs</SelectItem>
-                      <SelectItem value="sub_admin">Sous-Administrateurs</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select 
+                    value={selectedRole} 
+                    onChange={(e) => setSelectedRole(e.target.value)}
+                    className="h-12 w-full px-3 rounded-md border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value="">Sélectionner un rôle</option>
+                    <option value="user">Utilisateurs</option>
+                    <option value="agent">Agents</option>
+                    <option value="admin">Administrateurs</option>
+                    <option value="sub_admin">Sous-Administrateurs</option>
+                  </select>
                 </div>
               )}
 
               {notificationType === 'country' && (
                 <div className="animate-fade-in">
-                  <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-                    <SelectTrigger className="h-12 bg-gray-50 border-gray-200">
-                      <SelectValue placeholder="Sélectionner un pays" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {countries?.map((country) => (
-                        <SelectItem key={country} value={country}>
-                          {country}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <select 
+                    value={selectedCountry} 
+                    onChange={(e) => setSelectedCountry(e.target.value)}
+                    className="h-12 w-full px-3 rounded-md border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value="">Sélectionner un pays</option>
+                    {countries?.map((country) => (
+                      <option key={country} value={country}>
+                        {country}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
 

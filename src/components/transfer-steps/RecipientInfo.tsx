@@ -1,6 +1,5 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TransferData } from "@/types/transfer";
 import { countries } from "@/data/countries";
 import { useAuth } from "@/contexts/AuthContext";
@@ -121,22 +120,20 @@ const RecipientInfo = ({ recipient, updateFields }: RecipientInfoProps) => {
       {/* Country Selection */}
       <div className="select-field-wrapper">
         <Label htmlFor="country">Pays de Destination</Label>
-        <Select
+        <select
+          id="country"
           value={recipient.country}
-          onValueChange={handleCountryChange}
+          onChange={(e) => handleCountryChange(e.target.value)}
           required
+          className="h-12 w-full px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
-          <SelectTrigger className="h-12">
-            <SelectValue placeholder="Sélectionnez le pays" />
-          </SelectTrigger>
-          <SelectContent>
-            {countries.map((country) => (
-              <SelectItem key={country.name} value={country.name}>
-                {country.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <option value="">Sélectionnez le pays</option>
+          {countries.map((country) => (
+            <option key={country.name} value={country.name}>
+              {country.name}
+            </option>
+          ))}
+        </select>
         {/* Fixed space for agent info */}
         <div className="min-h-[60px]">
           {userRole === 'agent' && (

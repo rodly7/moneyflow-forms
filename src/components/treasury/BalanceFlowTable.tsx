@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -247,34 +246,34 @@ const BalanceFlowTable = ({ onUpdate }: BalanceFlowTableProps) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <Label>Agent Source</Label>
-              <Select value={fromAgent} onValueChange={setFromAgent}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner agent source" />
-                </SelectTrigger>
-                <SelectContent>
-                  {agents.map((agent) => (
-                    <SelectItem key={agent.user_id} value={agent.user_id}>
-                      {agent.full_name} ({agent.country}) - {agent.balance?.toLocaleString()} FCFA
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <select 
+                value={fromAgent} 
+                onChange={(e) => setFromAgent(e.target.value)}
+                className="h-10 w-full px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                <option value="">Sélectionner agent source</option>
+                {agents.map((agent) => (
+                  <option key={agent.user_id} value={agent.user_id}>
+                    {agent.full_name} ({agent.country}) - {agent.balance?.toLocaleString()} FCFA
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
               <Label>Agent Destination</Label>
-              <Select value={toAgent} onValueChange={setToAgent}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner agent destination" />
-                </SelectTrigger>
-                <SelectContent>
-                  {agents.map((agent) => (
-                    <SelectItem key={agent.user_id} value={agent.user_id}>
-                      {agent.full_name} ({agent.country}) - {agent.balance?.toLocaleString()} FCFA
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <select 
+                value={toAgent} 
+                onChange={(e) => setToAgent(e.target.value)}
+                className="h-10 w-full px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                <option value="">Sélectionner agent destination</option>
+                {agents.map((agent) => (
+                  <option key={agent.user_id} value={agent.user_id}>
+                    {agent.full_name} ({agent.country}) - {agent.balance?.toLocaleString()} FCFA
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>

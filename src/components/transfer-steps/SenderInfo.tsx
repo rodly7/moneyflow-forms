@@ -1,6 +1,5 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TransferData } from "@/types/transfer";
 import { useState, useEffect } from "react";
 import { countries } from "@/data/countries";
@@ -57,9 +56,11 @@ const SenderInfo = ({ recipient, updateFields }: SenderInfoProps) => {
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="country">Pays d'envoi</Label>
-        <Select
+        <select
+          id="country"
           value={recipient.country}
-          onValueChange={(value) => {
+          onChange={(e) => {
+            const value = e.target.value;
             const country = countries.find(c => c.name === value);
             if (country) {
               setSelectedCountryCode(country.code);
@@ -71,18 +72,15 @@ const SenderInfo = ({ recipient, updateFields }: SenderInfoProps) => {
               });
             }
           }}
+          className="h-10 w-full px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionnez votre pays" />
-          </SelectTrigger>
-          <SelectContent>
-            {countries.map((country) => (
-              <SelectItem key={country.name} value={country.name}>
-                {country.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <option value="">Sélectionnez votre pays</option>
+          {countries.map((country) => (
+            <option key={country.name} value={country.name}>
+              {country.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="space-y-2">

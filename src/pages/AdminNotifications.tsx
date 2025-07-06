@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -137,17 +136,16 @@ const AdminNotifications = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Rôle cible (optionnel)</label>
-                <Select value={formData.target_role} onValueChange={(value) => setFormData(prev => ({...prev, target_role: value}))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Tous les rôles" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Tous les rôles</SelectItem>
-                    <SelectItem value="user">Utilisateurs</SelectItem>
-                    <SelectItem value="agent">Agents</SelectItem>
-                    <SelectItem value="sub_admin">Sous-Administrateurs</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select 
+                  value={formData.target_role} 
+                  onChange={(e) => setFormData(prev => ({...prev, target_role: e.target.value}))}
+                  className="h-10 w-full px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  <option value="">Tous les rôles</option>
+                  <option value="user">Utilisateurs</option>
+                  <option value="agent">Agents</option>
+                  <option value="sub_admin">Sous-Administrateurs</option>
+                </select>
               </div>
 
               <div>
@@ -161,17 +159,16 @@ const AdminNotifications = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-2">Priorité</label>
-                <Select value={formData.priority} onValueChange={(value) => setFormData(prev => ({...prev, priority: value}))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Faible</SelectItem>
-                    <SelectItem value="normal">Normale</SelectItem>
-                    <SelectItem value="medium">Moyenne</SelectItem>
-                    <SelectItem value="high">Élevée</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select 
+                  value={formData.priority} 
+                  onChange={(e) => setFormData(prev => ({...prev, priority: e.target.value}))}
+                  className="h-10 w-full px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  <option value="low">Faible</option>
+                  <option value="normal">Normale</option>
+                  <option value="medium">Moyenne</option>
+                  <option value="high">Élevée</option>
+                </select>
               </div>
             </div>
 
