@@ -23,6 +23,48 @@ const AdminNotifications = () => {
     priority: 'normal'
   });
 
+  const predefinedMessages = [
+    {
+      title: "Mise à jour système",
+      message: "Nous avons déployé une nouvelle mise à jour pour améliorer les performances de l'application. Redémarrez l'application pour bénéficier des améliorations."
+    },
+    {
+      title: "Correction de bugs",
+      message: "Des corrections importantes ont été apportées pour résoudre les problèmes de connexion et d'affichage. Merci de votre patience."
+    },
+    {
+      title: "Maintenance programmée",
+      message: "Une maintenance de routine aura lieu ce soir de 23h à 1h. Certaines fonctionnalités pourraient être temporairement indisponibles."
+    },
+    {
+      title: "Nouvelle fonctionnalité",
+      message: "Découvrez notre nouvelle interface utilisateur améliorée ! Plus intuitive et plus rapide que jamais."
+    },
+    {
+      title: "Problème résolu",
+      message: "Le problème de synchronisation des données a été résolu. Toutes vos transactions sont maintenant à jour."
+    },
+    {
+      title: "Sécurité renforcée",
+      message: "Nous avons renforcé la sécurité de nos serveurs. Votre argent et vos données sont encore mieux protégés."
+    }
+  ];
+
+  const countries = ["Sénégal", "Mali", "Burkina Faso", "Côte d'Ivoire", "Niger", "Guinée", "Mauritanie", "Togo"];
+
+  const generateRandomMessage = () => {
+    const randomMessage = predefinedMessages[Math.floor(Math.random() * predefinedMessages.length)];
+    const randomCountry = countries[Math.floor(Math.random() * countries.length)];
+    
+    setFormData(prev => ({
+      ...prev,
+      title: randomMessage.title,
+      message: randomMessage.message,
+      target_country: randomCountry,
+      target_role: ''
+    }));
+  };
+
   useEffect(() => {
     if (profile?.role !== 'admin') {
       navigate('/dashboard');
@@ -42,6 +84,14 @@ const AdminNotifications = () => {
 
     setIsLoading(true);
     try {
+      // Déterminer le type de notification basé sur les cibles
+      let notificationType = 'all';
+      if (formData.target_role && formData.target_role !== '') {
+        notificationType = 'role';
+      } else if (formData.target_country && formData.target_country !== '') {
+        notificationType = 'country';
+      }
+
       const { error } = await supabase
         .from('notifications')
         .insert({
@@ -50,7 +100,7 @@ const AdminNotifications = () => {
           target_role: formData.target_role || null,
           target_country: formData.target_country || null,
           priority: formData.priority,
-          notification_type: 'admin_message',
+          notification_type: notificationType,
           sent_by: user?.id
         });
 
@@ -124,7 +174,18 @@ const AdminNotifications = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Message</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium">Message</label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={generateRandomMessage}
+                  className="text-xs"
+                >
+                  Message aléatoire
+                </Button>
+              </div>
               <Textarea
                 placeholder="Contenu de la notification"
                 value={formData.message}
@@ -150,11 +211,16 @@ const AdminNotifications = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-2">Pays cible (optionnel)</label>
-                <Input
-                  placeholder="Ex: Sénégal"
+                <select
                   value={formData.target_country}
                   onChange={(e) => setFormData(prev => ({...prev, target_country: e.target.value}))}
-                />
+                  className="h-10 w-full px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  <option value="">Tous les pays</option>
+                  {countries.map(country => (
+                    <option key={country} value={country}>{country}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
