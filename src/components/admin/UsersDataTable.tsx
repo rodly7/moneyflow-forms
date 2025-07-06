@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Eye, Shield, Ban, UserCheck, Crown, User, Globe, Edit, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/integrations/supabase/client';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
-import UserManagementActions from './UserManagementActions';
+import SimpleUserManagementActions from './SimpleUserManagementActions';
 
 interface UserData {
   id: string;
@@ -137,7 +137,7 @@ const UsersDataTable = ({
                   {user.is_banned ? <UserCheck className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
                 </Button>
 
-                <UserManagementActions
+                <SimpleUserManagementActions
                   user={{
                     id: user.id,
                     full_name: user.full_name || '',
@@ -240,7 +240,7 @@ const UsersDataTable = ({
                         {user.is_banned ? <UserCheck className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
                       </Button>
                       
-                      <UserManagementActions
+                      <SimpleUserManagementActions
                         user={{
                           id: user.id,
                           full_name: user.full_name || '',
