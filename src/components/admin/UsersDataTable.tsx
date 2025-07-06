@@ -3,7 +3,6 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Eye, Shield, Ban, UserCheck, Crown, User } from 'lucide-react';
 import { formatCurrency } from '@/integrations/supabase/client';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
@@ -116,20 +115,16 @@ const UsersDataTable = ({
 
             {!isSubAdmin && (
               <div className="flex gap-3 mt-4 pt-4 border-t border-violet-100">
-                <Select 
+                <select 
                   value={user.role} 
-                  onValueChange={(value) => onQuickRoleChange(user.id, value as any)}
+                  onChange={(e) => onQuickRoleChange(user.id, e.target.value as any)}
+                  className="flex-1 h-10 px-3 rounded-md border-2 border-violet-200 bg-white/90 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
                 >
-                  <SelectTrigger className="flex-1 h-10 glass border-2 border-violet-200">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="glass backdrop-blur-lg">
-                    <SelectItem value="user">👤 Utilisateur</SelectItem>
-                    <SelectItem value="agent">🔧 Agent</SelectItem>
-                    <SelectItem value="sub_admin">🛡️ Sous-Admin</SelectItem>
-                    <SelectItem value="admin">👑 Admin</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <option value="user">👤 Utilisateur</option>
+                  <option value="agent">🔧 Agent</option>
+                  <option value="sub_admin">🛡️ Sous-Admin</option>
+                  <option value="admin">👑 Admin</option>
+                </select>
                 
                 <Button
                   variant={user.is_banned ? "outline" : "destructive"}
@@ -179,45 +174,16 @@ const UsersDataTable = ({
                     {getRoleLabel(user.role)}
                   </Badge>
                 ) : (
-                  <Select 
+                  <select 
                     value={user.role} 
-                    onValueChange={(value) => onQuickRoleChange(user.id, value as any)}
+                    onChange={(e) => onQuickRoleChange(user.id, e.target.value as any)}
+                    className="w-36 px-3 py-2 rounded-md border-2 border-violet-200 bg-white/90 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
                   >
-                    <SelectTrigger className="w-36 glass border-2 border-violet-200">
-                      <SelectValue>
-                        <div className="flex items-center gap-2">
-                          {getRoleIcon(user.role)}
-                          {getRoleLabel(user.role)}
-                        </div>
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="glass backdrop-blur-lg">
-                      <SelectItem value="user">
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4" />
-                          👤 Utilisateur
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="agent">
-                        <div className="flex items-center gap-2">
-                          <UserCheck className="w-4 h-4" />
-                          🔧 Agent
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="sub_admin">
-                        <div className="flex items-center gap-2">
-                          <Shield className="w-4 h-4" />
-                          🛡️ Sous-Admin
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="admin">
-                        <div className="flex items-center gap-2 text-red-700">
-                          <Crown className="w-4 h-4" />
-                          👑 Admin
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value="user">👤 Utilisateur</option>
+                    <option value="agent">🔧 Agent</option>
+                    <option value="sub_admin">🛡️ Sous-Admin</option>
+                    <option value="admin">👑 Admin</option>
+                  </select>
                 )}
               </TableCell>
               <TableCell className="text-slate-700">{user.country || 'Non renseigné'}</TableCell>
