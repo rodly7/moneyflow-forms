@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+// Removed Dialog import - using native HTML instead
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -237,23 +237,41 @@ const UserManagementModal = ({ isOpen, onClose, user, onUserUpdated, isSubAdmin 
     }
   };
 
-  if (!user) return null;
+  if (!user || !isOpen) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`${deviceInfo.isMobile ? 'max-w-sm mx-2' : 'max-w-3xl'} max-h-[90vh] overflow-y-auto glass border-0 shadow-2xl`}>
-        <DialogHeader className="bg-gradient-to-r from-violet-50/80 to-purple-50/80 -m-6 mb-6 p-6 rounded-t-lg">
-          <DialogTitle className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-r from-violet-500 to-purple-500 rounded-lg text-white">
-              {isSubAdmin ? <Eye className="w-6 h-6" /> : <User className="w-6 h-6" />}
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Native HTML overlay */}
+      <div 
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm" 
+        onClick={onClose}
+      ></div>
+      
+      {/* Native HTML modal content */}
+      <div className={`relative ${deviceInfo.isMobile ? 'w-full max-w-sm mx-2' : 'w-full max-w-3xl mx-4'} max-h-[90vh] overflow-y-auto bg-white rounded-lg shadow-2xl border-0`}>
+        {/* Native HTML header */}
+        <div className="bg-gradient-to-r from-violet-50/80 to-purple-50/80 p-6 rounded-t-lg border-b">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-r from-violet-500 to-purple-500 rounded-lg text-white">
+                {isSubAdmin ? <Eye className="w-6 h-6" /> : <User className="w-6 h-6" />}
+              </div>
+              <span className={`${deviceInfo.isMobile ? 'text-lg' : 'text-xl'} bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent font-bold`}>
+                {isSubAdmin ? '👀 Consultation utilisateur' : '⚙️ Gestion utilisateur'} - {user.full_name || user.phone}
+              </span>
             </div>
-            <span className={`${deviceInfo.isMobile ? 'text-lg' : 'text-xl'} bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent font-bold`}>
-              {isSubAdmin ? '👀 Consultation utilisateur' : '⚙️ Gestion utilisateur'} - {user.full_name || user.phone}
-            </span>
-          </DialogTitle>
-        </DialogHeader>
+            <button 
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              type="button"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
 
-        <div className="space-y-6">
+        {/* Native HTML content */}
+        <div className="p-6 space-y-6">
           {/* Informations de base */}
           <Card className="glass border border-violet-100/50">
             <CardHeader className="bg-gradient-to-r from-blue-50/50 to-indigo-50/50 pb-4">
@@ -343,8 +361,8 @@ const UserManagementModal = ({ isOpen, onClose, user, onUserUpdated, isSubAdmin 
             </Card>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 };
 
