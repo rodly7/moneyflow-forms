@@ -19,21 +19,21 @@ interface CompactActionGridProps {
 const CompactActionGrid = memo(({ title, titleIcon: TitleIcon, actions }: CompactActionGridProps) => {
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <TitleIcon className="w-4 h-4" />
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-3 text-lg">
+          <TitleIcon className="w-5 h-5" />
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-3">
         {actions.map((action, index) => (
           <Button
             key={index}
             onClick={action.onClick}
             variant={action.variant || "outline"}
-            className="w-full justify-start h-10"
+            className="w-full justify-start h-12 text-base"
           >
-            <action.icon className="mr-2 h-4 w-4" />
+            <action.icon className="mr-3 h-5 w-5" />
             {action.label}
           </Button>
         ))}

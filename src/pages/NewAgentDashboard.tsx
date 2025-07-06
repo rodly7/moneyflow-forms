@@ -187,24 +187,24 @@ const NewAgentDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background p-3">
-      <div className="max-w-6xl mx-auto space-y-4">
+    <div className="min-h-screen bg-background p-4">
+      <div className="max-w-6xl mx-auto space-y-5">
         <CompactHeader
           title="Espace Agent"
           subtitle="Dashboard professionnel"
-          icon={<Trophy className="w-4 h-4 text-primary-foreground" />}
+          icon={<Trophy className="w-5 h-5 text-primary-foreground" />}
           onRefresh={fetchBalances}
           onSignOut={handleSignOut}
           isLoading={isLoadingBalance}
         />
 
-        <div className="bg-card p-3 rounded-lg">
+        <div className="bg-card p-4 rounded-lg">
           <UserProfileInfo />
         </div>
 
         <CompactStatsGrid stats={statsData} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <CompactActionGrid
             title="Actions Agent"
             titleIcon={Zap}

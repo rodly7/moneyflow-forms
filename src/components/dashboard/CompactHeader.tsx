@@ -25,42 +25,42 @@ const CompactHeader = memo(({
   const navigate = useNavigate();
   
   return (
-    <div className="flex items-center justify-between p-3 bg-card rounded-lg border">
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+    <div className="flex items-center justify-between p-4 bg-card rounded-lg border">
+      <div className="flex items-center gap-4">
+        <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
           {icon}
         </div>
         <div>
-          <h1 className="text-lg font-bold">{title}</h1>
-          <p className="text-xs text-muted-foreground">{subtitle}</p>
+          <h1 className="text-xl font-bold">{title}</h1>
+          <p className="text-sm text-muted-foreground">{subtitle}</p>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {showNotifications && (
           <Button 
             variant="outline" 
-            size="sm" 
+            size="default" 
             onClick={() => navigate('/notifications')}
           >
-            <MessageSquare className="w-4 h-4" />
+            <MessageSquare className="w-5 h-5" />
           </Button>
         )}
         {onRefresh && (
           <Button 
             variant="outline" 
-            size="sm" 
+            size="default" 
             onClick={onRefresh}
             disabled={isLoading}
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
         )}
         <Button 
           variant="outline" 
-          size="sm" 
+          size="default" 
           onClick={onSignOut}
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-5 h-5" />
         </Button>
       </div>
     </div>

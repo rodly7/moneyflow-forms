@@ -140,55 +140,55 @@ const MobileOptimizedDashboard = memo(({
       {/* Professional Mobile Header */}
       <div className="sticky top-0 z-50 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-0.5">
         <div className="bg-white rounded-b-3xl">
-          <div className="p-2 sm:p-4 space-y-2 sm:space-y-4">
+          <div className="p-3 sm:p-5 space-y-3 sm:space-y-5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-2 sm:p-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl sm:rounded-2xl">
-                  <Crown className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2.5 sm:p-4 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl sm:rounded-2xl">
+                  <Crown className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-sm sm:text-xl font-bold text-gray-800">Espace Utilisateur</h1>
-                  <p className="text-gray-600 text-xs sm:text-sm">Dashboard personnel</p>
+                  <h1 className="text-base sm:text-2xl font-bold text-gray-800">Espace Utilisateur</h1>
+                  <p className="text-gray-600 text-sm sm:text-base">Dashboard personnel</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1 sm:gap-2">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <Button 
                   variant="ghost" 
-                  size="sm" 
+                  size="default" 
                   onClick={() => navigate('/notifications')}
-                  className="p-1.5 sm:p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                  className="p-2 sm:p-3 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
                 >
-                  <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" />
+                  <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
                 </Button>
                 <Button 
                   variant="ghost" 
-                  size="sm" 
+                  size="default" 
                   onClick={debouncedRefresh}
                   disabled={isLoading}
-                  className="p-1.5 sm:p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                  className="p-2 sm:p-3 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
                 >
-                  <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${isLoading ? 'animate-spin' : ''}`} />
                 </Button>
                 <Button 
                   variant="ghost" 
-                  size="sm" 
+                  size="default" 
                   onClick={handleSignOut}
-                  className="p-1.5 sm:p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                  className="p-2 sm:p-3 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
                 >
-                  <LogOut className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
               </div>
             </div>
             
             {/* User Info Section */}
-            <div className="flex items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl sm:rounded-2xl">
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-sm sm:text-lg font-bold flex-shrink-0">
+            <div className="flex items-center justify-between p-4 sm:p-5 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl sm:rounded-2xl">
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-base sm:text-xl font-bold flex-shrink-0">
                   {userProfile?.full_name ? userProfile.full_name.charAt(0).toUpperCase() : 'U'}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-sm sm:text-lg font-bold text-gray-800 truncate">{userProfile?.full_name || 'Utilisateur'}</h2>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-gray-600 text-xs sm:text-sm">
+                  <h2 className="text-base sm:text-xl font-bold text-gray-800 truncate">{userProfile?.full_name || 'Utilisateur'}</h2>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-gray-600 text-sm sm:text-base">
                     <span className="truncate">{userProfile?.phone || 'Téléphone non disponible'}</span>
                     {userProfile?.country && (
                       <>
@@ -198,16 +198,16 @@ const MobileOptimizedDashboard = memo(({
                     )}
                   </div>
                   {userProfile?.address && (
-                    <div className="flex items-center gap-2 text-gray-500 text-xs mt-1">
-                      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-500 rounded-full flex-shrink-0"></div>
+                    <div className="flex items-center gap-2 text-gray-500 text-sm mt-1">
+                      <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-red-500 rounded-full flex-shrink-0"></div>
                       <span className="truncate">{userProfile.address}</span>
                     </div>
                   )}
                 </div>
               </div>
               {userProfile?.is_verified && (
-                <div className="p-1.5 sm:p-2 bg-green-500 rounded-full flex-shrink-0">
-                  <Star className="w-3 h-3 sm:w-5 sm:h-5 text-white" />
+                <div className="p-2 sm:p-2.5 bg-green-500 rounded-full flex-shrink-0">
+                  <Star className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                 </div>
               )}
             </div>
@@ -216,18 +216,18 @@ const MobileOptimizedDashboard = memo(({
       </div>
 
       {/* Gorgeous Content */}
-      <div className="p-2 sm:p-4 space-y-4 sm:space-y-6 pb-20 max-w-full">
+      <div className="p-3 sm:p-5 space-y-5 sm:space-y-7 pb-20 max-w-full">
         {/* Stunning Balance Card with User Info */}
         <div className="relative group">
           <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000"></div>
-          <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-4 sm:p-6 rounded-2xl text-white shadow-2xl">
-            <div className="space-y-3 sm:space-y-4">
+          <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-5 sm:p-7 rounded-2xl text-white shadow-2xl">
+            <div className="space-y-4 sm:space-y-5">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-medium text-white/80 text-xs sm:text-sm mb-1">
+                  <h3 className="font-medium text-white/80 text-sm sm:text-base mb-1">
                     Solde disponible
                   </h3>
-                  <div className="text-xs sm:text-sm text-white/70">
+                  <div className="text-sm sm:text-base text-white/70">
                     👤 <span className="truncate inline-block max-w-[150px] sm:max-w-none">{userProfile?.full_name || 'Utilisateur'}</span>
                     {userProfile?.address && (
                       <div className="mt-0.5 truncate">📍 {userProfile.address}</div>
@@ -240,27 +240,27 @@ const MobileOptimizedDashboard = memo(({
                   className="text-white/80 hover:text-white transition-colors p-2 flex-shrink-0"
                   aria-label={showBalance ? "Masquer le solde" : "Afficher le solde"}
                 >
-                  {showBalance ? <EyeOff size={16} className="sm:w-[18px] sm:h-[18px]" /> : <Eye size={16} className="sm:w-[18px] sm:h-[18px]" />}
+                  {showBalance ? <EyeOff size={18} className="sm:w-[20px] sm:h-[20px]" /> : <Eye size={18} className="sm:w-[20px] sm:h-[20px]" />}
                 </button>
               </div>
               
               <div className="text-center">
-                <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-yellow-200 to-yellow-400 bg-clip-text text-transparent break-all">
+                <p className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-yellow-200 to-yellow-400 bg-clip-text text-transparent break-all">
                   {showBalance ? formatCurrency(convertedBalance, userCurrency) : "••••••"}
                 </p>
               </div>
               
-              <div className="flex justify-center space-x-1">
-                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white/60 rounded-full animate-pulse"></div>
-                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white/40 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
-                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white/60 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+              <div className="flex justify-center space-x-2">
+                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-white/60 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-white/40 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-white/60 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Beautiful Actions */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 max-w-full">
+        <div className="grid grid-cols-2 gap-4 sm:gap-5 max-w-full">
           {[
             { key: 'transfer', icon: ArrowUpRight, label: 'Transférer', colors: 'from-pink-500 to-purple-500', bg: 'from-pink-600 to-purple-600' },
             { key: 'qr-code', icon: QrCode, label: 'Mon QR', colors: 'from-green-500 to-teal-500', bg: 'from-green-600 to-teal-600' },
@@ -271,12 +271,12 @@ const MobileOptimizedDashboard = memo(({
               <div className={`absolute -inset-0.5 bg-gradient-to-r ${bg} rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500`}></div>
               <button
                 onClick={() => handleAction(key)}
-                className="relative w-full h-16 sm:h-20 bg-white rounded-xl flex flex-col items-center justify-center gap-1 sm:gap-2 shadow-lg hover:scale-105 transition-transform duration-300"
+                className="relative w-full h-18 sm:h-22 bg-white rounded-xl flex flex-col items-center justify-center gap-2 sm:gap-3 shadow-lg hover:scale-105 transition-transform duration-300"
               >
-                <div className={`p-1.5 sm:p-2 bg-gradient-to-r ${colors} rounded-full`}>
-                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                <div className={`p-2 sm:p-2.5 bg-gradient-to-r ${colors} rounded-full`}>
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <span className="text-xs sm:text-sm font-medium truncate px-1">{label}</span>
+                <span className="text-sm sm:text-base font-medium truncate px-1">{label}</span>
               </button>
             </div>
           ))}
