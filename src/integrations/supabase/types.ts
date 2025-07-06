@@ -9,6 +9,57 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_deposits: {
+        Row: {
+          admin_id: string
+          amount: number
+          converted_amount: number
+          created_at: string
+          currency: string
+          deposit_type: string
+          exchange_rate: number
+          id: string
+          notes: string | null
+          reference_number: string | null
+          status: string
+          target_currency: string
+          target_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          amount: number
+          converted_amount: number
+          created_at?: string
+          currency?: string
+          deposit_type?: string
+          exchange_rate?: number
+          id?: string
+          notes?: string | null
+          reference_number?: string | null
+          status?: string
+          target_currency: string
+          target_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          amount?: number
+          converted_amount?: number
+          created_at?: string
+          currency?: string
+          deposit_type?: string
+          exchange_rate?: number
+          id?: string
+          notes?: string | null
+          reference_number?: string | null
+          status?: string
+          target_currency?: string
+          target_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       agent_challenges: {
         Row: {
           agent_id: string
@@ -863,6 +914,18 @@ export type Database = {
       is_verified_agent: {
         Args: { user_id_param: string }
         Returns: boolean
+      }
+      process_international_deposit: {
+        Args: {
+          target_user_id: string
+          deposit_amount: number
+          deposit_currency: string
+          target_currency: string
+          exchange_rate?: number
+          reference_number?: string
+          notes?: string
+        }
+        Returns: string
       }
       process_money_transfer: {
         Args:

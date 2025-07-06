@@ -321,12 +321,13 @@ const AdminUsers = () => {
                         Dernière actualisation: {new Date().toLocaleTimeString()}
                       </p>
                     </div>
-                    <UsersDataTable 
-                      users={users}
-                      onViewUser={handleViewUser}
-                      onQuickRoleChange={handleQuickRoleChange}
-                      onQuickBanToggle={handleQuickBanToggle}
-                    />
+                     <UsersDataTable 
+                       users={users}
+                       onViewUser={handleViewUser}
+                       onQuickRoleChange={handleQuickRoleChange}
+                       onQuickBanToggle={handleQuickBanToggle}
+                       onUserUpdated={fetchUsers}
+                     />
                   </div>
                 )}
               </CardContent>

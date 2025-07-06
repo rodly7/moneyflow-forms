@@ -1,11 +1,11 @@
 
-import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Shield, Ban, UserCheck, Crown, User } from 'lucide-react';
+import { Eye, Shield, Ban, UserCheck, Crown, User, Globe, Edit, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/integrations/supabase/client';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
+import UserManagementActions from './UserManagementActions';
 
 interface UserData {
   id: string;
@@ -24,6 +24,7 @@ interface UsersDataTableProps {
   onViewUser: (user: UserData) => void;
   onQuickRoleChange: (userId: string, newRole: 'user' | 'agent' | 'admin' | 'sub_admin') => void;
   onQuickBanToggle: (userId: string, currentBanStatus: boolean) => void;
+  onUserUpdated?: () => void;
   isSubAdmin?: boolean;
 }
 
@@ -32,6 +33,7 @@ const UsersDataTable = ({
   onViewUser, 
   onQuickRoleChange, 
   onQuickBanToggle,
+  onUserUpdated,
   isSubAdmin = false
 }: UsersDataTableProps) => {
   const deviceInfo = useDeviceDetection();
@@ -134,6 +136,22 @@ const UsersDataTable = ({
                 >
                   {user.is_banned ? <UserCheck className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
                 </Button>
+
+                <UserManagementActions
+                  user={{
+                    id: user.id,
+                    full_name: user.full_name || '',
+                    phone: user.phone,
+                    country: user.country || '',
+                    address: '',
+                    balance: user.balance,
+                    role: user.role,
+                    is_verified: true,
+                    is_banned: user.is_banned || false
+                  }}
+                  onUserUpdated={onUserUpdated}
+                  onUserDeleted={onUserUpdated}
+                />
               </div>
             )}
           </div>
@@ -212,14 +230,32 @@ const UsersDataTable = ({
                   </Button>
                   
                   {!isSubAdmin && (
-                    <Button
-                      variant={user.is_banned ? "outline" : "destructive"}
-                      size="sm"
-                      onClick={() => onQuickBanToggle(user.id, user.is_banned || false)}
-                      className={user.is_banned ? "glass border-2 border-green-200 hover:bg-green-50/80 text-green-700" : ""}
-                    >
-                      {user.is_banned ? <UserCheck className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
-                    </Button>
+                    <>
+                      <Button
+                        variant={user.is_banned ? "outline" : "destructive"}
+                        size="sm"
+                        onClick={() => onQuickBanToggle(user.id, user.is_banned || false)}
+                        className={user.is_banned ? "glass border-2 border-green-200 hover:bg-green-50/80 text-green-700" : ""}
+                      >
+                        {user.is_banned ? <UserCheck className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
+                      </Button>
+                      
+                      <UserManagementActions
+                        user={{
+                          id: user.id,
+                          full_name: user.full_name || '',
+                          phone: user.phone,
+                          country: user.country || '',
+                          address: '',
+                          balance: user.balance,
+                          role: user.role,
+                          is_verified: true,
+                          is_banned: user.is_banned || false
+                        }}
+                        onUserUpdated={onUserUpdated}
+                        onUserDeleted={onUserUpdated}
+                      />
+                    </>
                   )}
                 </div>
               </TableCell>
