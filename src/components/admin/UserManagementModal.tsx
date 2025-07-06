@@ -342,6 +342,165 @@ const UserManagementModal = ({ isOpen, onClose, user, onUserUpdated, isSubAdmin 
             </Card>
           )}
 
+          {/* Actions administrateur */}
+          {!isSubAdmin && (
+            <Card className="glass border-2 border-orange-300 bg-gradient-to-r from-orange-50/80 to-amber-50/80">
+              <CardHeader className="bg-gradient-to-r from-orange-50/50 to-amber-50/50 pb-4">
+                <CardTitle className={`${deviceInfo.isMobile ? 'text-lg' : 'text-xl'} flex items-center gap-3`}>
+                  <div className="p-2 bg-orange-500 rounded-lg text-white">
+                    <Edit3 className="w-5 h-5" />
+                  </div>
+                  <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">⚙️ Actions administrateur</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                {!editMode ? (
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      onClick={() => setEditMode(true)}
+                      className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white"
+                      disabled={isProcessing}
+                    >
+                      <Edit3 className="w-4 h-4 mr-2" />
+                      Modifier
+                    </Button>
+                    
+                    {user.is_banned ? (
+                      <Button
+                        onClick={handleUnbanUser}
+                        disabled={isProcessing}
+                        className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                      >
+                        <UserCheck className="w-4 h-4 mr-2" />
+                        Débannir
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={handleBanUser}
+                        disabled={isProcessing}
+                        variant="destructive"
+                      >
+                        <Ban className="w-4 h-4 mr-2" />
+                        Bannir
+                      </Button>
+                    )}
+                    
+                    <Button
+                      onClick={handleDeleteUser}
+                      disabled={isProcessing}
+                      variant="destructive"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Supprimer
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="edit-name">Nom complet</Label>
+                        <Input
+                          id="edit-name"
+                          value={formData.full_name}
+                          onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
+                          placeholder="Nom complet"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="edit-phone">Téléphone</Label>
+                        <Input
+                          id="edit-phone"
+                          value={formData.phone}
+                          onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                          placeholder="Téléphone"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="edit-country">Pays</Label>
+                        <Input
+                          id="edit-country"
+                          value={formData.country}
+                          onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
+                          placeholder="Pays"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="edit-role">Rôle</Label>
+                        <select
+                          id="edit-role"
+                          value={formData.role}
+                          onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as any }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="user">👤 Utilisateur</option>
+                          <option value="agent">🔧 Agent</option>
+                          <option value="sub_admin">🛡️ Sous-Admin</option>
+                          <option value="admin">👑 Admin</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="edit-balance">Solde (XAF)</Label>
+                        <Input
+                          id="edit-balance"
+                          type="number"
+                          value={formData.balance}
+                          onChange={(e) => setFormData(prev => ({ ...prev, balance: parseFloat(e.target.value) || 0 }))}
+                          placeholder="Solde"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-3 pt-4 border-t">
+                      <Button
+                        onClick={handleUpdateUser}
+                        disabled={isProcessing}
+                        className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                      >
+                        {isProcessing ? 'Sauvegarde...' : 'Sauvegarder'}
+                      </Button>
+                      
+                      <Button
+                        onClick={() => {
+                          setEditMode(false);
+                          setFormData({
+                            full_name: user.full_name || '',
+                            phone: user.phone || '',
+                            country: user.country || '',
+                            balance: user.balance || 0,
+                            role: user.role || 'user'
+                          });
+                        }}
+                        variant="outline"
+                        disabled={isProcessing}
+                      >
+                        Annuler
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Section bannissement */}
+                {!editMode && !user.is_banned && (
+                  <div className="border-t pt-4 mt-4">
+                    <Label htmlFor="ban-reason">Raison du bannissement (optionnel)</Label>
+                    <Textarea
+                      id="ban-reason"
+                      value={banData.reason}
+                      onChange={(e) => setBanData(prev => ({ ...prev, reason: e.target.value }))}
+                      placeholder="Indiquez la raison du bannissement..."
+                      rows={3}
+                      className="mt-2"
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Message d'information pour sous-admins */}
           {isSubAdmin && (
             <Card className="glass border-2 border-blue-300 bg-gradient-to-r from-blue-50/80 to-indigo-50/80">
