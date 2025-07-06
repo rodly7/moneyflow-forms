@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import UserProfileInfo from "@/components/profile/UserProfileInfo";
 import QRCodeGenerator from "@/components/QRCodeGenerator";
-import NotificationSystem from "@/components/notifications/NotificationSystem";
+
 import { formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
 import { useBalanceCheck } from "@/hooks/useBalanceCheck";
 import { useDeviceDetection } from "@/hooks/useDeviceDetection";
@@ -209,9 +209,14 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">
-                  <NotificationSystem />
-                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => navigate('/notifications')}
+                  className="p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                >
+                  <span className="text-sm">Notifications</span>
+                </Button>
                 <Button 
                   variant="ghost" 
                   size="sm" 

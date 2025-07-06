@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import UserProfileInfo from "@/components/profile/UserProfileInfo";
-import NotificationSystem from "@/components/notifications/NotificationSystem";
+
 import { formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
 import { useBalanceCheck } from "@/hooks/useBalanceCheck";
 import { useDeviceDetection } from "@/hooks/useDeviceDetection";

@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, LogOut } from "lucide-react";
-import NotificationSystem from "@/components/notifications/NotificationSystem";
+import { RefreshCw, LogOut, MessageSquare } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface CompactHeaderProps {
   title: string;
@@ -22,6 +22,8 @@ const CompactHeader = memo(({
   isLoading = false,
   showNotifications = true 
 }: CompactHeaderProps) => {
+  const navigate = useNavigate();
+  
   return (
     <div className="flex items-center justify-between p-3 bg-card rounded-lg border">
       <div className="flex items-center gap-3">
@@ -34,7 +36,15 @@ const CompactHeader = memo(({
         </div>
       </div>
       <div className="flex items-center gap-2">
-        {showNotifications && <NotificationSystem />}
+        {showNotifications && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => navigate('/notifications')}
+          >
+            <MessageSquare className="w-4 h-4" />
+          </Button>
+        )}
         {onRefresh && (
           <Button 
             variant="outline" 

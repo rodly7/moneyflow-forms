@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import { usePerformanceMonitor, useDebounce } from "@/hooks/usePerformanceOptimization";
-import { ArrowUpRight, QrCode, Wallet, History, PiggyBank, FileText, RefreshCw, LogOut, Heart, Sparkles, Crown, Star, Eye, EyeOff, Bell } from "lucide-react";
+import { ArrowUpRight, QrCode, Wallet, History, PiggyBank, FileText, RefreshCw, LogOut, Heart, Sparkles, Crown, Star, Eye, EyeOff, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -152,9 +152,14 @@ const MobileOptimizedDashboard = memo(({
                 </div>
               </div>
               <div className="flex items-center gap-1 sm:gap-2">
-                <div className="p-1.5 sm:p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">
-                  <Bell className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" />
-                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => navigate('/notifications')}
+                  className="p-1.5 sm:p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                >
+                  <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" />
+                </Button>
                 <Button 
                   variant="ghost" 
                   size="sm" 
