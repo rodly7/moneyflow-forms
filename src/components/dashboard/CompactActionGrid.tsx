@@ -31,7 +31,8 @@ const CompactActionGrid = memo(({ title, titleIcon: TitleIcon, actions }: Compac
             key={index}
             onClick={action.onClick}
             variant={action.variant || "outline"}
-            className="w-full justify-start h-12 text-base"
+            size="lg"
+            className="w-full justify-start text-base"
           >
             <action.icon className="mr-3 h-5 w-5" />
             {action.label}

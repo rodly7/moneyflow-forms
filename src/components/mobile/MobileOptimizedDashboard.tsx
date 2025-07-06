@@ -154,26 +154,26 @@ const MobileOptimizedDashboard = memo(({
               <div className="flex items-center gap-2 sm:gap-3">
                 <Button 
                   variant="ghost" 
-                  size="default" 
+                  size="lg" 
                   onClick={() => navigate('/notifications')}
-                  className="p-2 sm:p-3 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                  className="p-2.5 sm:p-3.5 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
                 >
                   <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
                 </Button>
                 <Button 
                   variant="ghost" 
-                  size="default" 
+                  size="lg" 
                   onClick={debouncedRefresh}
                   disabled={isLoading}
-                  className="p-2 sm:p-3 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                  className="p-2.5 sm:p-3.5 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
                 >
                   <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${isLoading ? 'animate-spin' : ''}`} />
                 </Button>
                 <Button 
                   variant="ghost" 
-                  size="default" 
+                  size="lg" 
                   onClick={handleSignOut}
-                  className="p-2 sm:p-3 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                  className="p-2.5 sm:p-3.5 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
                 >
                   <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
@@ -271,7 +271,7 @@ const MobileOptimizedDashboard = memo(({
               <div className={`absolute -inset-0.5 bg-gradient-to-r ${bg} rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500`}></div>
               <button
                 onClick={() => handleAction(key)}
-                className="relative w-full h-18 sm:h-22 bg-white rounded-xl flex flex-col items-center justify-center gap-2 sm:gap-3 shadow-lg hover:scale-105 transition-transform duration-300"
+                className="relative w-full h-20 sm:h-24 bg-white rounded-xl flex flex-col items-center justify-center gap-2 sm:gap-3 shadow-lg hover:scale-105 transition-transform duration-300"
               >
                 <div className={`p-2 sm:p-2.5 bg-gradient-to-r ${colors} rounded-full`}>
                   <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />

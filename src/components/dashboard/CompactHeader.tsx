@@ -27,7 +27,7 @@ const CompactHeader = memo(({
   return (
     <div className="flex items-center justify-between p-4 bg-card rounded-lg border">
       <div className="flex items-center gap-4">
-        <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+        <div className="w-11 h-11 bg-primary rounded-lg flex items-center justify-center">
           {icon}
         </div>
         <div>
@@ -39,7 +39,7 @@ const CompactHeader = memo(({
         {showNotifications && (
           <Button 
             variant="outline" 
-            size="default" 
+            size="lg" 
             onClick={() => navigate('/notifications')}
           >
             <MessageSquare className="w-5 h-5" />
@@ -48,7 +48,7 @@ const CompactHeader = memo(({
         {onRefresh && (
           <Button 
             variant="outline" 
-            size="default" 
+            size="lg" 
             onClick={onRefresh}
             disabled={isLoading}
           >
@@ -57,7 +57,7 @@ const CompactHeader = memo(({
         )}
         <Button 
           variant="outline" 
-          size="default" 
+          size="lg" 
           onClick={onSignOut}
         >
           <LogOut className="w-5 h-5" />
