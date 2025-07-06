@@ -48,7 +48,7 @@ const TransferForm = () => {
     return (
       <div className="w-full">
         <Card className="backdrop-blur-md bg-white/80 shadow-xl rounded-xl border-0 overflow-hidden w-full">
-          <div className="p-4 md:p-6 w-full">
+        <div className="p-3 w-full">
             <div className="text-center mb-6">
               <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold">Transfert en attente</h2>
@@ -106,7 +106,7 @@ const TransferForm = () => {
   return (
     <div className="w-full">
       <Card className="backdrop-blur-md bg-white/80 shadow-xl rounded-xl border-0 overflow-hidden w-full">
-        <div className="p-4 md:p-6 w-full">
+        <div className="p-3 w-full">
           {/* En-tête adapté selon le rôle */}
           {userRole === 'agent' && (
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md w-full">
@@ -120,12 +120,12 @@ const TransferForm = () => {
             <TransferStepper steps={steps} currentStep={currentStep} />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6 w-full">
+          <form onSubmit={handleSubmit} className="space-y-4 w-full">
             <div className="w-full">
               <CurrentStepComponent {...data} updateFields={updateFields} />
             </div>
             
-            <div className="mt-6 flex flex-col sm:flex-row justify-between gap-3 w-full">
+            <div className="mt-4 flex flex-col sm:flex-row justify-between gap-3 w-full">
               {currentStep !== 0 && (
                 <Button 
                   type="button" 

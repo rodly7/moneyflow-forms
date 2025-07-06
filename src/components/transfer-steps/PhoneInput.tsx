@@ -131,8 +131,8 @@ const PhoneInput = ({
         </div>
       </div>
       
-      {/* Fixed space for verification status */}
-      <div className="min-h-[30px] form-message-zone">
+      {/* Compact verification status */}
+      <div className="min-h-[20px] form-message-zone">
         {isVerified && recipientName && (
           <div className="flex items-center text-sm text-green-600 animate-fade-in">
             <User className="w-3.5 h-3.5 mr-1" />

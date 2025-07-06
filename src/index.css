@@ -155,8 +155,8 @@
   }
   
   .form-field-wrapper {
-    @apply space-y-2;
-    min-height: 80px;
+    @apply space-y-1;
+    min-height: 60px;
     contain: layout;
   }
   
@@ -211,7 +211,7 @@
   }
   
   .form-message-zone {
-    min-height: 60px;
+    min-height: 20px;
     transition: opacity 200ms ease-in-out;
     contain: layout;
   }
@@ -335,7 +335,7 @@
   }
   
   .select-field-wrapper {
-    @apply space-y-2 min-h-[100px];
+    @apply space-y-1 min-h-[70px];
   }
   
   .select-conditional-content {
