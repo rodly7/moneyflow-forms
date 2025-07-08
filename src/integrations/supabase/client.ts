@@ -107,6 +107,11 @@ export const calculateFee = (
   // Déterminer si c'est un transfert national ou international
   const isNationalTransfer = senderCountry === recipientCountry;
   
+  // Pour les agents : SEULEMENT transferts internationaux autorisés
+  if (userRole === 'agent' && isNationalTransfer) {
+    throw new Error('Les agents ne peuvent effectuer que des transferts internationaux');
+  }
+  
   // Nouveaux taux: 2.5% national, 6.5% international
   const baseRate = isNationalTransfer ? 0.025 : 0.065;
   
