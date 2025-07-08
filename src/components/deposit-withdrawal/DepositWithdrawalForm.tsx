@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { calculateDepositFees, calculateWithdrawalFees } from "@/utils/depositWithdrawalCalculations";
 import QRScanner from "@/components/agent/QRScanner";
 import { useQRWithdrawal } from "@/hooks/useQRWithdrawal";
-import DepositConfirmation from "./DepositConfirmation";
+import SimpleHtmlDepositConfirmation from "./SimpleHtmlDepositConfirmation";
 
 const DepositWithdrawalForm = () => {
   const { user } = useAuth();
@@ -618,7 +618,7 @@ const DepositWithdrawalForm = () => {
         onScanSuccess={handleQRScanSuccess}
       />
 
-      <DepositConfirmation
+      <SimpleHtmlDepositConfirmation
         isOpen={showDepositConfirmation}
         onClose={() => setShowDepositConfirmation(false)}
         onConfirm={handleConfirmedDeposit}

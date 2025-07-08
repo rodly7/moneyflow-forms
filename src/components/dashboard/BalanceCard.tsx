@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/input-otp";
 import { Button } from "@/components/ui/button";
 import { useWithdrawalConfirmation } from "@/hooks/useWithdrawalConfirmation";
+import SimpleHtmlWithdrawalConfirmation from "@/components/withdrawal/SimpleHtmlWithdrawalConfirmation";
 
 interface BalanceCardProps {
   balance: number;
@@ -201,79 +202,137 @@ const BalanceCard = ({
         </CardContent>
       </Card>
 
-      {/* Verification Dialog */}
-      <Dialog open={showVerificationDialog} onOpenChange={setShowVerificationDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {commissionDetails ? "Retrait confirmé" : "Confirmer un retrait"}
-            </DialogTitle>
-            <DialogDescription>
-              {commissionDetails 
-                ? "Le retrait a été traité avec succès" 
-                : "Entrez le code à 6 chiffres fourni par la personne qui demande le retrait"
-              }
-            </DialogDescription>
-          </DialogHeader>
-          
-          {commissionDetails ? (
-            <div className="p-4">
-              <div className="space-y-3 mb-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Votre commission:</span>
-                  <span className="font-medium text-emerald-600">
-                    {formatCurrency(convertCurrency(commissionDetails.agentCommission, "XAF", userCurrency), userCurrency)}
+      {/* Composant de confirmation de retrait */}
+      <SimpleHtmlWithdrawalConfirmation
+        isOpen={showVerificationDialog && !commissionDetails}
+        onClose={() => setShowVerificationDialog(false)}
+        onConfirm={async (code: string) => {
+          setVerificationCode(code);
+          await handleVerifyWithdrawal();
+        }}
+        amount={0} // Le montant sera géré par le hook
+        phone="" // Le téléphone sera géré par le hook
+        isProcessing={isProcessing}
+      />
+
+      {/* Dialog pour afficher les résultats de commission */}
+      {commissionDetails && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '100%',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '24px'
+            }}>
+              <span style={{ fontSize: '20px' }}>✅</span>
+              <h2 style={{
+                fontSize: '18px',
+                fontWeight: 'bold',
+                margin: 0,
+                color: '#059669'
+              }}>
+                Retrait confirmé
+              </h2>
+            </div>
+
+            <p style={{
+              fontSize: '14px',
+              color: '#6b7280',
+              marginBottom: '24px',
+              margin: 0
+            }}>
+              Le retrait a été traité avec succès
+            </p>
+
+            <div style={{
+              backgroundColor: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              borderRadius: '6px',
+              padding: '16px',
+              marginBottom: '24px'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '8px'
+              }}>
+                <span style={{ fontSize: '14px', color: '#6b7280' }}>Votre commission:</span>
+                <span style={{ fontWeight: 'bold', color: '#059669' }}>
+                  {formatCurrency(convertCurrency(commissionDetails.agentCommission, "XAF", userCurrency), userCurrency)}
+                </span>
+              </div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '8px'
+              }}>
+                <span style={{ fontSize: '14px', color: '#6b7280' }}>Commission MoneyFlow:</span>
+                <span style={{ fontWeight: 'bold' }}>
+                  {formatCurrency(convertCurrency(commissionDetails.moneyFlowCommission, "XAF", userCurrency), userCurrency)}
+                </span>
+              </div>
+              <div style={{
+                borderTop: '1px solid #e5e7eb',
+                paddingTop: '8px',
+                marginTop: '8px'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ fontSize: '14px', fontWeight: 'bold' }}>Frais totaux:</span>
+                  <span style={{ fontWeight: 'bold' }}>
+                    {formatCurrency(convertCurrency(commissionDetails.totalFee, "XAF", userCurrency), userCurrency)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Commission MoneyFlow:</span>
-                  <span className="font-medium">{formatCurrency(convertCurrency(commissionDetails.moneyFlowCommission, "XAF", userCurrency), userCurrency)}</span>
-                </div>
-                <div className="flex justify-between items-center pt-2 border-t">
-                  <span className="text-sm font-medium">Frais totaux:</span>
-                  <span className="font-bold">{formatCurrency(convertCurrency(commissionDetails.totalFee, "XAF", userCurrency), userCurrency)}</span>
-                </div>
-              </div>
-              
-              <Button 
-                onClick={closeDialog} 
-                className="w-full bg-emerald-600 hover:bg-emerald-700"
-              >
-                Fermer
-              </Button>
-            </div>
-          ) : (
-            <div className="p-4 space-y-4">
-              <InputOTP 
-                maxLength={6} 
-                value={verificationCode} 
-                onChange={setVerificationCode}
-                render={({ slots }) => (
-                  <InputOTPGroup>
-                    {slots.map((slot, i) => (
-                      <InputOTPSlot key={i} {...slot} index={i} />
-                    ))}
-                  </InputOTPGroup>
-                )}
-                disabled={isProcessing}
-              />
-              
-              <div className="flex gap-2 justify-end mt-4">
-                <Button variant="outline" onClick={closeDialog} disabled={isProcessing}>
-                  Annuler
-                </Button>
-                <Button 
-                  onClick={handleVerifyWithdrawal} 
-                  disabled={verificationCode.length !== 6 || isProcessing}
-                  className="bg-emerald-600 hover:bg-emerald-700"
-                >
-                  {isProcessing ? "Vérification..." : "Confirmer le retrait"}
-                </Button>
               </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+
+            <button
+              onClick={() => {
+                setCommissionDetails(null);
+                setShowVerificationDialog(false);
+              }}
+              style={{
+                width: '100%',
+                height: '48px',
+                backgroundColor: '#059669',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 };

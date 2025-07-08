@@ -1,5 +1,5 @@
 
-import { SecureWithdrawalConfirmation } from "@/components/user/SecureWithdrawalConfirmation";
+import SimpleHtmlSecureWithdrawalConfirmation from "@/components/user/SimpleHtmlSecureWithdrawalConfirmation";
 
 interface WithdrawalRequest {
   id: string;
@@ -28,11 +28,15 @@ const WithdrawalRequestNotification = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <SecureWithdrawalConfirmation
-        request={requestData}
+      <SimpleHtmlSecureWithdrawalConfirmation
+        isOpen={true}
         onClose={onClose}
-        onConfirmed={onConfirm}
-        onRejected={onReject}
+        onConfirm={async () => onConfirm()}
+        amount={requestData.amount}
+        agentName={requestData.agent_name}
+        agentPhone={requestData.agent_phone}
+        withdrawalPhone={requestData.agent_phone}
+        isProcessing={false}
       />
     </div>
   );
