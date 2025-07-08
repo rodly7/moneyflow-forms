@@ -5,7 +5,7 @@ import RecipientInfo from "./transfer-steps/RecipientInfo";
 import TransferDetails from "./transfer-steps/TransferDetails";
 import TransferSummary from "./transfer-steps/TransferSummary";
 import TransferStepper from "./transfer/TransferStepper";
-import TransferConfirmation from "./transfer/TransferConfirmation";
+import SimpleHtmlTransferConfirmation from "./transfer/SimpleHtmlTransferConfirmation";
 import { useTransferForm } from "@/hooks/useTransferForm";
 import { useState } from "react";
 import { CheckCircle, Copy } from "lucide-react";
@@ -159,7 +159,7 @@ const TransferForm = () => {
       </Card>
 
       {/* Confirmation sécurisée du transfert */}
-      <TransferConfirmation
+      <SimpleHtmlTransferConfirmation
         isOpen={showTransferConfirmation}
         onClose={() => setShowTransferConfirmation(false)}
         onConfirm={handleConfirmedTransfer}
