@@ -17,6 +17,8 @@ import { useAdminDashboardData } from "@/hooks/useAdminDashboardData";
 import AgentsPerformanceTable from "@/components/admin/AgentsPerformanceTable";
 import CommissionSummaryCard from "@/components/admin/CommissionSummaryCard";
 import AnomaliesCard from "@/components/admin/AnomaliesCard";
+import AgentLocationMap from "@/components/admin/AgentLocationMap";
+import { useAgentLocations } from "@/hooks/useAgentLocations";
 
 interface StatsData {
   totalUsers: number;
@@ -42,6 +44,9 @@ const MainAdminDashboard = () => {
 
   // Utiliser le hook pour les données complètes du dashboard
   const { data: dashboardData, isLoading: isDashboardLoading, refetch: refetchDashboard } = useAdminDashboardData();
+  
+  // Hook pour les positions des agents
+  const { data: agentLocations, isLoading: isLoadingLocations, refetch: refetchLocations } = useAgentLocations();
 
   const fetchStats = useDebounce(async () => {
     setIsLoadingStats(true);
@@ -80,6 +85,7 @@ const MainAdminDashboard = () => {
   const handleRefresh = () => {
     fetchStats();
     refetchDashboard();
+    refetchLocations();
   };
 
   const handleSignOut = async () => {
@@ -215,6 +221,12 @@ const MainAdminDashboard = () => {
         <CommissionSummaryCard 
           data={dashboardData} 
           isLoading={isDashboardLoading}
+        />
+
+        {/* Carte de géolocalisation des agents */}
+        <AgentLocationMap 
+          agents={agentLocations || []}
+          isLoading={isLoadingLocations}
         />
 
         {/* Grille avec tableau des agents et anomalies */}
