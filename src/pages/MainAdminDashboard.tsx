@@ -13,6 +13,10 @@ import { usePerformanceMonitor, useDebounce } from "@/hooks/usePerformanceOptimi
 import CompactHeader from "@/components/dashboard/CompactHeader";
 import CompactStatsGrid from "@/components/dashboard/CompactStatsGrid";
 import CompactActionGrid from "@/components/dashboard/CompactActionGrid";
+import { useAdminDashboardData } from "@/hooks/useAdminDashboardData";
+import AgentsPerformanceTable from "@/components/admin/AgentsPerformanceTable";
+import CommissionSummaryCard from "@/components/admin/CommissionSummaryCard";
+import AnomaliesCard from "@/components/admin/AnomaliesCard";
 
 interface StatsData {
   totalUsers: number;
@@ -35,6 +39,9 @@ const MainAdminDashboard = () => {
     totalBalance: 0
   });
   const [isLoadingStats, setIsLoadingStats] = useState(true);
+
+  // Utiliser le hook pour les données complètes du dashboard
+  const { data: dashboardData, isLoading: isDashboardLoading, refetch: refetchDashboard } = useAdminDashboardData();
 
   const fetchStats = useDebounce(async () => {
     setIsLoadingStats(true);
@@ -69,6 +76,11 @@ const MainAdminDashboard = () => {
     }
     setIsLoadingStats(false);
   }, 300);
+
+  const handleRefresh = () => {
+    fetchStats();
+    refetchDashboard();
+  };
 
   const handleSignOut = async () => {
     try {
@@ -187,9 +199,9 @@ const MainAdminDashboard = () => {
           title="Administration"
           subtitle="Contrôle principal"
           icon={<Shield className="w-4 h-4 text-primary-foreground" />}
-          onRefresh={fetchStats}
+          onRefresh={handleRefresh}
           onSignOut={handleSignOut}
-          isLoading={isLoadingStats}
+          isLoading={isLoadingStats || isDashboardLoading}
           showNotifications={false}
         />
 
@@ -198,6 +210,25 @@ const MainAdminDashboard = () => {
         </div>
 
         <CompactStatsGrid stats={statsData} />
+
+        {/* Résumé des commissions et performance */}
+        <CommissionSummaryCard 
+          data={dashboardData} 
+          isLoading={isDashboardLoading}
+        />
+
+        {/* Grille avec tableau des agents et anomalies */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <AgentsPerformanceTable 
+            agents={dashboardData.agents}
+            isLoading={isDashboardLoading}
+          />
+          
+          <AnomaliesCard 
+            anomalies={dashboardData.anomalies}
+            isLoading={isDashboardLoading}
+          />
+        </div>
 
         <CompactActionGrid
           title="Services d'administration"
