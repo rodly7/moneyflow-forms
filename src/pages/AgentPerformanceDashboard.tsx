@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Target, TrendingUp, Calendar, Award, MapPin } from "lucide-react";
+import { ArrowLeft, Target, TrendingUp, Calendar, Award, MapPin, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import AgentDailyHistory from "@/components/agent/AgentDailyHistory";
@@ -14,6 +14,7 @@ import AgentYesterdaySummary from "@/components/agent/AgentYesterdaySummary";
 import AgentPersonalChallenge from "@/components/agent/AgentPersonalChallenge";
 import AgentZoneAnalysis from "@/components/agent/AgentZoneAnalysis";
 import AgentRanking from "@/components/agent/AgentRanking";
+import AgentEarningsCard from "@/components/agent/AgentEarningsCard";
 
 const AgentPerformanceDashboard = () => {
   const { user, profile } = useAuth();
@@ -55,8 +56,12 @@ const AgentPerformanceDashboard = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="history" className="space-y-6 w-full">
-          <TabsList className="grid w-full grid-cols-6 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl h-14">
+        <Tabs defaultValue="earnings" className="space-y-6 w-full">
+          <TabsList className="grid w-full grid-cols-7 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl h-14">
+            <TabsTrigger value="earnings" className="flex items-center gap-2 h-10">
+              <DollarSign className="w-4 h-4" />
+              <span className="hidden sm:inline">Revenus</span>
+            </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center gap-2 h-10">
               <Calendar className="w-4 h-4" />
               <span className="hidden sm:inline">Historique</span>
@@ -82,6 +87,10 @@ const AgentPerformanceDashboard = () => {
               <span className="hidden sm:inline">Classement</span>
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="earnings" className="w-full">
+            <AgentEarningsCard />
+          </TabsContent>
 
           <TabsContent value="history" className="w-full">
             <AgentDailyHistory />

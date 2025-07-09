@@ -109,6 +109,128 @@ export type Database = {
           },
         ]
       }
+      agent_complaints: {
+        Row: {
+          agent_id: string
+          complaint_type: string
+          created_at: string
+          description: string | null
+          id: string
+          resolved_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          complaint_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          resolved_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          complaint_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          resolved_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_complaints_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_complaints_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_monthly_performance: {
+        Row: {
+          agent_id: string
+          base_commission: number
+          commission_rate: number
+          complaints_count: number
+          created_at: string
+          id: string
+          international_transfers_count: number
+          international_transfers_volume: number
+          month: number
+          no_complaint_bonus: number
+          total_earnings: number
+          total_transactions: number
+          total_volume: number
+          transaction_bonus: number
+          updated_at: string
+          volume_bonus: number
+          withdrawals_count: number
+          withdrawals_volume: number
+          year: number
+        }
+        Insert: {
+          agent_id: string
+          base_commission?: number
+          commission_rate?: number
+          complaints_count?: number
+          created_at?: string
+          id?: string
+          international_transfers_count?: number
+          international_transfers_volume?: number
+          month: number
+          no_complaint_bonus?: number
+          total_earnings?: number
+          total_transactions?: number
+          total_volume?: number
+          transaction_bonus?: number
+          updated_at?: string
+          volume_bonus?: number
+          withdrawals_count?: number
+          withdrawals_volume?: number
+          year: number
+        }
+        Update: {
+          agent_id?: string
+          base_commission?: number
+          commission_rate?: number
+          complaints_count?: number
+          created_at?: string
+          id?: string
+          international_transfers_count?: number
+          international_transfers_volume?: number
+          month?: number
+          no_complaint_bonus?: number
+          total_earnings?: number
+          total_transactions?: number
+          total_volume?: number
+          transaction_bonus?: number
+          updated_at?: string
+          volume_bonus?: number
+          withdrawals_count?: number
+          withdrawals_volume?: number
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_monthly_performance_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_reports: {
         Row: {
           agent_id: string
@@ -297,6 +419,33 @@ export type Database = {
           },
         ]
       }
+      commission_tiers: {
+        Row: {
+          commission_rate: number
+          created_at: string
+          id: string
+          max_volume: number | null
+          min_volume: number
+          tier_name: string
+        }
+        Insert: {
+          commission_rate: number
+          created_at?: string
+          id?: string
+          max_volume?: number | null
+          min_volume: number
+          tier_name: string
+        }
+        Update: {
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          max_volume?: number | null
+          min_volume?: number
+          tier_name?: string
+        }
+        Relationships: []
+      }
       countries: {
         Row: {
           code: string
@@ -367,6 +516,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      monthly_bonuses: {
+        Row: {
+          bonus_amount: number
+          bonus_type: string
+          created_at: string
+          description: string | null
+          id: string
+          requirement_value: number
+        }
+        Insert: {
+          bonus_amount: number
+          bonus_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          requirement_value: number
+        }
+        Update: {
+          bonus_amount?: number
+          bonus_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          requirement_value?: number
+        }
+        Relationships: []
       }
       notification_recipients: {
         Row: {
@@ -834,6 +1010,18 @@ export type Database = {
       }
     }
     Functions: {
+      calculate_agent_monthly_performance: {
+        Args: {
+          agent_id_param: string
+          month_param: number
+          year_param: number
+        }
+        Returns: string
+      }
+      calculate_commission_rate: {
+        Args: { volume: number }
+        Returns: number
+      }
       check_agent_exists: {
         Args: { agent_id_param: string }
         Returns: boolean
@@ -882,6 +1070,21 @@ export type Database = {
           transactions_count: number
           updated_at: string
           user_id: string
+        }[]
+      }
+      get_agent_current_month_performance: {
+        Args: { agent_id_param: string }
+        Returns: {
+          total_volume: number
+          total_transactions: number
+          complaints_count: number
+          commission_rate: number
+          base_commission: number
+          volume_bonus: number
+          transaction_bonus: number
+          no_complaint_bonus: number
+          total_earnings: number
+          tier_name: string
         }[]
       }
       get_user_role: {
