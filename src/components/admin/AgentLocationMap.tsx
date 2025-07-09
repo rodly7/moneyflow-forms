@@ -31,7 +31,7 @@ const AgentLocationMap: React.FC<AgentLocationMapProps> = ({ agents, isLoading }
     if (!mapContainer.current) return;
 
     // Initialize map with a placeholder token (user will need to provide their own)
-    mapboxgl.accessToken = 'pk.eyJ1IjoiZXhhbXBsZSIsImEiOiJjbGV4YW1wbGUifQ.example'; // Placeholder token
+    mapboxgl.accessToken = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNrNjI2ZGE3NTAzOWQzbHFyM21raDdmNWQifQ.example'; // Replace with your Mapbox token
     
     try {
       map.current = new mapboxgl.Map({

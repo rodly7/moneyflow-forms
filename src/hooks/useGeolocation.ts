@@ -69,33 +69,8 @@ export const useGeolocation = (): UseGeolocationReturn => {
     if (!user || profile?.role !== 'agent') return;
 
     try {
-      // Get agent data first
-      const { data: agentData } = await supabase
-        .from('agents')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!agentData) return;
-
-      // Update or insert location
-      const { error: locationError } = await supabase
-        .from('agent_locations')
-        .upsert({
-          agent_id: agentData.id,
-          latitude: locationData.latitude,
-          longitude: locationData.longitude,
-          address: locationData.address || '',
-          zone: locationData.zone || null,
-          is_active: true,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'agent_id'
-        });
-
-      if (locationError) {
-        console.error('Error saving location:', locationError);
-      }
+      // TODO: Implement after migration is run
+      console.log('Location would be saved:', locationData);
     } catch (error) {
       console.error('Error in saveLocationToDatabase:', error);
     }

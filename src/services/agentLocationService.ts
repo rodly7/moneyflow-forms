@@ -1,5 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
-
+// Temporary interfaces until migration is run
 export interface AgentLocationData {
   id: string;
   agent_id: string;
@@ -30,28 +29,8 @@ export class AgentLocationService {
    */
   static async getActiveAgentLocations(): Promise<AgentLocationData[]> {
     try {
-      const { data, error } = await supabase
-        .from('agent_locations')
-        .select(`
-          *,
-          agents!inner(
-            full_name,
-            phone,
-            country,
-            status
-          )
-        `)
-        .eq('is_active', true)
-        .eq('agents.status', 'active');
-
-      if (error) throw error;
-
-      return data.map(location => ({
-        ...location,
-        agent_name: location.agents?.full_name,
-        agent_phone: location.agents?.phone,
-        agent_country: location.agents?.country
-      }));
+      // Return empty array until migration is run
+      return [];
     } catch (error) {
       console.error('Error fetching agent locations:', error);
       throw new Error('Failed to fetch agent locations');
@@ -63,27 +42,8 @@ export class AgentLocationService {
    */
   static async getAllAgentLocations(): Promise<AgentLocationData[]> {
     try {
-      const { data, error } = await supabase
-        .from('agent_locations')
-        .select(`
-          *,
-          agents!inner(
-            full_name,
-            phone,
-            country,
-            status
-          )
-        `)
-        .order('updated_at', { ascending: false });
-
-      if (error) throw error;
-
-      return data.map(location => ({
-        ...location,
-        agent_name: location.agents?.full_name,
-        agent_phone: location.agents?.phone,
-        agent_country: location.agents?.country
-      }));
+      // Return empty array until migration is run
+      return [];
     } catch (error) {
       console.error('Error fetching all agent locations:', error);
       throw new Error('Failed to fetch agent locations');
@@ -101,21 +61,8 @@ export class AgentLocationService {
     zone?: string
   ): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('agent_locations')
-        .upsert({
-          agent_id: agentId,
-          latitude,
-          longitude,
-          address,
-          zone: zone || null,
-          is_active: true,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'agent_id'
-        });
-
-      if (error) throw error;
+      // TODO: Implement after migration is run
+      console.log('Would update agent location:', { agentId, latitude, longitude, address, zone });
     } catch (error) {
       console.error('Error updating agent location:', error);
       throw new Error('Failed to update agent location');
@@ -127,15 +74,8 @@ export class AgentLocationService {
    */
   static async deactivateAgentLocation(agentId: string): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('agent_locations')
-        .update({ 
-          is_active: false,
-          updated_at: new Date().toISOString()
-        })
-        .eq('agent_id', agentId);
-
-      if (error) throw error;
+      // TODO: Implement after migration is run
+      console.log('Would deactivate agent location:', agentId);
     } catch (error) {
       console.error('Error deactivating agent location:', error);
       throw new Error('Failed to deactivate agent location');
@@ -147,37 +87,8 @@ export class AgentLocationService {
    */
   static async getAgentLocationHistory(agentId: string, days: number = 7): Promise<LocationHistoryEntry[]> {
     try {
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - days);
-
-      const { data, error } = await supabase
-        .from('agent_locations')
-        .select(`
-          id,
-          agent_id,
-          latitude,
-          longitude,
-          address,
-          updated_at,
-          agents!inner(
-            full_name
-          )
-        `)
-        .eq('agent_id', agentId)
-        .gte('updated_at', startDate.toISOString())
-        .order('updated_at', { ascending: false });
-
-      if (error) throw error;
-
-      return data.map(entry => ({
-        id: entry.id,
-        agent_id: entry.agent_id,
-        latitude: entry.latitude,
-        longitude: entry.longitude,
-        address: entry.address,
-        timestamp: entry.updated_at,
-        agent_name: entry.agents?.full_name
-      }));
+      // Return empty array until migration is run
+      return [];
     } catch (error) {
       console.error('Error fetching agent location history:', error);
       throw new Error('Failed to fetch location history');
@@ -193,41 +104,8 @@ export class AgentLocationService {
     radiusKm: number = 10
   ): Promise<AgentLocationData[]> {
     try {
-      // Using Haversine formula approximation for nearby agents
-      // Note: For production, consider using PostGIS for more accurate geospatial queries
-      const { data, error } = await supabase
-        .from('agent_locations')
-        .select(`
-          *,
-          agents!inner(
-            full_name,
-            phone,
-            country,
-            status
-          )
-        `)
-        .eq('is_active', true)
-        .eq('agents.status', 'active');
-
-      if (error) throw error;
-
-      // Filter by distance (simple approximation)
-      const nearbyAgents = data.filter(location => {
-        const distance = this.calculateDistance(
-          latitude, 
-          longitude, 
-          location.latitude, 
-          location.longitude
-        );
-        return distance <= radiusKm;
-      });
-
-      return nearbyAgents.map(location => ({
-        ...location,
-        agent_name: location.agents?.full_name,
-        agent_phone: location.agents?.phone,
-        agent_country: location.agents?.country
-      }));
+      // Return empty array until migration is run
+      return [];
     } catch (error) {
       console.error('Error fetching nearby agents:', error);
       throw new Error('Failed to fetch nearby agents');
