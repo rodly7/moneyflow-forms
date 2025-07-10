@@ -25,6 +25,7 @@ import CustomDepositSystem from '@/components/admin/CustomDepositSystem';
 import SystemMetricsCard from '@/components/dashboard/SystemMetricsCard';
 import LowBalanceAgentsCard from '@/components/admin/LowBalanceAgentsCard';
 import TopPerformerCard from '@/components/admin/TopPerformerCard';
+import SubAdminBalanceRecharge from '@/components/admin/SubAdminBalanceRecharge';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -706,8 +707,11 @@ const MainAdminDashboard = () => {
                 </Card>
               </div>
 
-              {/* Deuxième colonne */}
+                {/* Deuxième colonne */}
               <div className="space-y-6">
+                {/* Recharge des Sous-Administrateurs */}
+                <SubAdminBalanceRecharge />
+
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
