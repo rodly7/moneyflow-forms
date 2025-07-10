@@ -690,7 +690,7 @@ const MainAdminDashboard = () => {
 
           {/* Finance */}
           <TabsContent value="finance" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -700,6 +700,18 @@ const MainAdminDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <AdminSelfRecharge />
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserPlus className="w-5 h-5 text-orange-600" />
+                    <span>Dépôt aux Agents</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <QuickAgentDepositWidget />
                 </CardContent>
               </Card>
               
@@ -734,7 +746,7 @@ const MainAdminDashboard = () => {
 
           {/* Notifications */}
           <TabsContent value="notifications" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -744,18 +756,6 @@ const MainAdminDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <NotificationSender />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <UserPlus className="w-5 h-5 text-orange-600" />
-                    <span>Dépôt aux Agents</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <QuickAgentDepositWidget />
                 </CardContent>
               </Card>
               
