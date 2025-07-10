@@ -223,16 +223,9 @@ const MainAdminDashboard = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      toast({
-        title: "Déconnexion réussie",
-        description: "Vous avez été déconnecté avec succès.",
-      });
+      navigate('/auth');
     } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Erreur lors de la déconnexion",
-        variant: "destructive",
-      });
+      console.error('Erreur déconnexion:', error);
     }
   };
 
@@ -360,13 +353,13 @@ const MainAdminDashboard = () => {
       {/* Navigation responsive */}
       <div className="max-w-7xl mx-auto p-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          {/* Navigation Desktop */}
-          {!isMobile && (
+          {/* Navigation Desktop et Tablette */}
+          {(!isMobile || isTablet) && (
             <TabsList className="grid w-full grid-cols-5 mb-6">
               {navItems.map((item) => (
-                <TabsTrigger key={item.id} value={item.id} className="flex items-center gap-2">
+                <TabsTrigger key={item.id} value={item.id} className="flex items-center gap-2 text-xs sm:text-sm">
                   <item.icon className="h-4 w-4" />
-                  {!isTablet && item.label}
+                  {(!isMobile || isTablet) && <span className="hidden sm:inline">{item.label}</span>}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -377,11 +370,15 @@ const MainAdminDashboard = () => {
           {/* Contenu des onglets */}
           <TabsContent value="dashboard" className="space-y-6">
             {/* Statistiques principales - responsive */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <OnlineUsersCard />
-              <CommissionSummaryCard data={dashboardData} isLoading={isLoading} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+              <div className="sm:col-span-2 xl:col-span-1">
+                <OnlineUsersCard />
+              </div>
+              <div className="sm:col-span-2 xl:col-span-1">
+                <CommissionSummaryCard data={dashboardData} isLoading={isLoading} />
+              </div>
               
-              <Card className="bg-gradient-to-br from-green-50 to-emerald-100 border-green-200">
+              <Card className="bg-gradient-to-br from-green-50 to-emerald-100 border-green-200 sm:col-span-1 xl:col-span-1">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-green-700 flex items-center gap-2">
                     <Activity className="w-4 h-4" />
@@ -406,52 +403,63 @@ const MainAdminDashboard = () => {
                 </CardContent>
               </Card>
 
-              <AnomaliesCard anomalies={dashboardData?.anomalies || []} isLoading={isLoading} />
+              <div className="sm:col-span-1 xl:col-span-1">
+                <AnomaliesCard anomalies={dashboardData?.anomalies || []} isLoading={isLoading} />
+              </div>
             </div>
 
-            {/* Géolocalisation */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-blue-600" />
-                  Géolocalisation des Agents
-                  <Badge variant="outline" className="ml-auto">
-                    <Wifi className="w-3 h-3 mr-1" />
-                    {agentLocations?.filter(a => a.is_active).length || 0} actifs
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AgentLocationMap 
-                  agents={agentLocations || []} 
-                  isLoading={isLoadingLocations}
-                />
-              </CardContent>
-            </Card>
+            {/* Section principale - responsive */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Géolocalisation */}
+              <Card className="lg:col-span-1">
+                <CardHeader>
+                  <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-blue-600" />
+                      <span className="text-sm sm:text-base">Géolocalisation</span>
+                    </div>
+                    <Badge variant="outline" className="self-start sm:ml-auto">
+                      <Wifi className="w-3 h-3 mr-1" />
+                      {agentLocations?.filter(a => a.is_active).length || 0} actifs
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64 sm:h-72 lg:h-80">
+                    <AgentLocationMap 
+                      agents={agentLocations || []} 
+                      isLoading={isLoadingLocations}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
 
-            {/* Performance des agents */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-purple-600" />
-                  Performance des Agents
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AgentsPerformanceTable agents={dashboardData?.agents || []} isLoading={isLoading} />
-              </CardContent>
-            </Card>
+              {/* Performance des agents */}
+              <Card className="lg:col-span-1">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-purple-600" />
+                    <span className="text-sm sm:text-base">Performance des Agents</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <AgentsPerformanceTable agents={dashboardData?.agents || []} isLoading={isLoading} />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Gestion des utilisateurs */}
           <TabsContent value="users" className="space-y-6">
             <Card>
-              <CardHeader className="flex items-center justify-between">
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
-                  Gestion des Utilisateurs
+                  <span className="text-sm sm:text-base">Gestion des Utilisateurs</span>
                 </CardTitle>
-                <Button onClick={fetchUsers} disabled={loadingUsers} size="sm">
+                <Button onClick={fetchUsers} disabled={loadingUsers} size="sm" className="self-start sm:self-auto">
                   Actualiser
                 </Button>
               </CardHeader>
@@ -463,33 +471,35 @@ const MainAdminDashboard = () => {
                     ))}
                   </div>
                 ) : (
-                  <UsersDataTable 
-                    users={users} 
-                    onViewUser={(user) => console.log('View user:', user)}
-                    onQuickRoleChange={async (userId, newRole) => {
-                      try {
-                        const result = await AdminUserService.changeUserRole(userId, newRole, profile?.id);
-                        if (result.success) {
-                          setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-                          toast({ title: "Rôle mis à jour", description: result.message });
+                  <div className="overflow-x-auto">
+                    <UsersDataTable 
+                      users={users} 
+                      onViewUser={(user) => console.log('View user:', user)}
+                      onQuickRoleChange={async (userId, newRole) => {
+                        try {
+                          const result = await AdminUserService.changeUserRole(userId, newRole, profile?.id);
+                          if (result.success) {
+                            setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+                            toast({ title: "Rôle mis à jour", description: result.message });
+                          }
+                        } catch (error) {
+                          toast({ title: "Erreur", variant: "destructive" });
                         }
-                      } catch (error) {
-                        toast({ title: "Erreur", variant: "destructive" });
-                      }
-                    }}
-                    onQuickBanToggle={async (userId, currentBanStatus) => {
-                      try {
-                        const result = await AdminUserService.toggleUserBan(userId, currentBanStatus, 'Action administrative', profile?.id);
-                        if (result.success) {
-                          setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_banned: !currentBanStatus } : u));
-                          toast({ title: "Statut mis à jour", description: result.message });
+                      }}
+                      onQuickBanToggle={async (userId, currentBanStatus) => {
+                        try {
+                          const result = await AdminUserService.toggleUserBan(userId, currentBanStatus, 'Action administrative', profile?.id);
+                          if (result.success) {
+                            setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_banned: !currentBanStatus } : u));
+                            toast({ title: "Statut mis à jour", description: result.message });
+                          }
+                        } catch (error) {
+                          toast({ title: "Erreur", variant: "destructive" });
                         }
-                      } catch (error) {
-                        toast({ title: "Erreur", variant: "destructive" });
-                      }
-                    }}
-                    onUserUpdated={fetchUsers}
-                  />
+                      }}
+                      onUserUpdated={fetchUsers}
+                    />
+                  </div>
                 )}
               </CardContent>
             </Card>
