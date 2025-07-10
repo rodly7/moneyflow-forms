@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminUserService } from '@/services/adminUserService';
 import { formatCurrency } from '@/integrations/supabase/client';
-import { Search, CreditCard, DollarSign, AlertCircle } from 'lucide-react';
+import { Search, CreditCard, DollarSign, AlertCircle, Users } from 'lucide-react';
 
 const CustomDepositSystem = () => {
   const { user, profile } = useAuth();
@@ -18,6 +18,40 @@ const CustomDepositSystem = () => {
   const [depositAmount, setDepositAmount] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [agents, setAgents] = useState<any[]>([]);
+  const [isLoadingAgents, setIsLoadingAgents] = useState(false);
+
+  // Charger les agents automatiquement au montage du composant
+  useEffect(() => {
+    loadAgents();
+  }, []);
+
+  const loadAgents = async () => {
+    setIsLoadingAgents(true);
+    try {
+      const result = await AdminUserService.fetchAllUsers();
+      if (result.success) {
+        // Filtrer seulement les agents
+        const agentUsers = result.data?.filter(user => user.role === 'agent') || [];
+        setAgents(agentUsers);
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger la liste des agents",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des agents:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors du chargement des agents",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingAgents(false);
+    }
+  };
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
@@ -140,9 +174,61 @@ const CustomDepositSystem = () => {
           </div>
         </div>
 
-        {/* Recherche d'utilisateur */}
+        {/* Liste des agents disponibles */}
         <div className="space-y-4">
-          <Label className="text-sm font-medium">Rechercher un utilisateur</Label>
+          <Label className="text-sm font-medium flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Agents Disponibles
+          </Label>
+          
+          {isLoadingAgents ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse p-3 bg-gray-100 rounded-lg">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              ))}
+            </div>
+          ) : agents.length > 0 ? (
+            <div className="grid gap-3 max-h-64 overflow-y-auto">
+              {agents.map((agent) => (
+                <div
+                  key={agent.id}
+                  className={`p-3 border rounded-lg cursor-pointer transition-colors hover:bg-blue-50 ${
+                    searchResult?.id === agent.id ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-200'
+                  }`}
+                  onClick={() => setSearchResult(agent)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-gray-800">{agent.full_name}</p>
+                      <p className="text-sm text-gray-600">{agent.phone}</p>
+                      <p className="text-xs text-gray-500">{agent.country}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-blue-600">
+                        Solde: {formatCurrency(agent.balance || 0, 'XAF')}
+                      </p>
+                      <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+                        Agent
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-gray-500">
+              <Users className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+              <p className="text-sm">Aucun agent trouvé</p>
+            </div>
+          )}
+        </div>
+
+        {/* Recherche manuelle d'utilisateur */}
+        <div className="space-y-4">
+          <Label className="text-sm font-medium">Ou rechercher manuellement un utilisateur</Label>
           <div className="flex gap-2">
             <Input
               placeholder="Numéro de téléphone ou nom complet..."

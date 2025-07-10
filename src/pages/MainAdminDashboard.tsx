@@ -98,15 +98,6 @@ const QuickAgentDepositWidget = () => {
           {isProcessing ? 'Traitement...' : 'Dépôt Auto (Agents < 50k)'}
         </Button>
         
-        <Button
-          onClick={() => navigate('/admin-users')}
-          variant="outline"
-          className="w-full"
-          size="sm"
-        >
-          <Send className="w-4 h-4 mr-2" />
-          Dépôt Manuel Personnalisé
-        </Button>
       </div>
     </div>
   );
