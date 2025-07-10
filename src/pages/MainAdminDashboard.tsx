@@ -226,6 +226,8 @@ const MainAdminDashboard = () => {
       navigate('/auth');
     } catch (error) {
       console.error('Erreur déconnexion:', error);
+      // Force la redirection même en cas d'erreur
+      navigate('/auth');
     }
   };
 
@@ -291,58 +293,59 @@ const MainAdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Header responsive */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 p-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between">
+      {/* Header responsive amélioré */}
+      <div className="bg-white/90 backdrop-blur-md border-b border-gray-200/50 shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between py-4">
             {/* Logo et titre */}
             <div className="flex items-center gap-4">
               <MobileNav />
-              <div>
+              <div className="min-w-0 flex-1">
                 <h1 className={`font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent ${
-                  isMobile ? 'text-xl' : 'text-2xl'
-                }`}>
+                  isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'
+                } truncate`}>
                   Admin Dashboard
                 </h1>
                 {!isMobile && (
-                  <p className="text-gray-600 text-sm">Vue d'ensemble et gestion complète</p>
+                  <p className="text-gray-600 text-xs sm:text-sm mt-0.5">Vue d'ensemble et gestion complète</p>
                 )}
               </div>
             </div>
 
             {/* Profil administrateur responsive */}
-            <div className="flex items-center gap-3">
-              <Avatar className={`${isMobile ? 'h-8 w-8' : 'h-10 w-10'}`}>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Avatar className={`${isMobile ? 'h-8 w-8' : 'h-9 w-9 sm:h-10 sm:w-10'}`}>
                 <AvatarImage src={profile?.avatar_url} />
                 <AvatarFallback>
                   <User className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
                 </AvatarFallback>
               </Avatar>
               
-              {!isMobile && (
-                <div className="text-right">
-                  <p className="font-semibold text-gray-900 text-sm">
+              {(isTablet || !isMobile) && (
+                <div className="text-right hidden sm:block">
+                  <p className="font-semibold text-gray-900 text-xs sm:text-sm truncate max-w-24 sm:max-w-32">
                     {profile?.full_name || 'Administrateur'}
                   </p>
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="outline" className="text-xs mt-0.5">
                     {profile?.role === 'admin' ? 'Admin' : 'Sub-Admin'}
                   </Badge>
                 </div>
               )}
               
-              <div className="flex gap-1">
+              <div className="flex gap-1 sm:gap-2">
                 {!isMobile && (
-                  <Button size="sm" variant="outline" className="p-2">
+                  <Button size="sm" variant="outline" className="p-2 hidden sm:flex">
                     <Bell className="h-4 w-4" />
                   </Button>
                 )}
                 <Button 
-                  size="sm" 
+                  size={isMobile ? "sm" : "default"}
                   variant="destructive"
                   onClick={handleSignOut}
-                  className="p-2"
+                  className={`${isMobile ? 'p-2' : 'px-3 py-2'} flex items-center gap-1`}
                 >
                   <LogOut className="h-4 w-4" />
+                  {!isMobile && <span className="hidden sm:inline text-xs">Déconnexion</span>}
                 </Button>
               </div>
             </div>
@@ -350,52 +353,70 @@ const MainAdminDashboard = () => {
         </div>
       </div>
 
-      {/* Navigation responsive */}
-      <div className="max-w-7xl mx-auto p-4">
+      {/* Navigation responsive améliorée */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Navigation Desktop et Tablette */}
-          {(!isMobile || isTablet) && (
-            <TabsList className="grid w-full grid-cols-5 mb-6">
+          {!isMobile && (
+            <TabsList className="grid w-full grid-cols-5 mb-6 sm:mb-8 bg-white/60 backdrop-blur-sm shadow-sm">
               {navItems.map((item) => (
-                <TabsTrigger key={item.id} value={item.id} className="flex items-center gap-2 text-xs sm:text-sm">
-                  <item.icon className="h-4 w-4" />
-                  {(!isMobile || isTablet) && <span className="hidden sm:inline">{item.label}</span>}
+                <TabsTrigger 
+                  key={item.id} 
+                  value={item.id} 
+                  className="flex items-center gap-2 text-xs sm:text-sm py-2.5 sm:py-3 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all duration-200"
+                >
+                  <item.icon className="h-4 w-4 flex-shrink-0" />
+                  <span className={`${isTablet ? 'hidden lg:inline' : 'inline'} truncate`}>
+                    {item.label}
+                  </span>
                 </TabsTrigger>
               ))}
             </TabsList>
           )}
 
-          {/* Navigation Mobile (dans le drawer) */}
+          {/* Indicateur d'onglet actif sur mobile */}
+          {isMobile && (
+            <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
+              <div className="flex items-center gap-2">
+                {navItems.find(item => item.id === activeTab) && (
+                  <>
+                    {React.createElement(navItems.find(item => item.id === activeTab)!.icon, { className: "h-5 w-5 text-blue-600" })}
+                    <span className="font-medium text-blue-900">{navItems.find(item => item.id === activeTab)!.label}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Contenu des onglets */}
           <TabsContent value="dashboard" className="space-y-6">
-            {/* Statistiques principales - responsive */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
-              <div className="sm:col-span-2 xl:col-span-1">
+            {/* Statistiques principales - disposition améliorée */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
+              <div className="md:col-span-1 xl:col-span-1">
                 <OnlineUsersCard />
               </div>
-              <div className="sm:col-span-2 xl:col-span-1">
+              <div className="md:col-span-1 xl:col-span-1">
                 <CommissionSummaryCard data={dashboardData} isLoading={isLoading} />
               </div>
               
-              <Card className="bg-gradient-to-br from-green-50 to-emerald-100 border-green-200 sm:col-span-1 xl:col-span-1">
-                <CardHeader className="pb-2">
+              <Card className="bg-gradient-to-br from-green-50 to-emerald-100 border-green-200/60 shadow-sm hover:shadow-md transition-shadow duration-200 md:col-span-1 xl:col-span-1">
+                <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium text-green-700 flex items-center gap-2">
-                    <Activity className="w-4 h-4" />
-                    Activité Système
+                    <Activity className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">Activité Système</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-green-600">Total agents</span>
-                      <Badge variant="outline" className="border-green-500 text-green-700">
+                <CardContent className="pt-0">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-green-600 truncate">Total agents</span>
+                      <Badge variant="outline" className="border-green-500 text-green-700 ml-2">
                         {dashboardData?.totalAgents || 0}
                       </Badge>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-green-600">Agents localisés</span>
-                      <Badge variant="outline" className="border-green-500 text-green-700">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-green-600 truncate">Agents localisés</span>
+                      <Badge variant="outline" className="border-green-500 text-green-700 ml-2">
                         {agentLocations?.length || 0}
                       </Badge>
                     </div>
@@ -403,29 +424,29 @@ const MainAdminDashboard = () => {
                 </CardContent>
               </Card>
 
-              <div className="sm:col-span-1 xl:col-span-1">
+              <div className="md:col-span-1 xl:col-span-1">
                 <AnomaliesCard anomalies={dashboardData?.anomalies || []} isLoading={isLoading} />
               </div>
             </div>
 
-            {/* Section principale - responsive */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Section principale - disposition optimisée */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
               {/* Géolocalisation */}
-              <Card className="lg:col-span-1">
-                <CardHeader>
-                  <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <Card className="xl:col-span-1 shadow-sm hover:shadow-md transition-shadow duration-200">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                     <div className="flex items-center gap-2">
-                      <MapPin className="w-5 h-5 text-blue-600" />
-                      <span className="text-sm sm:text-base">Géolocalisation</span>
+                      <MapPin className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                      <span className="text-sm sm:text-base font-semibold">Géolocalisation des Agents</span>
                     </div>
-                    <Badge variant="outline" className="self-start sm:ml-auto">
-                      <Wifi className="w-3 h-3 mr-1" />
-                      {agentLocations?.filter(a => a.is_active).length || 0} actifs
+                    <Badge variant="outline" className="self-start sm:ml-auto bg-green-50 border-green-200">
+                      <Wifi className="w-3 h-3 mr-1 text-green-600" />
+                      <span className="text-green-700">{agentLocations?.filter(a => a.is_active).length || 0} actifs</span>
                     </Badge>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="h-64 sm:h-72 lg:h-80">
+                <CardContent className="pt-0">
+                  <div className="h-64 sm:h-72 lg:h-80 xl:h-72 2xl:h-80 rounded-lg overflow-hidden bg-gray-50">
                     <AgentLocationMap 
                       agents={agentLocations || []} 
                       isLoading={isLoadingLocations}
@@ -435,16 +456,18 @@ const MainAdminDashboard = () => {
               </Card>
 
               {/* Performance des agents */}
-              <Card className="lg:col-span-1">
-                <CardHeader>
+              <Card className="xl:col-span-1 shadow-sm hover:shadow-md transition-shadow duration-200">
+                <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-purple-600" />
-                    <span className="text-sm sm:text-base">Performance des Agents</span>
+                    <Users className="w-5 h-5 text-purple-600 flex-shrink-0" />
+                    <span className="text-sm sm:text-base font-semibold">Performance des Agents</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-0">
                   <div className="overflow-x-auto">
-                    <AgentsPerformanceTable agents={dashboardData?.agents || []} isLoading={isLoading} />
+                    <div className="min-w-[500px]">
+                      <AgentsPerformanceTable agents={dashboardData?.agents || []} isLoading={isLoading} />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
