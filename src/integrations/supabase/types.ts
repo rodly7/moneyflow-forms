@@ -1002,6 +1002,47 @@ export type Database = {
           },
         ]
       }
+      user_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: unknown | null
+          is_active: boolean
+          last_activity: string
+          session_start: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean
+          last_activity?: string
+          session_start?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean
+          last_activity?: string
+          session_start?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       withdrawal_requests: {
         Row: {
           agent_id: string
@@ -1155,6 +1196,10 @@ export type Database = {
         Args: { p_agent_id: string }
         Returns: undefined
       }
+      end_user_session: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       find_recipient: {
         Args: { search_term: string }
         Returns: {
@@ -1268,6 +1313,10 @@ export type Database = {
         }
         Returns: number
       }
+      start_user_session: {
+        Args: { p_user_agent?: string; p_ip_address?: unknown }
+        Returns: string
+      }
       update_agent_location: {
         Args: {
           p_agent_id: string
@@ -1276,6 +1325,10 @@ export type Database = {
           p_address: string
           p_zone?: string
         }
+        Returns: undefined
+      }
+      update_session_activity: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
     }

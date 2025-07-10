@@ -49,29 +49,38 @@ export const useSystemMetrics = () => {
       const now = new Date();
       const fifteenMinutesAgo = new Date(now.getTime() - 15 * 60 * 1000);
 
-      // 1. Récupérer les utilisateurs en ligne (approximation basée sur les profils récents)
-      const { data: recentProfiles } = await supabase
-        .from('profiles')
-        .select('id, full_name, role, country, created_at')
-        .order('created_at', { ascending: false })
-        .limit(50);
+      // 1. Récupérer les vrais utilisateurs en ligne (sessions actives)
+      const { data: activeSessions } = await supabase
+        .from('user_sessions')
+        .select(`
+          user_id,
+          last_activity,
+          profiles!inner(id, full_name, role, country)
+        `)
+        .eq('is_active', true)
+        .gte('last_activity', fifteenMinutesAgo.toISOString());
 
       let onlineUsers = { total: 0, agents: [], users: [] };
 
-      if (recentProfiles?.length) {
-        // Simuler les utilisateurs "en ligne" basé sur l'activité récente
-        const onlineUsersWithProfiles = recentProfiles.map(profile => ({
-          id: profile.id,
-          full_name: profile.full_name || 'Utilisateur',
-          role: profile.role,
-          country: profile.country || 'Non spécifié',
-          last_sign_in_at: profile.created_at
-        })) as OnlineUser[];
+      if (activeSessions?.length) {
+        const onlineUsersWithProfiles = activeSessions
+          .map(session => {
+            const profile = session.profiles;
+            if (!profile) return null;
+            return {
+              id: profile.id,
+              full_name: profile.full_name || 'Utilisateur',
+              role: profile.role,
+              country: profile.country || 'Non spécifié',
+              last_sign_in_at: session.last_activity
+            };
+          })
+          .filter(Boolean) as OnlineUser[];
 
         onlineUsers = {
-          total: Math.min(onlineUsersWithProfiles.length, 10), // Limite pour simulation
-          agents: onlineUsersWithProfiles.filter(u => u.role === 'agent').slice(0, 5),
-          users: onlineUsersWithProfiles.filter(u => u.role === 'user').slice(0, 5)
+          total: onlineUsersWithProfiles.length,
+          agents: onlineUsersWithProfiles.filter(u => u.role === 'agent'),
+          users: onlineUsersWithProfiles.filter(u => u.role === 'user')
         };
       }
 

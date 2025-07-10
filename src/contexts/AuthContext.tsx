@@ -3,6 +3,8 @@ import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, AuthContextType, SignUpMetadata } from '@/types/auth';
 import { authService } from '@/services/authService';
+import { useUserSession } from '@/hooks/useUserSession';
+import SessionManager from '@/components/SessionManager';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -10,6 +12,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Gérer automatiquement les sessions utilisateur
+  // Note: useUserSession sera appelé de façon conditionnelle dans un composant enfant
 
   // Mémoriser la fonction de rafraîchissement pour éviter les re-renders inutiles
   const refreshProfile = useCallback(async () => {
@@ -188,6 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider value={contextValue}>
+      <SessionManager />
       {children}
     </AuthContext.Provider>
   );
