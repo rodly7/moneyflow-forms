@@ -31,13 +31,18 @@ const RecentNotificationsWidget = () => {
   const { data: notifications, isLoading } = useQuery({
     queryKey: ['recent-notifications'],
     queryFn: async () => {
+      console.log('🔔 Chargement des notifications récentes...');
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(5);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur lors du chargement des notifications:', error);
+        throw error;
+      }
+      console.log('✅ Notifications chargées:', data);
       return data || [];
     },
     refetchInterval: 30000,
@@ -662,19 +667,26 @@ const MainAdminDashboard = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Bell className="w-5 h-5" />
-                      Notifications Récentes
+                      <Bell className="w-5 h-5 text-blue-600" />
+                      <span>Notifications Récentes</span>
                     </div>
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => navigate('/admin-notifications')}
+                      className="flex items-center gap-1"
                     >
+                      <MessageSquare className="w-4 h-4" />
                       Voir tout
                     </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  <div className="mb-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-xs text-blue-700">
+                      💡 <strong>Les notifications automatiques</strong> apparaissent ici quand vous effectuez des dépôts aux agents.
+                    </p>
+                  </div>
                   <RecentNotificationsWidget />
                 </CardContent>
               </Card>
