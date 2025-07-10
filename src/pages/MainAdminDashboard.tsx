@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { 
   Users, DollarSign, TrendingUp, Activity, MapPin, Wifi, LogOut, User, Bell, 
-  Settings, Menu, Wallet, UserPlus, MessageSquare, BarChart3, Database
+  Settings, Menu, Wallet, UserPlus, MessageSquare, BarChart3, Database, Send
 } from 'lucide-react';
 import { useAdminDashboardData } from '@/hooks/useAdminDashboardData';
 import { useActiveAgentLocations } from '@/hooks/useAgentLocations';
@@ -25,6 +25,90 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { AdminUserService, AdminUserData } from '@/services/adminUserService';
+
+// Widget pour dépôt rapide aux agents
+const QuickAgentDepositWidget = () => {
+  const { profile, user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleAutoBatchDeposit = async () => {
+    if (!profile?.id) {
+      toast({
+        title: "Erreur",
+        description: "Profil administrateur non trouvé",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const result = await AdminUserService.performAutoBatchDeposit(
+        profile.id,
+        profile.balance || 0,
+        50000,
+        50000
+      );
+
+      if (result.success) {
+        toast({
+          title: "✅ Dépôts automatiques effectués",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Information",
+          description: result.message,
+          variant: result.message.includes("Solde insuffisant") ? "destructive" : "default"
+        });
+      }
+    } catch (error: any) {
+      console.error('Erreur lors du dépôt automatique:', error);
+      toast({
+        title: "Erreur critique",
+        description: error.message || "Erreur lors du dépôt automatique",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+        <p className="text-xs text-green-700 mb-2">
+          <strong>Dépôt automatique:</strong> Crédite 50,000 FCFA aux agents ayant un solde inférieur à 50,000 FCFA
+        </p>
+      </div>
+      
+      <div className="space-y-3">
+        <Button
+          onClick={handleAutoBatchDeposit}
+          disabled={isProcessing}
+          className="w-full bg-orange-600 hover:bg-orange-700"
+          size="sm"
+        >
+          <UserPlus className="w-4 h-4 mr-2" />
+          {isProcessing ? 'Traitement...' : 'Dépôt Auto (Agents < 50k)'}
+        </Button>
+        
+        <Button
+          onClick={() => navigate('/admin-users')}
+          variant="outline"
+          className="w-full"
+          size="sm"
+        >
+          <Send className="w-4 h-4 mr-2" />
+          Dépôt Manuel Personnalisé
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 // Widget pour afficher les notifications récentes
 const RecentNotificationsWidget = () => {
@@ -650,7 +734,7 @@ const MainAdminDashboard = () => {
 
           {/* Notifications */}
           <TabsContent value="notifications" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -660,6 +744,18 @@ const MainAdminDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <NotificationSender />
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserPlus className="w-5 h-5 text-orange-600" />
+                    <span>Dépôt aux Agents</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <QuickAgentDepositWidget />
                 </CardContent>
               </Card>
               
