@@ -15,14 +15,17 @@ const AdminBalanceUpdate = () => {
   const [result, setResult] = useState<any>(null);
 
   const handleBalanceUpdate = async () => {
+    console.log("🚀 Démarrage de la mise à jour du solde...");
     const phone = "+221773637752";
     const amount = 15019999527525;
 
     setIsProcessing(true);
     
     try {
+      console.log("📞 Tentative de mise à jour pour:", phone, "Montant:", amount);
       const updateResult = await updateUserBalance(phone, amount);
       
+      console.log("✅ Résultat reçu:", updateResult);
       setResult(updateResult);
       
       toast({
@@ -31,13 +34,14 @@ const AdminBalanceUpdate = () => {
       });
       
     } catch (error) {
-      console.error("Erreur lors de la mise à jour:", error);
+      console.error("❌ Erreur lors de la mise à jour:", error);
       toast({
         title: "Erreur",
         description: error instanceof Error ? error.message : "Une erreur est survenue lors de la mise à jour du solde",
         variant: "destructive"
       });
     } finally {
+      console.log("🏁 Fin du processus");
       setIsProcessing(false);
     }
   };
@@ -47,11 +51,14 @@ const AdminBalanceUpdate = () => {
       <div className="container max-w-2xl mx-auto">
         <Button
           variant="ghost"
-          onClick={() => navigate('/')}
+          onClick={() => {
+            console.log("🔙 Bouton Retour cliqué - Redirection vers /main-admin");
+            navigate('/main-admin');
+          }}
           className="mb-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour
+          Retour au Dashboard
         </Button>
 
         <Card className="shadow-lg">
