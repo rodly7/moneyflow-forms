@@ -5,16 +5,35 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageSquare, Send, ArrowLeft, Bell } from "lucide-react";
+import { MessageSquare, Send, ArrowLeft, Bell, List, Users, Clock, CheckCircle } from "lucide-react";
+
+interface NotificationData {
+  id: string;
+  title: string;
+  message: string;
+  target_role: string | null;
+  target_country: string | null;
+  priority: string;
+  notification_type: string;
+  total_recipients: number;
+  created_at: string;
+  sent_by: string | null;
+  target_users: string[] | null;
+  updated_at: string;
+}
 
 const AdminNotifications = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationData[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(true);
   const [formData, setFormData] = useState({
     title: '',
     message: '',
@@ -65,11 +84,34 @@ const AdminNotifications = () => {
     }));
   };
 
+  const fetchNotifications = async () => {
+    try {
+      setLoadingNotifications(true);
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setNotifications(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des notifications:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les notifications",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
   useEffect(() => {
     if (profile?.role !== 'admin') {
       navigate('/dashboard');
       return;
     }
+    fetchNotifications();
   }, [profile, navigate]);
 
   const handleSendNotification = async () => {
@@ -160,6 +202,9 @@ const AdminNotifications = () => {
         target_country: '',
         priority: 'normal'
       });
+
+      // Actualiser la liste des notifications
+      fetchNotifications();
     } catch (error) {
       console.error("Erreur lors de l'envoi:", error);
       toast({
@@ -197,14 +242,28 @@ const AdminNotifications = () => {
           </div>
         </div>
 
-        {/* Notification Form */}
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-              <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
-              Envoyer une Notification
-            </CardTitle>
-          </CardHeader>
+        {/* Tabs Navigation */}
+        <Tabs defaultValue="send" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl h-14">
+            <TabsTrigger value="send" className="flex items-center gap-2 h-10">
+              <Send className="w-4 h-4" />
+              <span className="hidden sm:inline">Envoyer</span>
+            </TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center gap-2 h-10">
+              <List className="w-4 h-4" />
+              <span className="hidden sm:inline">Historique</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="send" className="mt-6">
+            {/* Notification Form */}
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                  <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
+                  Envoyer une Notification
+                </CardTitle>
+              </CardHeader>
           <CardContent className="space-y-4 p-4 sm:p-6">
             <div>
               <label className="block text-xs sm:text-sm font-medium mb-2">Titre</label>
@@ -290,26 +349,126 @@ const AdminNotifications = () => {
               <Send className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               {isLoading ? 'Envoi en cours...' : 'Envoyer la notification'}
             </Button>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
 
-        {/* Info Card */}
-        <Card className="mt-4 sm:mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-start gap-2 sm:gap-3">
-              <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div>
-                <h3 className="font-semibold text-blue-800 mb-2 text-sm sm:text-base">Information</h3>
-                <div className="space-y-1 text-xs sm:text-sm text-blue-700">
-                  <p>• Les notifications sont envoyées à tous les utilisateurs par défaut</p>
-                  <p>• Vous pouvez cibler un rôle spécifique ou un pays</p>
-                  <p>• Les notifications avec une priorité élevée apparaissent en premier</p>
-                  <p>• Tous les utilisateurs peuvent voir les notifications dans leur tableau de bord</p>
+            {/* Info Card */}
+            <Card className="mt-4 sm:mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-semibold text-blue-800 mb-2 text-sm sm:text-base">Information</h3>
+                    <div className="space-y-1 text-xs sm:text-sm text-blue-700">
+                      <p>• Les notifications sont envoyées à tous les utilisateurs par défaut</p>
+                      <p>• Vous pouvez cibler un rôle spécifique ou un pays</p>
+                      <p>• Les notifications avec une priorité élevée apparaissent en premier</p>
+                      <p>• Tous les utilisateurs peuvent voir les notifications dans leur tableau de bord</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="history" className="mt-6">
+            {/* Notifications History */}
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                  <List className="w-4 h-4 sm:w-5 sm:h-5" />
+                  Historique des Notifications
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6">
+                {loadingNotifications ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                    <span className="ml-2 text-gray-600">Chargement...</span>
+                  </div>
+                ) : notifications.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Bell className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>Aucune notification envoyée</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {notifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="font-semibold text-gray-900 line-clamp-1">
+                                {notification.title}
+                              </h3>
+                              <Badge
+                                variant={
+                                  notification.priority === 'high' ? 'destructive' :
+                                  notification.priority === 'medium' ? 'default' :
+                                  'secondary'
+                                }
+                                className="text-xs"
+                              >
+                                {notification.priority === 'high' ? 'Élevée' :
+                                 notification.priority === 'medium' ? 'Moyenne' :
+                                 notification.priority === 'low' ? 'Faible' : 'Normale'}
+                              </Badge>
+                            </div>
+                            <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                              {notification.message}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
+                              <div className="flex items-center gap-1">
+                                <Users className="w-3 h-3" />
+                                <span>{notification.total_recipients} destinataire(s)</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                <span>{new Date(notification.created_at).toLocaleDateString('fr-FR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}</span>
+                              </div>
+                              {notification.target_role && (
+                                <Badge variant="outline" className="text-xs">
+                                  Rôle: {notification.target_role === 'user' ? 'Utilisateurs' :
+                                         notification.target_role === 'agent' ? 'Agents' :
+                                         notification.target_role === 'sub_admin' ? 'Sous-Admin' : notification.target_role}
+                                </Badge>
+                              )}
+                              {notification.target_country && (
+                                <Badge variant="outline" className="text-xs">
+                                  Pays: {notification.target_country}
+                                </Badge>
+                              )}
+                              {notification.notification_type === 'individual' && (
+                                <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Auto-générée
+                                </Badge>
+                              )}
+                            </div>
+                            {notification.sent_by && (
+                              <div className="mt-2 text-xs text-gray-500">
+                                Envoyée par l'administrateur
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
