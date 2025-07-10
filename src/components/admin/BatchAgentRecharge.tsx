@@ -83,7 +83,9 @@ const BatchAgentRecharge = () => {
       let successCount = 0;
       let failCount = 0;
       const results = [];
+      const successfulAgents: string[] = [];
 
+      // Processus de recharge des agents
       for (const agentId of selectedAgents) {
         try {
           const { error } = await supabase.rpc('secure_increment_balance', {
@@ -94,6 +96,7 @@ const BatchAgentRecharge = () => {
 
           if (error) throw error;
           successCount++;
+          successfulAgents.push(agentId);
           results.push({ agentId, success: true });
         } catch (error) {
           console.error(`Erreur pour l'agent ${agentId}:`, error);
@@ -118,9 +121,53 @@ const BatchAgentRecharge = () => {
           }
         });
 
+      // Génération automatique de notifications si des recharges ont réussi
+      if (successCount > 0) {
+        try {
+          const currentUser = await supabase.auth.getUser();
+          const adminId = currentUser.data.user?.id;
+
+          // Créer la notification principale
+          const { data: notification, error: notificationError } = await supabase
+            .from('notifications')
+            .insert({
+              title: 'Recharge de compte effectuée',
+              message: `Votre compte a été rechargé de ${rechargeAmount.toLocaleString()} FCFA par l'administrateur. ${reason ? `Motif: ${reason}` : ''}`,
+              priority: 'normal',
+              notification_type: 'individual',
+              target_users: successfulAgents,
+              sent_by: adminId,
+              total_recipients: successCount
+            })
+            .select()
+            .single();
+
+          if (notificationError) {
+            console.error('Erreur lors de la création de la notification:', notificationError);
+          } else {
+            // Créer les enregistrements pour les destinataires
+            const individualNotifications = successfulAgents.map(agentId => ({
+              notification_id: notification.id,
+              user_id: agentId,
+              status: 'sent'
+            }));
+
+            const { error: recipientError } = await supabase
+              .from('notification_recipients')
+              .insert(individualNotifications);
+
+            if (recipientError) {
+              console.error('Erreur lors de l\'envoi des notifications aux agents:', recipientError);
+            }
+          }
+        } catch (notificationError) {
+          console.error('Erreur lors du processus de notification:', notificationError);
+        }
+      }
+
       toast({
         title: "Recharge groupée terminée",
-        description: `${successCount} agents rechargés avec succès, ${failCount} échecs`,
+        description: `${successCount} agents rechargés avec succès${successCount > 0 ? ' et notifiés' : ''}, ${failCount} échecs`,
         variant: successCount > 0 ? "default" : "destructive"
       });
 
