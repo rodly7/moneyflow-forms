@@ -16,6 +16,9 @@ import { usePerformanceMonitor, useDebounce } from "@/hooks/usePerformanceOptimi
 import CompactHeader from "@/components/dashboard/CompactHeader";
 import CompactStatsGrid from "@/components/dashboard/CompactStatsGrid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import SystemMetricsCard from "@/components/dashboard/SystemMetricsCard";
+import AnomaliesCard from "@/components/admin/AnomaliesCard";
+import { useAdminDashboardData } from "@/hooks/useAdminDashboardData";
 
 interface StatsData {
   totalUsers: number;
@@ -43,6 +46,7 @@ const CompactSubAdminDashboard = () => {
   const { isSubAdmin, canDepositToAgent } = useSubAdmin();
   const deviceInfo = useDeviceDetection();
   const { renderCount } = usePerformanceMonitor('CompactSubAdminDashboard');
+  const { data: dashboardData, isLoading: isLoadingDashboard } = useAdminDashboardData();
   
   const [activeTab, setActiveTab] = useState("overview");
   const [stats, setStats] = useState<StatsData>({
@@ -246,6 +250,14 @@ const CompactSubAdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
+            {/* Métriques temps réel et anomalies */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <SystemMetricsCard />
+              <AnomaliesCard 
+                anomalies={dashboardData?.anomalies || []} 
+                isLoading={isLoadingDashboard} 
+              />
+            </div>
             <Card>
               <CardContent className="p-4">
                 <h3 className="font-semibold mb-2">Tableau de bord principal</h3>

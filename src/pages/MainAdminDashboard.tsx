@@ -551,8 +551,9 @@ const MainAdminDashboard = () => {
               <CommissionSummaryCard data={dashboardData} isLoading={isLoading} />
             </div>
 
-            {/* Cartes secondaires */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 mb-6">
+            {/* Métriques temps réel et utilisateurs en ligne */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6">
+              <SystemMetricsCard />
               <OnlineUsersCard />
               
               <Card className="bg-gradient-to-br from-green-50 to-emerald-100 border-green-200/60 shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -579,8 +580,10 @@ const MainAdminDashboard = () => {
                   </div>
                 </CardContent>
               </Card>
+            </div>
 
-              <SystemMetricsCard />
+            {/* Journal des anomalies élargi */}
+            <div className="mb-6">
               <AnomaliesCard anomalies={dashboardData?.anomalies || []} isLoading={isLoading} />
             </div>
 
