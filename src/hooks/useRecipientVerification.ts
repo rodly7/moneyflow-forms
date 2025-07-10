@@ -371,70 +371,56 @@ export const useRecipientVerification = () => {
           }
         }
         
-        // Strategy 2: Recherche dans auth_users_agents_view si pas trouvé dans profiles
-        let authUserData = [];
+        // Strategy 2: Recherche supplémentaire dans les profils avec numéros normalisés
+        let additionalProfileData = [];
         try {
-          const { data, error: authUserError } = await supabase
-            .from('auth_users_agents_view')
-            .select('id, email, raw_user_meta_data')
-            .order('created_at', { ascending: false });
+          // Recherche plus flexible dans les profils pour capturer plus d'utilisateurs
+          const normalizedSearchTerm = cleanedPhone.replace(/[\s+\-]/g, '');
+          const { data, error: additionalProfileError } = await supabase
+            .from('profiles')
+            .select('id, full_name, phone, country, balance')
+            .or(`phone.ilike.%${normalizedSearchTerm}%,full_name.ilike.%${cleanedPhone}%`)
+            .limit(50);
           
-          if (!authUserError && data) {
-            authUserData = data;
-          }
-        } catch (error) {
-          console.error("Erreur lors de la récupération des utilisateurs auth:", error);
-        }
-        
-        console.log("Nombre d'utilisateurs trouvés dans auth_users_agents_view:", authUserData?.length);
-        
-        if (authUserData && authUserData.length > 0) {
-          for (const user of authUserData) {
-            if (user.raw_user_meta_data) {
-              const metadata = user.raw_user_meta_data as any;
-              console.log(`Vérification de l'utilisateur: ${user.id}`);
-              
-              const userPhone = metadata.phone || '';
-              console.log(`Téléphone dans les métadonnées: ${userPhone}`);
-              
-              if (!userPhone) continue;
-              
-              if (phoneNumbersMatch(userPhone, formattedPhone, countryCode)) {
-                console.log("✓ Correspondance trouvée dans auth_users_agents_view!");
+          if (!additionalProfileError && data) {
+            additionalProfileData = data;
+            
+            // Vérifier les résultats supplémentaires
+            for (const additionalProfile of data) {
+              if (additionalProfile.phone && phoneNumbersMatch(additionalProfile.phone, formattedPhone, countryCode)) {
+                console.log("✓ Correspondance trouvée dans la recherche supplémentaire:", additionalProfile.id);
                 
-                const displayName = extractNameFromMetadata(metadata) || metadata.full_name || metadata.fullName || "Utilisateur";
+                const balanceData = await getUserBalance(additionalProfile.id);
+                const actualBalance = balanceData.balance;
                 
-                if (displayName) {
-                  console.log("Nom trouvé dans les métadonnées:", displayName);
-                  console.log("ID utilisateur trouvé dans auth_users_agents_view:", user.id);
-                  
-                  // Récupérer le solde de l'utilisateur et créer le profil si nécessaire
-                  const balanceData = await getUserBalance(user.id);
-                  
-                  const finalResult = {
-                    verified: true,
-                    recipientData: {
-                      email: userPhone,
-                      fullName: displayName,
-                      country: metadata.country || recipient.country,
-                      userId: user.id,
-                      balance: balanceData.balance
-                    }
-                  };
-                  
-                  toast({
-                    title: "Bénéficiaire trouvé",
-                    description: `${finalResult.recipientData.fullName} - Solde: ${balanceData.balance} FCFA`,
-                  });
-                  
-                  setRecipientVerified(true);
-                  setIsLoading(false);
-                  return finalResult;
-                }
+                const finalResult = {
+                  verified: true,
+                  recipientData: {
+                    email: additionalProfile.phone,
+                    fullName: additionalProfile.full_name || balanceData.fullName || `Utilisateur ${additionalProfile.phone}`,
+                    country: additionalProfile.country || balanceData.country || recipient.country,
+                    userId: additionalProfile.id,
+                    balance: actualBalance
+                  }
+                };
+                
+                toast({
+                  title: "Bénéficiaire trouvé",
+                  description: `${finalResult.recipientData.fullName} - Solde: ${actualBalance} FCFA`,
+                });
+                
+                setRecipientVerified(true);
+                setIsLoading(false);
+                return finalResult;
               }
             }
           }
+        } catch (error) {
+          console.error("Erreur lors de la recherche supplémentaire de profils:", error);
         }
+        
+        // Aucun utilisateur trouvé dans les stratégies précédentes
+        console.log("Aucune correspondance trouvée dans les recherches principales");
         
         // Strategy 3: Recherche par derniers chiffres
         console.log("Recherche par derniers chiffres du numéro...");

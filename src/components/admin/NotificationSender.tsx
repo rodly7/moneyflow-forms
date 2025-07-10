@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Send, Users, Bell, AlertCircle, CheckCircle, Loader, Sparkles, Gift, TrendingUp, Trophy } from "lucide-react";
+import { NotificationService } from "@/services/notificationService";
 
 interface User {
   id: string;
@@ -153,57 +154,47 @@ const NotificationSender = () => {
     setIsSending(true);
 
     try {
-      // Créer la notification dans la base de données
-      const { data: notification, error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          title,
-          message,
-          priority,
-          notification_type: notificationType,
-          target_role: selectedRole || null,
-          target_country: selectedCountry || null,
-          target_users: notificationType === 'individual' ? selectedUsers : null,
-          sent_by: (await supabase.auth.getUser()).data.user?.id,
-          total_recipients: targetUsers.length
-        })
-        .select()
-        .single();
+      console.log("🚀 Envoi de notification via NotificationService...");
+      
+      // Obtenir l'utilisateur actuel
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Utiliser le service de notification
+      const result = await NotificationService.createNotification(
+        title,
+        message,
+        priority,
+        notificationType,
+        targetUsers,
+        selectedRole,
+        selectedCountry,
+        notificationType === 'individual' ? selectedUsers : undefined,
+        user?.id
+      );
 
-      if (notificationError) throw notificationError;
+      if (result.success) {
+        toast({
+          title: "Notification envoyée",
+          description: result.message,
+        });
 
-      // Envoyer les notifications individuelles
-      const individualNotifications = targetUsers.map(user => ({
-        notification_id: notification.id,
-        user_id: user.id,
-        status: 'sent'
-      }));
+        // Reset form
+        setTitle('');
+        setMessage('');
+        setPriority('normal');
+        setSelectedUsers([]);
+        setSelectedRole('');
+        setSelectedCountry('');
+        setNotificationType('all');
+      } else {
+        throw new Error(result.message);
+      }
 
-      const { error: recipientError } = await supabase
-        .from('notification_recipients')
-        .insert(individualNotifications);
-
-      if (recipientError) throw recipientError;
-
-      toast({
-        title: "Notification envoyée",
-        description: `Notification envoyée à ${targetUsers.length} utilisateurs`,
-      });
-
-      // Reset form
-      setTitle('');
-      setMessage('');
-      setPriority('normal');
-      setSelectedUsers([]);
-      setSelectedRole('');
-      setSelectedCountry('');
-      setNotificationType('all');
-
-    } catch (error) {
-      console.error('Erreur lors de l\'envoi de la notification:', error);
+    } catch (error: any) {
+      console.error('❌ Erreur lors de l\'envoi de la notification:', error);
       toast({
         title: "Erreur",
-        description: "Erreur lors de l'envoi de la notification",
+        description: error.message || "Erreur lors de l'envoi de la notification",
         variant: "destructive"
       });
     } finally {
