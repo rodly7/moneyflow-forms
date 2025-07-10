@@ -23,6 +23,7 @@ import NotificationsCard from "@/components/notifications/NotificationsCard";
 import NotificationSender from "@/components/admin/NotificationSender";
 import TransactionsCard from "@/components/dashboard/TransactionsCard";
 import LowBalanceAgentsCard from "@/components/admin/LowBalanceAgentsCard";
+import TopPerformerCard from "@/components/admin/TopPerformerCard";
 import { useRealtimeTransactions } from "@/hooks/useRealtimeTransactions";
 
 interface StatsData {
@@ -321,12 +322,16 @@ const CompactSubAdminDashboard = () => {
                 }}
                 threshold={10000}
               />
+              <TopPerformerCard />
               <TransactionsCard 
                 transactions={transactions}
                 withdrawals={withdrawals}
                 onDeleteTransaction={deleteTransaction}
                 isLoading={isLoadingTransactions}
               />
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <SystemMetricsCard />
             </div>
           </TabsContent>

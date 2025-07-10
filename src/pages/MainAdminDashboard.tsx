@@ -23,6 +23,8 @@ import AdminSelfRecharge from '@/components/admin/AdminSelfRecharge';
 import NotificationSender from '@/components/admin/NotificationSender';
 import CustomDepositSystem from '@/components/admin/CustomDepositSystem';
 import SystemMetricsCard from '@/components/dashboard/SystemMetricsCard';
+import LowBalanceAgentsCard from '@/components/admin/LowBalanceAgentsCard';
+import TopPerformerCard from '@/components/admin/TopPerformerCard';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -552,34 +554,17 @@ const MainAdminDashboard = () => {
             </div>
 
             {/* Métriques temps réel et utilisateurs en ligne */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6 mb-6">
               <SystemMetricsCard />
               <OnlineUsersCard />
-              
-              <Card className="bg-gradient-to-br from-green-50 to-emerald-100 border-green-200/60 shadow-sm hover:shadow-md transition-shadow duration-200">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-green-700 flex items-center gap-2">
-                    <Activity className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate">Activité Système</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-green-600 truncate">Total agents</span>
-                      <Badge variant="outline" className="border-green-500 text-green-700 ml-2">
-                        {dashboardData?.totalAgents || 0}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-green-600 truncate">Agents localisés</span>
-                      <Badge variant="outline" className="border-green-500 text-green-700 ml-2">
-                        {agentLocations?.length || 0}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <LowBalanceAgentsCard 
+                onDepositToAgent={(agent) => {
+                  // Rediriger vers l'onglet finance pour effectuer un dépôt
+                  setActiveTab("finance");
+                }}
+                threshold={10000}
+              />
+              <TopPerformerCard />
             </div>
 
             {/* Journal des anomalies élargi */}
