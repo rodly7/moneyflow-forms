@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Send, Users, Bell, AlertCircle, CheckCircle, Loader } from "lucide-react";
+import { Send, Users, Bell, AlertCircle, CheckCircle, Loader, Sparkles, Gift, TrendingUp, Trophy } from "lucide-react";
 
 interface User {
   id: string;
@@ -78,6 +78,56 @@ const NotificationSender = () => {
         ? prev.filter(id => id !== userId)
         : [...prev, userId]
     );
+  };
+
+  const predefinedNotifications = {
+    update: {
+      title: "🔄 Mise à jour système disponible",
+      message: "Une nouvelle mise à jour de notre application est disponible ! Découvrez de nouvelles fonctionnalités et améliorations de performance. Mettez à jour dès maintenant pour profiter d'une expérience optimisée.",
+      priority: "normal" as const
+    },
+    promotion: {
+      title: "🎯 Offre spéciale limitée !",
+      message: "Profitez de notre promotion exceptionnelle : 0% de frais sur vos 5 prochains transferts ! Offre valable jusqu'à la fin du mois. Ne manquez pas cette opportunité unique.",
+      priority: "high" as const
+    },
+    gift: {
+      title: "🎁 Cadeau spécial pour vous",
+      message: "Félicitations ! Vous avez reçu un bonus de 1000 FCFA sur votre compte. Utilisez ce crédit pour vos prochaines transactions. Merci de votre fidélité !",
+      priority: "high" as const
+    },
+    lottery: {
+      title: "🏆 Grand tirage au sort en cours !",
+      message: "Participez à notre grand concours et tentez de gagner 100,000 FCFA ! Chaque transaction vous donne une chance supplémentaire. Tirage le 31 de ce mois. Bonne chance !",
+      priority: "normal" as const
+    },
+    feature: {
+      title: "✨ Nouvelle fonctionnalité disponible",
+      message: "Découvrez notre nouvelle fonctionnalité d'épargne automatique ! Programmez vos économies et atteignez vos objectifs financiers plus facilement. Activez-la dès maintenant dans votre profil.",
+      priority: "normal" as const
+    },
+    security: {
+      title: "🔐 Mise à jour de sécurité importante",
+      message: "Nous avons renforcé la sécurité de nos systèmes pour mieux protéger vos données et transactions. Vos informations sont entre de bonnes mains. Aucune action requise de votre part.",
+      priority: "high" as const
+    },
+    maintenance: {
+      title: "⚙️ Maintenance programmée",
+      message: "Une maintenance technique aura lieu ce soir de 2h à 4h du matin. Certains services pourraient être temporairement indisponibles. Nous nous excusons pour la gêne occasionnée.",
+      priority: "normal" as const
+    },
+    celebration: {
+      title: "🎉 Anniversaire de SendFlow !",
+      message: "Nous célébrons 2 ans de service ! Merci de nous faire confiance. Pour l'occasion, profitez de 50% de réduction sur tous les frais de transfert pendant 48h !",
+      priority: "high" as const
+    }
+  };
+
+  const generateNotification = (type: keyof typeof predefinedNotifications) => {
+    const notification = predefinedNotifications[type];
+    setTitle(notification.title);
+    setMessage(notification.message);
+    setPriority(notification.priority);
   };
 
   const handleSendNotification = async () => {
@@ -184,6 +234,79 @@ const NotificationSender = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
+          {/* Templates prédéfinis */}
+          <div className="form-container">
+            <Label className="text-gray-700 font-medium text-lg">
+              Templates de Notifications
+            </Label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+              <Button
+                variant="outline"
+                onClick={() => generateNotification('update')}
+                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-blue-50"
+              >
+                <Sparkles className="w-5 h-5 text-blue-600" />
+                <span className="text-xs font-medium">Mise à jour</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => generateNotification('promotion')}
+                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-green-50"
+              >
+                <TrendingUp className="w-5 h-5 text-green-600" />
+                <span className="text-xs font-medium">Promotion</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => generateNotification('gift')}
+                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-pink-50"
+              >
+                <Gift className="w-5 h-5 text-pink-600" />
+                <span className="text-xs font-medium">Cadeau</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => generateNotification('lottery')}
+                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-yellow-50"
+              >
+                <Trophy className="w-5 h-5 text-yellow-600" />
+                <span className="text-xs font-medium">Loterie</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => generateNotification('feature')}
+                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-purple-50"
+              >
+                <Sparkles className="w-5 h-5 text-purple-600" />
+                <span className="text-xs font-medium">Nouveauté</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => generateNotification('security')}
+                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-red-50"
+              >
+                <AlertCircle className="w-5 h-5 text-red-600" />
+                <span className="text-xs font-medium">Sécurité</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => generateNotification('maintenance')}
+                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-gray-50"
+              >
+                <Bell className="w-5 h-5 text-gray-600" />
+                <span className="text-xs font-medium">Maintenance</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => generateNotification('celebration')}
+                className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-orange-50"
+              >
+                <CheckCircle className="w-5 h-5 text-orange-600" />
+                <span className="text-xs font-medium">Célébration</span>
+              </Button>
+            </div>
+          </div>
+
           {/* Configuration du message */}
           <div className="form-container">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
