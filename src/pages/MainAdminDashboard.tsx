@@ -26,6 +26,79 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { AdminUserService, AdminUserData } from '@/services/adminUserService';
 
+// Widget pour afficher les notifications récentes
+const RecentNotificationsWidget = () => {
+  const { data: notifications, isLoading } = useQuery({
+    queryKey: ['recent-notifications'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      return data || [];
+    },
+    refetchInterval: 30000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="animate-pulse space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (!notifications?.length) {
+    return (
+      <div className="text-center py-4 text-gray-500">
+        <Bell className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+        <p className="text-sm">Aucune notification récente</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {notifications.map((notification) => (
+        <div key={notification.id} className="border border-gray-200 rounded-lg p-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium text-sm truncate">{notification.title}</h4>
+              <p className="text-xs text-gray-600 mt-1 line-clamp-2">{notification.message}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <Badge variant="secondary" className="text-xs">
+                  {notification.total_recipients} destinataire(s)
+                </Badge>
+                {notification.notification_type === 'individual' && (
+                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                    Auto-générée
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <span className="text-xs text-gray-500 whitespace-nowrap">
+              {new Date(notification.created_at).toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 interface OnlineUser {
   id: string;
   full_name: string;
@@ -572,17 +645,40 @@ const MainAdminDashboard = () => {
 
           {/* Notifications */}
           <TabsContent value="notifications" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5" />
-                  Envoi de Notifications
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <NotificationSender />
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5" />
+                    Envoi de Notifications
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <NotificationSender />
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-5 h-5" />
+                      Notifications Récentes
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => navigate('/admin-notifications')}
+                    >
+                      Voir tout
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RecentNotificationsWidget />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Paramètres */}
