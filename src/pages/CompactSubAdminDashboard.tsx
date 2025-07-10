@@ -210,16 +210,6 @@ const CompactSubAdminDashboard = () => {
   return (
     <div className="min-h-screen bg-background p-3">
       <div className="max-w-7xl mx-auto space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/dashboard')}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour
-          </Button>
-        </div>
 
         <CompactHeader
           title="Sous-Administration"
