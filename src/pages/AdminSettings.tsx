@@ -127,13 +127,6 @@ const AdminSettings = () => {
                 >
                   Sauvegarder la base
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => navigate('/admin-balance-update')}
-                >
-                  Mise à jour des soldes
-                </Button>
               </div>
             </CardContent>
           </Card>

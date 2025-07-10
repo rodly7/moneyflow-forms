@@ -317,4 +317,90 @@ export class AdminUserService {
       };
     }
   }
+
+  // Rechercher un utilisateur
+  static async searchUser(searchTerm: string): Promise<UserOperationResult> {
+    try {
+      const result = await this.withRetry(async () => {
+        // Recherche par téléphone ou nom
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .or(`phone.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`)
+          .limit(1)
+          .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        return data;
+      });
+
+      return {
+        success: !!result,
+        message: result ? "Utilisateur trouvé" : "Aucun utilisateur trouvé",
+        data: result
+      };
+
+    } catch (error: any) {
+      console.error('Erreur lors de la recherche d\'utilisateur:', error);
+      return {
+        success: false,
+        message: error.message || "Erreur lors de la recherche d'utilisateur"
+      };
+    }
+  }
+
+  // Effectuer un dépôt personnalisé
+  static async performCustomDeposit(
+    targetUserId: string,
+    amount: number,
+    adminId: string,
+    notes?: string
+  ): Promise<UserOperationResult> {
+    try {
+      // Créditer l'utilisateur cible
+      await secureCreditUserBalance(
+        targetUserId,
+        amount,
+        'admin_custom_deposit',
+        adminId
+      );
+
+      // Débiter l'admin
+      await secureDebitUserBalance(
+        adminId,
+        amount,
+        'admin_custom_deposit_debit',
+        adminId
+      );
+
+      // Enregistrer la transaction
+      const transactionReference = `CUSTOM-DEP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      
+      await supabase
+        .from('recharges')
+        .insert({
+          user_id: targetUserId,
+          amount: amount,
+          country: 'Congo Brazzaville',
+          payment_method: 'admin_custom_deposit',
+          payment_phone: '',
+          payment_provider: 'admin',
+          transaction_reference: transactionReference,
+          status: 'completed',
+          provider_transaction_id: adminId
+        });
+
+      return {
+        success: true,
+        message: `Dépôt de ${amount.toLocaleString()} FCFA effectué avec succès`
+      };
+
+    } catch (error: any) {
+      console.error('Erreur lors du dépôt personnalisé:', error);
+      return {
+        success: false,
+        message: error.message || "Erreur lors du dépôt personnalisé"
+      };
+    }
+  }
 }
