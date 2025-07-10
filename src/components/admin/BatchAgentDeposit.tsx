@@ -139,6 +139,7 @@ const BatchAgentDeposit = ({ onBack }: BatchAgentDepositProps) => {
       // Process deposits in sequence to maintain transaction integrity
       const results = [];
       let processedAmount = 0;
+      const successfulAgents: string[] = [];
 
       for (const deposit of deposits) {
         try {
@@ -202,6 +203,7 @@ const BatchAgentDeposit = ({ onBack }: BatchAgentDepositProps) => {
             success: true
           });
 
+          successfulAgents.push(deposit.agentId);
           processedAmount += deposit.amount;
 
         } catch (error) {
@@ -215,6 +217,79 @@ const BatchAgentDeposit = ({ onBack }: BatchAgentDepositProps) => {
         }
       }
 
+      // Génération automatique de notifications si des dépôts ont réussi
+      if (successfulAgents.length > 0) {
+        try {
+          // Créer la notification principale pour les agents avec dépôts individuels
+          if (depositMode === 'individual') {
+            // Pour les montants individuels, créer une notification par agent
+            for (const agentId of successfulAgents) {
+              const depositAmount = deposits.find(d => d.agentId === agentId)?.amount || 0;
+              const agent = agents?.find(a => a.id === agentId);
+              
+              const { data: notification, error: notificationError } = await supabase
+                .from('notifications')
+                .insert({
+                  title: 'Dépôt effectué sur votre compte',
+                  message: `Votre compte a été crédité de ${formatCurrency(depositAmount, 'XAF')} par ${profile?.role === 'admin' ? 'l\'administrateur' : 'le sous-administrateur'}.`,
+                  priority: 'normal',
+                  notification_type: 'individual',
+                  target_users: [agentId],
+                  sent_by: user?.id,
+                  total_recipients: 1
+                })
+                .select()
+                .single();
+
+              if (notificationError) {
+                console.error('Erreur lors de la création de la notification:', notificationError);
+              } else {
+                // Créer l'enregistrement pour le destinataire
+                await supabase
+                  .from('notification_recipients')
+                  .insert({
+                    notification_id: notification.id,
+                    user_id: agentId,
+                    status: 'sent'
+                  });
+              }
+            }
+          } else {
+            // Pour les montants uniformes, créer une notification groupée
+            const { data: notification, error: notificationError } = await supabase
+              .from('notifications')
+              .insert({
+                title: 'Dépôt effectué sur votre compte',
+                message: `Votre compte a été crédité de ${formatCurrency(Number(uniformAmount), 'XAF')} par ${profile?.role === 'admin' ? 'l\'administrateur' : 'le sous-administrateur'}.`,
+                priority: 'normal',
+                notification_type: 'individual',
+                target_users: successfulAgents,
+                sent_by: user?.id,
+                total_recipients: successfulAgents.length
+              })
+              .select()
+              .single();
+
+            if (notificationError) {
+              console.error('Erreur lors de la création de la notification:', notificationError);
+            } else {
+              // Créer les enregistrements pour les destinataires
+              const individualNotifications = successfulAgents.map(agentId => ({
+                notification_id: notification.id,
+                user_id: agentId,
+                status: 'sent'
+              }));
+
+              await supabase
+                .from('notification_recipients')
+                .insert(individualNotifications);
+            }
+          }
+        } catch (notificationError) {
+          console.error('Erreur lors du processus de notification:', notificationError);
+        }
+      }
+
       // Show results
       const successful = results.filter(r => r.success).length;
       const failed = results.filter(r => !r.success).length;
@@ -222,7 +297,7 @@ const BatchAgentDeposit = ({ onBack }: BatchAgentDepositProps) => {
       if (successful > 0) {
         toast({
           title: "Dépôts en lot effectués",
-          description: `${successful} agent(s) rechargé(s) avec succès. Total: ${formatCurrency(processedAmount, 'XAF')}${failed > 0 ? `. ${failed} échec(s).` : ''}`,
+          description: `${successful} agent(s) crédité(s) avec succès et notifié(s). Total: ${formatCurrency(processedAmount, 'XAF')}${failed > 0 ? `. ${failed} échec(s).` : ''}`,
         });
       }
 
