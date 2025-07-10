@@ -6,7 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, ArrowDownLeft, Clock, CheckCircle, XCircle, RefreshCw, TrendingUp } from "lucide-react";
-import { formatCurrency } from "@/integrations/supabase/client";
+// Helper function to format currency
+const formatCurrency = (amount: number, currency: string = 'XAF') => {
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: currency,
+    maximumFractionDigits: 0
+  }).format(amount);
+};
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
