@@ -24,7 +24,12 @@ export const useSubAdmin = () => {
   };
 
   const canDepositToAgent = () => {
-    // Les sous-admins peuvent faire des dépôts agent
+    // Les sous-admins peuvent faire des dépôts agent en utilisant le solde de l'admin
+    return isSubAdmin();
+  };
+
+  const canSendNotifications = () => {
+    // Les sous-admins peuvent envoyer des notifications
     return isSubAdmin();
   };
 
@@ -39,6 +44,7 @@ export const useSubAdmin = () => {
     canViewUsers: canViewUsers(),
     canRecharge: canRecharge(),
     canDepositToAgent: canDepositToAgent(),
-    canViewAllData: canViewAllData()
+    canViewAllData: canViewAllData(),
+    canSendNotifications: canSendNotifications()
   };
 };

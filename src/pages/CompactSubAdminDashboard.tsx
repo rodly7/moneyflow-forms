@@ -20,6 +20,7 @@ import SystemMetricsCard from "@/components/dashboard/SystemMetricsCard";
 import AnomaliesCard from "@/components/admin/AnomaliesCard";
 import { useAdminDashboardData } from "@/hooks/useAdminDashboardData";
 import NotificationsCard from "@/components/notifications/NotificationsCard";
+import NotificationSender from "@/components/admin/NotificationSender";
 
 interface StatsData {
   totalUsers: number;
@@ -368,17 +369,10 @@ const CompactSubAdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="notifications" className="space-y-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="mb-4">
-                  <h3 className="font-semibold text-lg">Notifications</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Centre de notifications pour les sous-administrateurs
-                  </p>
-                </div>
-                <NotificationsCard />
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <NotificationSender />
+              <NotificationsCard />
+            </div>
           </TabsContent>
 
           <TabsContent value="deposits" className="space-y-4">
