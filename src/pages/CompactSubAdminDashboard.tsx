@@ -21,6 +21,9 @@ import AnomaliesCard from "@/components/admin/AnomaliesCard";
 import { useAdminDashboardData } from "@/hooks/useAdminDashboardData";
 import NotificationsCard from "@/components/notifications/NotificationsCard";
 import NotificationSender from "@/components/admin/NotificationSender";
+import TransactionsCard from "@/components/dashboard/TransactionsCard";
+import LowBalanceAgentsCard from "@/components/admin/LowBalanceAgentsCard";
+import { useRealtimeTransactions } from "@/hooks/useRealtimeTransactions";
 
 interface StatsData {
   totalUsers: number;
@@ -49,6 +52,7 @@ const CompactSubAdminDashboard = () => {
   const deviceInfo = useDeviceDetection();
   const { renderCount } = usePerformanceMonitor('CompactSubAdminDashboard');
   const { data: dashboardData, isLoading: isLoadingDashboard } = useAdminDashboardData();
+  const { transactions, withdrawals, isLoading: isLoadingTransactions, deleteTransaction } = useRealtimeTransactions();
   
   const [activeTab, setActiveTab] = useState("dashboard");
   const [stats, setStats] = useState<StatsData>({
@@ -310,29 +314,19 @@ const CompactSubAdminDashboard = () => {
               </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <h3 className="font-semibold mb-2">Tableau de bord principal</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Visualisez les statistiques générales et gérez les opérations de sous-administration.
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center p-2 bg-muted rounded">
-                      <span className="text-sm">Utilisateurs actifs</span>
-                      <span className="font-semibold">{stats.totalUsers}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-2 bg-muted rounded">
-                      <span className="text-sm">Agents disponibles</span>
-                      <span className="font-semibold">{stats.totalAgents}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-2 bg-muted rounded">
-                      <span className="text-sm">Transactions récentes</span>
-                      <span className="font-semibold">{stats.totalTransactions}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <LowBalanceAgentsCard 
+                onDepositToAgent={(agent) => {
+                  setActiveTab("deposits");
+                }}
+                threshold={10000}
+              />
+              <TransactionsCard 
+                transactions={transactions}
+                withdrawals={withdrawals}
+                onDeleteTransaction={deleteTransaction}
+                isLoading={isLoadingTransactions}
+              />
               <SystemMetricsCard />
             </div>
           </TabsContent>
