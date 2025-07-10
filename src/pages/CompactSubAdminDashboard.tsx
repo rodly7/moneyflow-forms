@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Users, Shield, DollarSign, Activity, Eye, UserPlus, BarChart3 } from "lucide-react";
+import { ArrowLeft, Users, Shield, DollarSign, Activity, Eye, UserPlus, BarChart3, Bell, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import UserProfileInfo from "@/components/profile/UserProfileInfo";
@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SystemMetricsCard from "@/components/dashboard/SystemMetricsCard";
 import AnomaliesCard from "@/components/admin/AnomaliesCard";
 import { useAdminDashboardData } from "@/hooks/useAdminDashboardData";
+import NotificationsCard from "@/components/notifications/NotificationsCard";
 
 interface StatsData {
   totalUsers: number;
@@ -48,7 +49,7 @@ const CompactSubAdminDashboard = () => {
   const { renderCount } = usePerformanceMonitor('CompactSubAdminDashboard');
   const { data: dashboardData, isLoading: isLoadingDashboard } = useAdminDashboardData();
   
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [stats, setStats] = useState<StatsData>({
     totalUsers: 0,
     totalAgents: 0,
@@ -234,20 +235,106 @@ const CompactSubAdminDashboard = () => {
         <CompactStatsGrid stats={statsData} />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 h-12">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-5 h-12">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
+              <span className="hidden sm:inline">Tableau de bord</span>
+            </TabsTrigger>
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
               <span className="hidden sm:inline">Vue d'ensemble</span>
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Eye className="w-4 h-4" />
-              <span className="hidden sm:inline">Consultation</span>
+              <span className="hidden sm:inline">Utilisateurs</span>
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="flex items-center gap-2">
+              <Bell className="w-4 h-4" />
+              <span className="hidden sm:inline">Notifications</span>
             </TabsTrigger>
             <TabsTrigger value="deposits" className="flex items-center gap-2">
               <UserPlus className="w-4 h-4" />
               <span className="hidden sm:inline">Dépôts</span>
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="dashboard" className="space-y-4">
+            {/* Tableau de bord complet */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="bg-gradient-to-br from-violet-50 to-purple-100 border-violet-200/60">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-violet-700">Solde Total</p>
+                      <p className="text-2xl font-bold text-violet-900">
+                        {isLoadingStats ? "..." : `${(stats.totalBalance / 1000).toFixed(0)}K XAF`}
+                      </p>
+                    </div>
+                    <DollarSign className="w-8 h-8 text-violet-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border-blue-200/60">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-700">Total Utilisateurs</p>
+                      <p className="text-2xl font-bold text-blue-900">{stats.totalUsers}</p>
+                    </div>
+                    <Users className="w-8 h-8 text-blue-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-br from-emerald-50 to-teal-100 border-emerald-200/60">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-emerald-700">Total Agents</p>
+                      <p className="text-2xl font-bold text-emerald-900">{stats.totalAgents}</p>
+                    </div>
+                    <Shield className="w-8 h-8 text-emerald-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-br from-amber-50 to-orange-100 border-amber-200/60">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-amber-700">Transactions</p>
+                      <p className="text-2xl font-bold text-amber-900">{stats.totalTransactions}</p>
+                    </div>
+                    <Activity className="w-8 h-8 text-amber-600" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <h3 className="font-semibold mb-2">Tableau de bord principal</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Visualisez les statistiques générales et gérez les opérations de sous-administration.
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center p-2 bg-muted rounded">
+                      <span className="text-sm">Utilisateurs actifs</span>
+                      <span className="font-semibold">{stats.totalUsers}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-muted rounded">
+                      <span className="text-sm">Agents disponibles</span>
+                      <span className="font-semibold">{stats.totalAgents}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-muted rounded">
+                      <span className="text-sm">Transactions récentes</span>
+                      <span className="font-semibold">{stats.totalTransactions}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <SystemMetricsCard />
+            </div>
+          </TabsContent>
 
           <TabsContent value="overview" className="space-y-4">
             {/* Métriques temps réel et anomalies */}
@@ -258,25 +345,38 @@ const CompactSubAdminDashboard = () => {
                 isLoading={isLoadingDashboard} 
               />
             </div>
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="font-semibold mb-2">Tableau de bord principal</h3>
-                <p className="text-sm text-muted-foreground">
-                  Visualisez les statistiques générales et gérez les opérations.
-                </p>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
             <Card>
               <CardContent className="p-4">
+                <div className="mb-4">
+                  <h3 className="font-semibold text-lg">Gestion des utilisateurs</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Liste des utilisateurs (lecture seule pour les sous-administrateurs)
+                  </p>
+                </div>
                 <UsersDataTable 
                   users={users}
                   onViewUser={handleViewUser}
                   onQuickRoleChange={() => {}}
                   onQuickBanToggle={() => {}}
+                  isSubAdmin={true}
                 />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="notifications" className="space-y-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="mb-4">
+                  <h3 className="font-semibold text-lg">Notifications</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Centre de notifications pour les sous-administrateurs
+                  </p>
+                </div>
+                <NotificationsCard />
               </CardContent>
             </Card>
           </TabsContent>
