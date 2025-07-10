@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { 
   Users, DollarSign, TrendingUp, Activity, MapPin, Wifi, LogOut, User, Bell, 
-  Settings, Menu, Wallet, UserPlus, MessageSquare, BarChart3, Database, Send
+  Settings, Menu, Wallet, UserPlus, MessageSquare, BarChart3, Database, Send,
+  Wrench, Shield, CreditCard, AlertTriangle
 } from 'lucide-react';
 import { useAdminDashboardData } from '@/hooks/useAdminDashboardData';
 import { useActiveAgentLocations } from '@/hooks/useAgentLocations';
@@ -397,6 +398,7 @@ const MainAdminDashboard = () => {
   const navItems = [
     { id: "dashboard", label: "Tableau de Bord", icon: BarChart3 },
     { id: "users", label: "Gestion Utilisateurs", icon: Users },
+    { id: "admin-tools", label: "Outils Admin", icon: Wrench },
     { id: "finance", label: "Finance", icon: Wallet },
     { id: "notifications", label: "Notifications", icon: MessageSquare },
     { id: "settings", label: "Paramètres", icon: Settings }
@@ -520,7 +522,7 @@ const MainAdminDashboard = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Navigation Desktop et Tablette */}
           {!isMobile && (
-            <TabsList className="grid w-full grid-cols-5 mb-6 sm:mb-8 bg-white/60 backdrop-blur-sm shadow-sm">
+            <TabsList className="grid w-full grid-cols-6 mb-6 sm:mb-8 bg-white/60 backdrop-blur-sm shadow-sm">
               {navItems.map((item) => (
                 <TabsTrigger 
                   key={item.id} 
@@ -688,6 +690,155 @@ const MainAdminDashboard = () => {
             </Card>
           </TabsContent>
 
+          {/* Outils Admin */}
+          <TabsContent value="admin-tools" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {/* Dépôt Manuel Personnalisé */}
+              <Card className="bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200/60">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-orange-700">
+                    <CreditCard className="w-5 h-5" />
+                    Dépôt Manuel Personnalisé
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-orange-600">
+                    Effectuez des dépôts personnalisés vers les comptes utilisateurs avec contrôle total des montants et destinataires.
+                  </p>
+                  <Button 
+                    onClick={() => navigate('/admin-users')}
+                    className="w-full bg-orange-600 hover:bg-orange-700"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Accéder aux Dépôts
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Gestion Avancée des Utilisateurs */}
+              <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200/60">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-blue-700">
+                    <Shield className="w-5 h-5" />
+                    Gestion Avancée Utilisateurs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-blue-600">
+                    Gestion complète des utilisateurs : rôles, permissions, statuts, bannissements et actions en masse.
+                  </p>
+                  <Button 
+                    onClick={() => navigate('/admin-users')}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Gestion Utilisateurs
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Mise à Jour des Soldes */}
+              <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200/60">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-green-700">
+                    <Wallet className="w-5 h-5" />
+                    Mise à Jour des Soldes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-green-600">
+                    Ajustez et corrigez les soldes des utilisateurs avec traçabilité complète des opérations.
+                  </p>
+                  <Button 
+                    onClick={() => navigate('/admin-balance-update')}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    <DollarSign className="w-4 h-4 mr-2" />
+                    Ajuster les Soldes
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Notifications Avancées */}
+              <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200/60">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-purple-700">
+                    <Send className="w-5 h-5" />
+                    Notifications Avancées
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-purple-600">
+                    Système complet de notifications avec templates, ciblage avancé et historique détaillé.
+                  </p>
+                  <Button 
+                    onClick={() => navigate('/admin-notifications')}
+                    className="w-full bg-purple-600 hover:bg-purple-700"
+                  >
+                    <Bell className="w-4 h-4 mr-2" />
+                    Gérer Notifications
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Dépôt Rapide aux Agents */}
+              <Card className="bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-200/60">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-amber-700">
+                    <UserPlus className="w-5 h-5" />
+                    Dépôt Rapide Agents
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <QuickAgentDepositWidget />
+                </CardContent>
+              </Card>
+
+              {/* Tableau de Bord Système */}
+              <Card className="bg-gradient-to-br from-slate-50 to-gray-50 border-slate-200/60">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-slate-700">
+                    <AlertTriangle className="w-5 h-5" />
+                    Surveillance Système
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Base de données</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-xs text-green-600">Opérationnelle</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">API Supabase</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-xs text-green-600">Connectée</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Authentification</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-xs text-green-600">Active</span>
+                      </div>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full mt-4"
+                    onClick={() => window.location.reload()}
+                  >
+                    <Activity className="w-4 h-4 mr-2" />
+                    Actualiser
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
           {/* Finance */}
           <TabsContent value="finance" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -700,18 +851,6 @@ const MainAdminDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <AdminSelfRecharge />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <UserPlus className="w-5 h-5 text-orange-600" />
-                    <span>Dépôt aux Agents</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <QuickAgentDepositWidget />
                 </CardContent>
               </Card>
               
@@ -739,6 +878,33 @@ const MainAdminDashboard = () => {
                       </div>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5" />
+                    Actions Rapides
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => navigate('/admin-treasury')}
+                  >
+                    <Database className="mr-2 h-4 w-4" />
+                    Trésorerie
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => navigate('/admin-transaction-monitor')}
+                  >
+                    <Activity className="mr-2 h-4 w-4" />
+                    Monitoring
+                  </Button>
                 </CardContent>
               </Card>
             </div>
