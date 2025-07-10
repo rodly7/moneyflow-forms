@@ -742,30 +742,53 @@ const MainAdminDashboard = () => {
                    </CardContent>
                 </Card>
 
-                <Card>
+                {/* Système de Trésorerie */}
+                <Card className="bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200/60">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BarChart3 className="w-5 h-5" />
-                      Actions Rapides
+                    <CardTitle className="flex items-center gap-2 text-emerald-700">
+                      <Database className="w-5 h-5" />
+                      Système de Trésorerie
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start"
-                      onClick={() => navigate('/admin-treasury')}
-                    >
-                      <Database className="mr-2 h-4 w-4" />
-                      Trésorerie
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start"
-                      onClick={() => navigate('/admin-transaction-monitor')}
-                    >
-                      <Activity className="mr-2 h-4 w-4" />
-                      Monitoring
-                    </Button>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => navigate('/admin-treasury')}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700"
+                        size="sm"
+                      >
+                        <Database className="w-4 h-4 mr-2" />
+                        Accéder à la Trésorerie
+                      </Button>
+                      <p className="text-xs text-emerald-700">
+                        Gestion des flux de trésorerie, agents fiables et équilibrage des soldes
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Monitoring des Transactions */}
+                <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200/60">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-blue-700">
+                      <Activity className="w-5 h-5" />
+                      Monitoring Transactions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => navigate('/admin-transaction-monitor')}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                        size="sm"
+                      >
+                        <Activity className="w-4 h-4 mr-2" />
+                        Voir le Monitoring
+                      </Button>
+                      <p className="text-xs text-blue-700">
+                        Surveillance en temps réel des transactions et opérations
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
