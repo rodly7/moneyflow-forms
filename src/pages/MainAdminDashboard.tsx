@@ -390,16 +390,16 @@ const MainAdminDashboard = () => {
 
           {/* Contenu des onglets */}
           <TabsContent value="dashboard" className="space-y-6">
-            {/* Statistiques principales - disposition améliorée */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
-              <div className="md:col-span-1 xl:col-span-1">
-                <OnlineUsersCard />
-              </div>
-              <div className="md:col-span-1 xl:col-span-1">
-                <CommissionSummaryCard data={dashboardData} isLoading={isLoading} />
-              </div>
+            {/* Statistiques principales - Commission Summary Cards */}
+            <div className="mb-6">
+              <CommissionSummaryCard data={dashboardData} isLoading={isLoading} />
+            </div>
+
+            {/* Cartes secondaires */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 mb-6">
+              <OnlineUsersCard />
               
-              <Card className="bg-gradient-to-br from-green-50 to-emerald-100 border-green-200/60 shadow-sm hover:shadow-md transition-shadow duration-200 md:col-span-1 xl:col-span-1">
+              <Card className="bg-gradient-to-br from-green-50 to-emerald-100 border-green-200/60 shadow-sm hover:shadow-md transition-shadow duration-200">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium text-green-700 flex items-center gap-2">
                     <Activity className="w-4 h-4 flex-shrink-0" />
@@ -424,9 +424,7 @@ const MainAdminDashboard = () => {
                 </CardContent>
               </Card>
 
-              <div className="md:col-span-1 xl:col-span-1">
-                <AnomaliesCard anomalies={dashboardData?.anomalies || []} isLoading={isLoading} />
-              </div>
+              <AnomaliesCard anomalies={dashboardData?.anomalies || []} isLoading={isLoading} />
             </div>
 
             {/* Section principale - disposition optimisée */}
