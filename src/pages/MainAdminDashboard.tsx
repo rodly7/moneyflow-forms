@@ -631,6 +631,9 @@ const MainAdminDashboard = () => {
 
           {/* Gestion des utilisateurs */}
           <TabsContent value="users" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <SystemMetricsCard />
+            </div>
             <Card>
               <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <CardTitle className="flex items-center gap-2">
