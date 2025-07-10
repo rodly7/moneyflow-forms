@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Send, User, Wallet } from "lucide-react";
+import { ArrowLeft, Send, User, Wallet, QrCode } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/integrations/supabase/client";
 import { useUserSearch } from "@/hooks/useUserSearch";
 import { useAgentWithdrawalRequest } from "@/hooks/useAgentWithdrawalRequest";
+import QRScanner from "@/components/agent/QRScanner";
 
 const AgentWithdrawalSimple = () => {
   const { user, profile } = useAuth();
@@ -20,6 +21,8 @@ const AgentWithdrawalSimple = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [clientData, setClientData] = useState<any>(null);
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
+  const [qrVerified, setQrVerified] = useState(false);
 
   const { createWithdrawalRequest, isLoading } = useAgentWithdrawalRequest();
   const { searchUserByPhone, isSearching } = useUserSearch();
@@ -50,6 +53,7 @@ const AgentWithdrawalSimple = () => {
         }
 
         setClientData(client);
+        setQrVerified(false); // Reset QR verification when client changes
         toast({
           title: "Client trouvé",
           description: `${client.full_name || 'Utilisateur'} - Solde: ${formatCurrency(client.balance || 0, 'XAF')}`,
@@ -77,6 +81,25 @@ const AgentWithdrawalSimple = () => {
     setPhoneNumber(e.target.value);
     if (clientData) {
       setClientData(null);
+      setQrVerified(false);
+    }
+  };
+
+  const handleQRScanSuccess = (userData: { userId: string; fullName: string; phone: string }) => {
+    // Vérifier que le QR scanné correspond au client sélectionné
+    if (clientData && clientData.id === userData.userId) {
+      setQrVerified(true);
+      setIsQRScannerOpen(false);
+      toast({
+        title: "QR Code vérifié",
+        description: "Identité du client confirmée. Vous pouvez maintenant effectuer le retrait.",
+      });
+    } else {
+      toast({
+        title: "QR Code incorrect",
+        description: "Le QR code scanné ne correspond pas au client sélectionné",
+        variant: "destructive"
+      });
     }
   };
 
@@ -96,6 +119,15 @@ const AgentWithdrawalSimple = () => {
       toast({
         title: "Client requis",
         description: "Veuillez d'abord rechercher et sélectionner un client",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!qrVerified) {
+      toast({
+        title: "Scan QR requis",
+        description: "Vous devez scanner le QR code du client avant d'effectuer le retrait",
         variant: "destructive"
       });
       return;
@@ -128,6 +160,7 @@ const AgentWithdrawalSimple = () => {
       setPhoneNumber("");
       setAmount("");
       setClientData(null);
+      setQrVerified(false);
     }
   };
 
@@ -204,6 +237,34 @@ const AgentWithdrawalSimple = () => {
                   <div className="text-sm text-green-600">
                     Pays: {clientData.country || 'Non spécifié'}
                   </div>
+                  
+                  {/* Section QR Code */}
+                  <div className="mt-4 pt-4 border-t border-green-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-green-800">
+                        Vérification QR Code
+                      </span>
+                      {qrVerified ? (
+                        <span className="text-green-600 text-sm">✅ Vérifié</span>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsQRScannerOpen(true)}
+                          className="border-green-300 text-green-700 hover:bg-green-50"
+                        >
+                          <QrCode className="w-4 h-4 mr-2" />
+                          Scanner QR
+                        </Button>
+                      )}
+                    </div>
+                    {!qrVerified && (
+                      <p className="text-xs text-red-600 mt-1">
+                        ⚠️ Vous devez scanner le QR code du client pour continuer
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -236,7 +297,7 @@ const AgentWithdrawalSimple = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4 h-12 text-lg"
-                disabled={isLoading || isAmountExceedsBalance || !clientData || !amount}
+                disabled={isLoading || isAmountExceedsBalance || !clientData || !amount || !qrVerified}
               >
                 {isLoading ? (
                   <div className="flex items-center">
@@ -253,6 +314,13 @@ const AgentWithdrawalSimple = () => {
             </form>
           </CardContent>
         </Card>
+
+        {/* QR Scanner Modal */}
+        <QRScanner 
+          isOpen={isQRScannerOpen}
+          onClose={() => setIsQRScannerOpen(false)}
+          onScanSuccess={handleQRScanSuccess}
+        />
       </div>
     </div>
   );
