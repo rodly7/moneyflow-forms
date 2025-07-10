@@ -17,7 +17,7 @@ import CompactHeader from "@/components/dashboard/CompactHeader";
 import CompactStatsGrid from "@/components/dashboard/CompactStatsGrid";
 import CompactActionGrid from "@/components/dashboard/CompactActionGrid";
 import CompactInfoCard from "@/components/dashboard/CompactInfoCard";
-import SystemMetricsCard from "@/components/dashboard/SystemMetricsCard";
+
 import { useAgentLocationTracker } from "@/hooks/useSystemMetrics";
 
 const NewAgentDashboard = () => {
@@ -226,8 +226,6 @@ const NewAgentDashboard = () => {
         </div>
 
         <CompactStatsGrid stats={statsData} />
-
-        <SystemMetricsCard />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <CompactActionGrid
