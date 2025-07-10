@@ -22,6 +22,7 @@ import UsersDataTable from '@/components/admin/UsersDataTable';
 import AdminSelfRecharge from '@/components/admin/AdminSelfRecharge';
 import NotificationSender from '@/components/admin/NotificationSender';
 import CustomDepositSystem from '@/components/admin/CustomDepositSystem';
+import SystemMetricsCard from '@/components/dashboard/SystemMetricsCard';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -579,6 +580,7 @@ const MainAdminDashboard = () => {
                 </CardContent>
               </Card>
 
+              <SystemMetricsCard />
               <AnomaliesCard anomalies={dashboardData?.anomalies || []} isLoading={isLoading} />
             </div>
 

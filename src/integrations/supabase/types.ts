@@ -157,6 +157,85 @@ export type Database = {
           },
         ]
       }
+      agent_location_history: {
+        Row: {
+          address: string
+          agent_id: string
+          id: string
+          latitude: number
+          longitude: number
+          timestamp: string
+        }
+        Insert: {
+          address: string
+          agent_id: string
+          id?: string
+          latitude: number
+          longitude: number
+          timestamp?: string
+        }
+        Update: {
+          address?: string
+          agent_id?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_location_history_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_locations: {
+        Row: {
+          address: string
+          agent_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          latitude: number
+          longitude: number
+          updated_at: string
+          zone: string | null
+        }
+        Insert: {
+          address: string
+          agent_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude: number
+          longitude: number
+          updated_at?: string
+          zone?: string | null
+        }
+        Update: {
+          address?: string
+          agent_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number
+          longitude?: number
+          updated_at?: string
+          zone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_locations_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_monthly_performance: {
         Row: {
           agent_id: string
@@ -813,6 +892,36 @@ export type Database = {
           },
         ]
       }
+      system_status: {
+        Row: {
+          component: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          status_type: string
+          updated_at: string
+        }
+        Insert: {
+          component: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          status_type: string
+          updated_at?: string
+        }
+        Update: {
+          component?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          status_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transaction_limits: {
         Row: {
           created_at: string | null
@@ -1042,6 +1151,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      deactivate_agent_location: {
+        Args: { p_agent_id: string }
+        Returns: undefined
+      }
       find_recipient: {
         Args: { search_term: string }
         Returns: {
@@ -1154,6 +1267,16 @@ export type Database = {
           performed_by?: string
         }
         Returns: number
+      }
+      update_agent_location: {
+        Args: {
+          p_agent_id: string
+          p_latitude: number
+          p_longitude: number
+          p_address: string
+          p_zone?: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

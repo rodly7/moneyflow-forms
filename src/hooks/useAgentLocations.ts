@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 // Temporary interfaces until migration is run
 export interface AgentLocationData {
@@ -30,8 +31,22 @@ export const useAgentLocations = () => {
   return useQuery({
     queryKey: ['agent-locations'],
     queryFn: async (): Promise<AgentLocationData[]> => {
-      // Return empty array until migration is run
-      return [];
+      const { data, error } = await supabase
+        .from('agent_locations')
+        .select(`
+          *,
+          profiles!agent_locations_agent_id_fkey(full_name, phone, country)
+        `)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+
+      return data?.map(location => ({
+        ...location,
+        agent_name: location.profiles?.full_name,
+        agent_phone: location.profiles?.phone,
+        agent_country: location.profiles?.country
+      })) || [];
     },
     refetchInterval: 30000,
   });
@@ -41,8 +56,23 @@ export const useActiveAgentLocations = () => {
   return useQuery({
     queryKey: ['active-agent-locations'],
     queryFn: async (): Promise<AgentLocationData[]> => {
-      // Return empty array until migration is run
-      return [];
+      const { data, error } = await supabase
+        .from('agent_locations')
+        .select(`
+          *,
+          profiles!agent_locations_agent_id_fkey(full_name, phone, country)
+        `)
+        .eq('is_active', true)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+
+      return data?.map(location => ({
+        ...location,
+        agent_name: location.profiles?.full_name,
+        agent_phone: location.profiles?.phone,
+        agent_country: location.profiles?.country
+      })) || [];
     },
     refetchInterval: 30000,
   });
@@ -76,8 +106,15 @@ export const useUpdateAgentLocation = () => {
       address: string;
       zone?: string;
     }) => {
-      // Placeholder until migration is run
-      return Promise.resolve();
+      const { error } = await supabase.rpc('update_agent_location', {
+        p_agent_id: agentId,
+        p_latitude: latitude,
+        p_longitude: longitude,
+        p_address: address,
+        p_zone: zone
+      });
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-locations'] });

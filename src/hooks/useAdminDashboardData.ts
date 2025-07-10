@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useSystemMetrics } from './useSystemMetrics';
 
 export interface AgentPerformanceData {
   agent_id: string;
@@ -29,6 +30,11 @@ export interface AdminDashboardStats {
     amount?: number;
     created_at: string;
   }>;
+  systemMetrics?: {
+    onlineUsers: number;
+    agentLocations: number;
+    systemStatus: string;
+  };
 }
 
 export const useAdminDashboardData = () => {
@@ -39,10 +45,16 @@ export const useAdminDashboardData = () => {
     totalVolume: 0,
     topAgent: null,
     agents: [],
-    anomalies: []
+    anomalies: [],
+    systemMetrics: {
+      onlineUsers: 0,
+      agentLocations: 0,
+      systemStatus: 'operational'
+    }
   });
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { data: systemMetrics } = useSystemMetrics();
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
@@ -151,7 +163,16 @@ export const useAdminDashboardData = () => {
         totalVolume,
         topAgent,
         agents: agentsPerformance,
-        anomalies: anomalies.slice(0, 10)
+        anomalies: anomalies.slice(0, 10),
+        systemMetrics: systemMetrics ? {
+          onlineUsers: systemMetrics.onlineUsers.total,
+          agentLocations: systemMetrics.agentLocations,
+          systemStatus: systemMetrics.systemStatus.every(s => s.status_type === 'operational') ? 'operational' : 'degraded'
+        } : {
+          onlineUsers: 0,
+          agentLocations: 0,
+          systemStatus: 'operational'
+        }
       });
 
     } catch (error) {

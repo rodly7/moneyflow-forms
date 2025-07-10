@@ -17,6 +17,7 @@ import CompactHeader from "@/components/dashboard/CompactHeader";
 import CompactStatsGrid from "@/components/dashboard/CompactStatsGrid";
 import CompactActionGrid from "@/components/dashboard/CompactActionGrid";
 import CompactInfoCard from "@/components/dashboard/CompactInfoCard";
+import { useAgentLocationTracker } from "@/hooks/useSystemMetrics";
 
 const NewAgentDashboard = () => {
   const { user, profile, signOut } = useAuth();
@@ -27,6 +28,7 @@ const NewAgentDashboard = () => {
   const [balance, setBalance] = useState<number>(0);
   const [commissionBalance, setCommissionBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const { updateLocation, deactivateLocation } = useAgentLocationTracker();
 
   // Utiliser le hook de vérification du solde
   useBalanceCheck(balance);
@@ -90,7 +92,27 @@ const NewAgentDashboard = () => {
 
   useEffect(() => {
     fetchBalances();
-  }, [user]);
+    
+    // Géolocalisation automatique pour les agents
+    if (profile?.role === 'agent' && navigator.geolocation) {
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const address = `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`;
+          updateLocation(latitude, longitude, address);
+        },
+        (error) => {
+          console.log('Géolocalisation non disponible:', error);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
+      );
+
+      return () => {
+        navigator.geolocation.clearWatch(watchId);
+        deactivateLocation();
+      };
+    }
+  }, [user, profile]);
 
   if (!profile) {
     return (
