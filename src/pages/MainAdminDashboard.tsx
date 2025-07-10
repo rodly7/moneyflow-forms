@@ -753,7 +753,7 @@ const MainAdminDashboard = () => {
                   <CardContent>
                     <div className="space-y-3">
                       <Button
-                        onClick={() => navigate('/admin-treasury')}
+                        onClick={() => navigate('/admin/treasury')}
                         className="w-full bg-emerald-600 hover:bg-emerald-700"
                         size="sm"
                       >
@@ -778,7 +778,7 @@ const MainAdminDashboard = () => {
                   <CardContent>
                     <div className="space-y-3">
                       <Button
-                        onClick={() => navigate('/admin-transaction-monitor')}
+                        onClick={() => navigate('/admin/transaction-monitor')}
                         className="w-full bg-blue-600 hover:bg-blue-700"
                         size="sm"
                       >
