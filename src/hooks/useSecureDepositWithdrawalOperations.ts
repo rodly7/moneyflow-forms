@@ -115,7 +115,7 @@ export const useSecureDepositWithdrawalOperations = () => {
         throw new Error("Le montant dépasse les limites de retrait autorisées");
       }
 
-      // Calculer les frais (1,5% pour les retraits)
+      // Calculer les frais (1,5% pour les retraits : agent 0,5% + entreprise 1%)
       const { totalFee, agentCommission, platformCommission } = calculateWithdrawalFees(amount);
       const totalAmount = amount + totalFee;
 

@@ -13,7 +13,7 @@ export const calculateDepositFees = (amount: number) => {
 };
 
 export const calculateWithdrawalFees = (amount: number) => {
-  // 1,5% de frais total pour les retraits
+  // 1,5% de frais total pour les retraits (agent 0,5% + entreprise 1%)
   const feeRate = 0.015;
   const totalFee = Math.round(amount * feeRate);
   
@@ -21,7 +21,7 @@ export const calculateWithdrawalFees = (amount: number) => {
   const agentCommissionRate = 0.005;
   const agentCommission = Math.round(amount * agentCommissionRate);
   
-  // La plateforme reçoit le reste (1%)
+  // L'entreprise reçoit 1% (le reste)
   const platformCommission = totalFee - agentCommission;
 
   return {

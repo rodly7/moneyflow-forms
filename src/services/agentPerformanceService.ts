@@ -66,7 +66,7 @@ export const calculateAgentPerformance = async (agentId: string): Promise<AgentP
     const totalVolume = transferVolume + depositVolume + withdrawalVolume;
     const totalOperations = transferCount + depositCount + withdrawalCount;
     
-    // Calculer les commissions (0.5% pour l'agent sur toutes les opérations)
+    // Calculer les commissions (1% transferts, 0.5% retraits pour l'agent)
     const dailyCommissions = totalVolume * 0.005;
 
     return {

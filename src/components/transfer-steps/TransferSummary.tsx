@@ -88,7 +88,7 @@ const TransferSummary = ({ recipient, transfer }: TransferSummaryProps) => {
           </div>
           {isNational && (
             <div className="text-sm text-emerald-600 bg-emerald-50 p-3 rounded-lg mt-4">
-              💰 Transfert national - Vous bénéficiez du taux préférentiel de 2,5%
+              💰 Transfert - Commission agent 1% + entreprise 5,5%
             </div>
           )}
         </Card>

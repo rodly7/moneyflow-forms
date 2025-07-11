@@ -71,7 +71,7 @@ const BillPayments = () => {
                       <span className="absolute left-3 top-2.5 text-gray-500">XAF</span>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      Frais de traitement: 2.5%
+                      Frais de traitement: 6,5%
                     </p>
                   </div>
                   
@@ -122,7 +122,7 @@ const BillPayments = () => {
                       <span className="absolute left-3 top-2.5 text-gray-500">XAF</span>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      Frais de traitement: 2.5%
+                      Frais de traitement: 6,5%
                     </p>
                   </div>
                   
@@ -205,7 +205,7 @@ const BillPayments = () => {
                       <span className="absolute left-3 top-2.5 text-gray-500">XAF</span>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      Frais de traitement: 2.5%
+                      Frais de traitement: 6,5%
                     </p>
                   </div>
                   

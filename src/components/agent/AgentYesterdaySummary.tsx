@@ -64,8 +64,8 @@ const AgentYesterdaySummary = () => {
       const withdrawalAmount = (withdrawals || []).reduce((sum, w) => sum + Number(w.amount), 0);
       const depositAmount = (deposits || []).reduce((sum, d) => sum + Number(d.amount), 0);
 
-      const transferCommission = (transfers || []).reduce((sum, t) => sum + (Number(t.fees) * 0.5), 0);
-      const withdrawalCommission = withdrawalAmount * 0.01;
+      const transferCommission = transferAmount * 0.01;
+      const withdrawalCommission = withdrawalAmount * 0.005;
       const depositCommission = depositAmount * 0.005;
 
       setStats({
@@ -171,7 +171,7 @@ const AgentYesterdaySummary = () => {
               <div className="flex justify-between">
                 <span className="text-blue-600">Commission:</span>
                 <span className="font-bold text-blue-800">
-                  {formatCurrency(stats.transferAmount * 0.025 * 0.5, 'XAF')}
+                  {formatCurrency(stats.transferAmount * 0.01, 'XAF')}
                 </span>
               </div>
             </div>
@@ -200,7 +200,7 @@ const AgentYesterdaySummary = () => {
               <div className="flex justify-between">
                 <span className="text-red-600">Commission:</span>
                 <span className="font-bold text-red-800">
-                  {formatCurrency(stats.withdrawalAmount * 0.01, 'XAF')}
+                  {formatCurrency(stats.withdrawalAmount * 0.005, 'XAF')}
                 </span>
               </div>
             </div>
