@@ -93,16 +93,16 @@ const Commission = () => {
       // Calculer les commissions sur les transferts
       const transferTotalAmount = transfers.reduce((sum, transfer) => sum + transfer.amount, 0);
       
-      // Commissions transferts : Agent 1,5% et Entreprise 5% du montant
-      const agentTransferCommission = transferTotalAmount * 0.015; // 1,5%
-      const enterpriseTransferCommission = transferTotalAmount * 0.05; // 5%
+      // Commissions transferts : Agent 1% et Entreprise 5,5% du montant
+      const agentTransferCommission = transferTotalAmount * 0.01; // 1%
+      const enterpriseTransferCommission = transferTotalAmount * 0.055; // 5,5%
       
       // Calculer les commissions sur les retraits
       const withdrawalTotalAmount = withdrawals.reduce((sum, withdrawal) => sum + withdrawal.amount, 0);
       
-      // Commissions retraits : Agent 1% et Entreprise 1,5% du montant
-      const agentWithdrawalCommission = withdrawalTotalAmount * 0.01; // 1%
-      const enterpriseWithdrawalCommission = withdrawalTotalAmount * 0.015; // 1,5%
+      // Commissions retraits : Agent 0,5% et Entreprise 1% du montant
+      const agentWithdrawalCommission = withdrawalTotalAmount * 0.005; // 0,5%
+      const enterpriseWithdrawalCommission = withdrawalTotalAmount * 0.01; // 1%
       
       setCommissionData({
         agent_transfer_commission: agentTransferCommission,
@@ -169,14 +169,14 @@ const Commission = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col items-center p-4 bg-white rounded-lg border border-emerald-200">
-                    <h4 className="text-emerald-700 text-sm font-medium mb-1">Transferts (1,5%)</h4>
+                    <h4 className="text-emerald-700 text-sm font-medium mb-1">Transferts (1%)</h4>
                     <p className="text-xl font-bold text-emerald-600">
                       {formatCurrency(convertedCommission.agent_transfer_commission, convertedCommission.currency)}
                     </p>
                   </div>
 
                   <div className="flex flex-col items-center p-4 bg-white rounded-lg border border-emerald-200">
-                    <h4 className="text-emerald-700 text-sm font-medium mb-1">Retraits (1%)</h4>
+                    <h4 className="text-emerald-700 text-sm font-medium mb-1">Retraits (0,5%)</h4>
                     <p className="text-xl font-bold text-emerald-600">
                       {formatCurrency(convertedCommission.agent_withdrawal_commission, convertedCommission.currency)}
                     </p>
@@ -198,14 +198,14 @@ const Commission = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col items-center p-4 bg-white rounded-lg border border-blue-200">
-                    <h4 className="text-blue-700 text-sm font-medium mb-1">Transferts (5%)</h4>
+                    <h4 className="text-blue-700 text-sm font-medium mb-1">Transferts (5,5%)</h4>
                     <p className="text-xl font-bold text-blue-600">
                       {formatCurrency(convertedCommission.enterprise_transfer_commission, convertedCommission.currency)}
                     </p>
                   </div>
 
                   <div className="flex flex-col items-center p-4 bg-white rounded-lg border border-blue-200">
-                    <h4 className="text-blue-700 text-sm font-medium mb-1">Retraits (1,5%)</h4>
+                    <h4 className="text-blue-700 text-sm font-medium mb-1">Retraits (1%)</h4>
                     <p className="text-xl font-bold text-blue-600">
                       {formatCurrency(convertedCommission.enterprise_withdrawal_commission, convertedCommission.currency)}
                     </p>
@@ -220,15 +220,15 @@ const Commission = () => {
                   <div className="space-y-2">
                     <h4 className="font-medium text-emerald-700">Agent :</h4>
                     <ul className="space-y-1 text-gray-600">
-                      <li>• Transferts: 1,5% du montant</li>
-                      <li>• Retraits: 1% du montant</li>
+                      <li>• Transferts: 1% du montant</li>
+                      <li>• Retraits: 0,5% du montant</li>
                     </ul>
                   </div>
                   <div className="space-y-2">
                     <h4 className="font-medium text-blue-700">Entreprise :</h4>
                     <ul className="space-y-1 text-gray-600">
-                      <li>• Transferts: 5% du montant</li>
-                      <li>• Retraits: 1,5% du montant</li>
+                      <li>• Transferts: 5,5% du montant</li>
+                      <li>• Retraits: 1% du montant</li>
                     </ul>
                   </div>
                 </div>

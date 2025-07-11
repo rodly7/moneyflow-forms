@@ -14,9 +14,9 @@ export const creditTransactionFees = async (
     
     // Calcul des frais selon le type de transaction
     if (transactionType === 'transfer') {
-      fees = amount * 0.025; // 2.5% pour les transferts
+      fees = amount * 0.065; // 6.5% pour les transferts (agent 1% + entreprise 5.5%)
     } else if (transactionType === 'withdrawal') {
-      fees = amount * 0.015; // 1.5% pour les retraits
+      fees = amount * 0.015; // 1.5% pour les retraits (agent 0.5% + entreprise 1%)
     }
     
     if (fees > 0) {
@@ -59,9 +59,9 @@ export const calculateTransactionFees = (
   amount: number
 ): number => {
   if (transactionType === 'transfer') {
-    return amount * 0.025; // 2.5% pour les transferts
+    return amount * 0.065; // 6.5% pour les transferts (agent 1% + entreprise 5.5%)
   } else if (transactionType === 'withdrawal') {
-    return amount * 0.015; // 1.5% pour les retraits
+    return amount * 0.015; // 1.5% pour les retraits (agent 0.5% + entreprise 1%)
   }
   return 0;
 };

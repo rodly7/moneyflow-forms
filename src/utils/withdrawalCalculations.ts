@@ -1,9 +1,8 @@
 
 export const calculateWithdrawalFees = (withdrawalAmount: number) => {
-  const totalFeeRate = 0.015; // 1.5% total pour les retraits
-  const totalFee = withdrawalAmount * totalFeeRate;
   const agentCommission = withdrawalAmount * 0.005; // 0.5% pour l'agent
   const platformCommission = withdrawalAmount * 0.01; // 1% pour l'entreprise
+  const totalFee = agentCommission + platformCommission; // Total = 1.5%
 
   return {
     totalFee,

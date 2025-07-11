@@ -95,9 +95,9 @@ const AgentCommissions = () => {
           .lt('created_at', periodEnd.toISOString())
           .eq('status', 'completed');
 
-        // Calculer les commissions
-        const transferCommission = (transfers || []).reduce((sum, t) => sum + (Number(t.fees) * 0.5), 0);
-        const withdrawalCommission = (withdrawals || []).reduce((sum, w) => sum + (Number(w.amount) * 0.01), 0);
+        // Calculer les commissions selon les nouveaux taux
+        const transferCommission = (transfers || []).reduce((sum, t) => sum + (Number(t.amount) * 0.01), 0); // 1% du montant pour transferts
+        const withdrawalCommission = (withdrawals || []).reduce((sum, w) => sum + (Number(w.amount) * 0.005), 0); // 0.5% du montant pour retraits
         const depositCommission = (deposits || []).reduce((sum, d) => sum + (Number(d.amount) * 0.005), 0);
 
         commissions.push({
