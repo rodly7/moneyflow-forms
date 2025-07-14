@@ -27,9 +27,9 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }
     return phoneInput.replace(/[ -]/g, '');
   };
 
-  // Fonction pour rechercher automatiquement l'utilisateur par téléphone
+  // Fonction pour rechercher automatiquement l'utilisateur par téléphone (même système que les transferts)
   const searchUserByPhone = async (phoneValue: string) => {
-    if (!phoneValue.trim() || phoneValue.length < 8) {
+    if (!phoneValue.trim() || phoneValue.length < 6) {
       setUserFound(null);
       return;
     }
@@ -39,33 +39,72 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }
     try {
       const normalizedPhone = normalizePhoneNumber(phoneValue);
       
-      // Rechercher dans la table profiles par numéro de téléphone
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('id, phone, full_name')
-        .limit(20);
+      console.log("🔍 Recherche d'utilisateur avec find_recipient:", phoneValue);
+      
+      // Utiliser la fonction RPC find_recipient (même que dans les transferts)
+      const { data, error } = await supabase.rpc('find_recipient', { 
+        search_term: phoneValue 
+      });
 
       if (error) {
-        console.error('Erreur de recherche:', error);
-        setUserFound(null);
+        console.error("❌ Erreur lors de la recherche RPC:", error);
+      } else if (data && data.length > 0) {
+        const userData = data[0];
+        console.log("✅ Utilisateur trouvé via find_recipient:", userData);
+        
+        // Auto-remplir le nom complet trouvé
+        setFullName(userData.full_name || '');
+        setUserFound(true);
         return;
       }
 
-      // Trouver une correspondance exacte par téléphone
-      const matchingUser = profiles?.find(profile => {
-        if (!profile.phone) return false;
-        
-        const dbNormalizedPhone = profile.phone.replace(/[ -]/g, '');
-        return dbNormalizedPhone === normalizedPhone;
-      });
+      // Si find_recipient ne trouve rien, essayer une recherche directe plus flexible
+      console.log("🔍 Recherche directe dans profiles...");
+      
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, full_name, phone')
+        .or(`phone.eq.${phoneValue},phone.eq.${normalizedPhone}`);
 
-      if (matchingUser) {
-        // Auto-remplir le nom complet
-        setFullName(matchingUser.full_name || '');
+      if (profileError) {
+        console.error("❌ Erreur lors de la recherche directe:", profileError);
+      } else if (profileData && profileData.length > 0) {
+        const userData = profileData[0];
+        console.log("✅ Utilisateur trouvé via recherche directe:", userData);
+        
+        setFullName(userData.full_name || '');
         setUserFound(true);
-      } else {
-        setUserFound(false);
+        return;
       }
+
+      // Si aucune correspondance exacte, essayer une recherche par les derniers chiffres
+      console.log("🔍 Recherche par correspondance partielle...");
+      
+      const { data: allProfiles, error: allProfilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, phone');
+
+      if (!allProfilesError && allProfiles) {
+        const lastDigits = normalizedPhone.slice(-8); // Prendre les 8 derniers chiffres
+        
+        for (const profile of allProfiles) {
+          if (profile.phone) {
+            const profileNormalized = profile.phone.replace(/[\s+\-]/g, '');
+            const profileLastDigits = profileNormalized.slice(-8);
+            
+            if (profileLastDigits === lastDigits && lastDigits.length >= 8) {
+              console.log("✅ Utilisateur trouvé par correspondance partielle:", profile);
+              setFullName(profile.full_name || '');
+              setUserFound(true);
+              return;
+            }
+          }
+        }
+      }
+
+      console.log("ℹ️ Aucun utilisateur trouvé avec ce numéro");
+      setUserFound(false);
+      
     } catch (error) {
       console.error('Erreur lors de la recherche:', error);
       setUserFound(null);
@@ -74,7 +113,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }
     }
   };
 
-  // Fonction pour valider la combinaison téléphone + nom
+  // Fonction pour valider la combinaison téléphone + nom (utilise process_password_reset)
   const validateUserCombination = async (phoneValue: string, nameValue: string) => {
     if (!phoneValue.trim() || !nameValue.trim()) {
       setUserFound(null);
@@ -85,28 +124,25 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }
     const normalizedName = nameValue.trim();
     
     try {
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('id, phone, full_name')
-        .limit(20);
-
-      if (error) return;
-
-      const matchingUser = profiles?.find(profile => {
-        if (!profile.phone || !profile.full_name) return false;
-        
-        const dbNormalizedPhone = profile.phone.replace(/[ -]/g, '');
-        const dbNormalizedName = profile.full_name.toLowerCase().trim();
-        const inputNormalizedName = normalizedName.toLowerCase();
-        
-        return dbNormalizedPhone === normalizedPhone && 
-               dbNormalizedName === inputNormalizedName;
+      // Utiliser directement la fonction process_password_reset en mode test (sans changer le mot de passe)
+      const { data, error } = await supabase.rpc('process_password_reset', {
+        phone_param: normalizedPhone,
+        full_name_param: normalizedName,
+        new_password_param: 'test123' // Mot de passe temporaire pour le test
       });
 
-      setUserFound(!!matchingUser);
+      if (error) {
+        console.error('Erreur lors de la validation:', error);
+        setUserFound(false);
+        return;
+      }
+
+      const result = data as { success: boolean; message: string };
+      setUserFound(result.success);
+      
     } catch (error) {
       console.error('Erreur lors de la validation:', error);
-      setUserFound(null);
+      setUserFound(false);
     }
   };
 
