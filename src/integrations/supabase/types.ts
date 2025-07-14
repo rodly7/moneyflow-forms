@@ -1409,6 +1409,10 @@ export type Database = {
         Args: { p_user_id: string; p_account_id: string; p_amount: number }
         Returns: Json
       }
+      savings_withdrawal: {
+        Args: { p_user_id: string; p_account_id: string; p_amount: number }
+        Returns: Json
+      }
       secure_increment_balance: {
         Args: {
           target_user_id: string

@@ -8,6 +8,8 @@ import { Plus, PiggyBank, TrendingUp, Wallet } from "lucide-react";
 import SavingsAccountCard from "@/components/savings/SavingsAccountCard";
 import CreateSavingsAccountModal from "@/components/savings/CreateSavingsAccountModal";
 import SavingsDepositModal from "@/components/savings/SavingsDepositModal";
+import SavingsWithdrawalModal from "@/components/savings/SavingsWithdrawalModal";
+import EditSavingsAccountModal from "@/components/savings/EditSavingsAccountModal";
 import { formatCurrency } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -32,6 +34,8 @@ const Savings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
+  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<SavingsAccount | null>(null);
   const [userBalance, setUserBalance] = useState(0);
 
@@ -83,11 +87,49 @@ const Savings = () => {
   };
 
   const handleWithdraw = (account: SavingsAccount) => {
-    toast({
-      title: "Fonctionnalité à venir",
-      description: "Le retrait depuis l'épargne sera bientôt disponible",
-    });
+    setSelectedAccount(account);
+    setShowWithdrawalModal(true);
   };
+
+  const handleEdit = (account: SavingsAccount) => {
+    setSelectedAccount(account);
+    setShowEditModal(true);
+  };
+
+  const handleDelete = async (account: SavingsAccount) => {
+    if (!user) return;
+
+    const confirmDelete = window.confirm(
+      `Êtes-vous sûr de vouloir supprimer le compte "${account.name}" ?`
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('savings_accounts')
+        .delete()
+        .eq('id', account.id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Compte supprimé",
+        description: "Le compte épargne a été supprimé avec succès",
+      });
+
+      fetchSavingsAccounts();
+    } catch (error: any) {
+      console.error('Erreur lors de la suppression:', error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de supprimer le compte épargne",
+        variant: "destructive"
+      });
+    }
+  };
+
 
   const totalSavings = accounts.reduce((sum, account) => sum + account.balance, 0);
 
@@ -205,6 +247,9 @@ const Savings = () => {
                 key={account.id}
                 account={account}
                 onDeposit={handleDeposit}
+                onWithdraw={handleWithdraw}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
               />
             ))}
           </div>
@@ -219,7 +264,7 @@ const Savings = () => {
           }}
         />
 
-        {selectedAccount && (
+        {showDepositModal && selectedAccount && (
           <SavingsDepositModal
             isOpen={showDepositModal}
             onClose={() => {
@@ -230,6 +275,35 @@ const Savings = () => {
             onSuccess={() => {
               fetchSavingsAccounts();
               fetchUserBalance();
+            }}
+          />
+        )}
+
+        {showWithdrawalModal && selectedAccount && (
+          <SavingsWithdrawalModal
+            isOpen={showWithdrawalModal}
+            onClose={() => {
+              setShowWithdrawalModal(false);
+              setSelectedAccount(null);
+            }}
+            account={selectedAccount}
+            onSuccess={() => {
+              fetchSavingsAccounts();
+              fetchUserBalance();
+            }}
+          />
+        )}
+
+        {showEditModal && selectedAccount && (
+          <EditSavingsAccountModal
+            isOpen={showEditModal}
+            onClose={() => {
+              setShowEditModal(false);
+              setSelectedAccount(null);
+            }}
+            account={selectedAccount}
+            onSuccess={() => {
+              fetchSavingsAccounts();
             }}
           />
         )}

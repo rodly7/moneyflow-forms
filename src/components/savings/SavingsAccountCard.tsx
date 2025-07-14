@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Wallet, TrendingUp, Target } from 'lucide-react';
+import { Wallet, TrendingUp, Target, Edit, Trash2, Download } from 'lucide-react';
 import { formatCurrency } from '@/integrations/supabase/client';
 
 interface SavingsAccount {
@@ -22,10 +22,15 @@ interface SavingsAccount {
 interface SavingsAccountCardProps {
   account: SavingsAccount;
   onDeposit: (account: SavingsAccount) => void;
+  onWithdraw: (account: SavingsAccount) => void;
+  onEdit: (account: SavingsAccount) => void;
+  onDelete: (account: SavingsAccount) => void;
 }
 
-const SavingsAccountCard = ({ account, onDeposit }: SavingsAccountCardProps) => {
-  const progressPercentage = (account.balance / account.target_amount) * 100;
+const SavingsAccountCard = ({ account, onDeposit, onWithdraw, onEdit, onDelete }: SavingsAccountCardProps) => {
+  const progressPercentage = account.target_amount ? (account.balance / account.target_amount) * 100 : 0;
+  const canWithdraw = !account.target_amount || account.balance >= account.target_amount;
+  const canDelete = !account.target_amount || account.balance < account.target_amount || account.balance === 0;
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
@@ -60,24 +65,53 @@ const SavingsAccountCard = ({ account, onDeposit }: SavingsAccountCardProps) => 
           <Progress value={progressPercentage} className="h-2" />
         </div>
         
-        <div className="flex gap-2 pt-2">
-          <Button 
-            onClick={() => onDeposit(account)}
-            className="flex-1 bg-blue-600 hover:bg-blue-700"
-            size="sm"
-          >
-            <Wallet className="w-4 h-4 mr-2" />
-            Déposer
-          </Button>
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => onDeposit(account)}
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+              size="sm"
+            >
+              <Wallet className="w-4 h-4 mr-2" />
+              Déposer
+            </Button>
+            
+            <Button 
+              onClick={() => onWithdraw(account)}
+              variant="outline" 
+              size="sm"
+              className="flex-1"
+              disabled={!canWithdraw}
+              title={!canWithdraw ? "Atteignez votre objectif pour retirer" : ""}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Retirer
+            </Button>
+          </div>
           
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="flex-1"
-          >
-            <Target className="w-4 h-4 mr-2" />
-            Détails
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => onEdit(account)}
+              variant="outline" 
+              size="sm"
+              className="flex-1"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Modifier
+            </Button>
+            
+            <Button 
+              onClick={() => onDelete(account)}
+              variant="outline" 
+              size="sm"
+              className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+              disabled={!canDelete}
+              title={!canDelete ? "Atteignez votre objectif ou videz le compte pour supprimer" : ""}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Supprimer
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
