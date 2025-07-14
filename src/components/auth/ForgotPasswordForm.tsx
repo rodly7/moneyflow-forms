@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Phone, User, Lock, KeyRound, ArrowLeft } from 'lucide-react';
+import { Phone, User, Lock, KeyRound, ArrowLeft, Check, X } from 'lucide-react';
 import { Icons } from '@/components/ui/icons';
 
 interface ForgotPasswordFormProps {
@@ -19,11 +19,70 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }
   const [fullName, setFullName] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [userFound, setUserFound] = useState<boolean | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   const normalizePhoneNumber = (phoneInput: string) => {
     // Même normalisation que dans la fonction base de données
     return phoneInput.replace(/[ -]/g, '');
   };
+
+  // Fonction pour rechercher automatiquement l'utilisateur
+  const searchUserInDatabase = async (phoneValue: string, nameValue: string) => {
+    if (!phoneValue.trim() || !nameValue.trim()) {
+      setUserFound(null);
+      return;
+    }
+
+    setIsSearching(true);
+    
+    try {
+      const normalizedPhone = normalizePhoneNumber(phoneValue);
+      const normalizedName = nameValue.trim();
+      
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id, phone, full_name')
+        .ilike('phone', `%${normalizedPhone}%`)
+        .ilike('full_name', `%${normalizedName}%`);
+
+      if (error) {
+        console.error('Erreur de recherche:', error);
+        setUserFound(null);
+        return;
+      }
+
+      // Vérification précise
+      const matchingUser = profiles?.find(profile => {
+        const dbNormalizedPhone = profile.phone.replace(/[ -]/g, '');
+        const dbNormalizedName = profile.full_name?.toLowerCase().trim();
+        const inputNormalizedName = normalizedName.toLowerCase();
+        
+        return dbNormalizedPhone === normalizedPhone && 
+               dbNormalizedName === inputNormalizedName;
+      });
+
+      setUserFound(!!matchingUser);
+    } catch (error) {
+      console.error('Erreur lors de la recherche:', error);
+      setUserFound(null);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Effet pour la recherche automatique
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (phone && fullName && phone.length >= 3 && fullName.length >= 3) {
+        searchUserInDatabase(phone, fullName);
+      } else {
+        setUserFound(null);
+      }
+    }, 500); // Attendre 500ms après la dernière saisie
+
+    return () => clearTimeout(timeoutId);
+  }, [phone, fullName]);
 
   const handleVerifyUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,17 +226,43 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }
               <Label htmlFor="fullName" className="text-white font-medium flex items-center gap-2">
                 <User className="w-4 h-4" />
                 Nom complet
+                {isSearching && (
+                  <Icons.spinner className="w-4 h-4 animate-spin text-blue-400" />
+                )}
+                {!isSearching && userFound === true && (
+                  <Check className="w-4 h-4 text-green-400" />
+                )}
+                {!isSearching && userFound === false && (
+                  <X className="w-4 h-4 text-red-400" />
+                )}
               </Label>
-              <Input
-                id="fullName"
-                type="text"
-                placeholder="Votre nom complet"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-                className="bg-white/15 border-white/30 text-white placeholder:text-white/60 focus:border-blue-400 focus:ring-blue-400/30"
-                disabled={loading}
-              />
+              <div className="relative">
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="Votre nom complet"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  className={`bg-white/15 border-white/30 text-white placeholder:text-white/60 focus:border-blue-400 focus:ring-blue-400/30 ${
+                    userFound === true ? 'border-green-400 focus:border-green-400' : 
+                    userFound === false ? 'border-red-400 focus:border-red-400' : ''
+                  }`}
+                  disabled={loading}
+                />
+              </div>
+              {!isSearching && userFound === true && (
+                <p className="text-sm text-green-400 flex items-center gap-1">
+                  <Check className="w-3 h-3" />
+                  Compte trouvé dans la base de données
+                </p>
+              )}
+              {!isSearching && userFound === false && phone.length >= 3 && fullName.length >= 3 && (
+                <p className="text-sm text-red-400 flex items-center gap-1">
+                  <X className="w-3 h-3" />
+                  Aucun compte trouvé avec ces informations
+                </p>
+              )}
             </div>
 
             <Button
