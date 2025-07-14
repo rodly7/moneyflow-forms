@@ -27,9 +27,9 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }
     return phoneInput.replace(/[ -]/g, '');
   };
 
-  // Fonction pour rechercher automatiquement l'utilisateur
-  const searchUserInDatabase = async (phoneValue: string, nameValue: string) => {
-    if (!phoneValue.trim() || !nameValue.trim()) {
+  // Fonction pour rechercher automatiquement l'utilisateur par téléphone
+  const searchUserByPhone = async (phoneValue: string) => {
+    if (!phoneValue.trim() || phoneValue.length < 8) {
       setUserFound(null);
       return;
     }
@@ -38,13 +38,12 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }
     
     try {
       const normalizedPhone = normalizePhoneNumber(phoneValue);
-      const normalizedName = nameValue.trim();
       
-      // Rechercher dans la table profiles avec une requête simple
+      // Rechercher dans la table profiles par numéro de téléphone
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('id, phone, full_name')
-        .limit(50); // Limiter pour éviter trop de données
+        .limit(20);
 
       if (error) {
         console.error('Erreur de recherche:', error);
@@ -52,7 +51,47 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }
         return;
       }
 
-      // Vérification côté client pour correspondance exacte
+      // Trouver une correspondance exacte par téléphone
+      const matchingUser = profiles?.find(profile => {
+        if (!profile.phone) return false;
+        
+        const dbNormalizedPhone = profile.phone.replace(/[ -]/g, '');
+        return dbNormalizedPhone === normalizedPhone;
+      });
+
+      if (matchingUser) {
+        // Auto-remplir le nom complet
+        setFullName(matchingUser.full_name || '');
+        setUserFound(true);
+      } else {
+        setUserFound(false);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la recherche:', error);
+      setUserFound(null);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Fonction pour valider la combinaison téléphone + nom
+  const validateUserCombination = async (phoneValue: string, nameValue: string) => {
+    if (!phoneValue.trim() || !nameValue.trim()) {
+      setUserFound(null);
+      return;
+    }
+
+    const normalizedPhone = normalizePhoneNumber(phoneValue);
+    const normalizedName = nameValue.trim();
+    
+    try {
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id, phone, full_name')
+        .limit(20);
+
+      if (error) return;
+
       const matchingUser = profiles?.find(profile => {
         if (!profile.phone || !profile.full_name) return false;
         
@@ -66,18 +105,18 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }
 
       setUserFound(!!matchingUser);
     } catch (error) {
-      console.error('Erreur lors de la recherche:', error);
+      console.error('Erreur lors de la validation:', error);
       setUserFound(null);
-    } finally {
-      setIsSearching(false);
     }
   };
 
-  // Effet pour la recherche automatique
+  // Effet pour la recherche automatique par téléphone
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      if (phone && fullName && phone.length >= 3 && fullName.length >= 3) {
-        searchUserInDatabase(phone, fullName);
+      if (phone && phone.length >= 8) {
+        searchUserByPhone(phone);
+      } else if (phone && fullName && phone.length >= 3 && fullName.length >= 3) {
+        validateUserCombination(phone, fullName);
       } else {
         setUserFound(null);
       }
