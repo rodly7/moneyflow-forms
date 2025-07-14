@@ -235,7 +235,10 @@ const CompactSubAdminDashboard = () => {
               <div>
                 <p className="text-sm text-white/80">Mon Solde Personnel</p>
                 <p className="text-2xl font-bold">
-                  {profile?.balance ? `${profile.balance.toLocaleString()} XAF` : "0 XAF"}
+                  {profile?.balance !== undefined ? `${Number(profile.balance).toLocaleString()} XAF` : "Chargement..."}
+                </p>
+                <p className="text-xs text-white/60 mt-1">
+                  Solde du sous-administrateur: {profile?.full_name || 'Utilisateur'}
                 </p>
               </div>
               <DollarSign className="w-8 h-8 text-white/80" />
