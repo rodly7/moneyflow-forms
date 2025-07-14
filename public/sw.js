@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sendflow-v1';
+const CACHE_NAME = 'sendflow-v2';
 const urlsToCache = [
   '/',
   '/static/js/bundle.js',
