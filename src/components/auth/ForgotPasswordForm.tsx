@@ -169,39 +169,41 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }
       return;
     }
 
+    if (!userFound) {
+      toast.error('Utilisateur non trouvé dans la base de données');
+      return;
+    }
+
     setLoading(true);
     
     try {
       const normalizedPhone = normalizePhoneNumber(phone);
       const normalizedName = fullName.trim();
       
-      // Vérification robuste côté client avec la même logique que la base de données
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('id, phone, full_name')
-        .or(`and(phone.eq.${normalizedPhone},full_name.ilike.${normalizedName})`);
+      // Générer un nouveau mot de passe automatiquement
+      const newAutoPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
+      
+      // Appeler directement la fonction de réinitialisation avec le nouveau mot de passe automatique
+      const { data, error } = await supabase.rpc('process_password_reset', {
+        phone_param: normalizedPhone,
+        full_name_param: normalizedName,
+        new_password_param: newAutoPassword
+      });
 
       if (error) {
         throw error;
       }
 
-      // Vérification manuelle pour plus de précision
-      const matchingUser = profiles?.find(profile => {
-        const dbNormalizedPhone = profile.phone.replace(/[ -]/g, '');
-        const dbNormalizedName = profile.full_name?.toLowerCase().trim();
-        const inputNormalizedName = normalizedName.toLowerCase();
-        
-        return dbNormalizedPhone === normalizedPhone && 
-               dbNormalizedName === inputNormalizedName;
-      });
-
-      if (!matchingUser) {
-        toast.error('Aucun compte trouvé avec ce numéro de téléphone et ce nom. Vérifiez vos informations.');
-        return;
+      const result = data as { success: boolean; message: string };
+      
+      if (result.success) {
+        toast.success(`Mot de passe changé automatiquement! Nouveau mot de passe: ${newAutoPassword}`, {
+          duration: 10000 // Afficher plus longtemps pour que l'utilisateur puisse noter
+        });
+        onBack();
+      } else {
+        toast.error(result.message);
       }
-
-      toast.success('Utilisateur vérifié! Vous pouvez maintenant définir votre nouveau mot de passe.');
-      setStep('reset');
     } catch (error: any) {
       console.error('Erreur lors de la vérification:', error);
       toast.error('Erreur lors de la vérification de l\'utilisateur');
