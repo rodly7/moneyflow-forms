@@ -1,9 +1,5 @@
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -69,48 +65,62 @@ const CreateSavingsAccountModal = ({ isOpen, onClose, onSuccess }: CreateSavings
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Créer un compte d'épargne</DialogTitle>
-        </DialogHeader>
+    <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 ${isOpen ? 'block' : 'hidden'}`}>
+      <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="mb-4">
+          <h2 className="text-xl font-bold">Créer un compte d'épargne</h2>
+        </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="account-name">Nom du compte</Label>
-            <Input
+            <label htmlFor="account-name" className="block text-sm font-medium">
+              Nom du compte
+            </label>
+            <input
               id="account-name"
               type="text"
               placeholder="Ex: Épargne vacances"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="target-amount">Objectif d'épargne (XAF)</Label>
-            <Input
+            <label htmlFor="target-amount" className="block text-sm font-medium">
+              Objectif d'épargne (XAF)
+            </label>
+            <input
               id="target-amount"
               type="number"
               placeholder="100000"
               value={targetAmount}
               onChange={(e) => setTargetAmount(e.target.value)}
               required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
               Annuler
-            </Button>
-            <Button type="submit" disabled={isCreating} className="flex-1">
+            </button>
+            <button 
+              type="submit" 
+              disabled={isCreating} 
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            >
               {isCreating ? 'Création...' : 'Créer le compte'}
-            </Button>
+            </button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 };
 

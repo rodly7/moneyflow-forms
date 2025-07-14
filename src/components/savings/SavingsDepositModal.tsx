@@ -1,9 +1,5 @@
 
 import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -134,11 +130,11 @@ const SavingsDepositModal = ({
   }, [isOpen]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[400px]">
-        <DialogHeader>
-          <DialogTitle>Dépôt vers {account.name}</DialogTitle>
-        </DialogHeader>
+    <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 ${isOpen ? 'block' : 'hidden'}`}>
+      <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="mb-4">
+          <h2 className="text-xl font-bold">Dépôt vers {account.name}</h2>
+        </div>
 
         <div className="space-y-4">
           <div className="bg-blue-50 p-3 rounded-md">
@@ -149,8 +145,10 @@ const SavingsDepositModal = ({
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="amount">Montant à déposer (FCFA)</Label>
-              <Input
+              <label htmlFor="amount" className="block text-sm font-medium mb-1">
+                Montant à déposer (FCFA)
+              </label>
+              <input
                 id="amount"
                 type="number"
                 value={amount}
@@ -159,25 +157,30 @@ const SavingsDepositModal = ({
                 required
                 min="1"
                 max={userBalance}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div className="flex gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+              <button 
+                type="button" 
+                onClick={onClose} 
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
                 Annuler
-              </Button>
-              <Button 
+              </button>
+              <button 
                 type="submit" 
                 disabled={isLoading || !amount || parseFloat(amount) <= 0}
-                className="flex-1"
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
                 {isLoading ? "Dépôt..." : "Déposer"}
-              </Button>
+              </button>
             </div>
           </form>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 };
 
