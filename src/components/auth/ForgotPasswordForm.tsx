@@ -21,7 +21,8 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const normalizePhoneNumber = (phoneInput: string) => {
-    return phoneInput.replace(/[^\d+]/g, '');
+    // Même normalisation que dans la fonction base de données
+    return phoneInput.replace(/[ -]/g, '');
   };
 
   const handleVerifyUser = async (e: React.FormEvent) => {
@@ -36,20 +37,30 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }
     
     try {
       const normalizedPhone = normalizePhoneNumber(phone);
+      const normalizedName = fullName.trim();
       
-      // Vérifier si l'utilisateur existe
+      // Vérification robuste côté client avec la même logique que la base de données
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('id, phone, full_name')
-        .eq('phone', normalizedPhone)
-        .ilike('full_name', fullName.trim());
+        .or(`and(phone.eq.${normalizedPhone},full_name.ilike.${normalizedName})`);
 
       if (error) {
         throw error;
       }
 
-      if (!profiles || profiles.length === 0) {
-        toast.error('Aucun compte trouvé avec ce numéro de téléphone et ce nom');
+      // Vérification manuelle pour plus de précision
+      const matchingUser = profiles?.find(profile => {
+        const dbNormalizedPhone = profile.phone.replace(/[ -]/g, '');
+        const dbNormalizedName = profile.full_name?.toLowerCase().trim();
+        const inputNormalizedName = normalizedName.toLowerCase();
+        
+        return dbNormalizedPhone === normalizedPhone && 
+               dbNormalizedName === inputNormalizedName;
+      });
+
+      if (!matchingUser) {
+        toast.error('Aucun compte trouvé avec ce numéro de téléphone et ce nom. Vérifiez vos informations.');
         return;
       }
 
