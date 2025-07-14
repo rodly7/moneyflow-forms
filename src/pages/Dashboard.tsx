@@ -3,7 +3,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUpRight, QrCode, RefreshCw, LogOut, Wallet, Activity, DollarSign, History, PiggyBank, FileText, Sparkles, Crown, Star, Zap, Heart, Eye, EyeOff } from "lucide-react";
+import { ArrowUpRight, QrCode, RefreshCw, LogOut, Wallet, Activity, DollarSign, History, PiggyBank, FileText, Sparkles, Crown, Star, Zap, Heart, Eye, EyeOff, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -379,7 +379,7 @@ const Dashboard = () => {
               className="relative w-full h-24 flex-col gap-3 bg-white border-0 hover:bg-gray-50 transition-all duration-300 hover:scale-105 shadow-lg"
             >
               <div className="p-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-full">
-                <span className="text-white text-xl">📱</span>
+                <MessageCircle className="w-5 h-5 text-white" />
               </div>
               <span className="text-sm font-medium">WhatsApp</span>
             </Button>
