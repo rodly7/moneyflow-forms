@@ -228,6 +228,21 @@ const CompactSubAdminDashboard = () => {
           <UserProfileInfo />
         </div>
 
+        {/* Affichage du solde personnel du sous-administrateur */}
+        <Card className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-white/80">Mon Solde Personnel</p>
+                <p className="text-2xl font-bold">
+                  {profile?.balance ? `${profile.balance.toLocaleString()} XAF` : "0 XAF"}
+                </p>
+              </div>
+              <DollarSign className="w-8 h-8 text-white/80" />
+            </div>
+          </CardContent>
+        </Card>
+
         <CompactStatsGrid stats={statsData} />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
