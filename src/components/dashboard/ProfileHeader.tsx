@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ProfileEditForm from "@/components/ProfileEditForm";
 import QRCodeGenerator from "@/components/QRCodeGenerator";
-import { LogOut, Star, Edit3, Camera, User, QrCode, Sparkles, Crown } from "lucide-react";
+import { LogOut, Star, Edit3, Camera, User, QrCode, Sparkles, Crown, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -145,6 +145,16 @@ const ProfileHeader = ({ profile }: ProfileHeaderProps) => {
                 title="Mon QR Code"
               >
                 <QrCode className="w-7 h-7" />
+              </Button>
+
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="text-gray-500 hover:text-blue-600 glass hover:bg-blue-50/80 rounded-2xl transition-all duration-300 h-14 w-14 shadow-lg hover:shadow-xl hover:scale-110"
+                onClick={() => navigate('/change-password')}
+                title="Changer le mot de passe"
+              >
+                <Lock className="w-7 h-7" />
               </Button>
               
               <Button 

@@ -81,5 +81,20 @@ export const authService = {
       throw error;
     }
     console.log('✅ Déconnexion réussie');
+  },
+
+  async changePassword(newPassword: string) {
+    console.log('🔐 Changement de mot de passe en cours...');
+    
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) {
+      console.error('❌ Erreur lors du changement de mot de passe:', error);
+      throw error;
+    }
+    
+    console.log('✅ Mot de passe modifié avec succès');
   }
 };
