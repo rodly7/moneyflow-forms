@@ -40,11 +40,10 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }
       const normalizedPhone = normalizePhoneNumber(phoneValue);
       const normalizedName = nameValue.trim();
       
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('id, phone, full_name')
-        .ilike('phone', `%${normalizedPhone}%`)
-        .ilike('full_name', `%${normalizedName}%`);
+      // Rechercher dans les données d'authentification via la vue
+      const { data: authUsers, error } = await supabase
+        .from('auth_users_agents_view')
+        .select('id, email, raw_user_meta_data');
 
       if (error) {
         console.error('Erreur de recherche:', error);
@@ -52,10 +51,16 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }
         return;
       }
 
-      // Vérification précise
-      const matchingUser = profiles?.find(profile => {
-        const dbNormalizedPhone = profile.phone.replace(/[ -]/g, '');
-        const dbNormalizedName = profile.full_name?.toLowerCase().trim();
+      // Vérification dans les métadonnées d'authentification
+      const matchingUser = authUsers?.find(user => {
+        const metaData = user.raw_user_meta_data as any;
+        if (!metaData) return false;
+        
+        const dbPhone = metaData.phone || '';
+        const dbName = metaData.full_name || '';
+        
+        const dbNormalizedPhone = dbPhone.replace(/[ -]/g, '');
+        const dbNormalizedName = dbName.toLowerCase().trim();
         const inputNormalizedName = normalizedName.toLowerCase();
         
         return dbNormalizedPhone === normalizedPhone && 
