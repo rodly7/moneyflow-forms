@@ -7,10 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Icons } from "@/components/ui/icons";
-import { Shield, Users, Phone, Lock, Eye, EyeOff, CheckCircle2, Crown, Sparkles, Star } from "lucide-react";
+import { Shield, Users, Phone, Lock, Eye, EyeOff, CheckCircle2, Crown, Sparkles, Star, KeyRound } from "lucide-react";
+import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 
 const AgentAuthForm = () => {
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { signIn } = useAuth();
   
   const [loginPhone, setLoginPhone] = useState("");
@@ -66,6 +68,10 @@ const AgentAuthForm = () => {
       setLoading(false);
     }
   };
+
+  if (showForgotPassword) {
+    return <ForgotPasswordForm onBack={() => setShowForgotPassword(false)} />;
+  }
 
   return (
     <Card className="w-full max-w-xl backdrop-blur-2xl bg-white/10 shadow-2xl border border-white/20 relative overflow-hidden rounded-3xl layout-stable">
@@ -157,6 +163,17 @@ const AgentAuthForm = () => {
                 🔐 Accéder à l'espace agent
               </>
             )}
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full text-emerald-200 hover:text-white hover:bg-emerald-500/20 mt-3 rounded-xl"
+            onClick={() => setShowForgotPassword(true)}
+            disabled={loading}
+          >
+            <KeyRound className="mr-2 h-4 w-4" />
+            Mot de passe oublié ?
           </Button>
 
           <div className="bg-gradient-to-r from-emerald-50/10 to-teal-50/10 backdrop-blur-md p-6 rounded-2xl border border-emerald-400/30 mt-8">

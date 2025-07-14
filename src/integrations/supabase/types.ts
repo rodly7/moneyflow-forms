@@ -718,6 +718,45 @@ export type Database = {
           },
         ]
       }
+      password_reset_requests: {
+        Row: {
+          created_at: string
+          expires_at: string
+          full_name: string
+          id: string
+          new_password: string
+          phone: string
+          status: string
+          updated_at: string
+          user_id: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          full_name: string
+          id?: string
+          new_password: string
+          phone: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          full_name?: string
+          id?: string
+          new_password?: string
+          phone?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       pending_transfers: {
         Row: {
           amount: number
@@ -1249,6 +1288,10 @@ export type Database = {
         Args: { user_id_param: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      handle_password_reset_cleanup: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       increment_balance: {
         Args: { user_id: string; amount: number }
         Returns: number
@@ -1303,6 +1346,14 @@ export type Database = {
               transfer_fees: number
             }
         Returns: undefined
+      }
+      process_password_reset: {
+        Args: {
+          phone_param: string
+          full_name_param: string
+          new_password_param: string
+        }
+        Returns: Json
       }
       secure_increment_balance: {
         Args: {

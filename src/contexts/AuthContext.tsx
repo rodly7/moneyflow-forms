@@ -5,6 +5,7 @@ import { Profile, AuthContextType, SignUpMetadata } from '@/types/auth';
 import { authService } from '@/services/authService';
 import { useUserSession } from '@/hooks/useUserSession';
 import SessionManager from '@/components/SessionManager';
+import { toast } from 'sonner';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -145,13 +146,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = useCallback(async () => {
     try {
       setLoading(true);
+      
+      // Nettoyer d'abord l'état local
+      setUser(null);
+      setProfile(null);
+      
+      // Puis appeler Supabase pour la déconnexion
       await authService.signOut();
+      
+      // Forcer un nettoyage complet de la session
+      await supabase.auth.signOut({ scope: 'local' });
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+      // Même en cas d'erreur, nettoyer l'état local
       setUser(null);
       setProfile(null);
       setLoading(false);
-    } catch (error) {
-      setLoading(false);
-      throw error;
+      
+      // Ne pas relancer l'erreur pour éviter de bloquer la déconnexion
+      toast.error('Déconnexion effectuée avec nettoyage forcé');
     }
   }, []);
 
