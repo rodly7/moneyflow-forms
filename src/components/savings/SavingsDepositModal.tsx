@@ -93,12 +93,19 @@ const SavingsDepositModal = ({
     setIsLoading(true);
 
     try {
-      const { error: balanceError } = await supabase.rpc('increment_balance', {
-        user_id: user.id,
-        amount: -depositAmount
+      const { data, error } = await supabase.rpc('savings_deposit', {
+        p_user_id: user.id,
+        p_account_id: account.id,
+        p_amount: depositAmount
       });
 
-      if (balanceError) throw balanceError;
+      if (error) throw error;
+      
+      const result = data as { success: boolean; error?: string; message?: string };
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Erreur lors du dépôt');
+      }
 
       toast({
         title: "Dépôt effectué",

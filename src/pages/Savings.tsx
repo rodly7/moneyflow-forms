@@ -40,23 +40,15 @@ const Savings = () => {
     
     setIsLoading(true);
     try {
-      const mockAccounts: SavingsAccount[] = [
-        {
-          id: '1',
-          name: 'Épargne Générale',
-          balance: 0,
-          target_amount: 100000,
-          target_date: null,
-          auto_deposit_amount: null,
-          auto_deposit_frequency: null,
-          interest_rate: 5.0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          user_id: user.id
-        }
-      ];
+      const { data, error } = await supabase
+        .from('savings_accounts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
       
-      setAccounts(mockAccounts);
+      setAccounts(data || []);
     } catch (error) {
       console.error("Erreur lors du chargement des comptes d'épargne:", error);
       toast({

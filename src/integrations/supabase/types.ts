@@ -931,6 +931,56 @@ export type Database = {
           },
         ]
       }
+      savings_accounts: {
+        Row: {
+          auto_deposit_amount: number | null
+          auto_deposit_frequency: string | null
+          balance: number
+          created_at: string
+          id: string
+          interest_rate: number | null
+          name: string
+          target_amount: number | null
+          target_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_deposit_amount?: number | null
+          auto_deposit_frequency?: string | null
+          balance?: number
+          created_at?: string
+          id?: string
+          interest_rate?: number | null
+          name: string
+          target_amount?: number | null
+          target_date?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_deposit_amount?: number | null
+          auto_deposit_frequency?: string | null
+          balance?: number
+          created_at?: string
+          id?: string
+          interest_rate?: number | null
+          name?: string
+          target_amount?: number | null
+          target_date?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "savings_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "auth_users_agents_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_status: {
         Row: {
           component: string
@@ -1353,6 +1403,10 @@ export type Database = {
           full_name_param: string
           new_password_param: string
         }
+        Returns: Json
+      }
+      savings_deposit: {
+        Args: { p_user_id: string; p_account_id: string; p_amount: number }
         Returns: Json
       }
       secure_increment_balance: {
