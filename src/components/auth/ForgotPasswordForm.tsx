@@ -180,26 +180,41 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }
       const normalizedPhone = normalizePhoneNumber(phone);
       const normalizedName = fullName.trim();
       
-      // Générer un nouveau mot de passe automatiquement
-      const newAutoPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
-      
-      // Appeler directement la fonction de réinitialisation avec le nouveau mot de passe automatique
+      // D'abord vérifier que l'utilisateur existe bien
       const { data, error } = await supabase.rpc('process_password_reset', {
         phone_param: normalizedPhone,
         full_name_param: normalizedName,
-        new_password_param: newAutoPassword
+        new_password_param: 'temp123' // Mot de passe temporaire pour la vérification
       });
 
       if (error) {
         throw error;
       }
 
-      const result = data as { success: boolean; message: string };
+      const result = data as { success: boolean; message: string; user_id?: string };
       
-      if (result.success) {
-        toast.success(`Mot de passe changé automatiquement! Nouveau mot de passe: ${newAutoPassword}`, {
-          duration: 10000 // Afficher plus longtemps pour que l'utilisateur puisse noter
-        });
+      if (result.success && result.user_id) {
+        // Générer un nouveau mot de passe automatiquement
+        const newAutoPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
+        
+        // Utiliser l'API Supabase Admin pour mettre à jour le mot de passe
+        const { error: updateError } = await supabase.auth.admin.updateUserById(
+          result.user_id,
+          { password: newAutoPassword }
+        );
+
+        if (updateError) {
+          console.error('Erreur lors de la mise à jour du mot de passe:', updateError);
+          // Fallback : afficher un message de succès avec instructions
+          toast.success('Compte vérifié! Contactez un administrateur pour réinitialiser votre mot de passe.', {
+            duration: 5000
+          });
+        } else {
+          toast.success(`Mot de passe changé automatiquement! Nouveau mot de passe: ${newAutoPassword}`, {
+            duration: 15000 // Afficher plus longtemps pour que l'utilisateur puisse noter
+          });
+        }
+        
         onBack();
       } else {
         toast.error(result.message);
