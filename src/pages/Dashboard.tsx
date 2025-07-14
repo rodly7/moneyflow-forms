@@ -314,7 +314,7 @@ const Dashboard = () => {
         </div>
 
         {/* Beautiful Actions Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="group relative">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
             <Button 
@@ -368,6 +368,20 @@ const Dashboard = () => {
                 <History className="h-6 w-6 text-white" />
               </div>
               <span className="text-sm font-medium">Historique</span>
+            </Button>
+          </div>
+          
+          <div className="group relative">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500 to-lime-500 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
+            <Button 
+              variant="outline" 
+              onClick={() => window.open('https://chat.whatsapp.com/KsyikhUdkTy7RbgVuyWSLu?mode=ac_c', '_blank')}
+              className="relative w-full h-24 flex-col gap-3 bg-white border-0 hover:bg-gray-50 transition-all duration-300 hover:scale-105 shadow-lg"
+            >
+              <div className="p-2 bg-gradient-to-r from-green-500 to-lime-500 rounded-full">
+                <span className="text-white text-xl">📱</span>
+              </div>
+              <span className="text-sm font-medium">WhatsApp</span>
             </Button>
           </div>
         </div>
