@@ -13,6 +13,43 @@ const BillPayments = () => {
   const [accountNumber, setAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [provider, setProvider] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState("Sénégal");
+  const [selectedService, setSelectedService] = useState("electricity");
+
+  const feeRate = 0.015; // 1.5% frais
+
+  const serviceProviders = {
+    "Sénégal": {
+      electricity: ["SENELEC"],
+      water: ["SDE"],
+      internet: ["Orange", "Free", "Expresso"],
+      phone: ["Orange", "Free", "Expresso"]
+    },
+    "Mali": {
+      electricity: ["EDM"],
+      water: ["SOMAGEP"],
+      internet: ["Orange Mali", "Malitel"],
+      phone: ["Orange Mali", "Malitel"]
+    },
+    "Burkina Faso": {
+      electricity: ["SONABEL"],
+      water: ["ONEA"],
+      internet: ["Orange BF", "Telmob"],
+      phone: ["Orange BF", "Telmob"]
+    },
+    "Côte d'Ivoire": {
+      electricity: ["CIE"],
+      water: ["SODECI"],
+      internet: ["Orange CI", "MTN"],
+      phone: ["Orange CI", "MTN", "Moov"]
+    }
+  };
+
+  const calculateTotal = () => {
+    const baseAmount = parseFloat(amount) || 0;
+    const fees = baseAmount * feeRate;
+    return baseAmount + fees;
+  };
 
   const services = [
     { id: "electricity", label: "Électricité", icon: Zap, color: "from-yellow-500 to-orange-500" },
@@ -60,7 +97,24 @@ const BillPayments = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="electricity" className="w-full">
+            {/* Country Selection */}
+            <div className="space-y-2 mb-4">
+              <Label className="text-sm font-medium text-gray-700">Pays</Label>
+              <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                <SelectTrigger className="w-full h-12 bg-gray-50 border-gray-200 rounded-xl">
+                  <SelectValue placeholder="Choisir un pays" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(serviceProviders).map((country) => (
+                    <SelectItem key={country} value={country}>
+                      {country}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Tabs value={selectedService} onValueChange={setSelectedService} className="w-full">
               <TabsList className="grid w-full grid-cols-4 mb-6 bg-gray-100 rounded-2xl p-1">
                 {services.map((service) => {
                   const IconComponent = service.icon;
@@ -92,7 +146,7 @@ const BillPayments = () => {
                           <SelectValue placeholder="Choisir un fournisseur" />
                         </SelectTrigger>
                         <SelectContent>
-                          {providers[service.id as keyof typeof providers]?.map((prov) => (
+                          {(serviceProviders as any)[selectedCountry]?.[service.id]?.map((prov: string) => (
                             <SelectItem key={prov} value={prov}>
                               {prov}
                             </SelectItem>
@@ -116,7 +170,7 @@ const BillPayments = () => {
                       />
                     </div>
 
-                    {/* Amount */}
+                     {/* Amount */}
                     <div className="space-y-2">
                       <Label htmlFor="amount" className="text-sm font-medium text-gray-700">
                         Montant (FCFA)
@@ -129,6 +183,22 @@ const BillPayments = () => {
                         onChange={(e) => setAmount(e.target.value)}
                         className="h-12 bg-gray-50 border-gray-200 rounded-xl"
                       />
+                      {amount && (
+                        <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-xl">
+                          <div className="flex justify-between items-center">
+                            <span>Montant de base:</span>
+                            <span>{parseFloat(amount || "0").toLocaleString()} FCFA</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span>Frais (1,5%):</span>
+                            <span>{(parseFloat(amount || "0") * feeRate).toLocaleString()} FCFA</span>
+                          </div>
+                          <div className="flex justify-between items-center font-semibold text-primary border-t pt-2 mt-2">
+                            <span>Total à payer:</span>
+                            <span>{calculateTotal().toLocaleString()} FCFA</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Verify Button */}
