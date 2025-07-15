@@ -37,6 +37,7 @@ const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));
 const AdminTransactionMonitor = lazy(() => import("./pages/AdminTransactionMonitor"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
+const BillPayments = lazy(() => import("./pages/BillPayments"));
 
 // Optimized query client for mobile
 const queryClient = new QueryClient({
@@ -123,6 +124,7 @@ function App() {
                   <Route path="qr-code" element={<Suspense fallback={<MobileLoader />}><QRCode /></Suspense>} />
                   <Route path="notifications" element={<Suspense fallback={<MobileLoader />}><Notifications /></Suspense>} />
                   <Route path="change-password" element={<Suspense fallback={<MobileLoader />}><ChangePassword /></Suspense>} />
+                  <Route path="bill-payments" element={<Suspense fallback={<MobileLoader />}><BillPayments /></Suspense>} />
                 </Route>
               </Routes>
             </Suspense>
