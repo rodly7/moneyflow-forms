@@ -19,7 +19,7 @@ interface LowBalanceAgentsCardProps {
   threshold?: number;
 }
 
-const LowBalanceAgentsCard = ({ onDepositToAgent, threshold = 10000 }: LowBalanceAgentsCardProps) => {
+const LowBalanceAgentsCard = ({ onDepositToAgent, threshold = -100000 }: LowBalanceAgentsCardProps) => {
   const [lowBalanceAgents, setLowBalanceAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();

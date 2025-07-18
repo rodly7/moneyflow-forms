@@ -26,6 +26,7 @@ import SystemMetricsCard from '@/components/dashboard/SystemMetricsCard';
 import LowBalanceAgentsCard from '@/components/admin/LowBalanceAgentsCard';
 import TopPerformerCard from '@/components/admin/TopPerformerCard';
 import SubAdminBalanceRecharge from '@/components/admin/SubAdminBalanceRecharge';
+import AdminNotificationBell from '@/components/admin/AdminNotificationBell';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -293,41 +294,96 @@ const OnlineUsersCard = () => {
           </div>
         </div>
 
-        {/* Liste des utilisateurs en ligne */}
-        <div className="space-y-2 max-h-64 overflow-y-auto">
+        {/* Liste détaillée des utilisateurs en ligne */}
+        <div className="space-y-3 max-h-80 overflow-y-auto">
           <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <Users className="w-4 h-4" />
-            Activité Récente
+            Utilisateurs Connectés
           </h4>
           
-          {onlineUsers?.agents.concat(onlineUsers.users).map((user) => (
-            <div
-              key={user.id}
-              className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
-            >
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {user.full_name}
-                </p>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <MapPin className="w-3 h-3" />
-                  <span>{user.country}</span>
-                  <span className="ml-2">
-                    {new Date(user.last_sign_in_at).toLocaleTimeString('fr-FR', {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </span>
+          {/* Agents en ligne */}
+          {onlineUsers?.agents && onlineUsers.agents.length > 0 && (
+            <div className="space-y-2">
+              <h5 className="text-xs font-medium text-blue-700 uppercase tracking-wide">
+                AGENTS ({onlineUsers.agents.length})
+              </h5>
+              {onlineUsers.agents.map((agent) => (
+                <div
+                  key={agent.id}
+                  className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-blue-900 truncate">
+                      {agent.full_name}
+                    </p>
+                    <div className="flex items-center gap-3 text-xs text-blue-600 mt-1">
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        <span>{agent.country}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Activity className="w-3 h-3" />
+                        <span>
+                          {new Date(agent.last_sign_in_at).toLocaleTimeString('fr-FR', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <Badge className="bg-blue-500 text-white">
+                      Agent
+                    </Badge>
+                  </div>
                 </div>
-              </div>
-              <Badge 
-                className={user.role === 'agent' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}
-                variant="secondary"
-              >
-                {user.role === 'agent' ? 'Agent' : 'Client'}
-              </Badge>
+              ))}
             </div>
-          ))}
+          )}
+          
+          {/* Utilisateurs en ligne */}
+          {onlineUsers?.users && onlineUsers.users.length > 0 && (
+            <div className="space-y-2">
+              <h5 className="text-xs font-medium text-green-700 uppercase tracking-wide">
+                CLIENTS ({onlineUsers.users.length})
+              </h5>
+              {onlineUsers.users.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-green-900 truncate">
+                      {user.full_name}
+                    </p>
+                    <div className="flex items-center gap-3 text-xs text-green-600 mt-1">
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        <span>{user.country}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Activity className="w-3 h-3" />
+                        <span>
+                          {new Date(user.last_sign_in_at).toLocaleTimeString('fr-FR', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <Badge className="bg-green-500 text-white">
+                      Client
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {(!onlineUsers || onlineUsers.total === 0) && (
             <div className="text-center py-4 text-gray-500">
@@ -473,6 +529,7 @@ const MainAdminDashboard = () => {
 
             {/* Profil administrateur responsive */}
             <div className="flex items-center gap-2 sm:gap-3">
+              <AdminNotificationBell />
               <Avatar className={`${isMobile ? 'h-8 w-8' : 'h-9 w-9 sm:h-10 sm:w-10'}`}>
                 <AvatarImage src={profile?.avatar_url} />
                 <AvatarFallback>
@@ -563,7 +620,7 @@ const MainAdminDashboard = () => {
                   // Rediriger vers l'onglet finance pour effectuer un dépôt
                   setActiveTab("finance");
                 }}
-                threshold={10000}
+                threshold={-100000}
               />
               <TopPerformerCard />
             </div>
