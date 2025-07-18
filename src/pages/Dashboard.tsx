@@ -19,6 +19,7 @@ import CompactHeader from "@/components/dashboard/CompactHeader";
 import CompactStatsGrid from "@/components/dashboard/CompactStatsGrid";
 import CompactActionGrid from "@/components/dashboard/CompactActionGrid";
 import CompactInfoCard from "@/components/dashboard/CompactInfoCard";
+import NotificationSystem from "@/components/notifications/NotificationSystem";
 
 const Dashboard = () => {
   const { user, profile, signOut } = useAuth();
@@ -209,14 +210,7 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => navigate('/notifications')}
-                  className="p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
-                >
-                  <span className="text-sm">Notifications</span>
-                </Button>
+                <NotificationSystem />
                 <Button 
                   variant="ghost" 
                   size="sm" 

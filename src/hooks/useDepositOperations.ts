@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { NotificationService } from "@/services/notificationService";
 
 export const useDepositOperations = () => {
   const { user } = useAuth();
@@ -98,6 +99,15 @@ export const useDepositOperations = () => {
 
       // Calculer le nouveau solde du destinataire
       const newRecipientBalance = (recipientBalance || 0) + amount;
+
+      // Créer une notification pour le destinataire
+      await NotificationService.createAutoNotification(
+        "💰 Argent reçu",
+        `Vous avez reçu ${amount.toLocaleString()} FCFA. Nouveau solde: ${newRecipientBalance.toLocaleString()} FCFA`,
+        'high',
+        [recipientId],
+        user.id
+      );
 
       toast({
         title: "Dépôt effectué avec succès",

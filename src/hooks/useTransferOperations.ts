@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "./use-toast";
 import { supabase, calculateFee } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { NotificationService } from "@/services/notificationService";
 
 export const useTransferOperations = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -155,6 +156,28 @@ export const useTransferOperations = () => {
         title: "Transfert Réussi",
         description: successMessage,
       });
+
+      // Créer une notification pour le destinataire si le transfert est direct
+      try {
+        // Trouver le destinataire pour créer la notification
+        const { data: recipientData } = await supabase
+          .from('profiles')
+          .select('id')
+          .or(`phone.eq.${transferData.recipient.phone || ''},email.eq.${transferData.recipient.email}`)
+          .maybeSingle();
+
+        if (recipientData) {
+          await NotificationService.createAutoNotification(
+            "💰 Transfert reçu",
+            `Vous avez reçu un transfert de ${transferData.amount.toLocaleString()} FCFA de ${profile?.full_name || 'un utilisateur'}`,
+            'high',
+            [recipientData.id],
+            user.id
+          );
+        }
+      } catch (notificationError) {
+        console.error("Erreur lors de l'envoi de la notification:", notificationError);
+      }
       
       // Navigation selon le rôle
       if (isAgent()) {

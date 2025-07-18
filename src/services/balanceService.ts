@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { creditTransactionFees } from "./feeService";
+import { NotificationService } from "./notificationService";
 
 export const debitUserBalance = async (userId: string, amount: number): Promise<number> => {
   const { data: newBalance, error: deductError } = await supabase.rpc('increment_balance', {
@@ -25,6 +26,21 @@ export const creditUserBalance = async (userId: string, amount: number): Promise
   if (creditError) {
     console.error("Erreur lors du crédit:", creditError);
     throw new Error("Erreur lors du crédit du compte");
+  }
+
+  // Créer une notification pour informer l'utilisateur qu'il a reçu de l'argent
+  if (amount > 0 && newBalance) {
+    try {
+      await NotificationService.createAutoNotification(
+        "💰 Argent reçu",
+        `Votre compte a été crédité de ${amount.toLocaleString()} FCFA. Nouveau solde: ${Number(newBalance).toLocaleString()} FCFA`,
+        'high',
+        [userId]
+      );
+    } catch (notificationError) {
+      console.error("Erreur lors de la création de la notification:", notificationError);
+      // Ne pas faire échouer la transaction pour une erreur de notification
+    }
   }
 
   return Number(newBalance) || 0;

@@ -7,6 +7,7 @@ import { calculateDepositFees, calculateWithdrawalFees } from "@/utils/depositWi
 import { getUserBalance } from "@/services/withdrawalService";
 import { AuthErrorHandler } from "@/services/authErrorHandler";
 import { errorHandlingService } from "@/services/errorHandlingService";
+import { NotificationService } from "@/services/notificationService";
 
 export const useDepositWithdrawalOperations = () => {
   const { user, profile } = useAuth();
@@ -95,6 +96,15 @@ export const useDepositWithdrawalOperations = () => {
       if (transactionError) {
         console.error('Erreur transaction:', transactionError);
       }
+
+      // Créer une notification pour le destinataire
+      await NotificationService.createAutoNotification(
+        "💰 Argent reçu",
+        `Vous avez reçu ${amount.toLocaleString()} FCFA par dépôt d'agent`,
+        'high',
+        [recipientId],
+        user.id
+      );
 
       toast({
         title: "✅ Dépôt effectué avec succès",

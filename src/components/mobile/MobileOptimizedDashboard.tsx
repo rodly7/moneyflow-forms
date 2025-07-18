@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
+import NotificationSystem from "@/components/notifications/NotificationSystem";
 
 interface MobileOptimizedDashboardProps {
   userBalance: number;
@@ -158,14 +159,7 @@ const MobileOptimizedDashboard = memo(({
                 </div>
               </div>
               <div className="flex items-center gap-2 sm:gap-3">
-                <Button 
-                  variant="ghost" 
-                  size="lg" 
-                  onClick={() => navigate('/notifications')}
-                  className="p-2.5 sm:p-3.5 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
-                >
-                  <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
-                </Button>
+                <NotificationSystem />
                 <Button 
                   variant="ghost" 
                   size="lg" 
