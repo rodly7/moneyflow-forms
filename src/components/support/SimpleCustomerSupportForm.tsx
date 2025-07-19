@@ -52,9 +52,13 @@ export const SimpleCustomerSupportForm = ({ trigger }: SimpleCustomerSupportForm
 
       if (error) throw error;
 
+      const priorityMessage = priority === 'urgent' 
+        ? "Votre message urgent a été transmis aux administrateurs pour un traitement prioritaire."
+        : "Votre message a été envoyé au service client. Nos sous-administrateurs vous répondront rapidement.";
+
       toast({
         title: "Message envoyé",
-        description: "Votre message a été envoyé au service client. Nous vous répondrons rapidement.",
+        description: priorityMessage,
       });
 
       setMessage('');
@@ -106,7 +110,13 @@ export const SimpleCustomerSupportForm = ({ trigger }: SimpleCustomerSupportForm
             <div className="p-6">
               <div className="flex items-center gap-2 mb-4">
                 <MessageSquare className="w-5 h-5" />
-                <h2 className="text-lg font-semibold">Contacter le Service Client</h2>
+                   <h2 className="text-lg font-semibold">Contacter le Service Client</h2>
+                   <p className="text-sm text-gray-600 mt-1">
+                     Votre message sera traité par nos sous-administrateurs et administrateurs. 
+                     {priority === 'urgent' && (
+                       <span className="text-red-600 font-medium"> Les messages urgents sont prioritaires.</span>
+                     )}
+                   </p>
               </div>
               
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -132,17 +142,24 @@ export const SimpleCustomerSupportForm = ({ trigger }: SimpleCustomerSupportForm
                   <label htmlFor="priority" className="block text-sm font-medium mb-2">
                     Priorité
                   </label>
-                  <select
-                    id="priority"
-                    value={priority}
-                    onChange={(e) => setPriority(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="low">Faible</option>
-                    <option value="normal">Normale</option>
-                    <option value="high">Élevée</option>
-                    <option value="urgent">Urgente</option>
-                  </select>
+                   <select
+                     id="priority"
+                     value={priority}
+                     onChange={(e) => setPriority(e.target.value)}
+                     className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                       priority === 'urgent' ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                     }`}
+                   >
+                     <option value="low">Faible</option>
+                     <option value="normal">Normale</option>
+                     <option value="high">Élevée</option>
+                     <option value="urgent">🚨 Urgente (Administrateur)</option>
+                   </select>
+                   {priority === 'urgent' && (
+                     <p className="text-sm text-red-600 mt-1">
+                       ⚠️ Les messages urgents sont transmis directement aux administrateurs pour un traitement prioritaire.
+                     </p>
+                   )}
                 </div>
 
                 <div>
@@ -158,9 +175,10 @@ export const SimpleCustomerSupportForm = ({ trigger }: SimpleCustomerSupportForm
                     disabled={isLoading}
                     required
                   />
-                  <p className="text-sm text-gray-500 mt-1">
-                    Décrivez votre problème avec autant de détails que possible.
-                  </p>
+                   <p className="text-sm text-gray-500 mt-1">
+                     Décrivez votre problème avec autant de détails que possible. 
+                     Nos {priority === 'urgent' ? 'administrateurs' : 'sous-administrateurs'} traiteront votre demande.
+                   </p>
                 </div>
 
                 <div className="flex gap-2 pt-4">
