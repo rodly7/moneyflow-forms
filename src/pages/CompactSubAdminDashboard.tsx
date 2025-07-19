@@ -335,8 +335,8 @@ const CompactSubAdminDashboard = () => {
 
           <TabsContent value="overview" className="space-y-4">
             {/* Métriques temps réel et anomalies */}
-            <div className="grid grid-cols-1 gap-4">
-              {/* SystemMetricsCard masqué pour les sous-administrateurs */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <SystemMetricsCard />
               <AnomaliesCard 
                 anomalies={dashboardData?.anomalies || []} 
                 isLoading={isLoadingDashboard} 
