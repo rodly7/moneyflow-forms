@@ -198,44 +198,52 @@ const OnlineUsersCard = () => {
   const { data: onlineUsers, isLoading } = useQuery({
     queryKey: ['online-users'],
     queryFn: async () => {
-      // Considérer qu'un utilisateur est en ligne s'il s'est connecté dans les 15 dernières minutes
+      console.log('🔍 Recherche des utilisateurs en ligne...');
+      
+      // Utiliser les sessions actives au lieu de la vue auth_users_agents_view
       const fifteenMinutesAgo = new Date();
       fifteenMinutesAgo.setMinutes(fifteenMinutesAgo.getMinutes() - 15);
 
-      const { data: authUsers, error } = await supabase
-        .from('auth_users_agents_view')
-        .select('id, last_sign_in_at')
-        .gte('last_sign_in_at', fifteenMinutesAgo.toISOString());
+      const { data: activeSessions, error } = await supabase
+        .from('user_sessions')
+        .select(`
+          user_id,
+          last_activity,
+          is_active,
+          profiles!inner(id, full_name, role, country)
+        `)
+        .eq('is_active', true)
+        .gte('last_activity', fifteenMinutesAgo.toISOString())
+        .order('last_activity', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur lors du chargement des sessions actives:', error);
+        throw error;
+      }
 
-      if (!authUsers.length) return { agents: [], users: [], total: 0 };
+      console.log(`✅ Sessions actives trouvées: ${activeSessions?.length || 0}`, activeSessions);
 
-      const userIds = authUsers.map(u => u.id);
+      if (!activeSessions?.length) {
+        console.log('ℹ️ Aucune session active trouvée');
+        return { agents: [], users: [], total: 0 };
+      }
 
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, role, country')
-        .in('id', userIds);
-
-      if (profilesError) throw profilesError;
-
-      const onlineUsersWithProfiles = authUsers
-        .map(authUser => {
-          const profile = profiles?.find(p => p.id === authUser.id);
-          if (!profile) return null;
-          return {
-            ...profile,
-            last_sign_in_at: authUser.last_sign_in_at
-          };
-        })
-        .filter(Boolean) as OnlineUser[];
+      const onlineUsersWithProfiles = activeSessions.map(session => ({
+        id: session.user_id,
+        full_name: session.profiles.full_name,
+        role: session.profiles.role,
+        country: session.profiles.country,
+        last_sign_in_at: session.last_activity
+      })) as OnlineUser[];
 
       const agents = onlineUsersWithProfiles.filter(u => u.role === 'agent');
       const users = onlineUsersWithProfiles.filter(u => u.role === 'user');
+      const admins = onlineUsersWithProfiles.filter(u => u.role === 'admin' || u.role === 'sub_admin');
+
+      console.log(`📊 Utilisateurs en ligne: ${onlineUsersWithProfiles.length} total (${agents.length} agents, ${users.length} clients, ${admins.length} admins)`);
 
       return {
-        agents,
+        agents: [...agents, ...admins], // Inclure les admins avec les agents
         users,
         total: onlineUsersWithProfiles.length
       };
