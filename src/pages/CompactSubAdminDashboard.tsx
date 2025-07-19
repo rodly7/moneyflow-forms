@@ -24,7 +24,7 @@ import TransactionsCard from "@/components/dashboard/TransactionsCard";
 import LowBalanceAgentsCard from "@/components/admin/LowBalanceAgentsCard";
 import TopPerformerCard from "@/components/admin/TopPerformerCard";
 import { useRealtimeTransactions } from "@/hooks/useRealtimeTransactions";
-import CustomerSupportMessages from "@/components/admin/CustomerSupportMessages";
+
 import CustomDepositSystem from "@/components/admin/CustomDepositSystem";
 import AgentsPerformanceTable from "@/components/admin/AgentsPerformanceTable";
 import CommissionSummaryCard from "@/components/admin/CommissionSummaryCard";
@@ -332,20 +332,6 @@ const CompactSubAdminDashboard = () => {
               />
             </div>
 
-            {/* Section Messages de Support */}
-            <div className="grid grid-cols-1 gap-4">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="mb-4">
-                    <h3 className="font-semibold text-lg">Messages de Support Client</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Messages récents envoyés par les utilisateurs
-                    </p>
-                  </div>
-                  <CustomerSupportMessages />
-                </CardContent>
-              </Card>
-            </div>
           </TabsContent>
 
 
