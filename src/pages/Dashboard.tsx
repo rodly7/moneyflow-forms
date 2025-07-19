@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowUpRight, QrCode, RefreshCw, LogOut, Wallet, Activity, DollarSign, History, PiggyBank, FileText, Sparkles, Crown, Star, Zap, Heart, Eye, EyeOff, MessageCircle } from "lucide-react";
-import { CustomerSupportModal } from "@/components/support/CustomerSupportModal";
+import { SimpleCustomerSupportForm } from "@/components/support/SimpleCustomerSupportForm";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -368,7 +368,7 @@ const Dashboard = () => {
           
           <div className="group relative">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
-            <CustomerSupportModal />
+            <SimpleCustomerSupportForm />
           </div>
           
           <div className="group relative">

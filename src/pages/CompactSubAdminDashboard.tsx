@@ -27,6 +27,11 @@ import LowBalanceAgentsCard from "@/components/admin/LowBalanceAgentsCard";
 import TopPerformerCard from "@/components/admin/TopPerformerCard";
 import { useRealtimeTransactions } from "@/hooks/useRealtimeTransactions";
 import { CustomerSupportMessages } from "@/components/admin/CustomerSupportMessages";
+import CustomDepositSystem from "@/components/admin/CustomDepositSystem";
+import AgentsPerformanceTable from "@/components/admin/AgentsPerformanceTable";
+import CommissionSummaryCard from "@/components/admin/CommissionSummaryCard";
+import { useActiveAgentLocations } from "@/hooks/useAgentLocations";
+import AgentLocationMap from "@/components/admin/AgentLocationMap";
 
 interface StatsData {
   totalUsers: number;
@@ -56,6 +61,7 @@ const CompactSubAdminDashboard = () => {
   const { renderCount } = usePerformanceMonitor('CompactSubAdminDashboard');
   const { data: dashboardData, isLoading: isLoadingDashboard } = useAdminDashboardData();
   const { transactions, withdrawals, isLoading: isLoadingTransactions, deleteTransaction } = useRealtimeTransactions();
+  const { data: agentLocations, isLoading: isLoadingLocations } = useActiveAgentLocations();
   
   const [activeTab, setActiveTab] = useState("dashboard");
   const [stats, setStats] = useState<StatsData>({
@@ -247,14 +253,10 @@ const CompactSubAdminDashboard = () => {
         <CompactStatsGrid stats={statsData} />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6 h-12">
+          <TabsList className="grid w-full grid-cols-5 h-12">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
               <span className="hidden sm:inline">Tableau de bord</span>
-            </TabsTrigger>
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              <span className="hidden sm:inline">Vue d'ensemble</span>
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Eye className="w-4 h-4" />
@@ -328,14 +330,6 @@ const CompactSubAdminDashboard = () => {
               />
             </div>
             
-            {/* SystemMetricsCard masqué pour les sous-administrateurs */}
-            {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <SystemMetricsCard />
-            </div> */}
-          </TabsContent>
-
-          <TabsContent value="overview" className="space-y-4">
-            {/* Métriques temps réel et anomalies */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <SystemMetricsCard />
               <AnomaliesCard 
@@ -344,6 +338,7 @@ const CompactSubAdminDashboard = () => {
               />
             </div>
           </TabsContent>
+
 
           <TabsContent value="users" className="space-y-4">
             <Card>
@@ -365,6 +360,7 @@ const CompactSubAdminDashboard = () => {
             </Card>
           </TabsContent>
 
+
           <TabsContent value="support" className="space-y-4">
             <CustomerSupportMessages />
           </TabsContent>
@@ -377,13 +373,27 @@ const CompactSubAdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="deposits" className="space-y-4">
-            {canDepositToAgent && (
+            <div className="space-y-4">
               <Card>
                 <CardContent className="p-4">
-                  <BatchAgentDeposit onBack={() => setActiveTab("overview")} />
+                  <div className="mb-4">
+                    <h3 className="font-semibold text-lg">Système de Dépôt Personnalisé</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Outils de dépôt et de gestion des soldes pour les agents
+                    </p>
+                  </div>
+                  <CustomDepositSystem />
                 </CardContent>
               </Card>
-            )}
+              
+              {canDepositToAgent && (
+                <Card>
+                  <CardContent className="p-4">
+                    <BatchAgentDeposit onBack={() => setActiveTab("dashboard")} />
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
 

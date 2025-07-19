@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import { usePerformanceMonitor, useDebounce } from "@/hooks/usePerformanceOptimization";
 import { ArrowUpRight, QrCode, Wallet, History, PiggyBank, FileText, RefreshCw, LogOut, Heart, Sparkles, Crown, Star, Eye, EyeOff, MessageSquare } from "lucide-react";
-import { CustomerSupportModal } from "@/components/support/CustomerSupportModal";
+import { SimpleCustomerSupportForm } from "@/components/support/SimpleCustomerSupportForm";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -273,7 +273,7 @@ const MobileOptimizedDashboard = memo(({
             <div key={key} className="group relative">
               <div className={`absolute -inset-0.5 bg-gradient-to-r ${bg} rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500`}></div>
               {key === 'support' ? (
-                <CustomerSupportModal 
+                <SimpleCustomerSupportForm 
                   trigger={
                     <div className="relative w-full h-20 sm:h-24 bg-white rounded-xl flex flex-col items-center justify-center gap-2 sm:gap-3 shadow-lg hover:scale-105 transition-transform duration-300 cursor-pointer">
                       <div className={`p-2 sm:p-2.5 bg-gradient-to-r ${colors} rounded-full min-w-[36px] min-h-[36px] flex items-center justify-center`}>
