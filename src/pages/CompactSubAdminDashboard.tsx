@@ -207,20 +207,44 @@ const CompactSubAdminDashboard = () => {
     <div className="min-h-screen bg-background p-3">
       <div className="max-w-7xl mx-auto space-y-4">
 
-        <div className="flex items-center justify-between">
-          <CompactHeader
-            title="Sous-Administration"
-            subtitle="Panneau de contrôle"
-            icon={<Shield className="w-4 h-4 text-primary-foreground" />}
-            onRefresh={() => {
-              fetchStats();
-              fetchUsers();
-            }}
-            onSignOut={handleSignOut}
-            isLoading={isLoadingStats}
-            showNotifications={false}
-          />
-          <AdminNotificationBell />
+        <div className="flex items-center justify-between bg-card rounded-lg p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary rounded-lg">
+              <Shield className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Sous-Administration</h1>
+              <p className="text-sm text-muted-foreground">Panneau de contrôle</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <AdminNotificationBell />
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                fetchStats();
+                fetchUsers();
+              }}
+              disabled={isLoadingStats}
+              className="flex items-center gap-2"
+            >
+              <TrendingUp className="w-4 h-4" />
+              <span className="hidden sm:inline">Rafraîchir</span>
+            </Button>
+            
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleSignOut}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Déconnexion</span>
+            </Button>
+          </div>
         </div>
 
         <div className="bg-card p-3 rounded-lg">
