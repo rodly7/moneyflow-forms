@@ -85,12 +85,49 @@ const UserManagementActions = ({ user, onUserUpdated, onUserDeleted }: UserManag
   const handleDeleteUser = async () => {
     setIsLoading(true);
     try {
-      // D'abord supprimer les données liées
+      // Supprimer toutes les données liées dans le bon ordre
+      console.log('🗑️ Début de la suppression de l\'utilisateur:', user.id);
+      
+      // 1. Supprimer les tables dépendantes qui référencent user_id
+      await supabase.from('user_sessions').delete().eq('user_id', user.id);
+      await supabase.from('savings_accounts').delete().eq('user_id', user.id);
+      await supabase.from('flutterwave_transactions').delete().eq('user_id', user.id);
+      await supabase.from('customer_support_messages').delete().eq('user_id', user.id);
+      await supabase.from('notification_recipients').delete().eq('user_id', user.id);
+      await supabase.from('password_reset_requests').delete().eq('user_id', user.id);
+      
+      // 2. Supprimer les transactions
       await supabase.from('transfers').delete().eq('sender_id', user.id);
+      await supabase.from('pending_transfers').delete().eq('sender_id', user.id);
       await supabase.from('withdrawals').delete().eq('user_id', user.id);
+      await supabase.from('withdrawal_requests').delete().eq('user_id', user.id);
       await supabase.from('recharges').delete().eq('user_id', user.id);
       
-      // Puis supprimer le profil
+      // 3. Supprimer les données agent si c'est un agent
+      if (user.role === 'agent') {
+        await supabase.from('agent_challenges').delete().eq('agent_id', user.id);
+        await supabase.from('agent_complaints').delete().eq('agent_id', user.id);
+        await supabase.from('agent_location_history').delete().eq('agent_id', user.id);
+        await supabase.from('agent_locations').delete().eq('agent_id', user.id);
+        await supabase.from('agent_monthly_performance').delete().eq('agent_id', user.id);
+        await supabase.from('agent_reports').delete().eq('agent_id', user.id);
+        await supabase.from('agents').delete().eq('user_id', user.id);
+        await supabase.from('withdrawal_requests').delete().eq('agent_id', user.id);
+      }
+      
+      // 4. Supprimer les données admin si c'est un admin
+      if (user.role === 'admin' || user.role === 'sub_admin') {
+        await supabase.from('admin_deposits').delete().eq('admin_id', user.id);
+      }
+      
+      // 5. Supprimer les logs d'audit (ne pas bloquer si erreur)
+      try {
+        await supabase.from('audit_logs').delete().eq('user_id', user.id);
+      } catch (auditError) {
+        console.warn('⚠️ Erreur lors de la suppression des logs d\'audit:', auditError);
+      }
+      
+      // 6. Finalement, supprimer le profil utilisateur
       const { error } = await supabase
         .from('profiles')
         .delete()
@@ -98,17 +135,18 @@ const UserManagementActions = ({ user, onUserUpdated, onUserDeleted }: UserManag
 
       if (error) throw error;
 
+      console.log('✅ Utilisateur supprimé avec succès:', user.id);
       toast({
         title: "Utilisateur supprimé",
-        description: "L'utilisateur a été supprimé avec succès",
+        description: "L'utilisateur et toutes ses données ont été supprimés avec succès",
       });
 
       onUserDeleted?.();
     } catch (error) {
-      console.error('Erreur suppression utilisateur:', error);
+      console.error('❌ Erreur suppression utilisateur:', error);
       toast({
-        title: "Erreur",
-        description: "Erreur lors de la suppression",
+        title: "Erreur de suppression",
+        description: `Erreur lors de la suppression: ${error.message || error}`,
         variant: "destructive"
       });
     }
