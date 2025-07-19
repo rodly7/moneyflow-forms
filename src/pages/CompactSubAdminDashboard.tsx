@@ -176,7 +176,7 @@ const CompactSubAdminDashboard = () => {
     );
   }
 
-  // Stats pour le grid compact
+  // Stats pour le grid compact (sans le solde total)
   const statsData = [
     {
       label: "Utilisateurs",
@@ -198,13 +198,6 @@ const CompactSubAdminDashboard = () => {
       icon: Activity,
       gradient: "bg-gradient-to-r from-purple-600 to-pink-600",
       textColor: "text-purple-100"
-    },
-    {
-      label: "Solde Total",
-      value: `${(stats.totalBalance / 1000).toFixed(0)}K XAF`,
-      icon: DollarSign,
-      gradient: "bg-gradient-to-r from-orange-600 to-red-600",
-      textColor: "text-orange-100"
     }
   ];
 
@@ -232,7 +225,23 @@ const CompactSubAdminDashboard = () => {
           <UserProfileInfo />
         </div>
 
-        {/* Solde personnel masqué pour les sous-administrateurs */}
+        {/* Affichage du solde personnel du sous-administrateur */}
+        <Card className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-white/80">Mon Solde Personnel</p>
+                <p className="text-2xl font-bold">
+                  {profile?.balance !== undefined ? `${Number(profile.balance).toLocaleString()} XAF` : "Chargement..."}
+                </p>
+                <p className="text-xs text-white/60 mt-1">
+                  Solde du sous-administrateur: {profile?.full_name || 'Utilisateur'}
+                </p>
+              </div>
+              <DollarSign className="w-8 h-8 text-white/80" />
+            </div>
+          </CardContent>
+        </Card>
 
         <CompactStatsGrid stats={statsData} />
 
@@ -261,21 +270,8 @@ const CompactSubAdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4">
-            {/* Tableau de bord complet */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="bg-gradient-to-br from-violet-50 to-purple-100 border-violet-200/60">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-violet-700">Solde Total</p>
-                      <p className="text-2xl font-bold text-violet-900">
-                        {isLoadingStats ? "..." : `${(stats.totalBalance / 1000).toFixed(0)}K XAF`}
-                      </p>
-                    </div>
-                    <DollarSign className="w-8 h-8 text-violet-600" />
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Tableau de bord complet - Solde total masqué */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border-blue-200/60">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
