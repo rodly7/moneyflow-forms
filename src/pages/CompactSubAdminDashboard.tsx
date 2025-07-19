@@ -260,7 +260,7 @@ const CompactSubAdminDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="support" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
-              <span className="hidden sm:inline">Support</span>
+              <span className="hidden sm:inline">Soutien</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center gap-2">
               <Bell className="w-4 h-4" />
