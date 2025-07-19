@@ -64,7 +64,7 @@ export const authService = {
     if (error) {
       console.error('❌ Erreur d\'inscription:', error);
       if (error.message.includes('User already registered')) {
-        throw new Error('Un compte existe déjà avec ce numéro de téléphone.');
+        throw new Error('Un compte existe déjà avec ce numéro de téléphone. Veuillez vous connecter avec votre mot de passe.');
       }
       throw error;
     }

@@ -107,8 +107,14 @@ const Auth = () => {
       
       if (error.message.includes("Numéro de téléphone ou mot de passe incorrect")) {
         errorMessage = "Numéro de téléphone ou mot de passe incorrect. Vérifiez que vous utilisez exactement le même numéro qu'à l'inscription.";
-      } else if (error.message.includes("Un compte existe déjà")) {
-        errorMessage = "Un compte existe déjà avec ce numéro. Essayez de vous connecter.";
+      } else if (error.message.includes("Un compte existe déjà") || error.message.includes("User already registered")) {
+        errorMessage = "Un compte existe déjà avec ce numéro. Basculement vers la connexion...";
+        // Automatiquement basculer vers la connexion et pré-remplir le numéro
+        setTimeout(() => {
+          setIsSignUp(false);
+          setLoginPhone(phone || loginPhone);
+          toast.info("Veuillez saisir votre mot de passe pour vous connecter");
+        }, 1500);
       } else if (error.message.includes("Password should be at least 6 characters")) {
         errorMessage = "Le mot de passe doit contenir au moins 6 caractères";
       } else {
