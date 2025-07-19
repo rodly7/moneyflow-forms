@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-export const CustomerSupportDebug = () => {
+const CustomerSupportDebug = () => {
   const [debugInfo, setDebugInfo] = useState<any>({});
   const [isLoading, setIsLoading] = useState(false);
   const { user, profile } = useAuth();
@@ -146,3 +146,5 @@ export const CustomerSupportDebug = () => {
     </Card>
   );
 };
+
+export default CustomerSupportDebug;

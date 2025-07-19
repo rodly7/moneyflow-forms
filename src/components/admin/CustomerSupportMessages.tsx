@@ -27,7 +27,7 @@ interface SupportMessage {
   };
 }
 
-export const CustomerSupportMessages = () => {
+const CustomerSupportMessages = () => {
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<SupportMessage | null>(null);
@@ -346,3 +346,5 @@ export const CustomerSupportMessages = () => {
     </Card>
   );
 };
+
+export default CustomerSupportMessages;
