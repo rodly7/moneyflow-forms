@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,6 @@ import UsersDataTable from "@/components/admin/UsersDataTable";
 import BatchAgentDeposit from "@/components/admin/BatchAgentDeposit";
 import UserManagementModal from "@/components/admin/UserManagementModal";
 import { useSubAdmin } from "@/hooks/useSubAdmin";
-import { useDeviceDetection } from "@/hooks/useDeviceDetection";
-import { usePerformanceMonitor, useDebounce } from "@/hooks/usePerformanceOptimization";
 import CompactHeader from "@/components/dashboard/CompactHeader";
 import CompactStatsGrid from "@/components/dashboard/CompactStatsGrid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -57,8 +55,6 @@ const CompactSubAdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isSubAdmin, canDepositToAgent } = useSubAdmin();
-  const deviceInfo = useDeviceDetection();
-  const { renderCount } = usePerformanceMonitor('CompactSubAdminDashboard');
   const { data: dashboardData, isLoading: isLoadingDashboard } = useAdminDashboardData();
   const { transactions, withdrawals, isLoading: isLoadingTransactions, deleteTransaction } = useRealtimeTransactions();
   const { data: agentLocations, isLoading: isLoadingLocations } = useActiveAgentLocations();
@@ -76,7 +72,7 @@ const CompactSubAdminDashboard = () => {
   const [showUserModal, setShowUserModal] = useState(false);
   const [showBatchDeposit, setShowBatchDeposit] = useState(false);
 
-  const fetchStats = useDebounce(async () => {
+  const fetchStats = useCallback(async () => {
     setIsLoadingStats(true);
     try {
       const { data: allUsers } = await supabase
@@ -110,9 +106,9 @@ const CompactSubAdminDashboard = () => {
       });
     }
     setIsLoadingStats(false);
-  }, 300);
+  }, [toast]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -129,14 +125,14 @@ const CompactSubAdminDashboard = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [toast]);
 
-  const handleViewUser = (user: UserData) => {
+  const handleViewUser = useCallback((user: UserData) => {
     setSelectedUser(user);
     setShowUserModal(true);
-  };
+  }, []);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     try {
       await signOut();
       navigate('/auth');
@@ -152,7 +148,7 @@ const CompactSubAdminDashboard = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [signOut, navigate, toast]);
 
   useEffect(() => {
     if (profile?.role !== 'sub_admin') {
@@ -183,8 +179,7 @@ const CompactSubAdminDashboard = () => {
     );
   }
 
-  // Stats pour le grid compact (sans le solde total)
-  const statsData = [
+  const statsData = useMemo(() => [
     {
       label: "Utilisateurs",
       value: stats.totalUsers,
@@ -206,7 +201,7 @@ const CompactSubAdminDashboard = () => {
       gradient: "bg-gradient-to-r from-purple-600 to-pink-600",
       textColor: "text-purple-100"
     }
-  ];
+  ], [stats]);
 
   return (
     <div className="min-h-screen bg-background p-3">

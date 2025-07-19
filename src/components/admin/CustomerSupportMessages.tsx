@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, Reply, Eye, Clock, AlertCircle, User } from "lucide-react";
+import { MessageSquare, Reply, Eye, Clock, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,9 +36,8 @@ export const CustomerSupportMessages = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
-      // D'abord récupérer les messages
       const { data: messagesData, error: messagesError } = await supabase
         .from('customer_support_messages')
         .select('*')
@@ -46,7 +45,6 @@ export const CustomerSupportMessages = () => {
 
       if (messagesError) throw messagesError;
 
-      // Ensuite récupérer les profils séparément
       const userIds = messagesData?.map(msg => msg.user_id) || [];
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
@@ -55,7 +53,6 @@ export const CustomerSupportMessages = () => {
 
       if (profilesError) {
         console.warn('Could not fetch profiles:', profilesError);
-        // Continue sans les profils si erreur
         const typedMessages = messagesData?.map(msg => ({
           ...msg,
           status: msg.status as 'unread' | 'read' | 'responded',
@@ -64,7 +61,6 @@ export const CustomerSupportMessages = () => {
         })) || [];
         setMessages(typedMessages);
       } else {
-        // Combiner les données
         const messagesWithProfiles = messagesData?.map(msg => ({
           ...msg,
           status: msg.status as 'unread' | 'read' | 'responded',
@@ -84,9 +80,9 @@ export const CustomerSupportMessages = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
-  const markAsRead = async (messageId: string) => {
+  const markAsRead = useCallback(async (messageId: string) => {
     try {
       const { error } = await supabase
         .from('customer_support_messages')
@@ -104,9 +100,9 @@ export const CustomerSupportMessages = () => {
     } catch (error) {
       console.error('Error marking message as read:', error);
     }
-  };
+  }, []);
 
-  const sendResponse = async () => {
+  const sendResponse = useCallback(async () => {
     if (!selectedMessage || !response.trim() || !user) return;
 
     setIsResponding(true);
@@ -141,7 +137,7 @@ export const CustomerSupportMessages = () => {
     } finally {
       setIsResponding(false);
     }
-  };
+  }, [selectedMessage, response, user, toast, fetchMessages]);
 
   useEffect(() => {
     fetchMessages();
@@ -166,7 +162,7 @@ export const CustomerSupportMessages = () => {
     };
   }, []);
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = useCallback((priority: string) => {
     switch (priority) {
       case 'urgent': return 'bg-red-500';
       case 'high': return 'bg-orange-500';
@@ -174,18 +170,21 @@ export const CustomerSupportMessages = () => {
       case 'low': return 'bg-gray-500';
       default: return 'bg-blue-500';
     }
-  };
+  }, []);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case 'unread': return 'bg-red-100 text-red-800';
       case 'read': return 'bg-yellow-100 text-yellow-800';
       case 'responded': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
-  };
+  }, []);
 
-  const unreadCount = messages.filter(msg => msg.status === 'unread').length;
+  const unreadCount = useMemo(() => 
+    messages.filter(msg => msg.status === 'unread').length, 
+    [messages]
+  );
 
   if (isLoading) {
     return (
