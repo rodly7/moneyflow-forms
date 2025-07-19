@@ -25,7 +25,6 @@ import LowBalanceAgentsCard from "@/components/admin/LowBalanceAgentsCard";
 import TopPerformerCard from "@/components/admin/TopPerformerCard";
 import { useRealtimeTransactions } from "@/hooks/useRealtimeTransactions";
 import CustomerSupportMessages from "@/components/admin/CustomerSupportMessages";
-import CustomerSupportDebug from "@/components/admin/CustomerSupportDebug";
 import CustomDepositSystem from "@/components/admin/CustomDepositSystem";
 import AgentsPerformanceTable from "@/components/admin/AgentsPerformanceTable";
 import CommissionSummaryCard from "@/components/admin/CommissionSummaryCard";
@@ -361,23 +360,17 @@ const CompactSubAdminDashboard = () => {
 
 
           <TabsContent value="support" className="space-y-4">
-            <div style={{ padding: '20px', border: '2px solid red', minHeight: '200px' }}>
-              <h1 style={{ color: 'red', fontSize: '24px' }}>DEBUG: Support Tab Content</h1>
-              <p>If you can see this, the tab is working!</p>
-              <p>Current tab: {activeTab}</p>
-              <Card>
-                <CardContent className="p-6">
-                  <h2 className="text-xl font-bold mb-4">Support Client</h2>
-                  <p>Cette section contient les messages de support et les outils de diagnostic.</p>
-                  <div className="mt-4">
-                    <CustomerSupportDebug />
-                  </div>
-                  <div className="mt-4">
-                    <CustomerSupportMessages />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <Card>
+              <CardContent className="p-6">
+                <div className="mb-4">
+                  <h3 className="font-semibold text-lg">Messages de Support Client</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Messages envoyés par les utilisateurs
+                  </p>
+                </div>
+                <CustomerSupportMessages />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="notifications" className="space-y-4">
