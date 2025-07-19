@@ -25,6 +25,7 @@ import LowBalanceAgentsCard from "@/components/admin/LowBalanceAgentsCard";
 import TopPerformerCard from "@/components/admin/TopPerformerCard";
 import { useRealtimeTransactions } from "@/hooks/useRealtimeTransactions";
 import { CustomerSupportMessages } from "@/components/admin/CustomerSupportMessages";
+import { CustomerSupportDebug } from "@/components/admin/CustomerSupportDebug";
 import CustomDepositSystem from "@/components/admin/CustomDepositSystem";
 import AgentsPerformanceTable from "@/components/admin/AgentsPerformanceTable";
 import CommissionSummaryCard from "@/components/admin/CommissionSummaryCard";
@@ -357,6 +358,7 @@ const CompactSubAdminDashboard = () => {
 
 
           <TabsContent value="support" className="space-y-4">
+            <CustomerSupportDebug />
             <CustomerSupportMessages />
           </TabsContent>
 
