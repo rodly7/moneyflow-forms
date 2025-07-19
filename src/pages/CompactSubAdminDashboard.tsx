@@ -251,7 +251,7 @@ const CompactSubAdminDashboard = () => {
           console.log('Changing tab to:', value);
           setActiveTab(value);
         }} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5 h-12">
+          <TabsList className="grid w-full grid-cols-4 h-12">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
               <span className="hidden sm:inline">Tableau de bord</span>
@@ -259,10 +259,6 @@ const CompactSubAdminDashboard = () => {
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Eye className="w-4 h-4" />
               <span className="hidden sm:inline">Utilisateurs</span>
-            </TabsTrigger>
-            <TabsTrigger value="support" className="flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              <span className="hidden sm:inline">Soutien</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center gap-2">
               <Bell className="w-4 h-4" />
@@ -335,6 +331,21 @@ const CompactSubAdminDashboard = () => {
                 isLoading={isLoadingDashboard} 
               />
             </div>
+
+            {/* Section Messages de Support */}
+            <div className="grid grid-cols-1 gap-4">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="mb-4">
+                    <h3 className="font-semibold text-lg">Messages de Support Client</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Messages récents envoyés par les utilisateurs
+                    </p>
+                  </div>
+                  <CustomerSupportMessages />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
 
@@ -359,19 +370,6 @@ const CompactSubAdminDashboard = () => {
           </TabsContent>
 
 
-          <TabsContent value="support" className="space-y-4">
-            <Card>
-              <CardContent className="p-6">
-                <div className="mb-4">
-                  <h3 className="font-semibold text-lg">Messages de Support Client</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Messages envoyés par les utilisateurs
-                  </p>
-                </div>
-                <CustomerSupportMessages />
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="notifications" className="space-y-4">
             <div className="space-y-6">
