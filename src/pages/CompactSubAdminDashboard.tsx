@@ -358,8 +358,18 @@ const CompactSubAdminDashboard = () => {
 
 
           <TabsContent value="support" className="space-y-4">
-            <CustomerSupportDebug />
-            <CustomerSupportMessages />
+            <Card>
+              <CardContent className="p-6">
+                <h2 className="text-xl font-bold mb-4">Support Client</h2>
+                <p>Cette section contient les messages de support et les outils de diagnostic.</p>
+                <div className="mt-4">
+                  <CustomerSupportDebug />
+                </div>
+                <div className="mt-4">
+                  <CustomerSupportMessages />
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="notifications" className="space-y-4">
