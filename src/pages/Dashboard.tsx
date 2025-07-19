@@ -1,25 +1,18 @@
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUpRight, QrCode, RefreshCw, LogOut, Wallet, Activity, DollarSign, History, PiggyBank, FileText, Sparkles, Crown, Star, Zap, Heart, Eye, EyeOff, MessageCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { ArrowUpRight, QrCode, RefreshCw, LogOut, Wallet, History, PiggyBank, FileText, Sparkles, Crown, Star, Zap, Eye, EyeOff } from "lucide-react";
 import { SimpleCustomerSupportForm } from "@/components/support/SimpleCustomerSupportForm";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import UserProfileInfo from "@/components/profile/UserProfileInfo";
 import QRCodeGenerator from "@/components/QRCodeGenerator";
-
 import { formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
 import { useBalanceCheck } from "@/hooks/useBalanceCheck";
 import { useDeviceDetection } from "@/hooks/useDeviceDetection";
-import { usePerformanceMonitor, useDebounce } from "@/hooks/usePerformanceOptimization";
 import MobileOptimizedDashboard from "@/components/mobile/MobileOptimizedDashboard";
-import CompactHeader from "@/components/dashboard/CompactHeader";
-import CompactStatsGrid from "@/components/dashboard/CompactStatsGrid";
-import CompactActionGrid from "@/components/dashboard/CompactActionGrid";
-import CompactInfoCard from "@/components/dashboard/CompactInfoCard";
 import NotificationSystem from "@/components/notifications/NotificationSystem";
 
 const Dashboard = () => {
@@ -27,16 +20,14 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const deviceInfo = useDeviceDetection();
-  const { renderCount } = usePerformanceMonitor('Dashboard');
   const [balance, setBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [showQRDialog, setShowQRDialog] = useState(false);
   const [showBalance, setShowBalance] = useState(false);
 
-  // Utiliser le hook de vérification du solde
   useBalanceCheck(balance);
 
-  const fetchBalance = useDebounce(async () => {
+  const fetchBalance = useCallback(async () => {
     if (user?.id) {
       setIsLoadingBalance(true);
       try {
@@ -58,9 +49,9 @@ const Dashboard = () => {
       }
       setIsLoadingBalance(false);
     }
-  }, 300);
+  }, [user?.id, toast]);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     try {
       await signOut();
       navigate('/auth');
@@ -76,7 +67,7 @@ const Dashboard = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [signOut, navigate, toast]);
 
   useEffect(() => {
     fetchBalance();
@@ -111,11 +102,15 @@ const Dashboard = () => {
     return null;
   }
 
-  // Déterminer la devise basée sur le pays de l'utilisateur
-  const userCurrency = getCurrencyForCountry(profile.country || "Cameroun");
+  const userCurrency = useMemo(() => 
+    getCurrencyForCountry(profile.country || "Cameroun"), 
+    [profile.country]
+  );
   
-  // Convertir le solde de XAF (devise de base) vers la devise de l'utilisateur
-  const convertedBalance = convertCurrency(balance, "XAF", userCurrency);
+  const convertedBalance = useMemo(() => 
+    convertCurrency(balance, "XAF", userCurrency), 
+    [balance, userCurrency]
+  );
 
   // Use mobile-optimized dashboard on mobile devices
   if (deviceInfo.isMobile) {

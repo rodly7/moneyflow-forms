@@ -1,14 +1,11 @@
-import { memo, Suspense, useMemo, useState } from "react";
+import { memo, Suspense, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useDeviceDetection } from "@/hooks/useDeviceDetection";
-import { usePerformanceMonitor, useDebounce } from "@/hooks/usePerformanceOptimization";
-import { ArrowUpRight, QrCode, Wallet, History, PiggyBank, FileText, RefreshCw, LogOut, Heart, Sparkles, Crown, Star, Eye, EyeOff, MessageSquare } from "lucide-react";
+import { ArrowUpRight, QrCode, Wallet, History, PiggyBank, FileText, RefreshCw, LogOut, Sparkles, Crown, Star, Eye, EyeOff, MessageSquare } from "lucide-react";
 import { SimpleCustomerSupportForm } from "@/components/support/SimpleCustomerSupportForm";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
 import NotificationSystem from "@/components/notifications/NotificationSystem";
 
@@ -78,14 +75,10 @@ const MobileOptimizedDashboard = memo(({
   onRefresh, 
   isLoading 
 }: MobileOptimizedDashboardProps) => {
-  const deviceInfo = useDeviceDetection();
-  const { renderCount } = usePerformanceMonitor('MobileOptimizedDashboard');
   const navigate = useNavigate();
   const { toast } = useToast();
   const { signOut } = useAuth();
   const [showBalance, setShowBalance] = useState(false);
-
-  const debouncedRefresh = useDebounce(onRefresh, 300);
 
   const userCurrency = useMemo(() => 
     getCurrencyForCountry(userProfile?.country || "Cameroun"), 
@@ -97,7 +90,7 @@ const MobileOptimizedDashboard = memo(({
     [userBalance, userCurrency]
   );
 
-  const handleAction = useMemo(() => (action: string) => {
+  const handleAction = useCallback((action: string) => {
     switch (action) {
       case 'transfer':
         navigate('/transfer');
@@ -112,7 +105,6 @@ const MobileOptimizedDashboard = memo(({
         navigate('/transactions');
         break;
       case 'support':
-        // Le modal de support client s'ouvrira automatiquement
         break;
       case 'bill-payments':
         navigate('/bill-payments');
@@ -122,7 +114,7 @@ const MobileOptimizedDashboard = memo(({
     }
   }, [navigate]);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     try {
       await signOut();
       navigate('/auth');
@@ -137,7 +129,7 @@ const MobileOptimizedDashboard = memo(({
         variant: "destructive"
       });
     }
-  };
+  }, [signOut, navigate, toast]);
 
   if (isLoading) {
     return <MobileLoadingSkeleton />;
@@ -164,7 +156,7 @@ const MobileOptimizedDashboard = memo(({
                 <Button 
                   variant="ghost" 
                   size="lg" 
-                  onClick={debouncedRefresh}
+                  onClick={onRefresh}
                   disabled={isLoading}
                   className="p-2.5 sm:p-3.5 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
                 >

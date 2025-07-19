@@ -5,9 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { Suspense, lazy, useEffect } from "react";
-import { useDeviceDetection } from "@/hooks/useDeviceDetection";
-import { usePerformanceMonitor } from "@/hooks/usePerformanceOptimization";
-import { cleanExpiredCache } from "@/utils/performanceOptimizations";
 import { Card, CardContent } from "@/components/ui/card";
 
 // Lazy load all pages for better performance
@@ -65,28 +62,13 @@ const MobileLoader = () => (
 );
 
 function App() {
-  const deviceInfo = useDeviceDetection();
-  const { renderCount } = usePerformanceMonitor('App');
-
-  // Clean cache periodically for better performance
+  // Optimize viewport for all devices
   useEffect(() => {
-    const interval = setInterval(cleanExpiredCache, 5 * 60 * 1000); // Every 5 minutes
-    return () => clearInterval(interval);
-  }, []);
-
-  // Apply mobile-specific optimizations
-  useEffect(() => {
-    if (deviceInfo.isMobile) {
-      // Disable hover effects on mobile for better performance
-      document.documentElement.classList.add('mobile-device');
-      
-      // Optimize viewport for mobile
-      const viewport = document.querySelector('meta[name=viewport]');
-      if (viewport) {
-        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
-      }
+    const viewport = document.querySelector('meta[name=viewport]');
+    if (viewport) {
+      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, viewport-fit=cover');
     }
-  }, [deviceInfo.isMobile]);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
