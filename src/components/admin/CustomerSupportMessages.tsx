@@ -38,19 +38,42 @@ export const CustomerSupportMessages = () => {
 
   const fetchMessages = async () => {
     try {
-      const { data, error } = await supabase
+      // D'abord récupérer les messages
+      const { data: messagesData, error: messagesError } = await supabase
         .from('customer_support_messages')
-        .select(`
-          *,
-          profiles (
-            full_name,
-            phone
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setMessages((data || []) as unknown as SupportMessage[]);
+      if (messagesError) throw messagesError;
+
+      // Ensuite récupérer les profils séparément
+      const userIds = messagesData?.map(msg => msg.user_id) || [];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, phone')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.warn('Could not fetch profiles:', profilesError);
+        // Continue sans les profils si erreur
+        const typedMessages = messagesData?.map(msg => ({
+          ...msg,
+          status: msg.status as 'unread' | 'read' | 'responded',
+          priority: msg.priority as 'low' | 'normal' | 'high' | 'urgent',
+          profiles: null
+        })) || [];
+        setMessages(typedMessages);
+      } else {
+        // Combiner les données
+        const messagesWithProfiles = messagesData?.map(msg => ({
+          ...msg,
+          status: msg.status as 'unread' | 'read' | 'responded',
+          priority: msg.priority as 'low' | 'normal' | 'high' | 'urgent',
+          profiles: profilesData?.find(profile => profile.id === msg.user_id) || null
+        })) || [];
+        
+        setMessages(messagesWithProfiles);
+      }
     } catch (error) {
       console.error('Error fetching support messages:', error);
       toast({
