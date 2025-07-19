@@ -88,7 +88,10 @@ const UserManagementActions = ({ user, onUserUpdated, onUserDeleted }: UserManag
       // Supprimer toutes les données liées dans le bon ordre
       console.log('🗑️ Début de la suppression de l\'utilisateur:', user.id);
       
-      // 1. Supprimer les tables dépendantes qui référencent user_id
+      // 1. Supprimer d'abord les recharges qui causent l'erreur de contrainte
+      await supabase.from('recharges').delete().eq('user_id', user.id);
+      
+      // 2. Supprimer les autres tables dépendantes qui référencent user_id
       await supabase.from('user_sessions').delete().eq('user_id', user.id);
       await supabase.from('savings_accounts').delete().eq('user_id', user.id);
       await supabase.from('flutterwave_transactions').delete().eq('user_id', user.id);
@@ -96,12 +99,11 @@ const UserManagementActions = ({ user, onUserUpdated, onUserDeleted }: UserManag
       await supabase.from('notification_recipients').delete().eq('user_id', user.id);
       await supabase.from('password_reset_requests').delete().eq('user_id', user.id);
       
-      // 2. Supprimer les transactions
+       // 3. Supprimer les transactions
       await supabase.from('transfers').delete().eq('sender_id', user.id);
       await supabase.from('pending_transfers').delete().eq('sender_id', user.id);
       await supabase.from('withdrawals').delete().eq('user_id', user.id);
       await supabase.from('withdrawal_requests').delete().eq('user_id', user.id);
-      await supabase.from('recharges').delete().eq('user_id', user.id);
       
       // 3. Supprimer les données agent si c'est un agent
       if (user.role === 'agent') {
