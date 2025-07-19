@@ -248,7 +248,10 @@ const CompactSubAdminDashboard = () => {
 
         <CompactStatsGrid stats={statsData} />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <Tabs value={activeTab} onValueChange={(value) => {
+          console.log('Changing tab to:', value);
+          setActiveTab(value);
+        }} className="space-y-4">
           <TabsList className="grid w-full grid-cols-5 h-12">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
@@ -358,18 +361,23 @@ const CompactSubAdminDashboard = () => {
 
 
           <TabsContent value="support" className="space-y-4">
-            <Card>
-              <CardContent className="p-6">
-                <h2 className="text-xl font-bold mb-4">Support Client</h2>
-                <p>Cette section contient les messages de support et les outils de diagnostic.</p>
-                <div className="mt-4">
-                  <CustomerSupportDebug />
-                </div>
-                <div className="mt-4">
-                  <CustomerSupportMessages />
-                </div>
-              </CardContent>
-            </Card>
+            <div style={{ padding: '20px', border: '2px solid red', minHeight: '200px' }}>
+              <h1 style={{ color: 'red', fontSize: '24px' }}>DEBUG: Support Tab Content</h1>
+              <p>If you can see this, the tab is working!</p>
+              <p>Current tab: {activeTab}</p>
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="text-xl font-bold mb-4">Support Client</h2>
+                  <p>Cette section contient les messages de support et les outils de diagnostic.</p>
+                  <div className="mt-4">
+                    <CustomerSupportDebug />
+                  </div>
+                  <div className="mt-4">
+                    <CustomerSupportMessages />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="notifications" className="space-y-4">
