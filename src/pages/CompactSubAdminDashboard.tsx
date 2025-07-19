@@ -67,6 +67,7 @@ const CompactSubAdminDashboard = () => {
     totalBalance: 0
   });
   const [users, setUsers] = useState<UserData[]>([]);
+  const [agents, setAgents] = useState<any[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
@@ -275,14 +276,22 @@ const CompactSubAdminDashboard = () => {
           console.log('Changing tab to:', value);
           setActiveTab(value);
         }} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4 h-12">
+          <TabsList className="grid w-full grid-cols-6 h-12">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
               <span className="hidden sm:inline">Tableau de bord</span>
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
-              <Eye className="w-4 h-4" />
+              <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Utilisateurs</span>
+            </TabsTrigger>
+            <TabsTrigger value="agents" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              <span className="hidden sm:inline">Agents</span>
+            </TabsTrigger>
+            <TabsTrigger value="transactions" className="flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              <span className="hidden sm:inline">Transactions</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center gap-2">
               <Bell className="w-4 h-4" />
@@ -379,7 +388,131 @@ const CompactSubAdminDashboard = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="agents" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="mb-4">
+                    <h3 className="font-semibold text-lg">Performances des Agents</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Tableau de bord de performance des agents actifs
+                    </p>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="text-center py-8">
+                      <Shield className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">Performance des agents à venir</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
+              <Card>
+                <CardContent className="p-4">
+                  <div className="mb-4">
+                    <h3 className="font-semibold text-lg">Résumé des Commissions</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Vue d'ensemble des commissions générées
+                    </p>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="text-center py-8">
+                      <DollarSign className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">Résumé des commissions à venir</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="mb-4">
+                  <h3 className="font-semibold text-lg">Localisation des Agents</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Carte géographique des agents actifs
+                  </p>
+                </div>
+                <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
+                  {isLoadingLocations ? (
+                    <p className="text-muted-foreground">Chargement de la carte...</p>
+                  ) : (
+                    <div className="text-center">
+                      <Activity className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">Carte des agents à venir</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="transactions" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="mb-4">
+                    <h3 className="font-semibold text-lg">Transactions Récentes</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Liste des dernières transactions effectuées
+                    </p>
+                  </div>
+                  <TransactionsCard 
+                    transactions={transactions}
+                    withdrawals={withdrawals}
+                    onDeleteTransaction={deleteTransaction}
+                    isLoading={isLoadingTransactions}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="mb-4">
+                    <h3 className="font-semibold text-lg">Statistiques Transactionnelles</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Métriques et analyses des transactions
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-blue-700">Transferts Totaux</p>
+                          <p className="text-xl font-bold text-blue-900">{transactions?.length || 0}</p>
+                        </div>
+                        <Activity className="w-6 h-6 text-blue-600" />
+                      </div>
+                    </div>
+                    
+                    <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-amber-700">Retraits Totaux</p>
+                          <p className="text-xl font-bold text-amber-900">{withdrawals?.length || 0}</p>
+                        </div>
+                        <TrendingUp className="w-6 h-6 text-amber-600" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-emerald-700">Volume Total</p>
+                        <p className="text-xl font-bold text-emerald-900">
+                          {((transactions || []).reduce((sum, t) => sum + (t.amount || 0), 0) + 
+                            (withdrawals || []).reduce((sum, w) => sum + (w.amount || 0), 0)).toLocaleString()} XAF
+                        </p>
+                      </div>
+                      <DollarSign className="w-6 h-6 text-emerald-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           <TabsContent value="notifications" className="space-y-4">
             <div className="space-y-6">
