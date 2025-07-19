@@ -60,6 +60,7 @@ export const SimpleCustomerSupportForm = ({ trigger }: SimpleCustomerSupportForm
       setMessage('');
       setCategory('general');
       setPriority('normal');
+      setIsModalOpen(false);
     } catch (error) {
       console.error('Error sending support message:', error);
       toast({
@@ -72,16 +73,13 @@ export const SimpleCustomerSupportForm = ({ trigger }: SimpleCustomerSupportForm
     }
   };
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const defaultTrigger = (
     <button
       type="button"
       className="relative w-full h-24 flex flex-col items-center justify-center gap-3 bg-white border-0 hover:bg-gray-50 transition-all duration-300 hover:scale-105 shadow-lg rounded-lg p-4"
-      onClick={() => {
-        const modal = document.getElementById('support-modal');
-        if (modal) {
-          modal.style.display = 'block';
-        }
-      }}
+      onClick={() => setIsModalOpen(true)}
     >
       <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full min-w-[36px] min-h-[36px] flex items-center justify-center">
         <MessageSquare className="w-5 h-5 text-white" />
@@ -95,17 +93,15 @@ export const SimpleCustomerSupportForm = ({ trigger }: SimpleCustomerSupportForm
       {trigger || defaultTrigger}
       
       {/* Modal avec éléments HTML natifs */}
-      <div 
-        id="support-modal"
-        className="fixed inset-0 bg-black bg-opacity-50 z-50 hidden"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            const modal = document.getElementById('support-modal');
-            if (modal) modal.style.display = 'none';
-          }
-        }}
-      >
-        <div className="flex items-center justify-center min-h-screen p-4">
+      {isModalOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsModalOpen(false);
+            }
+          }}
+        >
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6">
               <div className="flex items-center gap-2 mb-4">
@@ -170,10 +166,7 @@ export const SimpleCustomerSupportForm = ({ trigger }: SimpleCustomerSupportForm
                 <div className="flex gap-2 pt-4">
                   <button 
                     type="button" 
-                    onClick={() => {
-                      const modal = document.getElementById('support-modal');
-                      if (modal) modal.style.display = 'none';
-                    }}
+                    onClick={() => setIsModalOpen(false)}
                     disabled={isLoading}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
                   >
@@ -201,7 +194,7 @@ export const SimpleCustomerSupportForm = ({ trigger }: SimpleCustomerSupportForm
             </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   );
 };
