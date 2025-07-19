@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Users, Shield, DollarSign, Activity, Eye, UserPlus, BarChart3, Bell, TrendingUp } from "lucide-react";
+import AdminNotificationBell from "@/components/admin/AdminNotificationBell";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import UserProfileInfo from "@/components/profile/UserProfileInfo";
@@ -211,40 +212,27 @@ const CompactSubAdminDashboard = () => {
     <div className="min-h-screen bg-background p-3">
       <div className="max-w-7xl mx-auto space-y-4">
 
-        <CompactHeader
-          title="Sous-Administration"
-          subtitle="Panneau de contrôle"
-          icon={<Shield className="w-4 h-4 text-primary-foreground" />}
-          onRefresh={() => {
-            fetchStats();
-            fetchUsers();
-          }}
-          onSignOut={handleSignOut}
-          isLoading={isLoadingStats}
-          showNotifications={false}
-        />
+        <div className="flex items-center justify-between">
+          <CompactHeader
+            title="Sous-Administration"
+            subtitle="Panneau de contrôle"
+            icon={<Shield className="w-4 h-4 text-primary-foreground" />}
+            onRefresh={() => {
+              fetchStats();
+              fetchUsers();
+            }}
+            onSignOut={handleSignOut}
+            isLoading={isLoadingStats}
+            showNotifications={false}
+          />
+          <AdminNotificationBell />
+        </div>
 
         <div className="bg-card p-3 rounded-lg">
           <UserProfileInfo />
         </div>
 
-        {/* Affichage du solde personnel du sous-administrateur */}
-        <Card className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-white/80">Mon Solde Personnel</p>
-                <p className="text-2xl font-bold">
-                  {profile?.balance !== undefined ? `${Number(profile.balance).toLocaleString()} XAF` : "Chargement..."}
-                </p>
-                <p className="text-xs text-white/60 mt-1">
-                  Solde du sous-administrateur: {profile?.full_name || 'Utilisateur'}
-                </p>
-              </div>
-              <DollarSign className="w-8 h-8 text-white/80" />
-            </div>
-          </CardContent>
-        </Card>
+        {/* Solde personnel masqué pour les sous-administrateurs */}
 
         <CompactStatsGrid stats={statsData} />
 
@@ -328,7 +316,7 @@ const CompactSubAdminDashboard = () => {
                 onDepositToAgent={(agent) => {
                   setActiveTab("deposits");
                 }}
-                threshold={10000}
+                threshold={-100000}
               />
               <TopPerformerCard />
               <TransactionsCard 
