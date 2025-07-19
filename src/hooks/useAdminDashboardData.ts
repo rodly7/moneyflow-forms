@@ -19,6 +19,9 @@ export interface AgentPerformanceData {
 export interface AdminDashboardStats {
   totalAgents: number;
   activeAgents: number;
+  totalUsers: number;
+  activeUsers: number;
+  adminBalance: number;
   totalCommissions: number;
   totalVolume: number;
   topAgent: AgentPerformanceData | null;
@@ -41,6 +44,9 @@ export const useAdminDashboardData = () => {
   const [data, setData] = useState<AdminDashboardStats>({
     totalAgents: 0,
     activeAgents: 0,
+    totalUsers: 0,
+    activeUsers: 0,
+    adminBalance: 0,
     totalCommissions: 0,
     totalVolume: 0,
     topAgent: null,
@@ -59,6 +65,13 @@ export const useAdminDashboardData = () => {
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
+      // Récupérer tous les utilisateurs pour avoir le compte total
+      const { data: allUsersData, error: usersError } = await supabase
+        .from('profiles')
+        .select('id, role, is_banned, balance');
+
+      if (usersError) throw usersError;
+
       // Récupérer les agents avec leurs profils
       const { data: agentsData, error: agentsError } = await supabase
         .from('agents')
@@ -156,9 +169,18 @@ export const useAdminDashboardData = () => {
         })) || [])
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
+      // Calculer les statistiques utilisateurs
+      const totalUsers = allUsersData?.length || 0;
+      const activeUsers = allUsersData?.filter(u => !u.is_banned).length || 0;
+      const adminUser = allUsersData?.find(u => u.role === 'admin');
+      const adminBalance = adminUser?.balance || 0;
+
       setData({
         totalAgents: agentsData?.length || 0,
         activeAgents: agentsData?.filter(a => a.status === 'active').length || 0,
+        totalUsers,
+        activeUsers,
+        adminBalance,
         totalCommissions,
         totalVolume,
         topAgent,
