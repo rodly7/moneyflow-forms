@@ -36,40 +36,20 @@ const Html5QRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Co
     try {
       console.log('🎥 Démarrage du scanner QR...');
       
-      // Détecter si on est en mode PWA
-      const isInPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                      (window.navigator as any).standalone === true ||
-                      document.referrer.includes('android-app://');
-      
-      if (isInPWA) {
-        console.log('📱 Mode PWA détecté - passage en saisie manuelle');
-        setShowManualInput(true);
-        return;
-      }
-      
       // Vérifier si on est dans un contexte sécurisé (HTTPS ou localhost)
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        console.log('⚠️ getUserMedia non supporté - passage en saisie manuelle');
-        setShowManualInput(true);
-        return;
+        throw new Error('getUserMedia non supporté dans ce contexte - caméra requise');
       }
 
       // Demander explicitement les permissions caméra
-      try {
-        await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            facingMode: 'environment',
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          } 
-        });
-        console.log('✅ Permissions caméra accordées');
-      } catch (permissionError) {
-        console.error('❌ Permissions caméra refusées:', permissionError);
-        console.log('🔄 Basculement vers saisie manuelle');
-        setShowManualInput(true);
-        return;
-      }
+      await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      console.log('✅ Permissions caméra accordées');
       
       const qrScanner = new QrScanner(
         videoRef.current,
@@ -100,8 +80,7 @@ const Html5QRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Co
       console.log('✅ Scanner démarré avec succès');
     } catch (error) {
       console.error('❌ Erreur scanner:', error);
-      console.log('🔄 Basculement automatique vers saisie manuelle');
-      setShowManualInput(true);
+      alert(`Erreur: ${error.message || 'Impossible d\'accéder à la caméra'}`);
     }
   };
 
