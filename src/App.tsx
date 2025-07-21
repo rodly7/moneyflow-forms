@@ -18,7 +18,7 @@ const SubAdminDashboard = lazy(() => import("./pages/SubAdminDashboard"));
 const Transfer = lazy(() => import("./pages/Transfer"));
 const Transactions = lazy(() => import("./pages/Transactions"));
 const UnifiedDepositWithdrawal = lazy(() => import("./pages/UnifiedDepositWithdrawal"));
-const Commission = lazy(() => import("./pages/Commission"));
+
 const AgentPerformanceDashboard = lazy(() => import("./pages/AgentPerformanceDashboard"));
 const Savings = lazy(() => import("./pages/Savings"));
 const Receipts = lazy(() => import("./pages/Receipts"));
@@ -99,7 +99,7 @@ function App() {
                   <Route path="deposit" element={<Suspense fallback={<MobileLoader />}><UnifiedDepositWithdrawal /></Suspense>} />
                   <Route path="deposit-withdrawal" element={<Suspense fallback={<MobileLoader />}><DepositWithdrawalForm /></Suspense>} />
                   <Route path="agent-services" element={<Suspense fallback={<MobileLoader />}><AgentServices /></Suspense>} />
-                  <Route path="commission" element={<Suspense fallback={<MobileLoader />}><Commission /></Suspense>} />
+                  
                   <Route path="agent-performance" element={<Suspense fallback={<MobileLoader />}><AgentPerformanceDashboard /></Suspense>} />
                   <Route path="savings" element={<Suspense fallback={<MobileLoader />}><Savings /></Suspense>} />
                   <Route path="receipts" element={<Suspense fallback={<MobileLoader />}><Receipts /></Suspense>} />
