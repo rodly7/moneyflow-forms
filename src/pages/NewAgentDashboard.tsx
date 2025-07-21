@@ -162,12 +162,6 @@ const NewAgentDashboard = () => {
       variant: "default" as const
     },
     {
-      label: "Mes Commissions",
-      icon: Percent,
-      onClick: () => navigate('/commission'),
-      variant: "outline" as const
-    },
-    {
       label: "Mes Reçus",
       icon: FileText,
       onClick: () => navigate('/receipts'),
