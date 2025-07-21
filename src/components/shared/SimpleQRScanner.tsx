@@ -37,33 +37,60 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
   const startCamera = async () => {
     try {
       setError(null);
-      console.log('🎥 Démarrage de la caméra...');
+      console.log('🎥 Tentative de démarrage de la caméra...');
 
+      // Vérifier si getUserMedia est disponible
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('getUserMedia non supporté sur ce navigateur');
+      }
+
+      // Contraintes plus simples pour PWA
       const constraints = {
         video: {
-          facingMode: 'environment',
-          width: { ideal: 640 },
-          height: { ideal: 480 }
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 480 },
+          height: { ideal: 360 }
         }
       };
 
+      console.log('📋 Demande des permissions caméra...');
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log('✅ Permissions accordées, configuration du stream...');
+      
       setStream(mediaStream);
 
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        
         videoRef.current.onloadedmetadata = () => {
+          console.log('📺 Métadonnées vidéo chargées');
           if (videoRef.current) {
-            videoRef.current.play();
-            setIsScanning(true);
+            videoRef.current.play().then(() => {
+              console.log('▶️ Lecture vidéo démarrée');
+              setIsScanning(true);
+            }).catch(err => {
+              console.error('❌ Erreur lecture vidéo:', err);
+              setError('Erreur lors du démarrage de la vidéo');
+            });
           }
+        };
+
+        videoRef.current.onerror = (err) => {
+          console.error('❌ Erreur élément vidéo:', err);
+          setError('Erreur de l\'élément vidéo');
         };
       }
 
-      console.log('✅ Caméra démarrée avec succès');
-    } catch (error) {
-      console.error('❌ Erreur caméra:', error);
-      setError('Impossible d\'accéder à la caméra. Utilisez la saisie manuelle.');
+      console.log('✅ Caméra configurée avec succès');
+    } catch (error: any) {
+      console.error('❌ Erreur caméra complète:', error);
+      const errorMessage = error.name === 'NotAllowedError' 
+        ? 'Permissions caméra refusées. Veuillez autoriser l\'accès.'
+        : error.name === 'NotFoundError'
+        ? 'Aucune caméra trouvée sur cet appareil.'
+        : `Erreur caméra: ${error.message}`;
+      
+      setError(errorMessage);
       setShowManualInput(true);
     }
   };
