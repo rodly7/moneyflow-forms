@@ -3,7 +3,7 @@ import { useState, useEffect, Suspense, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowUpRight, QrCode, RefreshCw, LogOut, Wallet, History, PiggyBank, FileText, Sparkles, Crown, Star, Zap, Eye, EyeOff } from "lucide-react";
+import { ArrowUpRight, QrCode, RefreshCw, LogOut, Wallet, History, PiggyBank, FileText, Sparkles, Crown, Star, Zap, Eye, EyeOff, Scan } from "lucide-react";
 import { SimpleCustomerSupportForm } from "@/components/support/SimpleCustomerSupportForm";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -367,16 +367,16 @@ const Dashboard = () => {
           </div>
           
           <div className="group relative">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-amber-600 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
             <Button 
               variant="outline" 
-              onClick={() => navigate('/bill-payments')}
+              onClick={() => navigate('/qr-payment')}
               className="relative w-full h-24 flex-col gap-3 bg-white border-0 hover:bg-gray-50 transition-all duration-300 hover:scale-105 shadow-lg"
             >
-              <div className="p-2 bg-gradient-to-r from-yellow-500 to-amber-500 rounded-full">
-                <Zap className="h-6 w-6 text-white" />
+              <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full">
+                <Scan className="h-6 w-6 text-white" />
               </div>
-              <span className="text-sm font-medium">Factures</span>
+              <span className="text-sm font-medium">Payer QR</span>
             </Button>
           </div>
         </div>

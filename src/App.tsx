@@ -23,6 +23,7 @@ const AgentPerformanceDashboard = lazy(() => import("./pages/AgentPerformanceDas
 const Savings = lazy(() => import("./pages/Savings"));
 const Receipts = lazy(() => import("./pages/Receipts"));
 const QRCode = lazy(() => import("./pages/QRCode"));
+const QRPayment = lazy(() => import("./pages/QRPayment"));
 const AgentAuth = lazy(() => import("./pages/AgentAuth"));
 const AgentServices = lazy(() => import("./pages/AgentServices"));
 const DepositWithdrawalForm = lazy(() => import("./components/deposit-withdrawal/DepositWithdrawalForm"));
@@ -104,6 +105,7 @@ function App() {
                   <Route path="savings" element={<Suspense fallback={<MobileLoader />}><Savings /></Suspense>} />
                   <Route path="receipts" element={<Suspense fallback={<MobileLoader />}><Receipts /></Suspense>} />
                   <Route path="qr-code" element={<Suspense fallback={<MobileLoader />}><QRCode /></Suspense>} />
+                  <Route path="qr-payment" element={<Suspense fallback={<MobileLoader />}><QRPayment /></Suspense>} />
                   <Route path="notifications" element={<Suspense fallback={<MobileLoader />}><Notifications /></Suspense>} />
                   <Route path="change-password" element={<Suspense fallback={<MobileLoader />}><ChangePassword /></Suspense>} />
                   <Route path="bill-payments" element={<Suspense fallback={<MobileLoader />}><BillPayments /></Suspense>} />
