@@ -36,22 +36,39 @@ const Html5QRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Co
     try {
       console.log('🎥 Démarrage du scanner QR...');
       
+      // Détecter si on est en mode PWA
+      const isInPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                      (window.navigator as any).standalone === true ||
+                      document.referrer.includes('android-app://');
+      
+      if (isInPWA) {
+        console.log('📱 Mode PWA détecté - passage en saisie manuelle');
+        setShowManualInput(true);
+        return;
+      }
+      
       // Vérifier si on est dans un contexte sécurisé (HTTPS ou localhost)
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('getUserMedia non supporté dans ce contexte');
+        console.log('⚠️ getUserMedia non supporté - passage en saisie manuelle');
+        setShowManualInput(true);
+        return;
       }
 
-      // Demander explicitement les permissions caméra pour PWA
+      // Demander explicitement les permissions caméra
       try {
         await navigator.mediaDevices.getUserMedia({ 
           video: { 
-            facingMode: 'environment' 
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
           } 
         });
         console.log('✅ Permissions caméra accordées');
       } catch (permissionError) {
         console.error('❌ Permissions caméra refusées:', permissionError);
-        throw new Error('Permissions caméra requises pour scanner le QR code');
+        console.log('🔄 Basculement vers saisie manuelle');
+        setShowManualInput(true);
+        return;
       }
       
       const qrScanner = new QrScanner(
@@ -64,7 +81,6 @@ const Html5QRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Co
           highlightScanRegion: true,
           highlightCodeOutline: true,
           preferredCamera: 'environment',
-          // Options PWA améliorées
           maxScansPerSecond: 5,
           calculateScanRegion: (video) => {
             const smallestDimension = Math.min(video.videoWidth, video.videoHeight);
@@ -84,7 +100,7 @@ const Html5QRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Co
       console.log('✅ Scanner démarré avec succès');
     } catch (error) {
       console.error('❌ Erreur scanner:', error);
-      alert(`Erreur scanner: ${error.message || 'Impossible d\'accéder à la caméra'}`);
+      console.log('🔄 Basculement automatique vers saisie manuelle');
       setShowManualInput(true);
     }
   };
@@ -104,21 +120,35 @@ const Html5QRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Co
       // Essayer de parser le JSON
       const qrData = JSON.parse(decodedText);
       
+      // Gérer différents formats de QR codes
+      let userData;
+      
       if (qrData.userId && qrData.fullName && qrData.phone) {
-        onScanSuccess({
+        // Format standard pour paiement
+        userData = {
           userId: qrData.userId,
           fullName: qrData.fullName,
           phone: qrData.phone
-        });
-        
-        // Fermer après succès
-        setTimeout(() => {
-          onClose();
-        }, 500);
+        };
+      } else if (qrData.action === 'withdraw' && qrData.userId && qrData.fullName && qrData.phone) {
+        // Format de retrait - convertir pour paiement
+        userData = {
+          userId: qrData.userId,
+          fullName: qrData.fullName,
+          phone: qrData.phone
+        };
       } else {
-        console.warn('Données QR incomplètes:', qrData);
-        alert('QR Code invalide - données manquantes');
+        console.warn('Format QR non reconnu:', qrData);
+        alert('Format de QR Code non supporté pour les paiements');
+        return;
       }
+      
+      onScanSuccess(userData);
+      
+      // Fermer après succès
+      setTimeout(() => {
+        onClose();
+      }, 500);
     } catch (error) {
       console.error('Erreur parsing QR:', error);
       alert('Format de QR Code invalide');
