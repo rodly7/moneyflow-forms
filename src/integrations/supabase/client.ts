@@ -112,14 +112,37 @@ export const calculateFee = (
     throw new Error('Les agents ne peuvent effectuer que des transferts internationaux');
   }
   
-  // Nouveaux taux: 6.5% pour tous les transferts (agent 1% + entreprise 5.5%)
-  const baseRate = 0.065;
+  let baseRate: number;
+  
+  if (isNationalTransfer) {
+    // Transferts nationaux : 1% de frais
+    baseRate = 0.01;
+  } else {
+    // Transferts internationaux : frais progressifs
+    if (amount < 350000) {
+      baseRate = 0.065; // 6,5%
+    } else if (amount <= 700000) {
+      baseRate = 0.045; // 4,5%
+    } else {
+      baseRate = 0.035; // 3,5%
+    }
+  }
   
   const fee = amount * baseRate;
   
-  // Calcul des commissions selon les nouvelles spécifications
-  const agentCommission = amount * 0.01; // 1% pour l'agent
-  const moneyFlowCommission = amount * 0.055; // 5.5% pour l'entreprise
+  // Calcul des commissions
+  let agentCommission: number;
+  let moneyFlowCommission: number;
+  
+  if (isNationalTransfer) {
+    // Pour les transferts nationaux : l'agent prend 0,5% et l'entreprise 0,5%
+    agentCommission = amount * 0.005;
+    moneyFlowCommission = amount * 0.005;
+  } else {
+    // Pour les transferts internationaux : l'agent prend 1% et l'entreprise le reste
+    agentCommission = amount * 0.01;
+    moneyFlowCommission = fee - agentCommission;
+  }
   
   return {
     fee,

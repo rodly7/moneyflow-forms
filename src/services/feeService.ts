@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const creditTransactionFees = async (
   transactionType: 'transfer' | 'withdrawal',
   amount: number,
+  isNational: boolean = false,
   performedBy?: 'agent' | 'user'
 ) => {
   try {
@@ -14,7 +15,7 @@ export const creditTransactionFees = async (
     
     // Calcul des frais selon le type de transaction
     if (transactionType === 'transfer') {
-      fees = amount * 0.065; // 6.5% pour les transferts (agent 1% + entreprise 5.5%)
+      fees = calculateTransactionFees('transfer', amount, isNational);
     } else if (transactionType === 'withdrawal') {
       fees = amount * 0.015; // 1.5% pour les retraits (agent 0.5% + entreprise 1%)
     }
@@ -56,10 +57,22 @@ export const creditTransactionFees = async (
 
 export const calculateTransactionFees = (
   transactionType: 'transfer' | 'withdrawal',
-  amount: number
+  amount: number,
+  isNational: boolean = false
 ): number => {
   if (transactionType === 'transfer') {
-    return amount * 0.065; // 6.5% pour les transferts (agent 1% + entreprise 5.5%)
+    if (isNational) {
+      return amount * 0.01; // 1% pour les transferts nationaux
+    } else {
+      // Transferts internationaux : frais progressifs
+      if (amount < 350000) {
+        return amount * 0.065; // 6,5%
+      } else if (amount <= 700000) {
+        return amount * 0.045; // 4,5%
+      } else {
+        return amount * 0.035; // 3,5%
+      }
+    }
   } else if (transactionType === 'withdrawal') {
     return amount * 0.015; // 1.5% pour les retraits (agent 0.5% + entreprise 1%)
   }
