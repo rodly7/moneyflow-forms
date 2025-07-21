@@ -1310,12 +1310,10 @@ export type Database = {
     }
     Functions: {
       calculate_agent_monthly_performance: {
-        Args: {
-          agent_id_param: string
-          month_param: number
-          year_param: number
-        }
-        Returns: string
+        Args:
+          | Record<PropertyKey, never>
+          | { agent_id_param: string; month_param: number; year_param: number }
+        Returns: Record<string, unknown>[]
       }
       calculate_commission_rate: {
         Args: { volume: number }
@@ -1329,6 +1327,10 @@ export type Database = {
         Args:
           | Record<PropertyKey, never>
           | { claim_code_param: string; recipient_id: string }
+        Returns: undefined
+      }
+      cleanup_expired_password_resets: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
       create_new_agent: {
@@ -1359,6 +1361,10 @@ export type Database = {
           country: string
         }[]
       }
+      function_name: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_agent_by_user_id: {
         Args: { user_id_param: string }
         Returns: {
@@ -1380,27 +1386,15 @@ export type Database = {
         }[]
       }
       get_agent_current_month_performance: {
-        Args: { agent_id_param: string }
+        Args: Record<PropertyKey, never> | { agent_id_param: string }
         Returns: {
-          total_volume: number
-          total_transactions: number
-          complaints_count: number
-          commission_rate: number
-          base_commission: number
-          volume_bonus: number
-          transaction_bonus: number
-          no_complaint_bonus: number
-          total_earnings: number
-          tier_name: string
+          agent_id: number
+          total_performance: number
         }[]
       }
       get_user_role: {
         Args: { user_id_param: string }
         Returns: Database["public"]["Enums"]["user_role"]
-      }
-      handle_password_reset_cleanup: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
       }
       increment_balance: {
         Args: { user_id: string; amount: number }
@@ -1470,8 +1464,10 @@ export type Database = {
         Returns: Json
       }
       savings_withdrawal: {
-        Args: { p_user_id: string; p_account_id: string; p_amount: number }
-        Returns: Json
+        Args:
+          | { account_id: number; withdrawal_amount: number }
+          | { p_user_id: string; p_account_id: string; p_amount: number }
+        Returns: boolean
       }
       secure_increment_balance: {
         Args: {
