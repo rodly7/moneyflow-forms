@@ -52,11 +52,16 @@ const AgentYesterdaySummary = () => {
       const withdrawalAmount = (withdrawals || []).reduce((sum, w) => sum + Number(w.amount), 0);
       const depositAmount = (deposits || []).reduce((sum, d) => sum + Number(d.amount), 0);
 
+      // Calculer les commissions avec les nouveaux taux
+      const withdrawalCommissions = withdrawalAmount * 0.002; // 0,2% sur les retraits
+      const depositCommissions = depositAmount * 0.005; // 0,5% sur les dépôts
+      const totalCommissions = withdrawalCommissions + depositCommissions;
+
       setStats({
         withdrawals: withdrawals?.length || 0,
         deposits: deposits?.length || 0,
         totalOperations: (withdrawals?.length || 0) + (deposits?.length || 0),
-        totalCommissions: 0, // Plus de commissions pour les agents
+        totalCommissions,
         withdrawalAmount,
         depositAmount
       });
@@ -120,8 +125,8 @@ const AgentYesterdaySummary = () => {
               <div className="text-blue-100">Volume total</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold">0%</div>
-              <div className="text-blue-100">Pas de frais agents</div>
+              <div className="text-3xl font-bold">0,2% / 0,5%</div>
+              <div className="text-blue-100">Taux commissions</div>
             </div>
           </div>
         </CardContent>
@@ -150,9 +155,9 @@ const AgentYesterdaySummary = () => {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-red-600">Commission:</span>
+                <span className="text-red-600">Commission (0,2%):</span>
                 <span className="font-bold text-red-800">
-                  {formatCurrency(0, 'XAF')} (Aucun frais agent)
+                  {formatCurrency(stats.withdrawalAmount * 0.002, 'XAF')}
                 </span>
               </div>
             </div>
@@ -179,9 +184,9 @@ const AgentYesterdaySummary = () => {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-green-600">Commission:</span>
+                <span className="text-green-600">Commission (0,5%):</span>
                 <span className="font-bold text-green-800">
-                  {formatCurrency(0, 'XAF')} (Aucun frais agent)
+                  {formatCurrency(stats.depositAmount * 0.005, 'XAF')}
                 </span>
               </div>
             </div>
