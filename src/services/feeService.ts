@@ -17,18 +17,10 @@ export const creditTransactionFees = async (
     if (transactionType === 'transfer') {
       fees = calculateTransactionFees('transfer', amount, isNational);
     } else if (transactionType === 'withdrawal') {
-      // Pour les agents : pas de frais sur les retraits
-      if (performedBy === 'agent') {
-        fees = 0;
-      } else {
-        fees = amount * 0.015; // 1.5% pour les retraits des utilisateurs
-      }
+      // Pas de frais pour les clients sur les retraits
+      fees = 0;
     } else if (transactionType === 'deposit') {
-      // Pour les agents : pas de frais sur les dépôts
-      if (performedBy === 'agent') {
-        fees = 0;
-      }
-      // Pour les utilisateurs : pas de frais sur les dépôts non plus
+      // Pas de frais pour les dépôts
       fees = 0;
     }
     
@@ -87,13 +79,10 @@ export const calculateTransactionFees = (
       }
     }
   } else if (transactionType === 'withdrawal') {
-    // Pour les agents : pas de frais sur les retraits
-    if (performedBy === 'agent') {
-      return 0;
-    }
-    return amount * 0.015; // 1.5% pour les retraits des utilisateurs
+    // Pas de frais pour les clients sur les retraits
+    return 0;
   } else if (transactionType === 'deposit') {
-    // Pas de frais sur les dépôts (ni pour agents ni pour utilisateurs)
+    // Pas de frais sur les dépôts
     return 0;
   }
   return 0;

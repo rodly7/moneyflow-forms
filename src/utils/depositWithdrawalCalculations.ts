@@ -1,8 +1,14 @@
 
-export const calculateDepositFees = (amount: number) => {
-  // Pas de frais pour les dépôts
+export const calculateDepositFees = (amount: number, hasCompletedDailyQuota: boolean = false) => {
+  // Commission pour les agents sur les dépôts
+  const baseCommissionRate = 0.005; // 0,5% de base
+  const bonusCommissionRate = 0.01; // 1% si quota atteint
+  
+  const agentCommissionRate = hasCompletedDailyQuota ? bonusCommissionRate : baseCommissionRate;
+  const agentCommission = Math.round(amount * agentCommissionRate);
+  
+  // Pas de frais pour le client sur les dépôts
   const totalFee = 0;
-  const agentCommission = 0;
   const platformCommission = 0;
 
   return {
@@ -13,7 +19,7 @@ export const calculateDepositFees = (amount: number) => {
 };
 
 export const calculateWithdrawalFees = (amount: number, userRole: string = 'user') => {
-  // Pour les agents : pas de frais sur les retraits
+  // Pour les agents : pas de frais sur les retraits mais ils reçoivent une commission
   if (userRole === 'agent') {
     return {
       totalFee: 0,
@@ -22,16 +28,13 @@ export const calculateWithdrawalFees = (amount: number, userRole: string = 'user
     };
   }
   
-  // Pour les utilisateurs normaux : 1,5% de frais total pour les retraits (agent 0,5% + entreprise 1%)
-  const feeRate = 0.015;
-  const totalFee = Math.round(amount * feeRate);
-  
-  // L'agent reçoit 0,5% de commission
-  const agentCommissionRate = 0.005;
+  // Pour les utilisateurs normaux : pas de frais pour le client
+  // L'agent reçoit 0,2% de commission sur les retraits
+  const agentCommissionRate = 0.002; // 0,2%
   const agentCommission = Math.round(amount * agentCommissionRate);
   
-  // L'entreprise reçoit 1% (le reste)
-  const platformCommission = totalFee - agentCommission;
+  const totalFee = 0; // Pas de frais pour le client
+  const platformCommission = 0; // Pas de commission entreprise affichée
 
   return {
     totalFee,
