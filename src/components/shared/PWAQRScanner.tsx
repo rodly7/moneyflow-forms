@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import jsQR from 'jsqr';
 
 interface PWAQRScannerProps {
   isOpen: boolean;
@@ -103,22 +104,15 @@ const PWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Code
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     try {
-      // Utiliser BarcodeDetector si disponible (Chrome/Edge)
-      if ('BarcodeDetector' in window) {
-        const barcodeDetector = new (window as any).BarcodeDetector({
-          formats: ['qr_code']
-        });
-
-        const barcodes = await barcodeDetector.detect(canvas);
-        
-        if (barcodes.length > 0) {
-          const qrData = barcodes[0].rawValue;
-          console.log('✅ QR Code détecté:', qrData);
-          handleQRCodeDetected(qrData);
-        }
-      } else {
-        // Fallback: demander à l'utilisateur de scanner manuellement
-        console.log('BarcodeDetector non supporté');
+      // Utiliser jsQR comme solution universelle
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const qrCode = jsQR(imageData.data, canvas.width, canvas.height, {
+        inversionAttempts: "dontInvert",
+      });
+      
+      if (qrCode) {
+        console.log('✅ QR Code détecté avec jsQR:', qrCode.data);
+        handleQRCodeDetected(qrCode.data);
       }
     } catch (error) {
       console.error('Erreur détection QR:', error);
@@ -203,11 +197,9 @@ const PWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Code
             Pointez la caméra vers le QR Code du destinataire
           </div>
           
-          {!('BarcodeDetector' in window) && (
-            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-3 py-2 rounded text-sm">
-              ⚠️ Détection automatique non supportée sur ce navigateur
-            </div>
-          )}
+          <div className="bg-green-100 border border-green-400 text-green-700 px-3 py-2 rounded text-sm">
+            ✅ Détection QR universelle activée (jsQR)
+          </div>
         </div>
 
         <div className="flex gap-2 mt-6">
