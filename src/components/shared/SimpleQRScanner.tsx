@@ -1,6 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { Camera, X } from 'lucide-react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { useState } from 'react';
+import { Camera, X, User, Phone, Hash } from 'lucide-react';
 
 interface SimpleQRScannerProps {
   isOpen: boolean;
@@ -10,127 +9,12 @@ interface SimpleQRScannerProps {
 }
 
 const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Code" }: SimpleQRScannerProps) => {
-  const [error, setError] = useState<string | null>(null);
   const [showManualInput, setShowManualInput] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
   const [manualData, setManualData] = useState({
     userId: '',
     fullName: '',
     phone: ''
   });
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
-  const scannerElementId = "qr-reader";
-
-  useEffect(() => {
-    if (isOpen && !showManualInput) {
-      startScanner();
-    } else {
-      stopScanner();
-    }
-
-    return () => {
-      stopScanner();
-    };
-  }, [isOpen, showManualInput]);
-
-  const startScanner = () => {
-    // S'assurer que le scanner précédent est complètement arrêté
-    if (scannerRef.current) {
-      stopScanner();
-      // Attendre un peu pour que le nettoyage soit complet
-      setTimeout(() => {
-        initializeScanner();
-      }, 500);
-    } else {
-      initializeScanner();
-    }
-  };
-
-  const initializeScanner = () => {
-    console.log('🚀 Démarrage du scanner HTML5 QR Code...');
-    setError(null);
-    setIsScanning(true);
-
-    try {
-      // Configuration simplifiée pour éviter les erreurs
-      const config = {
-        fps: 10,
-        qrbox: 250,
-        aspectRatio: 1.0,
-        rememberLastUsedCamera: false,
-        // Configuration simple pour la caméra
-        facingMode: "environment"
-      };
-
-      scannerRef.current = new Html5QrcodeScanner(
-        scannerElementId,
-        config,
-        /* verbose= */ false
-      );
-
-      scannerRef.current.render(handleQRScanSuccess, onScanFailure);
-      console.log('✅ Scanner HTML5 QR Code initialisé');
-
-    } catch (error) {
-      console.error('❌ Erreur initialisation scanner:', error);
-      setError('Erreur lors de l\'initialisation du scanner');
-      setIsScanning(false);
-      setShowManualInput(true);
-    }
-  };
-
-  const handleQRScanSuccess = (decodedText: string, decodedResult: any) => {
-    console.log('🎉 QR Code détecté!');
-    console.log('📄 Contenu:', decodedText);
-    console.log('📋 Résultat détaillé:', decodedResult);
-
-    try {
-      // Essayer de parser les données JSON
-      const userData = JSON.parse(decodedText);
-      if (userData.userId && userData.fullName && userData.phone) {
-        console.log('✅ Format QR valide:', userData);
-        onScanSuccess(userData);
-        handleClose();
-        return;
-      } else {
-        console.log('❌ Format QR Code invalide - manque des champs:', userData);
-      }
-    } catch (e) {
-      console.log('❌ Erreur parsing JSON:', e);
-      console.log('🔤 Tentative d\'utilisation comme texte brut');
-    }
-
-    // Fallback: accepter n'importe quel QR code pour test
-    onScanSuccess({
-      userId: decodedText,
-      fullName: 'Utilisateur QR',
-      phone: 'Détecté depuis QR'
-    });
-    handleClose();
-  };
-
-  const onScanFailure = (error: string) => {
-    // Ne pas loguer les erreurs de scan normales (trop verbeux)
-    // console.log('Scan en cours...', error);
-  };
-
-  const stopScanner = () => {
-    if (scannerRef.current) {
-      try {
-        // Vérifier si le scanner est en cours d'exécution avant de le nettoyer
-        console.log('🛑 Tentative d\'arrêt du scanner...');
-        scannerRef.current.clear().then(() => {
-          console.log('✅ Scanner nettoyé avec succès');
-        }).catch((error) => {
-          console.log('⚠️ Erreur lors du nettoyage (normal si déjà arrêté):', error.message);
-        });
-      } catch (error: any) {
-        console.log('⚠️ Erreur lors de l\'arrêt du scanner:', error.message);
-      }
-      scannerRef.current = null;
-    }
-    setIsScanning(false);
-  };
 
   const handleManualSubmit = () => {
     if (!manualData.userId || !manualData.fullName || !manualData.phone) {
@@ -148,8 +32,6 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
   };
 
   const handleClose = () => {
-    stopScanner();
-    setError(null);
     setShowManualInput(false);
     setManualData({ userId: '', fullName: '', phone: '' });
     onClose();
@@ -166,6 +48,14 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
     handleClose();
   };
 
+  const fillTestData = () => {
+    setManualData({
+      userId: 'dda64997-5dbd-4a5f-b049-cd68ed31fe40',
+      fullName: 'Laureat NGANGOUE',
+      phone: '+242065224790'
+    });
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -177,106 +67,113 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
             <X size={20} />
           </button>
         </div>
-        
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
 
         {!showManualInput ? (
           <div className="space-y-4">
-            {/* Zone de scan QR */}
-            <div id={scannerElementId} className="w-full"></div>
-            
-            {!isScanning && (
-              <div className="text-center text-gray-600">
-                Initialisation du scanner...
-              </div>
-            )}
-
-            <div className="text-sm text-gray-600 text-center">
-              Pointez la caméra vers le QR Code du destinataire
+            {/* Zone d'information */}
+            <div className="text-center p-6 bg-gray-50 rounded-lg">
+              <Camera size={48} className="mx-auto mb-3 text-gray-400" />
+              <h3 className="text-lg font-medium mb-2">Scanner QR Code</h3>
+              <p className="text-gray-600 text-sm mb-4">
+                Pour effectuer un paiement rapide, scannez le QR code du destinataire ou saisissez les informations manuellement.
+              </p>
             </div>
             
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <p className="text-sm text-blue-600 mb-2">💡 Pour tester rapidement :</p>
+            {/* Boutons d'action */}
+            <div className="space-y-3">
               <button
                 onClick={simulateQRScan}
-                className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 text-sm"
+                className="w-full bg-blue-500 text-white py-3 px-4 rounded-md hover:bg-blue-600 flex items-center justify-center gap-2 font-medium"
               >
+                <User size={20} />
                 Utiliser données de test
+              </button>
+              
+              <button
+                onClick={() => setShowManualInput(true)}
+                className="w-full border border-gray-300 py-3 px-4 rounded-md hover:bg-gray-50 flex items-center justify-center gap-2 font-medium"
+              >
+                <Phone size={20} />
+                Saisie manuelle
               </button>
             </div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowManualInput(true)}
-                className="flex-1 border border-gray-300 py-2 px-4 rounded-md hover:bg-gray-50"
-              >
-                Saisie manuelle
-              </button>
+            {/* Information */}
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <p className="text-sm text-blue-700">
+                💡 <strong>Astuce :</strong> Utilisez les données de test pour tester rapidement le système de paiement.
+              </p>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Données du destinataire</h3>
+            <div className="flex items-center gap-2 mb-4">
+              <User size={20} className="text-gray-600" />
+              <h3 className="text-lg font-medium">Informations du destinataire</h3>
+            </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Nom complet</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700">
+                <User size={16} className="inline mr-1" />
+                Nom complet
+              </label>
               <input
                 type="text"
                 value={manualData.fullName}
                 onChange={(e) => setManualData(prev => ({ ...prev, fullName: e.target.value }))}
                 placeholder="Nom du destinataire"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium mb-2">Téléphone</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700">
+                <Phone size={16} className="inline mr-1" />
+                Téléphone
+              </label>
               <input
                 type="text"
                 value={manualData.phone}
                 onChange={(e) => setManualData(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder="+221..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="+242..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium mb-2">ID Utilisateur</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700">
+                <Hash size={16} className="inline mr-1" />
+                ID Utilisateur
+              </label>
               <input
                 type="text"
                 value={manualData.userId}
                 onChange={(e) => setManualData(prev => ({ ...prev, userId: e.target.value }))}
                 placeholder="ID du destinataire"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <p className="text-sm text-blue-600 mb-2">💡 Pour tester rapidement :</p>
-              <button
-                onClick={simulateQRScan}
-                className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 text-sm"
-              >
-                Utiliser données de test
-              </button>
-            </div>
+            {/* Bouton pour remplir automatiquement */}
+            <button
+              onClick={fillTestData}
+              className="w-full bg-blue-100 text-blue-700 py-2 px-4 rounded-md hover:bg-blue-200 text-sm font-medium"
+            >
+              📋 Remplir avec données de test
+            </button>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-2">
               <button
                 onClick={handleManualSubmit}
-                className="flex-1 bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600"
+                className="flex-1 bg-green-500 text-white py-3 px-4 rounded-md hover:bg-green-600 font-medium"
               >
-                Confirmer
+                ✅ Confirmer
               </button>
               <button
                 onClick={() => setShowManualInput(false)}
-                className="flex-1 border border-gray-300 py-2 px-4 rounded-md hover:bg-gray-50"
+                className="flex-1 border border-gray-300 py-3 px-4 rounded-md hover:bg-gray-50 font-medium"
               >
-                Retour scanner
+                ← Retour
               </button>
             </div>
           </div>
