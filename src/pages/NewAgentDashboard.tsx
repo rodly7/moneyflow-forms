@@ -28,6 +28,8 @@ const NewAgentDashboard = () => {
   const { renderCount } = usePerformanceMonitor('NewAgentDashboard');
   const [balance, setBalance] = useState<number>(0);
   const [commissionBalance, setCommissionBalance] = useState<number>(0);
+  const [baseCommission, setBaseCommission] = useState<number>(0);
+  const [totalEarnings, setTotalEarnings] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const { updateLocation, deactivateLocation } = useAgentLocationTracker();
 
@@ -60,6 +62,27 @@ const NewAgentDashboard = () => {
           setCommissionBalance(0);
         } else {
           setCommissionBalance(agentData.commission_balance || 0);
+        }
+
+        // Récupérer les performances du mois actuel pour obtenir la commission de base
+        const currentMonth = new Date().getMonth() + 1;
+        const currentYear = new Date().getFullYear();
+        
+        const { data: performanceData, error: performanceError } = await supabase
+          .from('agent_monthly_performance')
+          .select('base_commission, total_earnings')
+          .eq('agent_id', user.id)
+          .eq('month', currentMonth)
+          .eq('year', currentYear)
+          .single();
+        
+        if (performanceError) {
+          console.log("Performance data not found:", performanceError);
+          setBaseCommission(0);
+          setTotalEarnings(0);
+        } else {
+          setBaseCommission(performanceData.base_commission || 0);
+          setTotalEarnings(performanceData.total_earnings || 0);
         }
       } catch (error) {
         console.error("Erreur lors du chargement des soldes:", error);
@@ -134,6 +157,8 @@ const NewAgentDashboard = () => {
   // Convertir les soldes de XAF (devise de base) vers la devise de l'agent
   const convertedBalance = convertCurrency(balance, "XAF", agentCurrency);
   const convertedCommissionBalance = convertCurrency(commissionBalance, "XAF", agentCurrency);
+  const convertedBaseCommission = convertCurrency(baseCommission, "XAF", agentCurrency);
+  const convertedTotalEarnings = convertCurrency(totalEarnings, "XAF", agentCurrency);
 
   // Stats pour le grid compact
   const statsData = [
@@ -150,6 +175,20 @@ const NewAgentDashboard = () => {
       icon: Percent,
       gradient: "bg-gradient-to-r from-purple-600 to-pink-600",
       textColor: "text-purple-100"
+    },
+    {
+      label: "Commission Base (Mois)",
+      value: formatCurrency(convertedBaseCommission, agentCurrency),
+      icon: DollarSign,
+      gradient: "bg-gradient-to-r from-blue-600 to-indigo-600",
+      textColor: "text-blue-100"
+    },
+    {
+      label: "Gains Totaux (Mois)",
+      value: formatCurrency(convertedTotalEarnings, agentCurrency),
+      icon: Star,
+      gradient: "bg-gradient-to-r from-amber-500 to-orange-600",
+      textColor: "text-amber-100"
     }
   ];
 
