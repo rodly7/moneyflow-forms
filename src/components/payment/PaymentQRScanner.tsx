@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Camera, X, CheckCircle } from 'lucide-react';
+import { Camera, X, CheckCircle, Type } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import QrScanner from 'qr-scanner';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface PaymentQRScannerProps {
   isOpen: boolean;
@@ -15,8 +16,15 @@ const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerPr
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [cameraStarted, setCameraStarted] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualData, setManualData] = useState({
+    userId: '',
+    fullName: '',
+    phone: ''
+  });
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const qrScannerRef = useRef<QrScanner | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -24,6 +32,8 @@ const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerPr
       setIsScanning(false);
       setCameraStarted(false);
       setScanResult(null);
+      setShowManualInput(false);
+      setManualData({ userId: '', fullName: '', phone: '' });
       
       const timer = setTimeout(() => {
         initializeCamera();
@@ -37,10 +47,9 @@ const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerPr
   }, [isOpen]);
 
   const cleanupCamera = () => {
-    if (qrScannerRef.current) {
-      qrScannerRef.current.stop();
-      qrScannerRef.current.destroy();
-      qrScannerRef.current = null;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
     setIsScanning(false);
     setCameraStarted(false);
@@ -48,90 +57,95 @@ const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerPr
 
   const initializeCamera = async () => {
     try {
-      if (!videoRef.current) return;
-
-      // Créer une nouvelle instance de QrScanner
-      const qrScanner = new QrScanner(
-        videoRef.current,
-        (result) => {
-          console.log("QR Code détecté:", result.data);
-          handleScanSuccess(result.data);
-        },
-        {
-          preferredCamera: 'environment', // Caméra arrière préférée
-          highlightScanRegion: true,
-          highlightCodeOutline: true,
-          returnDetailedScanResult: true,
+      // Demander l'accès à la caméra avec les contraintes natives
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment', // Caméra arrière préférée
+          width: { ideal: 640 },
+          height: { ideal: 480 }
         }
-      );
-
-      qrScannerRef.current = qrScanner;
-
-      // Démarrer le scanner
-      await qrScanner.start();
-      
-      setCameraStarted(true);
-      setIsScanning(true);
-      
-      toast({
-        title: "Scanner démarré",
-        description: "Caméra activée - Pointez vers le QR code du destinataire",
       });
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        streamRef.current = stream;
+        
+        setCameraStarted(true);
+        setIsScanning(true);
+        
+        toast({
+          title: "Caméra démarrée",
+          description: "Pointez vers le QR code ou utilisez la saisie manuelle",
+        });
+      }
 
     } catch (error) {
       console.error('Erreur initialisation caméra:', error);
       toast({
         title: "Erreur caméra",
-        description: "Impossible d'accéder à la caméra. Vérifiez les permissions.",
+        description: "Impossible d'accéder à la caméra. Utilisez la saisie manuelle.",
         variant: "destructive"
       });
+      setShowManualInput(true);
     }
   };
 
-  const handleScanSuccess = (decodedText: string) => {
-    try {
-      setScanResult(decodedText);
-      
-      // Parser les données du QR code
-      const qrData = JSON.parse(decodedText);
-      
-      // Vérifier que les données nécessaires sont présentes
-      if (qrData.userId && qrData.fullName && qrData.phone) {
-        onScanSuccess({
-          userId: qrData.userId,
-          fullName: qrData.fullName,
-          phone: qrData.phone
-        });
-        
-        toast({
-          title: "QR Code scanné avec succès",
-          description: `Destinataire identifié: ${qrData.fullName}`,
-        });
-        
-        // Fermer le scanner après succès
-        setTimeout(() => {
-          onClose();
-        }, 1500);
-      } else {
-        toast({
-          title: "QR Code invalide",
-          description: "Ce QR code ne contient pas les informations utilisateur nécessaires",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error("Erreur parsing QR:", error);
+  const captureFrame = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    
+    if (!context) return;
+    
+    // Configurer le canvas aux dimensions de la vidéo
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Dessiner l'image de la vidéo sur le canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    toast({
+      title: "Image capturée",
+      description: "Utilisez la saisie manuelle pour entrer les données du destinataire",
+    });
+    
+    setShowManualInput(true);
+  };
+
+  const handleManualSubmit = () => {
+    if (!manualData.userId || !manualData.fullName || !manualData.phone) {
       toast({
-        title: "QR Code invalide",
-        description: "Format de QR code non reconnu",
+        title: "Données incomplètes",
+        description: "Veuillez remplir tous les champs",
         variant: "destructive"
       });
+      return;
     }
+
+    onScanSuccess({
+      userId: manualData.userId,
+      fullName: manualData.fullName,
+      phone: manualData.phone
+    });
+    
+    toast({
+      title: "Destinataire ajouté",
+      description: `Destinataire: ${manualData.fullName}`,
+    });
+    
+    setTimeout(() => {
+      onClose();
+    }, 1000);
   };
 
   const handleClose = () => {
     cleanupCamera();
     setScanResult(null);
+    setShowManualInput(false);
+    setManualData({ userId: '', fullName: '', phone: '' });
     onClose();
   };
 
@@ -146,70 +160,151 @@ const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerPr
         </DialogHeader>
         
         <div className="space-y-4">
-          <div className="relative bg-gray-100 rounded-lg overflow-hidden min-h-[300px]">
-            {isOpen && (
-              <>
-                <video
-                  ref={videoRef}
-                  className="w-full h-full object-cover rounded-lg"
-                  playsInline
-                  muted
-                  autoPlay
-                />
-                <div className="absolute inset-0 border-2 border-blue-500 rounded-lg pointer-events-none">
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-white rounded-lg border-dashed"></div>
-                </div>
-              </>
-            )}
-            {!cameraStarted && (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/90">
-                <div className="text-center">
-                  <Camera className="h-16 w-16 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500">Démarrage de la caméra...</p>
-                </div>
+          {/* Caméra native */}
+          {!showManualInput && (
+            <>
+              <div className="relative bg-gray-100 rounded-lg overflow-hidden min-h-[300px]">
+                {cameraStarted && (
+                  <>
+                    <video
+                      ref={videoRef}
+                      className="w-full h-full object-cover rounded-lg"
+                      playsInline
+                      muted
+                      autoPlay
+                    />
+                    <canvas
+                      ref={canvasRef}
+                      className="hidden"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="w-48 h-48 border-2 border-white border-dashed rounded-lg"></div>
+                    </div>
+                  </>
+                )}
+                {!cameraStarted && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/90">
+                    <div className="text-center">
+                      <Camera className="h-16 w-16 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-500">Démarrage de la caméra...</p>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <div className="text-center space-y-2">
-            {cameraStarted ? (
-              <p className="text-sm text-gray-600 font-medium">
-                🎯 Pointez la caméra vers le QR code du destinataire
-              </p>
-            ) : (
-              <p className="text-sm text-gray-600">
-                Initialisation du scanner...
-              </p>
-            )}
-            
-            {scanResult && (
-              <div className="p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700 flex items-center justify-center gap-1">
-                <CheckCircle className="w-3 h-3" />
-                QR Code détecté et traité
+              <div className="text-center space-y-2">
+                {cameraStarted ? (
+                  <p className="text-sm text-gray-600 font-medium">
+                    🎯 Pointez la caméra vers le QR code du destinataire
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-600">
+                    Initialisation de la caméra...
+                  </p>
+                )}
+                
+                <p className="text-xs text-gray-500">
+                  Capturez l'image ou saisissez manuellement les données
+                </p>
               </div>
-            )}
-            
-            <p className="text-xs text-gray-500">
-              {cameraStarted ? "Le scan se fait automatiquement" : "Assurez-vous d'autoriser l'accès à la caméra"}
-            </p>
-          </div>
+
+              <div className="flex gap-2">
+                {cameraStarted && (
+                  <Button
+                    onClick={captureFrame}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    Capturer
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => setShowManualInput(true)}
+                  className="flex-1"
+                >
+                  <Type className="w-4 h-4 mr-2" />
+                  Saisie manuelle
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* Saisie manuelle */}
+          {showManualInput && (
+            <div className="space-y-4">
+              <div className="text-center">
+                <h3 className="font-medium text-gray-800 mb-2">
+                  Saisir les données du destinataire
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Entrez manuellement les informations du destinataire
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="fullName">Nom complet</Label>
+                  <Input
+                    id="fullName"
+                    value={manualData.fullName}
+                    onChange={(e) => setManualData(prev => ({ ...prev, fullName: e.target.value }))}
+                    placeholder="Nom du destinataire"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone">Téléphone</Label>
+                  <Input
+                    id="phone"
+                    value={manualData.phone}
+                    onChange={(e) => setManualData(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="+221..."
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="userId">ID Utilisateur</Label>
+                  <Input
+                    id="userId"
+                    value={manualData.userId}
+                    onChange={(e) => setManualData(prev => ({ ...prev, userId: e.target.value }))}
+                    placeholder="ID du destinataire"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleManualSubmit}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Confirmer
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowManualInput(false)}
+                  className="flex-1"
+                >
+                  Retour caméra
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
             <p className="text-xs text-blue-600 text-center">
-              🔒 Assurez-vous que le QR code appartient bien à la personne à qui vous voulez envoyer de l'argent
+              🔒 Vérifiez toujours l'identité du destinataire avant le paiement
             </p>
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              className="flex-1"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Fermer
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            className="w-full"
+          >
+            <X className="w-4 h-4 mr-2" />
+            Fermer
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
