@@ -41,15 +41,20 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
       
       setCameras(devices);
       
-      // Préférer la caméra arrière
+      // Forcer la sélection de la caméra arrière en priorité
       const backCamera = devices.find(camera => 
         camera.label?.toLowerCase().includes('back') || 
         camera.label?.toLowerCase().includes('rear') ||
-        camera.label?.toLowerCase().includes('environment')
+        camera.label?.toLowerCase().includes('environment') ||
+        camera.label?.toLowerCase().includes('facing back') ||
+        camera.id.includes('1') // Souvent la caméra arrière a l'ID 1
       );
       
-      const cameraToUse = backCamera || devices[0];
+      // Si pas de caméra arrière détectée, prendre la dernière (souvent arrière)
+      const cameraToUse = backCamera || devices[devices.length - 1] || devices[0];
+      
       if (cameraToUse) {
+        console.log('📱 Caméra sélectionnée:', cameraToUse.label || cameraToUse.id);
         setSelectedCamera(cameraToUse.id);
         startScanning(cameraToUse.id);
       } else {
@@ -74,12 +79,12 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
       const qrCodeInstance = new Html5Qrcode(qrCodeRegionId);
       setHtml5QrCode(qrCodeInstance);
 
-      // Configuration optimisée pour une détection ultra-rapide
+      // Configuration ultra-optimisée pour détection instantanée
       const config = {
-        fps: 30, // FPS maximum pour une détection très rapide
+        fps: 60, // FPS maximum pour détection instantanée
         qrbox: function(viewfinderWidth: number, viewfinderHeight: number) {
-          // Zone de scan plus petite pour une détection plus rapide
-          let minEdgePercentage = 0.5; // 50% de la zone pour plus de rapidité
+          // Zone de scan très petite pour détection ultra-rapide
+          let minEdgePercentage = 0.3; // 30% pour vitesse maximale
           let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
           let qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
           return {
@@ -88,12 +93,18 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
           };
         },
         aspectRatio: 1.0,
-        // Paramètres de détection optimisés pour la vitesse
+        // Tous les paramètres pour vitesse maximale
         experimentalFeatures: {
           useBarCodeDetectorIfSupported: true
         },
         rememberLastUsedCamera: false,
-        supportedScanTypes: [0], // QR_CODE uniquement pour plus de rapidité
+        supportedScanTypes: [0], // QR_CODE uniquement
+        // Contraintes de la caméra pour optimiser la détection
+        videoConstraints: {
+          facingMode: { ideal: "environment" }, // Force caméra arrière
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
       };
 
       await qrCodeInstance.start(
@@ -194,6 +205,7 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
   const handleClose = async () => {
     await stopScanning();
     setError(null);
+    setIsProcessing(false); // Reset processing state
     onClose();
   };
 
