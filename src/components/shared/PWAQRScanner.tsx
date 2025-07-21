@@ -18,7 +18,10 @@ const PWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Code
 
   useEffect(() => {
     if (isOpen) {
-      startCamera();
+      // Petit délai pour s'assurer que les éléments DOM sont prêts
+      setTimeout(() => {
+        startCamera();
+      }, 100);
     } else {
       stopCamera();
     }
@@ -84,7 +87,7 @@ const PWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Code
 
     intervalRef.current = setInterval(() => {
       captureAndAnalyze();
-    }, 1000); // Analyser toutes les secondes
+    }, 500); // Analyser toutes les 500ms pour plus de réactivité
   };
 
   const captureAndAnalyze = async () => {

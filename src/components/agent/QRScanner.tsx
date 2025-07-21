@@ -1,5 +1,5 @@
 
-import Html5QRScanner from '@/components/shared/Html5QRScanner';
+import PWAQRScanner from '@/components/shared/PWAQRScanner';
 
 interface QRScannerProps {
   isOpen: boolean;
@@ -9,7 +9,7 @@ interface QRScannerProps {
 
 const QRScanner = ({ isOpen, onClose, onScanSuccess }: QRScannerProps) => {
   return (
-    <Html5QRScanner
+    <PWAQRScanner
       isOpen={isOpen}
       onClose={onClose}
       onScanSuccess={onScanSuccess}
