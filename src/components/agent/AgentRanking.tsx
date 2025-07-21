@@ -73,10 +73,10 @@ const AgentRanking = () => {
         const withdrawals = withdrawalsResult.data || [];
         const deposits = depositsResult.data || [];
 
-        // Calculer les commissions approximatives
+        // Calculer les commissions avec les nouveaux taux
         const transferCommissions = transfers.reduce((sum, t) => sum + (Number(t.fees) * 0.5), 0);
-        const withdrawalCommissions = withdrawals.reduce((sum, w) => sum + (Number(w.amount) * 0.01), 0);
-        const depositCommissions = deposits.reduce((sum, d) => sum + (Number(d.amount) * 0.005), 0);
+        const withdrawalCommissions = withdrawals.reduce((sum, w) => sum + (Number(w.amount) * 0.002), 0); // 0,2%
+        const depositCommissions = deposits.reduce((sum, d) => sum + (Number(d.amount) * 0.005), 0); // 0,5%
 
         const totalCommissions = transferCommissions + withdrawalCommissions + depositCommissions;
         const totalOperations = transfers.length + withdrawals.length + deposits.length;

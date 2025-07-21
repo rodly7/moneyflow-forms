@@ -84,9 +84,9 @@ const AgentCommissions = () => {
           .lt('created_at', periodEnd.toISOString())
           .eq('status', 'completed');
 
-        // Calculer les commissions - agents n'ont plus de frais sur les dépôts/retraits
-        const withdrawalCommission = 0; // Agents n'ont plus de commission sur les retraits
-        const depositCommission = 0; // Agents n'ont plus de commission sur les dépôts
+        // Calculer les commissions selon les nouveaux taux
+        const withdrawalCommission = withdrawals?.reduce((sum, w) => sum + (Number(w.amount) * 0.002), 0) || 0; // 0,2% sur les retraits
+        const depositCommission = deposits?.reduce((sum, d) => sum + (Number(d.amount) * 0.005), 0) || 0; // 0,5% sur les dépôts
 
         commissions.push({
           date: periodStart.toLocaleDateString('fr-FR'),
