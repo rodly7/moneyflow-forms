@@ -88,6 +88,10 @@ const AgentCommissions = () => {
         const withdrawalCommission = withdrawals?.reduce((sum, w) => sum + (Number(w.amount) * 0.002), 0) || 0; // 0,2% sur les retraits
         const depositCommission = deposits?.reduce((sum, d) => sum + (Number(d.amount) * 0.005), 0) || 0; // 0,5% sur les dépôts
 
+        console.log(`📊 Période ${periodStart.toLocaleDateString('fr-FR')}:`);
+        console.log(`- Retraits: ${withdrawals?.length || 0}, Volume: ${withdrawals?.reduce((sum, w) => sum + Number(w.amount), 0) || 0}, Commission: ${withdrawalCommission}`);
+        console.log(`- Dépôts: ${deposits?.length || 0}, Volume: ${deposits?.reduce((sum, d) => sum + Number(d.amount), 0) || 0}, Commission: ${depositCommission}`);
+
         commissions.push({
           date: periodStart.toLocaleDateString('fr-FR'),
           withdrawals: withdrawals?.length || 0,
@@ -108,16 +112,24 @@ const AgentCommissions = () => {
   const loadCommissions = async () => {
     setIsLoading(true);
     try {
+      console.log('🔄 Rechargement des commissions...');
       // Forcer le recalcul des performances avant de charger les commissions
       if (user) {
         const currentMonth = new Date().getMonth() + 1;
         const currentYear = new Date().getFullYear();
         
-        await supabase.rpc('calculate_agent_monthly_performance', {
+        console.log(`📅 Recalcul pour agent ${user.id}, mois ${currentMonth}/${currentYear}`);
+        const { data: recalcResult, error: recalcError } = await supabase.rpc('calculate_agent_monthly_performance', {
           agent_id_param: user.id,
           month_param: currentMonth,
           year_param: currentYear
         });
+        
+        if (recalcError) {
+          console.error('❌ Erreur recalcul:', recalcError);
+        } else {
+          console.log('✅ Recalcul terminé:', recalcResult);
+        }
       }
       
       const [daily, weekly, monthly] = await Promise.all([
