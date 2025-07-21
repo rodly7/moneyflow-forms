@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Camera, X, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import QrScanner from 'qr-scanner';
 
 interface PaymentQRScannerProps {
   isOpen: boolean;
@@ -15,7 +15,8 @@ const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerPr
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [cameraStarted, setCameraStarted] = useState(false);
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const qrScannerRef = useRef<QrScanner | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -25,79 +26,52 @@ const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerPr
       setScanResult(null);
       
       const timer = setTimeout(() => {
-        initializeScanner();
+        initializeCamera();
       }, 200);
 
       return () => {
         clearTimeout(timer);
-        cleanupScanner();
+        cleanupCamera();
       };
     }
   }, [isOpen]);
 
-  const cleanupScanner = () => {
-    if (scannerRef.current) {
-      try {
-        scannerRef.current.clear().catch(console.error);
-      } catch (error) {
-        console.error('Erreur nettoyage scanner:', error);
-      }
-      scannerRef.current = null;
+  const cleanupCamera = () => {
+    if (qrScannerRef.current) {
+      qrScannerRef.current.stop();
+      qrScannerRef.current.destroy();
+      qrScannerRef.current = null;
     }
     setIsScanning(false);
     setCameraStarted(false);
   };
 
-  const initializeScanner = async () => {
+  const initializeCamera = async () => {
     try {
-      const element = document.getElementById("payment-qr-scanner-container");
-      if (!element) {
-        console.error("Élément payment-qr-scanner-container non trouvé");
-        toast({
-          title: "Erreur scanner",
-          description: "Interface du scanner non disponible",
-          variant: "destructive"
-        });
-        return;
-      }
+      if (!videoRef.current) return;
 
-      if (scannerRef.current) {
-        await scannerRef.current.clear();
-        scannerRef.current = null;
-      }
-
-      const scanner = new Html5QrcodeScanner(
-        "payment-qr-scanner-container",
+      // Créer une nouvelle instance de QrScanner
+      const qrScanner = new QrScanner(
+        videoRef.current,
+        (result) => {
+          console.log("QR Code détecté:", result.data);
+          handleScanSuccess(result.data);
+        },
         {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-          supportedScanTypes: [],
-          showTorchButtonIfSupported: true,
-          showZoomSliderIfSupported: true,
-          rememberLastUsedCamera: true,
-          defaultZoomValueIfSupported: 2,
-        },
-        false
-      );
-
-      scanner.render(
-        (decodedText: string) => {
-          console.log("QR Code scanné:", decodedText);
-          handleScanSuccess(decodedText);
-        },
-        (error: string) => {
-          if (!error.includes("No QR code found") && 
-              !error.includes("QR code parse error") && 
-              !error.includes("Unable to detect a QR code")) {
-            console.warn("Erreur de scan:", error);
-          }
+          preferredCamera: 'environment', // Caméra arrière préférée
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+          returnDetailedScanResult: true,
         }
       );
 
-      scannerRef.current = scanner;
-      setIsScanning(true);
+      qrScannerRef.current = qrScanner;
+
+      // Démarrer le scanner
+      await qrScanner.start();
+      
       setCameraStarted(true);
+      setIsScanning(true);
       
       toast({
         title: "Scanner démarré",
@@ -105,9 +79,9 @@ const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerPr
       });
 
     } catch (error) {
-      console.error('Erreur initialisation scanner:', error);
+      console.error('Erreur initialisation caméra:', error);
       toast({
-        title: "Erreur scanner",
+        title: "Erreur caméra",
         description: "Impossible d'accéder à la caméra. Vérifiez les permissions.",
         variant: "destructive"
       });
@@ -156,7 +130,7 @@ const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerPr
   };
 
   const handleClose = () => {
-    cleanupScanner();
+    cleanupCamera();
     setScanResult(null);
     onClose();
   };
@@ -174,7 +148,18 @@ const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerPr
         <div className="space-y-4">
           <div className="relative bg-gray-100 rounded-lg overflow-hidden min-h-[300px]">
             {isOpen && (
-              <div id="payment-qr-scanner-container" className="w-full h-full"></div>
+              <>
+                <video
+                  ref={videoRef}
+                  className="w-full h-full object-cover rounded-lg"
+                  playsInline
+                  muted
+                  autoPlay
+                />
+                <div className="absolute inset-0 border-2 border-blue-500 rounded-lg pointer-events-none">
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-white rounded-lg border-dashed"></div>
+                </div>
+              </>
             )}
             {!cameraStarted && (
               <div className="absolute inset-0 flex items-center justify-center bg-white/90">
