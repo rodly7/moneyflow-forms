@@ -23,13 +23,10 @@ const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerPr
       setShowManualInput(false);
       setManualData({ userId: '', fullName: '', phone: '' });
       
-      setTimeout(() => {
-        initializeCamera();
-      }, 100);
-
-      return () => {
-        cleanupCamera();
-      };
+      // Démarrer immédiatement la caméra
+      initializeCamera();
+    } else {
+      cleanupCamera();
     }
   }, [isOpen]);
 
