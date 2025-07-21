@@ -57,21 +57,46 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
           }
         } catch (e) {
           console.log('❌ Erreur parsing QR Code:', e);
-          setError('QR Code non reconnu');
+          // Essayer d'utiliser directement la donnée comme text
+          if (typeof result.data === 'string' && result.data.includes('userId')) {
+            // Si c'est un string qui contient userId, on essaie de l'utiliser
+            onScanSuccess({
+              userId: result.data,
+              fullName: 'Utilisateur scanné',
+              phone: 'Non disponible'
+            });
+            handleClose();
+          } else {
+            setError('QR Code non reconnu');
+          }
         }
       },
       {
         returnDetailedScanResult: true,
         highlightScanRegion: true,
         highlightCodeOutline: true,
+        preferredCamera: 'environment',
+        maxScansPerSecond: 5,
+        calculateScanRegion: (video) => {
+          const smallestDimension = Math.min(video.videoWidth, video.videoHeight);
+          const scanRegionSize = Math.round(2/3 * smallestDimension);
+          return {
+            x: Math.round((video.videoWidth - scanRegionSize) / 2),
+            y: Math.round((video.videoHeight - scanRegionSize) / 2),
+            width: scanRegionSize,
+            height: scanRegionSize,
+          };
+        }
       }
     );
 
     qrScannerRef.current.start().then(() => {
       console.log('✅ Scanner QR démarré');
+      setIsScanning(true);
     }).catch((error) => {
       console.error('❌ Erreur démarrage scanner:', error);
       setError('Erreur du scanner QR');
+      setShowManualInput(true);
     });
   };
 
