@@ -34,30 +34,32 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
   }, [isOpen, showManualInput]);
 
   const startScanner = () => {
+    // S'assurer que le scanner précédent est complètement arrêté
     if (scannerRef.current) {
       stopScanner();
+      // Attendre un peu pour que le nettoyage soit complet
+      setTimeout(() => {
+        initializeScanner();
+      }, 500);
+    } else {
+      initializeScanner();
     }
+  };
 
+  const initializeScanner = () => {
     console.log('🚀 Démarrage du scanner HTML5 QR Code...');
     setError(null);
     setIsScanning(true);
 
     try {
+      // Configuration simplifiée pour éviter les erreurs
       const config = {
         fps: 10,
-        qrbox: { width: 250, height: 250 },
+        qrbox: 250,
         aspectRatio: 1.0,
-        rememberLastUsedCamera: true,
-        // Prefer environment camera (back camera)
-        cameraIdOrConfig: { facingMode: "environment" },
-        // Support more formats
-        supportedScanTypes: [0], // QR_CODE
-        // Verbose logging
-        verbose: true,
-        // Show zoom slider
-        showZoomSliderIfSupported: true,
-        // Show torch button if supported
-        showTorchButtonIfSupported: true
+        rememberLastUsedCamera: false,
+        // Configuration simple pour la caméra
+        facingMode: "environment"
       };
 
       scannerRef.current = new Html5QrcodeScanner(
@@ -115,10 +117,15 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
   const stopScanner = () => {
     if (scannerRef.current) {
       try {
-        scannerRef.current.clear();
-        console.log('🛑 Scanner arrêté');
-      } catch (error) {
-        console.log('⚠️ Erreur lors de l\'arrêt du scanner:', error);
+        // Vérifier si le scanner est en cours d'exécution avant de le nettoyer
+        console.log('🛑 Tentative d\'arrêt du scanner...');
+        scannerRef.current.clear().then(() => {
+          console.log('✅ Scanner nettoyé avec succès');
+        }).catch((error) => {
+          console.log('⚠️ Erreur lors du nettoyage (normal si déjà arrêté):', error.message);
+        });
+      } catch (error: any) {
+        console.log('⚠️ Erreur lors de l\'arrêt du scanner:', error.message);
       }
       scannerRef.current = null;
     }
