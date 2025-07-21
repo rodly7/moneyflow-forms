@@ -71,11 +71,14 @@ const QRPayment = () => {
       return;
     }
 
+    // Calculer le total avec les frais de 1%
+    const totalWithFees = transferAmount * 1.01;
+    
     // Vérifier le solde
-    if (profile?.balance && profile.balance < transferAmount) {
+    if (profile?.balance && profile.balance < totalWithFees) {
       toast({
         title: "Solde insuffisant",
-        description: "Votre solde est insuffisant pour effectuer ce paiement",
+        description: `Votre solde est insuffisant pour effectuer ce paiement (montant + frais: ${totalWithFees.toLocaleString()} FCFA)`,
         variant: "destructive"
       });
       return;
@@ -222,6 +225,27 @@ const QRPayment = () => {
                   className="text-lg text-center font-semibold"
                   min="1"
                 />
+                
+                {/* Affichage des frais */}
+                {amount && parseFloat(amount) > 0 && (
+                  <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                    <div className="text-sm space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Montant:</span>
+                        <span className="font-medium">{parseFloat(amount).toLocaleString()} FCFA</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Frais (1%):</span>
+                        <span className="font-medium">{(parseFloat(amount) * 0.01).toLocaleString()} FCFA</span>
+                      </div>
+                      <div className="flex justify-between border-t pt-1">
+                        <span className="font-semibold text-gray-800">Total à débiter:</span>
+                        <span className="font-bold text-blue-600">{(parseFloat(amount) * 1.01).toLocaleString()} FCFA</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 {profile?.balance && (
                   <p className="text-sm text-gray-600 text-center">
                     Solde disponible: {profile.balance.toLocaleString()} FCFA
