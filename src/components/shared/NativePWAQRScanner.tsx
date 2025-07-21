@@ -41,48 +41,23 @@ const NativePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
       
       console.log('🎥 Démarrage caméra PWA...');
 
+      // Vérifier contexte sécurisé
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+        throw new Error('La caméra nécessite une connexion sécurisée (HTTPS)');
+      }
+
       // Vérifier support
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Caméra non supportée dans ce navigateur');
       }
 
-      // Essayer différentes configurations de caméra
-      let stream: MediaStream | null = null;
-      
-      try {
-        // Première tentative avec caméra arrière
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'environment',
-            width: { ideal: 640 },
-            height: { ideal: 480 }
-          }
-        });
-      } catch (err1) {
-        console.warn('Caméra arrière non disponible, essai caméra avant...');
-        
-        try {
-          // Deuxième tentative avec caméra avant
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: 'user',
-              width: { ideal: 640 },
-              height: { ideal: 480 }
-            }
-          });
-        } catch (err2) {
-          console.warn('Caméra avant non disponible, essai configuration basique...');
-          
-          // Troisième tentative avec configuration basique
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: true
-          });
+      // Configuration simple pour éviter l'erreur "aborted"
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 320 },
+          height: { ideal: 240 }
         }
-      }
-
-      if (!stream) {
-        throw new Error('Impossible d\'accéder à la caméra');
-      }
+      });
 
       streamRef.current = stream;
 
@@ -98,18 +73,20 @@ const NativePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
     } catch (err: any) {
       console.error('❌ Erreur caméra:', err);
       
-      let errorMessage = 'Erreur caméra';
-      if (err.name === 'NotAllowedError' || err.message.includes('aborted')) {
-        errorMessage = 'Permissions caméra refusées. Veuillez autoriser l\'accès à la caméra dans les paramètres de votre navigateur.';
+      // Gérer spécifiquement l'erreur "aborted"
+      if (err.message.includes('aborted') || err.name === 'AbortError') {
+        setError('⚠️ Accès à la caméra refusé. Utilisez la saisie manuelle ci-dessous.');
+      } else if (err.name === 'NotAllowedError') {
+        setError('🔒 Permissions caméra refusées. Autorisez l\'accès dans les paramètres du navigateur ou utilisez la saisie manuelle.');
       } else if (err.name === 'NotFoundError') {
-        errorMessage = 'Aucune caméra trouvée sur cet appareil.';
+        setError('📷 Aucune caméra trouvée. Utilisez la saisie manuelle ci-dessous.');
       } else if (err.name === 'NotSupportedError') {
-        errorMessage = 'Caméra non supportée dans ce navigateur.';
+        setError('❌ Caméra non supportée. Utilisez la saisie manuelle ci-dessous.');
       } else {
-        errorMessage = `Erreur caméra: ${err.message}`;
+        setError(`❌ ${err.message}. Utilisez la saisie manuelle ci-dessous.`);
       }
       
-      setError(errorMessage);
+      // Basculer automatiquement vers saisie manuelle
       setShowManualInput(true);
       setScanning(false);
     }
