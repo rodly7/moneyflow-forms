@@ -156,16 +156,10 @@ const NewAgentDashboard = () => {
   // Actions pour l'agent
   const actionItems = [
     {
-      label: "Transférer de l'argent",
-      icon: ArrowUpRight,
-      onClick: () => navigate('/transfer'),
-      variant: "default" as const
-    },
-    {
       label: "Dépôt / Retrait client",
       icon: Wallet,
       onClick: () => navigate('/deposit'),
-      variant: "outline" as const
+      variant: "default" as const
     },
     {
       label: "Mes Commissions",
