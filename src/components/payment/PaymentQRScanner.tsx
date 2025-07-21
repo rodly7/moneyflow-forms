@@ -40,6 +40,7 @@ const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerPr
 
   const initializeCamera = async () => {
     try {
+      console.log('🎥 Initialisation de la caméra...');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
@@ -48,13 +49,18 @@ const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerPr
         }
       });
 
+      console.log('✅ Stream caméra obtenu');
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
         setCameraStarted(true);
+        console.log('✅ Caméra démarrée avec succès');
+        
+        // Démarrer la lecture vidéo
+        videoRef.current.play().catch(e => console.error('Erreur play:', e));
       }
     } catch (error) {
-      console.error('Erreur caméra:', error);
+      console.error('❌ Erreur caméra:', error);
       setShowManualInput(true);
     }
   };
