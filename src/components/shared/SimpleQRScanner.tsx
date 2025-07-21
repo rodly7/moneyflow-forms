@@ -17,6 +17,7 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
   const [cameras, setCameras] = useState<any[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string>('');
   const [showTestQR, setShowTestQR] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const qrCodeRegionId = "qr-reader-region";
 
@@ -73,12 +74,12 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
       const qrCodeInstance = new Html5Qrcode(qrCodeRegionId);
       setHtml5QrCode(qrCodeInstance);
 
-      // Configuration optimisée pour une meilleure détection
+      // Configuration optimisée pour une détection ultra-rapide
       const config = {
-        fps: 20, // Plus de FPS pour une meilleure détection
+        fps: 30, // FPS maximum pour une détection très rapide
         qrbox: function(viewfinderWidth: number, viewfinderHeight: number) {
-          // Zone de scan carrée adaptative
-          let minEdgePercentage = 0.7; // 70% de la zone
+          // Zone de scan plus petite pour une détection plus rapide
+          let minEdgePercentage = 0.5; // 50% de la zone pour plus de rapidité
           let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
           let qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
           return {
@@ -87,12 +88,12 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
           };
         },
         aspectRatio: 1.0,
-        // Paramètres de détection améliorés
+        // Paramètres de détection optimisés pour la vitesse
         experimentalFeatures: {
           useBarCodeDetectorIfSupported: true
         },
         rememberLastUsedCamera: false,
-        // supportedScanTypes: [0], // QR_CODE uniquement
+        supportedScanTypes: [0], // QR_CODE uniquement pour plus de rapidité
       };
 
       await qrCodeInstance.start(
@@ -120,6 +121,10 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
   };
 
   const handleQRCodeScan = (decodedText: string) => {
+    // Éviter les détections multiples rapides
+    if (isProcessing) return;
+    setIsProcessing(true);
+    
     console.log('📄 Contenu QR scanné:', decodedText);
     
     try {
