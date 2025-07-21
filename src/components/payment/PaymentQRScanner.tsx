@@ -152,8 +152,8 @@ const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerPr
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="rounded-2xl max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-gray-800 flex items-center gap-2">
+        <DialogHeader className="text-center">
+          <DialogTitle className="text-xl font-bold text-gray-800 flex items-center justify-center gap-2">
             <Camera className="h-5 w-5 text-blue-600" />
             Scanner le QR Code de paiement
           </DialogTitle>
