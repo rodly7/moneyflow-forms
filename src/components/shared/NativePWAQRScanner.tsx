@@ -46,14 +46,43 @@ const NativePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
         throw new Error('Caméra non supportée dans ce navigateur');
       }
 
-      // Demander permissions explicites
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+      // Essayer différentes configurations de caméra
+      let stream: MediaStream | null = null;
+      
+      try {
+        // Première tentative avec caméra arrière
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          }
+        });
+      } catch (err1) {
+        console.warn('Caméra arrière non disponible, essai caméra avant...');
+        
+        try {
+          // Deuxième tentative avec caméra avant
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: 'user',
+              width: { ideal: 640 },
+              height: { ideal: 480 }
+            }
+          });
+        } catch (err2) {
+          console.warn('Caméra avant non disponible, essai configuration basique...');
+          
+          // Troisième tentative avec configuration basique
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true
+          });
         }
-      });
+      }
+
+      if (!stream) {
+        throw new Error('Impossible d\'accéder à la caméra');
+      }
 
       streamRef.current = stream;
 
@@ -68,7 +97,19 @@ const NativePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
       console.log('✅ Caméra démarrée');
     } catch (err: any) {
       console.error('❌ Erreur caméra:', err);
-      setError(`Erreur caméra: ${err.message}`);
+      
+      let errorMessage = 'Erreur caméra';
+      if (err.name === 'NotAllowedError' || err.message.includes('aborted')) {
+        errorMessage = 'Permissions caméra refusées. Veuillez autoriser l\'accès à la caméra dans les paramètres de votre navigateur.';
+      } else if (err.name === 'NotFoundError') {
+        errorMessage = 'Aucune caméra trouvée sur cet appareil.';
+      } else if (err.name === 'NotSupportedError') {
+        errorMessage = 'Caméra non supportée dans ce navigateur.';
+      } else {
+        errorMessage = `Erreur caméra: ${err.message}`;
+      }
+      
+      setError(errorMessage);
       setShowManualInput(true);
       setScanning(false);
     }
