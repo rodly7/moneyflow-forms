@@ -30,6 +30,7 @@ import AgentsPerformanceTable from "@/components/admin/AgentsPerformanceTable";
 import CommissionSummaryCard from "@/components/admin/CommissionSummaryCard";
 import { useActiveAgentLocations } from "@/hooks/useAgentLocations";
 import AgentLocationMap from "@/components/admin/AgentLocationMap";
+import { AgentQuotaTracker } from "@/components/admin/AgentQuotaTracker";
 
 interface StatsData {
   totalUsers: number;
@@ -276,7 +277,7 @@ const CompactSubAdminDashboard = () => {
           console.log('Changing tab to:', value);
           setActiveTab(value);
         }} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6 h-12">
+          <TabsList className="grid w-full grid-cols-7 h-12">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
               <span className="hidden sm:inline">Tableau de bord</span>
@@ -288,6 +289,10 @@ const CompactSubAdminDashboard = () => {
             <TabsTrigger value="agents" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
               <span className="hidden sm:inline">Agents</span>
+            </TabsTrigger>
+            <TabsTrigger value="quotas" className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              <span className="hidden sm:inline">Quotas</span>
             </TabsTrigger>
             <TabsTrigger value="transactions" className="flex items-center gap-2">
               <Activity className="w-4 h-4" />
@@ -445,6 +450,10 @@ const CompactSubAdminDashboard = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="quotas" className="space-y-4">
+            <AgentQuotaTracker />
           </TabsContent>
 
           <TabsContent value="transactions" className="space-y-4">

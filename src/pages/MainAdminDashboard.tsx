@@ -32,6 +32,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { AdminUserService, AdminUserData } from '@/services/adminUserService';
+import { AgentQuotaTracker } from '@/components/admin/AgentQuotaTracker';
 
 // Widget pour dépôt rapide aux agents
 const QuickAgentDepositWidget = () => {
@@ -458,6 +459,7 @@ const MainAdminDashboard = () => {
   const navItems = [
     { id: "dashboard", label: "Tableau de Bord", icon: BarChart3 },
     { id: "users", label: "Gestion Utilisateurs", icon: Users },
+    { id: "quotas", label: "Quotas Agents", icon: TrendingUp },
     { id: "finance", label: "Finance", icon: Wallet },
     { id: "notifications", label: "Notifications", icon: MessageSquare },
     { id: "settings", label: "Paramètres", icon: Settings }
@@ -737,6 +739,10 @@ const MainAdminDashboard = () => {
             </Card>
           </TabsContent>
 
+          {/* Quotas Agents */}
+          <TabsContent value="quotas" className="space-y-6">
+            <AgentQuotaTracker />
+          </TabsContent>
 
           {/* Finance */}
           <TabsContent value="finance" className="space-y-6">

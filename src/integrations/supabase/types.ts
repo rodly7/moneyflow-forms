@@ -157,6 +157,39 @@ export type Database = {
           },
         ]
       }
+      agent_daily_quotas: {
+        Row: {
+          agent_id: string
+          created_at: string
+          date: string
+          id: string
+          quota_achieved: boolean
+          quota_reached_at: string | null
+          total_deposits: number
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          date?: string
+          id?: string
+          quota_achieved?: boolean
+          quota_reached_at?: string | null
+          total_deposits?: number
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          quota_achieved?: boolean
+          quota_reached_at?: string | null
+          total_deposits?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       agent_location_history: {
         Row: {
           address: string
@@ -1392,6 +1425,16 @@ export type Database = {
           total_performance: number
         }[]
       }
+      get_agent_quota_status: {
+        Args: { p_agent_id: string; p_date?: string }
+        Returns: {
+          total_deposits: number
+          quota_achieved: boolean
+          quota_reached_at: string
+          reached_before_19h: boolean
+          commission_rate: number
+        }[]
+      }
       get_user_role: {
         Args: { user_id_param: string }
         Returns: Database["public"]["Enums"]["user_role"]
@@ -1481,6 +1524,10 @@ export type Database = {
       start_user_session: {
         Args: { p_user_agent?: string; p_ip_address?: unknown }
         Returns: string
+      }
+      update_agent_daily_quota: {
+        Args: { p_agent_id: string; p_deposit_amount: number }
+        Returns: boolean
       }
       update_agent_location: {
         Args: {
