@@ -18,7 +18,7 @@ import { useQRWithdrawal } from "@/hooks/useQRWithdrawal";
 import SimpleHtmlDepositConfirmation from "./SimpleHtmlDepositConfirmation";
 
 const DepositWithdrawalForm = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -250,7 +250,7 @@ const DepositWithdrawalForm = () => {
   };
 
   const depositFees = amount ? calculateDepositFees(Number(amount)) : null;
-  const withdrawalFees = amount ? calculateWithdrawalFees(Number(amount)) : null;
+  const withdrawalFees = amount ? calculateWithdrawalFees(Number(amount), profile?.role || 'user') : null;
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 relative overflow-hidden">
@@ -314,7 +314,7 @@ const DepositWithdrawalForm = () => {
               </TabsTrigger>
               <TabsTrigger value="withdrawal" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md h-10">
                 <Minus className="w-4 h-4" />
-                <span className="hidden sm:inline">Retrait (1,5%)</span>
+                <span className="hidden sm:inline">Retrait {profile?.role === 'agent' ? '(Sans frais)' : '(1,5%)'}</span>
                 <span className="sm:hidden">Retrait</span>
               </TabsTrigger>
             </TabsList>
@@ -557,25 +557,40 @@ const DepositWithdrawalForm = () => {
                       
                       {/* Fixed space for fee calculation */}
                       <div className="min-h-[120px] mt-2">
-                        {amount && withdrawalFees && (
+                       {amount && withdrawalFees && (
                           <div className="p-4 bg-orange-50 border border-orange-200 rounded-md animate-fade-in">
                             <div className="space-y-2 text-sm">
                               <div className="flex justify-between">
                                 <span>Montant:</span>
                                 <span className="font-medium">{formatCurrency(Number(amount), 'XAF')}</span>
                               </div>
-                              <div className="flex justify-between">
-                                <span>Frais (1,5%):</span>
-                                <span className="font-medium text-orange-600">{formatCurrency(withdrawalFees.totalFee, 'XAF')}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Votre commission (0,5%):</span>
-                                <span className="font-medium text-emerald-600">{formatCurrency(withdrawalFees.agentCommission, 'XAF')}</span>
-                              </div>
-                              <div className="flex justify-between font-semibold border-t pt-2">
-                                <span>Total à débiter du client:</span>
-                                <span>{formatCurrency(Number(amount) + withdrawalFees.totalFee, 'XAF')}</span>
-                              </div>
+                              {withdrawalFees.totalFee > 0 ? (
+                                <>
+                                  <div className="flex justify-between">
+                                    <span>Frais (1,5%):</span>
+                                    <span className="font-medium text-orange-600">{formatCurrency(withdrawalFees.totalFee, 'XAF')}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Votre commission (0,5%):</span>
+                                    <span className="font-medium text-emerald-600">{formatCurrency(withdrawalFees.agentCommission, 'XAF')}</span>
+                                  </div>
+                                  <div className="flex justify-between font-semibold border-t pt-2">
+                                    <span>Total à débiter du client:</span>
+                                    <span>{formatCurrency(Number(amount) + withdrawalFees.totalFee, 'XAF')}</span>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="flex justify-between">
+                                    <span>Frais:</span>
+                                    <span className="font-medium text-emerald-600">Aucun frais pour les agents</span>
+                                  </div>
+                                  <div className="flex justify-between font-semibold border-t pt-2">
+                                    <span>Total à débiter du client:</span>
+                                    <span>{formatCurrency(Number(amount), 'XAF')}</span>
+                                  </div>
+                                </>
+                              )}
                               <div className="text-xs text-gray-600 mt-2">
                                 Note: Le solde du client sera vérifié lors du traitement
                               </div>

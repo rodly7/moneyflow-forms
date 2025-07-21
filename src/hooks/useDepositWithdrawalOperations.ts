@@ -156,8 +156,8 @@ export const useDepositWithdrawalOperations = () => {
         throw new Error(`Vous ne pouvez effectuer des retraits que pour des clients de ${profile.country}`);
       }
 
-      // Calculer les frais
-      const { totalFee, agentCommission, platformCommission } = calculateWithdrawalFees(amount);
+      // Calculer les frais (pas de frais pour les agents)
+      const { totalFee, agentCommission, platformCommission } = calculateWithdrawalFees(amount, profile?.role || 'user');
       const totalAmount = amount + totalFee;
 
       // Vérifier le solde du client

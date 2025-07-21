@@ -12,8 +12,17 @@ export const calculateDepositFees = (amount: number) => {
   };
 };
 
-export const calculateWithdrawalFees = (amount: number) => {
-  // 1,5% de frais total pour les retraits (agent 0,5% + entreprise 1%)
+export const calculateWithdrawalFees = (amount: number, userRole: string = 'user') => {
+  // Pour les agents : pas de frais sur les retraits
+  if (userRole === 'agent') {
+    return {
+      totalFee: 0,
+      agentCommission: 0,
+      platformCommission: 0
+    };
+  }
+  
+  // Pour les utilisateurs normaux : 1,5% de frais total pour les retraits (agent 0,5% + entreprise 1%)
   const feeRate = 0.015;
   const totalFee = Math.round(amount * feeRate);
   

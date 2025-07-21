@@ -13,7 +13,7 @@ import {
 } from "@/services/secureBalanceService";
 
 export const useSecureDepositWithdrawalOperations = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -115,8 +115,8 @@ export const useSecureDepositWithdrawalOperations = () => {
         throw new Error("Le montant dépasse les limites de retrait autorisées");
       }
 
-      // Calculer les frais (1,5% pour les retraits : agent 0,5% + entreprise 1%)
-      const { totalFee, agentCommission, platformCommission } = calculateWithdrawalFees(amount);
+      // Calculer les frais (pas de frais pour les agents)
+      const { totalFee, agentCommission, platformCommission } = calculateWithdrawalFees(amount, profile?.role || 'user');
       const totalAmount = amount + totalFee;
 
       // Vérifier le solde du client
