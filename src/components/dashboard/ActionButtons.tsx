@@ -67,16 +67,6 @@ const ActionButtons = ({ onTransferClick }: ActionButtonsProps) => {
           {/* Boutons pour les agents */}
           {isAgent() && (
             <>
-              <Link to="/commission" className="contents">
-                <Button 
-                  variant="outline" 
-                  className="flex flex-col items-center justify-center h-28 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-none"
-                >
-                  <Receipt className="h-6 w-6 mb-2" />
-                  <span className="text-xs font-medium">Commission</span>
-                </Button>
-              </Link>
-              
               <Button 
                 variant="outline" 
                 className="flex flex-col items-center justify-center h-28 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border-none"
