@@ -4,10 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 const SessionManager = () => {
   const { user } = useAuth();
   
-  // Gérer les sessions uniquement pour les utilisateurs connectés
-  if (user) {
-    useUserSession();
-  }
+  // Toujours appeler le hook, mais il gérera la logique interne
+  useUserSession();
   
   return null;
 };
