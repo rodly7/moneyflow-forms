@@ -1,10 +1,17 @@
 
-export const calculateDepositFees = (amount: number, hasCompletedDailyQuota: boolean = false) => {
+export const calculateDepositFees = (amount: number, hasCompletedDailyQuota: boolean = false, dailyVolume: number = 0) => {
+  const DAILY_QUOTA = 500000; // Quota journalier de 500,000
+  const currentHour = new Date().getHours();
+  const isBefore19h = currentHour < 19;
+  
   // Commission pour les agents sur les dépôts
   const baseCommissionRate = 0.005; // 0,5% de base
-  const bonusCommissionRate = 0.01; // 1% si quota atteint
+  const bonusCommissionRate = 0.01; // 1% si quota atteint avant 19h
   
-  const agentCommissionRate = hasCompletedDailyQuota ? bonusCommissionRate : baseCommissionRate;
+  // Vérifier si le quota est atteint avant 19h
+  const quotaReachedBefore19h = (dailyVolume + amount) >= DAILY_QUOTA && isBefore19h;
+  
+  const agentCommissionRate = quotaReachedBefore19h ? bonusCommissionRate : baseCommissionRate;
   const agentCommission = Math.round(amount * agentCommissionRate);
   
   // Pas de frais pour le client sur les dépôts
