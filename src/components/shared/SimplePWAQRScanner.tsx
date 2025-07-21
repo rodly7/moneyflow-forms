@@ -48,8 +48,8 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Données 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-auto">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] p-4">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-auto shadow-2xl border-2 border-blue-200">
         <h2 className="text-xl font-bold text-center mb-6">{title}</h2>
         
         <div className="space-y-4">
