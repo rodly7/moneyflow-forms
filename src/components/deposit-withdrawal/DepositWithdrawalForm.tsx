@@ -314,7 +314,7 @@ const DepositWithdrawalForm = () => {
               </TabsTrigger>
               <TabsTrigger value="withdrawal" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md h-10">
                 <Minus className="w-4 h-4" />
-                <span className="hidden sm:inline">Retrait {profile?.role === 'agent' ? '(Sans frais)' : '(1,5%)'}</span>
+                <span className="hidden sm:inline">Retrait (Sans frais client)</span>
                 <span className="sm:hidden">Retrait</span>
               </TabsTrigger>
             </TabsList>
@@ -401,10 +401,10 @@ const DepositWithdrawalForm = () => {
                                 <span>Montant:</span>
                                 <span className="font-medium">{formatCurrency(Number(amount), 'XAF')}</span>
                               </div>
-                              <div className="flex justify-between">
-                                <span>Frais:</span>
-                                <span className="font-medium text-emerald-600">{formatCurrency(depositFees.totalFee, 'XAF')}</span>
-                              </div>
+                               <div className="flex justify-between">
+                                 <span>Votre commission (0,5%):</span>
+                                 <span className="font-medium text-emerald-600">{formatCurrency(depositFees.agentCommission, 'XAF')}</span>
+                               </div>
                               <div className="flex justify-between font-semibold border-t pt-2">
                                 <span>Total à débiter:</span>
                                 <span>{formatCurrency(Number(amount), 'XAF')}</span>
@@ -566,18 +566,18 @@ const DepositWithdrawalForm = () => {
                               </div>
                               {withdrawalFees.totalFee > 0 ? (
                                 <>
-                                  <div className="flex justify-between">
-                                    <span>Frais (1,5%):</span>
-                                    <span className="font-medium text-orange-600">{formatCurrency(withdrawalFees.totalFee, 'XAF')}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span>Votre commission (0,5%):</span>
-                                    <span className="font-medium text-emerald-600">{formatCurrency(withdrawalFees.agentCommission, 'XAF')}</span>
-                                  </div>
-                                  <div className="flex justify-between font-semibold border-t pt-2">
-                                    <span>Total à débiter du client:</span>
-                                    <span>{formatCurrency(Number(amount) + withdrawalFees.totalFee, 'XAF')}</span>
-                                  </div>
+                                   <div className="flex justify-between">
+                                     <span>Pas de frais pour le client</span>
+                                     <span className="font-medium text-emerald-600">{formatCurrency(0, 'XAF')}</span>
+                                   </div>
+                                   <div className="flex justify-between">
+                                     <span>Votre commission (0,2%):</span>
+                                     <span className="font-medium text-emerald-600">{formatCurrency(withdrawalFees.agentCommission, 'XAF')}</span>
+                                   </div>
+                                   <div className="flex justify-between font-semibold border-t pt-2">
+                                     <span>Total à débiter du client:</span>
+                                     <span>{formatCurrency(Number(amount), 'XAF')}</span>
+                                   </div>
                                 </>
                               ) : (
                                 <>
