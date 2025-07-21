@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Camera, X, User, Phone, Hash } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Camera, X } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
 
 interface SimpleQRScannerProps {
   isOpen: boolean;
@@ -9,31 +10,163 @@ interface SimpleQRScannerProps {
 }
 
 const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Code" }: SimpleQRScannerProps) => {
-  const [showManualInput, setShowManualInput] = useState(false);
-  const [manualData, setManualData] = useState({
-    userId: '',
-    fullName: '',
-    phone: ''
-  });
+  const [error, setError] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [html5QrCode, setHtml5QrCode] = useState<Html5Qrcode | null>(null);
+  const [cameras, setCameras] = useState<any[]>([]);
+  const [selectedCamera, setSelectedCamera] = useState<string>('');
 
-  const handleManualSubmit = () => {
-    if (!manualData.userId || !manualData.fullName || !manualData.phone) {
-      alert('Veuillez remplir tous les champs');
-      return;
+  const qrCodeRegionId = "qr-reader-region";
+
+  useEffect(() => {
+    if (isOpen) {
+      initializeCameras();
+    } else {
+      stopScanning();
     }
 
-    onScanSuccess({
-      userId: manualData.userId,
-      fullName: manualData.fullName,
-      phone: manualData.phone
-    });
+    return () => {
+      stopScanning();
+    };
+  }, [isOpen]);
+
+  const initializeCameras = async () => {
+    try {
+      console.log('🎥 Recherche des caméras disponibles...');
+      const devices = await Html5Qrcode.getCameras();
+      console.log('📷 Caméras trouvées:', devices);
+      
+      setCameras(devices);
+      
+      // Préférer la caméra arrière
+      const backCamera = devices.find(camera => 
+        camera.label?.toLowerCase().includes('back') || 
+        camera.label?.toLowerCase().includes('rear') ||
+        camera.label?.toLowerCase().includes('environment')
+      );
+      
+      const cameraToUse = backCamera || devices[0];
+      if (cameraToUse) {
+        setSelectedCamera(cameraToUse.id);
+        startScanning(cameraToUse.id);
+      } else {
+        setError('Aucune caméra trouvée');
+      }
+    } catch (err: any) {
+      console.error('❌ Erreur lors de la recherche des caméras:', err);
+      setError(`Erreur caméra: ${err.message}`);
+    }
+  };
+
+  const startScanning = async (cameraId: string) => {
+    if (html5QrCode) {
+      await stopScanning();
+    }
+
+    try {
+      console.log('🚀 Démarrage du scan avec caméra:', cameraId);
+      setError(null);
+      setIsScanning(true);
+
+      const qrCodeInstance = new Html5Qrcode(qrCodeRegionId);
+      setHtml5QrCode(qrCodeInstance);
+
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+      };
+
+      await qrCodeInstance.start(
+        cameraId,
+        config,
+        (decodedText, decodedResult) => {
+          console.log('🎉 QR Code détecté:', decodedText);
+          handleQRCodeScan(decodedText);
+        },
+        (errorMessage) => {
+          // Les erreurs de scan sont normales, ne pas les loguer
+        }
+      );
+
+      console.log('✅ Scanner démarré avec succès');
+    } catch (err: any) {
+      console.error('❌ Erreur lors du démarrage du scanner:', err);
+      setError(`Erreur scanner: ${err.message}`);
+      setIsScanning(false);
+    }
+  };
+
+  const handleQRCodeScan = (decodedText: string) => {
+    console.log('📄 Contenu QR scanné:', decodedText);
+    
+    try {
+      // Essayer de parser comme JSON
+      const userData = JSON.parse(decodedText);
+      if (userData.userId && userData.fullName && userData.phone) {
+        console.log('✅ QR Code valide:', userData);
+        onScanSuccess(userData);
+        handleClose();
+        return;
+      }
+    } catch (e) {
+      console.log('❌ Pas un JSON valide, traitement comme texte...');
+    }
+
+    // Traitement pour différents formats de QR
+    if (decodedText.includes('userId') || decodedText.includes('user')) {
+      // Format texte avec userId
+      onScanSuccess({
+        userId: decodedText,
+        fullName: 'Utilisateur QR',
+        phone: 'Détecté depuis QR'
+      });
+    } else if (decodedText.startsWith('+') || /^\d+$/.test(decodedText)) {
+      // Numéro de téléphone
+      onScanSuccess({
+        userId: 'qr-' + Date.now(),
+        fullName: 'Utilisateur QR',
+        phone: decodedText
+      });
+    } else {
+      // Autre contenu
+      onScanSuccess({
+        userId: 'qr-' + Date.now(),
+        fullName: decodedText.substring(0, 30),
+        phone: 'QR: ' + decodedText.substring(0, 15)
+      });
+    }
     
     handleClose();
   };
 
-  const handleClose = () => {
-    setShowManualInput(false);
-    setManualData({ userId: '', fullName: '', phone: '' });
+  const stopScanning = async () => {
+    if (html5QrCode) {
+      try {
+        console.log('🛑 Arrêt du scanner...');
+        if (html5QrCode.getState() === 2) { // SCANNING state
+          await html5QrCode.stop();
+        }
+        html5QrCode.clear();
+        console.log('✅ Scanner arrêté');
+      } catch (err: any) {
+        console.log('⚠️ Erreur lors de l\'arrêt:', err.message);
+      }
+      setHtml5QrCode(null);
+    }
+    setIsScanning(false);
+  };
+
+  const changeCamera = async (cameraId: string) => {
+    setSelectedCamera(cameraId);
+    if (isScanning) {
+      await startScanning(cameraId);
+    }
+  };
+
+  const handleClose = async () => {
+    await stopScanning();
+    setError(null);
     onClose();
   };
 
@@ -48,14 +181,6 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
     handleClose();
   };
 
-  const fillTestData = () => {
-    setManualData({
-      userId: 'dda64997-5dbd-4a5f-b049-cd68ed31fe40',
-      fullName: 'Laureat NGANGOUE',
-      phone: '+242065224790'
-    });
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -67,117 +192,81 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
             <X size={20} />
           </button>
         </div>
-
-        {!showManualInput ? (
-          <div className="space-y-4">
-            {/* Zone d'information */}
-            <div className="text-center p-6 bg-gray-50 rounded-lg">
-              <Camera size={48} className="mx-auto mb-3 text-gray-400" />
-              <h3 className="text-lg font-medium mb-2">Scanner QR Code</h3>
-              <p className="text-gray-600 text-sm mb-4">
-                Pour effectuer un paiement rapide, scannez le QR code du destinataire ou saisissez les informations manuellement.
-              </p>
-            </div>
-            
-            {/* Boutons d'action */}
-            <div className="space-y-3">
-              <button
-                onClick={simulateQRScan}
-                className="w-full bg-blue-500 text-white py-3 px-4 rounded-md hover:bg-blue-600 flex items-center justify-center gap-2 font-medium"
-              >
-                <User size={20} />
-                Utiliser données de test
-              </button>
-              
-              <button
-                onClick={() => setShowManualInput(true)}
-                className="w-full border border-gray-300 py-3 px-4 rounded-md hover:bg-gray-50 flex items-center justify-center gap-2 font-medium"
-              >
-                <Phone size={20} />
-                Saisie manuelle
-              </button>
-            </div>
-
-            {/* Information */}
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <p className="text-sm text-blue-700">
-                💡 <strong>Astuce :</strong> Utilisez les données de test pour tester rapidement le système de paiement.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <User size={20} className="text-gray-600" />
-              <h3 className="text-lg font-medium">Informations du destinataire</h3>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">
-                <User size={16} className="inline mr-1" />
-                Nom complet
-              </label>
-              <input
-                type="text"
-                value={manualData.fullName}
-                onChange={(e) => setManualData(prev => ({ ...prev, fullName: e.target.value }))}
-                placeholder="Nom du destinataire"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">
-                <Phone size={16} className="inline mr-1" />
-                Téléphone
-              </label>
-              <input
-                type="text"
-                value={manualData.phone}
-                onChange={(e) => setManualData(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder="+242..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">
-                <Hash size={16} className="inline mr-1" />
-                ID Utilisateur
-              </label>
-              <input
-                type="text"
-                value={manualData.userId}
-                onChange={(e) => setManualData(prev => ({ ...prev, userId: e.target.value }))}
-                placeholder="ID du destinataire"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Bouton pour remplir automatiquement */}
-            <button
-              onClick={fillTestData}
-              className="w-full bg-blue-100 text-blue-700 py-2 px-4 rounded-md hover:bg-blue-200 text-sm font-medium"
+        
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <p>{error}</p>
+            <button 
+              onClick={initializeCameras}
+              className="mt-2 text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
             >
-              📋 Remplir avec données de test
+              Réessayer
             </button>
-
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={handleManualSubmit}
-                className="flex-1 bg-green-500 text-white py-3 px-4 rounded-md hover:bg-green-600 font-medium"
-              >
-                ✅ Confirmer
-              </button>
-              <button
-                onClick={() => setShowManualInput(false)}
-                className="flex-1 border border-gray-300 py-3 px-4 rounded-md hover:bg-gray-50 font-medium"
-              >
-                ← Retour
-              </button>
-            </div>
           </div>
         )}
+
+        <div className="space-y-4">
+          {/* Sélecteur de caméra */}
+          {cameras.length > 1 && (
+            <div>
+              <label className="block text-sm font-medium mb-2">Caméra:</label>
+              <select 
+                value={selectedCamera} 
+                onChange={(e) => changeCamera(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                {cameras.map((camera) => (
+                  <option key={camera.id} value={camera.id}>
+                    {camera.label || `Caméra ${camera.id}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Zone de scan */}
+          <div className="relative">
+            <div id={qrCodeRegionId} className="w-full min-h-[300px] border rounded-lg overflow-hidden"></div>
+            
+            {!isScanning && !error && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-50 rounded-lg">
+                <div className="text-center">
+                  <Camera size={48} className="mx-auto mb-2 text-gray-400" />
+                  <p className="text-gray-600">Initialisation de la caméra...</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {isScanning && (
+            <div className="text-center">
+              <p className="text-green-600 font-medium">📷 Scanner actif - Pointez vers un QR Code</p>
+            </div>
+          )}
+
+          {/* Boutons */}
+          <div className="space-y-2">
+            <button
+              onClick={simulateQRScan}
+              className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600"
+            >
+              🧪 Données de test (pour développement)
+            </button>
+            
+            <button
+              onClick={handleClose}
+              className="w-full border border-gray-300 py-2 px-4 rounded-md hover:bg-gray-50"
+            >
+              Fermer
+            </button>
+          </div>
+
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <p className="text-sm text-blue-700">
+              💡 <strong>Instructions :</strong> Pointez la caméra vers un QR code. Le scan se fait automatiquement dès détection.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
