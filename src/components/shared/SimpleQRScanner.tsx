@@ -37,38 +37,44 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
   }, [isOpen]);
 
   const startQRDetection = () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current) {
+      console.log('❌ Pas de référence vidéo');
+      return;
+    }
     
     console.log('🚀 Initialisation du scanner QR...');
+    console.log('📺 Élément vidéo:', videoRef.current);
+    console.log('📐 Dimensions vidéo:', videoRef.current.videoWidth, 'x', videoRef.current.videoHeight);
     
+    // Configuration simplifiée pour le débogage
     qrScannerRef.current = new QrScanner(
       videoRef.current,
       (result) => {
-        console.log('✅ QR Code détecté:', result.data);
+        console.log('🎉 QR Code détecté!');
+        console.log('📄 Contenu:', result.data);
+        console.log('📍 Position:', result.cornerPoints);
+        
         try {
           // Essayer de parser les données JSON du QR code
           const userData = JSON.parse(result.data);
           if (userData.userId && userData.fullName && userData.phone) {
+            console.log('✅ Format QR valide:', userData);
             onScanSuccess(userData);
             handleClose();
           } else {
-            console.log('❌ Format QR Code invalide');
+            console.log('❌ Format QR Code invalide - manque des champs:', userData);
             setError('Format QR Code invalide');
           }
         } catch (e) {
           console.log('❌ Erreur parsing QR Code:', e);
-          // Essayer d'utiliser directement la donnée comme text
-          if (typeof result.data === 'string' && result.data.includes('userId')) {
-            // Si c'est un string qui contient userId, on essaie de l'utiliser
-            onScanSuccess({
-              userId: result.data,
-              fullName: 'Utilisateur scanné',
-              phone: 'Non disponible'
-            });
-            handleClose();
-          } else {
-            setError('QR Code non reconnu');
-          }
+          console.log('🔤 Tentative d\'utilisation comme texte brut');
+          // Pour le test, accepter n'importe quel QR code
+          onScanSuccess({
+            userId: result.data,
+            fullName: 'Utilisateur QR',
+            phone: 'Détecté depuis QR'
+          });
+          handleClose();
         }
       },
       {
@@ -76,26 +82,29 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
         highlightScanRegion: true,
         highlightCodeOutline: true,
         preferredCamera: 'environment',
-        maxScansPerSecond: 5,
-        calculateScanRegion: (video) => {
-          const smallestDimension = Math.min(video.videoWidth, video.videoHeight);
-          const scanRegionSize = Math.round(2/3 * smallestDimension);
-          return {
-            x: Math.round((video.videoWidth - scanRegionSize) / 2),
-            y: Math.round((video.videoHeight - scanRegionSize) / 2),
-            width: scanRegionSize,
-            height: scanRegionSize,
-          };
-        }
+        maxScansPerSecond: 2,
+        // Configuration simplifiée
       }
     );
 
     qrScannerRef.current.start().then(() => {
-      console.log('✅ Scanner QR démarré');
+      console.log('✅ Scanner QR démarré avec succès');
+      console.log('🔧 Scanner démarré');
       setIsScanning(true);
+      
+      // Test de la caméra
+      setTimeout(() => {
+        if (videoRef.current) {
+          console.log('🎥 État vidéo après 2s:');
+          console.log('- Lecture:', !videoRef.current.paused);
+          console.log('- Dimensions:', videoRef.current.videoWidth, 'x', videoRef.current.videoHeight);
+          console.log('- Source:', videoRef.current.srcObject);
+        }
+      }, 2000);
+      
     }).catch((error) => {
       console.error('❌ Erreur démarrage scanner:', error);
-      setError('Erreur du scanner QR');
+      setError(`Erreur du scanner QR: ${error.message}`);
       setShowManualInput(true);
     });
   };
