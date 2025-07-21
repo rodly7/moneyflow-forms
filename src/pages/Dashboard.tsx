@@ -303,7 +303,7 @@ const Dashboard = () => {
         </div>
 
         {/* Beautiful Actions Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
           <div className="group relative">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
             <Button 
@@ -371,6 +371,20 @@ const Dashboard = () => {
                 <Scan className="h-6 w-6 text-white" />
               </div>
               <span className="text-sm font-medium">Payer QR</span>
+            </Button>
+          </div>
+          
+          <div className="group relative">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-amber-600 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/bill-payments')}
+              className="relative w-full h-24 flex-col gap-3 bg-white border-0 hover:bg-gray-50 transition-all duration-300 hover:scale-105 shadow-lg"
+            >
+              <div className="p-2 bg-gradient-to-r from-yellow-500 to-amber-500 rounded-full">
+                <Zap className="h-6 w-6 text-white" />
+              </div>
+              <span className="text-sm font-medium">Factures</span>
             </Button>
           </div>
         </div>

@@ -2,8 +2,7 @@ import { memo, Suspense, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, QrCode, Wallet, History, PiggyBank, FileText, RefreshCw, LogOut, Sparkles, Crown, Star, Eye, EyeOff, MessageSquare } from "lucide-react";
-import { SimpleCustomerSupportForm } from "@/components/support/SimpleCustomerSupportForm";
+import { ArrowUpRight, QrCode, Wallet, History, PiggyBank, FileText, RefreshCw, LogOut, Sparkles, Crown, Star, Eye, EyeOff, Scan, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, getCurrencyForCountry, convertCurrency } from "@/integrations/supabase/client";
@@ -98,13 +97,14 @@ const MobileOptimizedDashboard = memo(({
       case 'qr-code':
         navigate('/qr-code');
         break;
+      case 'qr-payment':
+        navigate('/qr-payment');
+        break;
       case 'savings':
         navigate('/savings');
         break;
       case 'transactions':
         navigate('/transactions');
-        break;
-      case 'support':
         break;
       case 'bill-payments':
         navigate('/bill-payments');
@@ -257,35 +257,22 @@ const MobileOptimizedDashboard = memo(({
           {[
             { key: 'transfer', icon: ArrowUpRight, label: 'Transférer', colors: 'from-pink-500 to-purple-500', bg: 'from-pink-600 to-purple-600' },
             { key: 'qr-code', icon: QrCode, label: 'Mon QR', colors: 'from-green-500 to-teal-500', bg: 'from-green-600 to-teal-600' },
+            { key: 'qr-payment', icon: Scan, label: 'Payer QR', colors: 'from-indigo-500 to-purple-500', bg: 'from-indigo-600 to-purple-600' },
             { key: 'savings', icon: PiggyBank, label: 'Épargnes', colors: 'from-emerald-500 to-green-500', bg: 'from-emerald-600 to-green-600' },
             { key: 'transactions', icon: History, label: 'Historique', colors: 'from-orange-500 to-red-500', bg: 'from-orange-600 to-red-600' },
-            { key: 'support', icon: MessageSquare, label: 'Service Client', colors: 'from-blue-500 to-cyan-500', bg: 'from-blue-600 to-cyan-600' },
-            { key: 'bill-payments', icon: FileText, label: 'Factures', colors: 'from-blue-500 to-indigo-500', bg: 'from-blue-600 to-indigo-600' },
+            { key: 'bill-payments', icon: Zap, label: 'Factures', colors: 'from-yellow-500 to-amber-500', bg: 'from-yellow-600 to-amber-600' },
           ].map(({ key, icon: Icon, label, colors, bg }) => (
             <div key={key} className="group relative">
               <div className={`absolute -inset-0.5 bg-gradient-to-r ${bg} rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500`}></div>
-              {key === 'support' ? (
-                <SimpleCustomerSupportForm 
-                  trigger={
-                    <div className="relative w-full h-20 sm:h-24 bg-white rounded-xl flex flex-col items-center justify-center gap-2 sm:gap-3 shadow-lg hover:scale-105 transition-transform duration-300 cursor-pointer">
-                      <div className={`p-2 sm:p-2.5 bg-gradient-to-r ${colors} rounded-full min-w-[36px] min-h-[36px] flex items-center justify-center`}>
-                        <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                      </div>
-                      <span className="text-sm sm:text-base font-medium truncate px-1">{label}</span>
-                    </div>
-                  }
-                />
-              ) : (
-                <button
-                  onClick={() => handleAction(key)}
-                  className="relative w-full h-20 sm:h-24 bg-white rounded-xl flex flex-col items-center justify-center gap-2 sm:gap-3 shadow-lg hover:scale-105 transition-transform duration-300"
-                >
-                  <div className={`p-2 sm:p-2.5 bg-gradient-to-r ${colors} rounded-full min-w-[36px] min-h-[36px] flex items-center justify-center`}>
-                    <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                  </div>
-                  <span className="text-sm sm:text-base font-medium truncate px-1">{label}</span>
-                </button>
-              )}
+              <button
+                onClick={() => handleAction(key)}
+                className="relative w-full h-20 sm:h-24 bg-white rounded-xl flex flex-col items-center justify-center gap-2 sm:gap-3 shadow-lg hover:scale-105 transition-transform duration-300"
+              >
+                <div className={`p-2 sm:p-2.5 bg-gradient-to-r ${colors} rounded-full min-w-[36px] min-h-[36px] flex items-center justify-center`}>
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <span className="text-sm sm:text-base font-medium truncate px-1">{label}</span>
+              </button>
             </div>
           ))}
         </div>
