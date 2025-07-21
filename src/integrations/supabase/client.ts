@@ -118,7 +118,7 @@ export const calculateFee = (
     // Transferts nationaux : 1% de frais
     baseRate = 0.01;
   } else {
-    // Transferts internationaux : frais progressifs
+    // Transferts internationaux : frais progressifs (même pour agents et utilisateurs)
     if (amount < 350000) {
       baseRate = 0.065; // 6,5%
     } else if (amount <= 700000) {

@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Service pour gérer automatiquement les frais sur chaque transaction
 export const creditTransactionFees = async (
-  transactionType: 'transfer' | 'withdrawal',
+  transactionType: 'transfer' | 'withdrawal' | 'deposit',
   amount: number,
   isNational: boolean = false,
   performedBy?: 'agent' | 'user'
@@ -17,7 +17,19 @@ export const creditTransactionFees = async (
     if (transactionType === 'transfer') {
       fees = calculateTransactionFees('transfer', amount, isNational);
     } else if (transactionType === 'withdrawal') {
-      fees = amount * 0.015; // 1.5% pour les retraits (agent 0.5% + entreprise 1%)
+      // Pour les agents : pas de frais sur les retraits
+      if (performedBy === 'agent') {
+        fees = 0;
+      } else {
+        fees = amount * 0.015; // 1.5% pour les retraits des utilisateurs
+      }
+    } else if (transactionType === 'deposit') {
+      // Pour les agents : pas de frais sur les dépôts
+      if (performedBy === 'agent') {
+        fees = 0;
+      }
+      // Pour les utilisateurs : pas de frais sur les dépôts non plus
+      fees = 0;
     }
     
     if (fees > 0) {
@@ -56,15 +68,16 @@ export const creditTransactionFees = async (
 };
 
 export const calculateTransactionFees = (
-  transactionType: 'transfer' | 'withdrawal',
+  transactionType: 'transfer' | 'withdrawal' | 'deposit',
   amount: number,
-  isNational: boolean = false
+  isNational: boolean = false,
+  performedBy?: 'agent' | 'user'
 ): number => {
   if (transactionType === 'transfer') {
     if (isNational) {
       return amount * 0.01; // 1% pour les transferts nationaux
     } else {
-      // Transferts internationaux : frais progressifs
+      // Transferts internationaux : frais progressifs (même pour agents et utilisateurs)
       if (amount < 350000) {
         return amount * 0.065; // 6,5%
       } else if (amount <= 700000) {
@@ -74,7 +87,14 @@ export const calculateTransactionFees = (
       }
     }
   } else if (transactionType === 'withdrawal') {
-    return amount * 0.015; // 1.5% pour les retraits (agent 0.5% + entreprise 1%)
+    // Pour les agents : pas de frais sur les retraits
+    if (performedBy === 'agent') {
+      return 0;
+    }
+    return amount * 0.015; // 1.5% pour les retraits des utilisateurs
+  } else if (transactionType === 'deposit') {
+    // Pas de frais sur les dépôts (ni pour agents ni pour utilisateurs)
+    return 0;
   }
   return 0;
 };
