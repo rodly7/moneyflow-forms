@@ -19,6 +19,8 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
     phone: ''
   });
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -68,6 +70,7 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
             videoRef.current.play().then(() => {
               console.log('▶️ Lecture vidéo démarrée');
               setIsScanning(true);
+              startQRDetection();
             }).catch(err => {
               console.error('❌ Erreur lecture vidéo:', err);
               setError('Erreur lors du démarrage de la vidéo');
@@ -95,7 +98,41 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
     }
   };
 
+  const startQRDetection = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    intervalRef.current = setInterval(() => {
+      scanForQRCode();
+    }, 1000); // Scanner toutes les secondes
+  };
+
+  const scanForQRCode = () => {
+    if (!videoRef.current || !canvasRef.current || !isScanning) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    if (!context || video.videoWidth === 0 || video.videoHeight === 0) return;
+
+    // Définir la taille du canvas
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Dessiner l'image de la vidéo sur le canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Simuler une détection (pour le moment)
+    // Dans un vrai scanner, on analyserait l'image ici
+    console.log('🔍 Recherche de QR Code...');
+  };
+
   const stopCamera = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
@@ -164,19 +201,29 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
                 playsInline
                 muted
                 className="w-full h-64 bg-black rounded-lg object-cover"
-              />
-              
-              {isScanning && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-48 h-48 border-4 border-blue-500 rounded-lg relative">
-                    <div className="absolute inset-0 border-2 border-white border-dashed rounded-lg animate-pulse"></div>
-                  </div>
+               />
+               
+               {/* Canvas pour la détection (invisible) */}
+               <canvas
+                 ref={canvasRef}
+                 className="hidden"
+               />
+               
+               {isScanning && (
+                 <div className="absolute inset-0 flex items-center justify-center">
+                   <div className="w-48 h-48 border-4 border-blue-500 rounded-lg relative">
+                     <div className="absolute inset-0 border-2 border-white border-dashed rounded-lg animate-pulse"></div>
+                   </div>
+                 </div>
+               )}
+               
+               <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm">
+                 {isScanning ? '🔍 Recherche QR...' : '⏸️ Arrêté'}
+               </div>
+               
+                <div className="absolute bottom-2 left-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-sm text-center">
+                  Détection automatique activée
                 </div>
-              )}
-              
-              <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm">
-                {isScanning ? '📷 En cours...' : '⏸️ Arrêté'}
-              </div>
             </div>
 
             <div className="text-sm text-gray-600 text-center">
