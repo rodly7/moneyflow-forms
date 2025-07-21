@@ -54,6 +54,7 @@ const Html5QRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Co
 
   const initializeScanner = () => {
     try {
+      console.log('🎥 Configuration du scanner...');
       const scanner = new Html5QrcodeScanner(
         scannerElementId,
         {
@@ -61,8 +62,10 @@ const Html5QRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Co
           qrbox: { width: 250, height: 250 },
           aspectRatio: 1.0,
           supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+          rememberLastUsedCamera: true,
+          showTorchButtonIfSupported: true,
         },
-        false
+        true // verbose logging
       );
 
       scanner.render(
