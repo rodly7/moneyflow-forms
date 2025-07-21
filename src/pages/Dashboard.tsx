@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowUpRight, QrCode, RefreshCw, LogOut, Wallet, History, PiggyBank, FileText, Sparkles, Crown, Star, Zap, Eye, EyeOff, Scan } from "lucide-react";
-import { SimpleCustomerSupportForm } from "@/components/support/SimpleCustomerSupportForm";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -304,7 +303,7 @@ const Dashboard = () => {
         </div>
 
         {/* Beautiful Actions Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="group relative">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
             <Button 
@@ -359,11 +358,6 @@ const Dashboard = () => {
               </div>
               <span className="text-sm font-medium">Historique</span>
             </Button>
-          </div>
-          
-          <div className="group relative">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
-            <SimpleCustomerSupportForm />
           </div>
           
           <div className="group relative">
