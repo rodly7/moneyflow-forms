@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import QrScanner from 'qr-scanner';
 
 interface Html5QRScannerProps {
   isOpen: boolean;
@@ -15,40 +16,53 @@ const Html5QRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Co
     phone: ''
   });
   const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const qrScannerRef = useRef<QrScanner | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      startCamera();
+      startScanner();
     } else {
-      stopCamera();
+      stopScanner();
     }
 
     return () => {
-      stopCamera();
+      stopScanner();
     };
   }, [isOpen]);
 
-  const startCamera = async () => {
+  const startScanner = async () => {
+    if (!videoRef.current) return;
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
+      console.log('🎥 Démarrage du scanner QR...');
       
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-      }
+      const qrScanner = new QrScanner(
+        videoRef.current,
+        (result) => {
+          console.log('✅ QR Code scanné:', result.data);
+          handleScanSuccess(result.data);
+        },
+        {
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+          preferredCamera: 'environment'
+        }
+      );
+
+      await qrScanner.start();
+      qrScannerRef.current = qrScanner;
+      console.log('✅ Scanner démarré avec succès');
     } catch (error) {
-      console.error('Erreur caméra:', error);
+      console.error('❌ Erreur scanner:', error);
       setShowManualInput(true);
     }
   };
 
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
+  const stopScanner = () => {
+    if (qrScannerRef.current) {
+      qrScannerRef.current.destroy();
+      qrScannerRef.current = null;
+      console.log('✅ Scanner arrêté');
     }
   };
 
@@ -96,7 +110,7 @@ const Html5QRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Co
   };
 
   const handleClose = () => {
-    stopCamera();
+    stopScanner();
     setShowManualInput(false);
     setManualData({ userId: '', fullName: '', phone: '' });
     onClose();
