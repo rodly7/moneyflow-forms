@@ -36,6 +36,24 @@ const Html5QRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Co
     try {
       console.log('🎥 Démarrage du scanner QR...');
       
+      // Vérifier si on est dans un contexte sécurisé (HTTPS ou localhost)
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('getUserMedia non supporté dans ce contexte');
+      }
+
+      // Demander explicitement les permissions caméra pour PWA
+      try {
+        await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: 'environment' 
+          } 
+        });
+        console.log('✅ Permissions caméra accordées');
+      } catch (permissionError) {
+        console.error('❌ Permissions caméra refusées:', permissionError);
+        throw new Error('Permissions caméra requises pour scanner le QR code');
+      }
+      
       const qrScanner = new QrScanner(
         videoRef.current,
         (result) => {
@@ -45,7 +63,19 @@ const Html5QRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Co
         {
           highlightScanRegion: true,
           highlightCodeOutline: true,
-          preferredCamera: 'environment'
+          preferredCamera: 'environment',
+          // Options PWA améliorées
+          maxScansPerSecond: 5,
+          calculateScanRegion: (video) => {
+            const smallestDimension = Math.min(video.videoWidth, video.videoHeight);
+            const scanRegionSize = Math.round(2/3 * smallestDimension);
+            return {
+              x: Math.round((video.videoWidth - scanRegionSize) / 2),
+              y: Math.round((video.videoHeight - scanRegionSize) / 2),
+              width: scanRegionSize,
+              height: scanRegionSize,
+            };
+          }
         }
       );
 
@@ -54,6 +84,7 @@ const Html5QRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Co
       console.log('✅ Scanner démarré avec succès');
     } catch (error) {
       console.error('❌ Erreur scanner:', error);
+      alert(`Erreur scanner: ${error.message || 'Impossible d\'accéder à la caméra'}`);
       setShowManualInput(true);
     }
   };
