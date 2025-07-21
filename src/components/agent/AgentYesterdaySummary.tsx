@@ -7,12 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/integrations/supabase/client";
 
 interface YesterdayStats {
-  transfers: number;
   withdrawals: number;
   deposits: number;
   totalOperations: number;
   totalCommissions: number;
-  transferAmount: number;
   withdrawalAmount: number;
   depositAmount: number;
 }
@@ -33,15 +31,6 @@ const AgentYesterdaySummary = () => {
       const today = new Date(yesterday);
       today.setDate(today.getDate() + 1);
 
-      // Récupérer les transferts d'hier
-      const { data: transfers } = await supabase
-        .from('transfers')
-        .select('amount, fees')
-        .eq('sender_id', user.id)
-        .gte('created_at', yesterday.toISOString())
-        .lt('created_at', today.toISOString())
-        .eq('status', 'completed');
-
       // Récupérer les retraits d'hier
       const { data: withdrawals } = await supabase
         .from('withdrawals')
@@ -60,21 +49,14 @@ const AgentYesterdaySummary = () => {
         .lt('created_at', today.toISOString())
         .eq('status', 'completed');
 
-      const transferAmount = (transfers || []).reduce((sum, t) => sum + Number(t.amount), 0);
       const withdrawalAmount = (withdrawals || []).reduce((sum, w) => sum + Number(w.amount), 0);
       const depositAmount = (deposits || []).reduce((sum, d) => sum + Number(d.amount), 0);
 
-      const transferCommission = transferAmount * 0.01;
-      const withdrawalCommission = withdrawalAmount * 0.005;
-      const depositCommission = depositAmount * 0.005;
-
       setStats({
-        transfers: transfers?.length || 0,
         withdrawals: withdrawals?.length || 0,
         deposits: deposits?.length || 0,
-        totalOperations: (transfers?.length || 0) + (withdrawals?.length || 0) + (deposits?.length || 0),
-        totalCommissions: transferCommission + withdrawalCommission + depositCommission,
-        transferAmount,
+        totalOperations: (withdrawals?.length || 0) + (deposits?.length || 0),
+        totalCommissions: 0, // Plus de commissions pour les agents
         withdrawalAmount,
         depositAmount
       });
@@ -133,50 +115,20 @@ const AgentYesterdaySummary = () => {
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold">
-                {formatCurrency(stats.transferAmount + stats.withdrawalAmount + stats.depositAmount, 'XAF')}
+                {formatCurrency(stats.withdrawalAmount + stats.depositAmount, 'XAF')}
               </div>
               <div className="text-blue-100">Volume total</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold">
-                {Math.round((stats.totalCommissions / Math.max(stats.transferAmount + stats.withdrawalAmount + stats.depositAmount, 1)) * 100 * 100) / 100}%
-              </div>
-              <div className="text-blue-100">Taux de commission</div>
+              <div className="text-3xl font-bold">0%</div>
+              <div className="text-blue-100">Pas de frais agents</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Détails par type d'opération */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-blue-700">
-              <ArrowUpRight className="w-5 h-5" />
-              Transferts
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-blue-600">Nombre:</span>
-                <span className="font-bold text-blue-800">{stats.transfers}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-blue-600">Montant:</span>
-                <span className="font-bold text-blue-800">
-                  {formatCurrency(stats.transferAmount, 'XAF')}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-blue-600">Commission:</span>
-                <span className="font-bold text-blue-800">
-                  {formatCurrency(stats.transferAmount * 0.01, 'XAF')}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
         <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
           <CardHeader className="pb-3">
@@ -200,7 +152,7 @@ const AgentYesterdaySummary = () => {
               <div className="flex justify-between">
                 <span className="text-red-600">Commission:</span>
                 <span className="font-bold text-red-800">
-                  {formatCurrency(stats.withdrawalAmount * 0.005, 'XAF')}
+                  {formatCurrency(0, 'XAF')} (Aucun frais agent)
                 </span>
               </div>
             </div>
@@ -229,7 +181,7 @@ const AgentYesterdaySummary = () => {
               <div className="flex justify-between">
                 <span className="text-green-600">Commission:</span>
                 <span className="font-bold text-green-800">
-                  {formatCurrency(stats.depositAmount * 0.005, 'XAF')}
+                  {formatCurrency(0, 'XAF')} (Aucun frais agent)
                 </span>
               </div>
             </div>

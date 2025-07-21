@@ -8,7 +8,7 @@ import { formatCurrency } from "@/integrations/supabase/client";
 
 interface DailyActivity {
   id: string;
-  type: 'transfer' | 'deposit' | 'withdrawal';
+  type: 'deposit' | 'withdrawal';
   amount: number;
   time: string;
   recipient?: string;
@@ -30,15 +30,6 @@ const AgentDailyHistory = () => {
       const endDate = new Date(date);
       endDate.setDate(endDate.getDate() + 1);
 
-      // Récupérer les transferts
-      const { data: transfers } = await supabase
-        .from('transfers')
-        .select('*')
-        .eq('sender_id', user.id)
-        .gte('created_at', startDate.toISOString())
-        .lt('created_at', endDate.toISOString())
-        .order('created_at', { ascending: false });
-
       // Récupérer les retraits
       const { data: withdrawals } = await supabase
         .from('withdrawals')
@@ -58,14 +49,6 @@ const AgentDailyHistory = () => {
         .order('created_at', { ascending: false });
 
       const allActivities: DailyActivity[] = [
-        ...(transfers?.map(t => ({
-          id: t.id,
-          type: 'transfer' as const,
-          amount: Number(t.amount),
-          time: new Date(t.created_at).toLocaleTimeString('fr-FR'),
-          recipient: t.recipient_full_name,
-          status: t.status
-        })) || []),
         ...(withdrawals?.map(w => ({
           id: w.id,
           type: 'withdrawal' as const,
@@ -98,7 +81,6 @@ const AgentDailyHistory = () => {
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'transfer': return <ArrowUpRight className="w-4 h-4" />;
       case 'withdrawal': return <ArrowDownLeft className="w-4 h-4" />;
       case 'deposit': return <Plus className="w-4 h-4" />;
       default: return <Activity className="w-4 h-4" />;
@@ -107,7 +89,6 @@ const AgentDailyHistory = () => {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'transfer': return 'Transfert';
       case 'withdrawal': return 'Retrait';
       case 'deposit': return 'Dépôt';
       default: return 'Opération';
@@ -116,7 +97,6 @@ const AgentDailyHistory = () => {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'transfer': return 'bg-blue-100 text-blue-800';
       case 'withdrawal': return 'bg-red-100 text-red-800';
       case 'deposit': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';

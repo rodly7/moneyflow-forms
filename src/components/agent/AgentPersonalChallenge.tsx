@@ -20,7 +20,6 @@ interface Challenge {
 }
 
 interface TodayStats {
-  transfers: number;
   withdrawals: number;
   deposits: number;
   total: number;
@@ -30,7 +29,7 @@ const AgentPersonalChallenge = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
-  const [todayStats, setTodayStats] = useState<TodayStats>({ transfers: 0, withdrawals: 0, deposits: 0, total: 0 });
+  const [todayStats, setTodayStats] = useState<TodayStats>({ withdrawals: 0, deposits: 0, total: 0 });
   const [targetOperations, setTargetOperations] = useState(30);
   const [isLoading, setIsLoading] = useState(true);
   const [averageOperations, setAverageOperations] = useState(0);
@@ -41,13 +40,7 @@ const AgentPersonalChallenge = () => {
     try {
       const last7Days = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       
-      const [transfersResult, withdrawalsResult, depositsResult] = await Promise.all([
-        supabase
-          .from('transfers')
-          .select('id')
-          .eq('sender_id', user.id)
-          .gte('created_at', last7Days.toISOString())
-          .eq('status', 'completed'),
+      const [withdrawalsResult, depositsResult] = await Promise.all([
         supabase
           .from('withdrawals')
           .select('id')
@@ -62,8 +55,7 @@ const AgentPersonalChallenge = () => {
           .eq('status', 'completed')
       ]);
 
-      const totalOperations = (transfersResult.data?.length || 0) + 
-                             (withdrawalsResult.data?.length || 0) + 
+      const totalOperations = (withdrawalsResult.data?.length || 0) + 
                              (depositsResult.data?.length || 0);
       
       setAverageOperations(Math.round(totalOperations / 7));
@@ -108,14 +100,7 @@ const AgentPersonalChallenge = () => {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const [transfersResult, withdrawalsResult, depositsResult] = await Promise.all([
-        supabase
-          .from('transfers')
-          .select('id')
-          .eq('sender_id', user.id)
-          .gte('created_at', today.toISOString())
-          .lt('created_at', tomorrow.toISOString())
-          .eq('status', 'completed'),
+      const [withdrawalsResult, depositsResult] = await Promise.all([
         supabase
           .from('withdrawals')
           .select('id')
@@ -133,11 +118,9 @@ const AgentPersonalChallenge = () => {
       ]);
 
       const stats = {
-        transfers: transfersResult.data?.length || 0,
         withdrawals: withdrawalsResult.data?.length || 0,
         deposits: depositsResult.data?.length || 0,
-        total: (transfersResult.data?.length || 0) + 
-               (withdrawalsResult.data?.length || 0) + 
+        total: (withdrawalsResult.data?.length || 0) + 
                (depositsResult.data?.length || 0)
       };
 
@@ -266,14 +249,10 @@ const AgentPersonalChallenge = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
               <div className="text-3xl font-bold">{todayStats.total}</div>
               <div className="text-orange-100">Total</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold">{todayStats.transfers}</div>
-              <div className="text-orange-100">Transferts</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold">{todayStats.withdrawals}</div>

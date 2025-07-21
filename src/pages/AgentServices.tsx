@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Plus, ArrowRight, RefreshCw, LogOut, Shield, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import TransferForm from "@/components/TransferForm";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 
@@ -148,36 +148,14 @@ const AgentServices = () => {
 
         {/* Enhanced Tabs */}
         <div className="backdrop-blur-sm bg-white/70 rounded-2xl shadow-xl border border-white/30 overflow-hidden w-full">
-          <Tabs defaultValue="transfer" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-gray-100/50 m-2 rounded-xl">
-              <TabsTrigger value="transfer" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md">
-                <ArrowRight className="w-4 h-4" />
-                Transfert
-              </TabsTrigger>
+          <Tabs defaultValue="deposit" className="w-full">
+            <TabsList className="grid w-full grid-cols-1 bg-gray-100/50 m-2 rounded-xl">
               <TabsTrigger value="deposit" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md">
                 <Plus className="w-4 h-4" />
                 Dépôt/Retrait
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="transfer" className="p-4 w-full">
-              <div className="space-y-4 w-full">
-                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/50 shadow-md w-full">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-3 mb-3">
-                      <Shield className="w-6 h-6 text-blue-600" />
-                      <h3 className="font-semibold text-blue-800">Mode Agent Activé</h3>
-                    </div>
-                    <p className="text-blue-600">
-                      Vous pouvez effectuer des transferts pour vos clients vers tous les pays disponibles.
-                    </p>
-                  </CardContent>
-                </Card>
-                <div className="w-full">
-                  <TransferForm />
-                </div>
-              </div>
-            </TabsContent>
 
             <TabsContent value="deposit" className="p-4 w-full">
               <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50 w-full">

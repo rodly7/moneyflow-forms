@@ -9,11 +9,9 @@ import { formatCurrency } from "@/integrations/supabase/client";
 
 interface CommissionData {
   date: string;
-  transfers: number;
   withdrawals: number;
   deposits: number;
   totalCommission: number;
-  transferCommission: number;
   withdrawalCommission: number;
   depositCommission: number;
 }
@@ -68,15 +66,6 @@ const AgentCommissions = () => {
           periodEnd.setMonth(periodEnd.getMonth() + 1);
         }
 
-        // Récupérer les transferts
-        const { data: transfers } = await supabase
-          .from('transfers')
-          .select('amount, fees')
-          .eq('sender_id', user.id)
-          .gte('created_at', periodStart.toISOString())
-          .lt('created_at', periodEnd.toISOString())
-          .eq('status', 'completed');
-
         // Récupérer les retraits
         const { data: withdrawals } = await supabase
           .from('withdrawals')
@@ -95,20 +84,17 @@ const AgentCommissions = () => {
           .lt('created_at', periodEnd.toISOString())
           .eq('status', 'completed');
 
-        // Calculer les commissions selon les nouveaux taux
-        const transferCommission = (transfers || []).reduce((sum, t) => sum + (Number(t.amount) * 0.01), 0); // 1% du montant pour transferts
-        const withdrawalCommission = (withdrawals || []).reduce((sum, w) => sum + (Number(w.amount) * 0.005), 0); // 0.5% du montant pour retraits
-        const depositCommission = (deposits || []).reduce((sum, d) => sum + (Number(d.amount) * 0.005), 0);
+        // Calculer les commissions - agents n'ont plus de frais sur les dépôts/retraits
+        const withdrawalCommission = 0; // Agents n'ont plus de commission sur les retraits
+        const depositCommission = 0; // Agents n'ont plus de commission sur les dépôts
 
         commissions.push({
           date: periodStart.toLocaleDateString('fr-FR'),
-          transfers: transfers?.length || 0,
           withdrawals: withdrawals?.length || 0,
           deposits: deposits?.length || 0,
-          transferCommission,
           withdrawalCommission,
           depositCommission,
-          totalCommission: transferCommission + withdrawalCommission + depositCommission
+          totalCommission: withdrawalCommission + depositCommission
         });
       }
 
@@ -159,15 +145,7 @@ const AgentCommissions = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div className="text-center p-2 bg-blue-100 rounded">
-                <div className="font-bold text-blue-700">{item.transfers}</div>
-                <div className="text-blue-600">Transferts</div>
-                <div className="text-xs text-blue-500">
-                  {formatCurrency(item.transferCommission, 'XAF')}
-                </div>
-              </div>
-              
+            <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="text-center p-2 bg-red-100 rounded">
                 <div className="font-bold text-red-700">{item.withdrawals}</div>
                 <div className="text-red-600">Retraits</div>
