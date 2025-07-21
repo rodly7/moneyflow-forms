@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode';
 
 interface Html5QRScannerProps {
   isOpen: boolean;
@@ -9,81 +8,47 @@ interface Html5QRScannerProps {
 }
 
 const Html5QRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Code" }: Html5QRScannerProps) => {
-  const [isScanning, setIsScanning] = useState(false);
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualData, setManualData] = useState({
     userId: '',
     fullName: '',
     phone: ''
   });
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
-  const scannerElementId = `qr-scanner-${Math.random().toString(36).substr(2, 9)}`;
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      console.log('🎥 Initialisation du scanner HTML5...');
-      setIsScanning(false);
-      setShowManualInput(false);
-      setManualData({ userId: '', fullName: '', phone: '' });
-      
-      // Attendre que le DOM soit prêt
-      setTimeout(() => {
-        initializeScanner();
-      }, 100);
+      startCamera();
     } else {
-      cleanupScanner();
+      stopCamera();
     }
 
     return () => {
-      cleanupScanner();
+      stopCamera();
     };
   }, [isOpen]);
 
-  const cleanupScanner = () => {
-    if (scannerRef.current) {
-      try {
-        scannerRef.current.clear();
-        scannerRef.current = null;
-        console.log('✅ Scanner nettoyé');
-      } catch (error) {
-        console.warn('Erreur lors du nettoyage:', error);
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
       }
+    } catch (error) {
+      console.error('Erreur caméra:', error);
+      setShowManualInput(true);
     }
-    setIsScanning(false);
   };
 
-  const initializeScanner = () => {
-    try {
-      console.log('🎥 Configuration du scanner...');
-      const scanner = new Html5QrcodeScanner(
-        scannerElementId,
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-          supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-          rememberLastUsedCamera: true,
-          showTorchButtonIfSupported: true,
-        },
-        true // verbose logging
-      );
-
-      scanner.render(
-        (decodedText) => {
-          console.log('✅ QR Code scanné:', decodedText);
-          handleScanSuccess(decodedText);
-        },
-        (error) => {
-          // Erreurs de scan normales - ne pas logger
-        }
-      );
-
-      scannerRef.current = scanner;
-      setIsScanning(true);
-      console.log('✅ Scanner HTML5 initialisé');
-    } catch (error) {
-      console.error('❌ Erreur initialisation scanner:', error);
-      setShowManualInput(true);
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
   };
 
@@ -131,7 +96,7 @@ const Html5QRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Co
   };
 
   const handleClose = () => {
-    cleanupScanner();
+    stopCamera();
     setShowManualInput(false);
     setManualData({ userId: '', fullName: '', phone: '' });
     onClose();
@@ -166,11 +131,16 @@ const Html5QRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR Co
         <div style={{ minHeight: '400px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
           {!showManualInput && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%' }}>
-              <div 
-                id={scannerElementId}
+              <video 
+                ref={videoRef}
+                autoPlay
+                playsInline
                 style={{ 
                   width: '100%',
-                  minHeight: '300px'
+                  maxWidth: '300px',
+                  height: '300px',
+                  objectFit: 'cover',
+                  borderRadius: '8px'
                 }}
               />
 
