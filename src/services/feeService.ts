@@ -69,10 +69,10 @@ export const calculateTransactionFees = (
     if (isNational) {
       return amount * 0.01; // 1% pour les transferts nationaux
     } else {
-      // Transferts internationaux : frais progressifs (même pour agents et utilisateurs)
+      // Transferts internationaux : frais progressifs
       if (amount < 350000) {
         return amount * 0.065; // 6,5%
-      } else if (amount <= 700000) {
+      } else if (amount <= 750000) {
         return amount * 0.045; // 4,5%
       } else {
         return amount * 0.035; // 3,5%
