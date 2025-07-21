@@ -73,8 +73,8 @@ const AgentRanking = () => {
         const withdrawals = withdrawalsResult.data || [];
         const deposits = depositsResult.data || [];
 
-        // Calculer les commissions avec les nouveaux taux
-        const transferCommissions = transfers.reduce((sum, t) => sum + (Number(t.fees) * 0.5), 0);
+        // Calculer les commissions uniquement sur dépôts et retraits
+        const transferCommissions = 0; // Plus de commission sur les transferts
         const withdrawalCommissions = withdrawals.reduce((sum, w) => sum + (Number(w.amount) * 0.002), 0); // 0,2%
         const depositCommissions = deposits.reduce((sum, d) => sum + (Number(d.amount) * 0.005), 0); // 0,5%
 

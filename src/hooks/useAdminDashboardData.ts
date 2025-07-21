@@ -100,13 +100,16 @@ export const useAdminDashboardData = () => {
       for (const agent of agentsData || []) {
         const profile = profilesData?.find(p => p.id === agent.user_id);
         
-        // Calculer les performances pour cet agent
+        // Récupérer les performances pour cet agent depuis la table agent_monthly_performance
         const { data: performance } = await supabase
-          .rpc('get_agent_current_month_performance', {
-            agent_id_param: agent.user_id
-          });
+          .from('agent_monthly_performance')
+          .select('*')
+          .eq('agent_id', agent.user_id)
+          .eq('month', currentMonth)
+          .eq('year', currentYear)
+          .maybeSingle();
 
-        const perfData = performance?.[0] || {
+        const perfData = performance || {
           total_volume: 0,
           total_transactions: 0,
           complaints_count: 0,

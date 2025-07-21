@@ -83,10 +83,17 @@ const SavingsWithdrawalModal = ({
 
       if (error) throw error;
       
-      const result = data as { success: boolean; error?: string; message?: string };
+      const result = data as boolean | { success: boolean; error?: string; message?: string };
       
-      if (!result.success) {
-        throw new Error(result.error || 'Erreur lors du retrait');
+      if (typeof result === 'boolean') {
+        if (!result) {
+          throw new Error('Erreur lors du retrait');
+        }
+      } else {
+      
+        if (!result.success) {
+          throw new Error(result.error || 'Erreur lors du retrait');
+        }
       }
 
       toast({

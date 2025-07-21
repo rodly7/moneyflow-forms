@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AgentEarnings {
   totalVolume: number;
@@ -32,49 +31,53 @@ interface MonthlyBonus {
 
 export const useAgentEarnings = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [earnings, setEarnings] = useState<AgentEarnings | null>(null);
   const [commissionTiers, setCommissionTiers] = useState<CommissionTier[]>([]);
   const [monthlyBonuses, setMonthlyBonuses] = useState<MonthlyBonus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchEarnings = async () => {
-    if (!user?.id) return;
+    if (!user) return;
 
     try {
       setIsLoading(true);
+
+      // Récupérer les performances de l'agent pour le mois actuel
+      const currentMonth = new Date().getMonth() + 1;
+      const currentYear = new Date().getFullYear();
       
-      // Récupérer les performances mensuelles actuelles
       const { data: performanceData, error: performanceError } = await supabase
-        .rpc('get_agent_current_month_performance', {
-          agent_id_param: user.id
-        });
+        .from('agent_monthly_performance')
+        .select('*')
+        .eq('agent_id', user.id)
+        .eq('month', currentMonth)
+        .eq('year', currentYear)
+        .maybeSingle();
 
       if (performanceError) {
         throw performanceError;
       }
 
-      if (performanceData && performanceData.length > 0) {
-        const data = performanceData[0];
+      if (performanceData) {
         setEarnings({
-          totalVolume: Number(data.total_volume) || 0,
-          totalTransactions: data.total_transactions || 0,
-          complaintsCount: data.complaints_count || 0,
-          commissionRate: Number(data.commission_rate) || 0,
-          baseCommission: Number(data.base_commission) || 0,
-          volumeBonus: Number(data.volume_bonus) || 0,
-          transactionBonus: Number(data.transaction_bonus) || 0,
-          noComplaintBonus: Number(data.no_complaint_bonus) || 0,
-          totalEarnings: Number(data.total_earnings) || 0,
-          tierName: data.tier_name || 'Bronze'
+          totalVolume: Number(performanceData.total_volume) || 0,
+          totalTransactions: performanceData.total_transactions || 0,
+          complaintsCount: performanceData.complaints_count || 0,
+          commissionRate: Number(performanceData.commission_rate) || 0,
+          baseCommission: Number(performanceData.base_commission) || 0,
+          volumeBonus: Number(performanceData.volume_bonus) || 0,
+          transactionBonus: Number(performanceData.transaction_bonus) || 0,
+          noComplaintBonus: Number(performanceData.no_complaint_bonus) || 0,
+          totalEarnings: Number(performanceData.total_earnings) || 0,
+          tierName: 'Bronze'
         });
       } else {
-        // Aucune donnée trouvée, initialiser avec des valeurs par défaut
+        // Si aucune donnée n'existe, créer un enregistrement vide
         setEarnings({
           totalVolume: 0,
           totalTransactions: 0,
           complaintsCount: 0,
-          commissionRate: 0.01,
+          commissionRate: 0.005,
           baseCommission: 0,
           volumeBonus: 0,
           transactionBonus: 0,
@@ -119,26 +122,16 @@ export const useAgentEarnings = () => {
       })));
 
     } catch (error) {
-      console.error("Erreur lors du chargement des gains:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger vos gains mensuels",
-        variant: "destructive"
-      });
+      console.error('Erreur lors du chargement des gains:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
   const getNextTierInfo = () => {
-    if (!earnings) return null;
+    if (!earnings || commissionTiers.length === 0) return null;
 
-    const currentTierIndex = commissionTiers.findIndex(tier => 
-      earnings.totalVolume >= tier.minVolume && 
-      (tier.maxVolume === null || earnings.totalVolume <= tier.maxVolume)
-    );
-
-    const nextTier = commissionTiers[currentTierIndex + 1];
+    const nextTier = commissionTiers.find(tier => earnings.totalVolume < tier.minVolume);
     if (!nextTier) return null;
 
     return {
@@ -157,33 +150,37 @@ export const useAgentEarnings = () => {
       let achieved = false;
 
       switch (bonus.bonusType) {
-        case 'transactions':
-          current = earnings.totalTransactions;
-          achieved = earnings.totalTransactions >= bonus.requirementValue;
-          break;
         case 'volume':
           current = earnings.totalVolume;
-          achieved = earnings.totalVolume >= bonus.requirementValue;
+          achieved = current >= bonus.requirementValue;
+          break;
+        case 'transactions':
+          current = earnings.totalTransactions;
+          achieved = current >= bonus.requirementValue;
           break;
         case 'no_complaints':
           current = earnings.complaintsCount;
-          achieved = earnings.complaintsCount <= bonus.requirementValue;
+          achieved = current <= bonus.requirementValue;
           break;
       }
+
+      const progress = bonus.bonusType === 'no_complaints' 
+        ? (current === 0 ? 100 : 0)
+        : Math.min((current / bonus.requirementValue) * 100, 100);
 
       return {
         ...bonus,
         current,
         achieved,
-        progress: bonus.bonusType === 'no_complaints' 
-          ? (earnings.complaintsCount === 0 ? 100 : 0)
-          : Math.min((current / bonus.requirementValue) * 100, 100)
+        progress
       };
     });
   };
 
   useEffect(() => {
-    fetchEarnings();
+    if (user) {
+      fetchEarnings();
+    }
   }, [user]);
 
   return {
