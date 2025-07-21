@@ -90,40 +90,36 @@ const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerPr
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md mx-auto">
-        <DialogHeader className="text-center">
-          <DialogTitle>Scanner QR Code</DialogTitle>
+      <DialogContent className="max-w-md w-full mx-auto">
+        <DialogHeader>
+          <DialogTitle className="text-center">Scanner QR Code</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4 flex flex-col items-center">
+        <div className="w-full flex flex-col items-center justify-center space-y-6">
           {!showManualInput && (
-            <div className="w-full max-w-sm">
-              <div className="bg-gray-100 rounded min-h-[300px] relative mx-auto">
+            <>
+              <div className="w-80 h-80 bg-gray-100 rounded-lg relative flex items-center justify-center">
                 {cameraStarted ? (
                   <video
                     ref={videoRef}
-                    className="w-full h-full object-cover rounded"
+                    className="w-full h-full object-cover rounded-lg"
                     playsInline
                     muted
                     autoPlay
                   />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <p className="text-center">Démarrage caméra...</p>
-                  </div>
+                  <p className="text-gray-500">Démarrage caméra...</p>
                 )}
               </div>
 
-              <div className="flex justify-center mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowManualInput(true)}
-                  className="w-full max-w-xs"
-                >
-                  Saisie manuelle
-                </Button>
-              </div>
-            </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowManualInput(true)}
+                className="px-8 py-2"
+              >
+                Saisie manuelle
+              </Button>
+            </>
           )}
 
           {showManualInput && (
