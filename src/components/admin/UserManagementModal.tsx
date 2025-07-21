@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 // Removed Dialog import - using native HTML instead
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,8 +11,9 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/integrations/supabase/client';
-import { User, Shield, Ban, UserCheck, UserX, Edit3, Trash2, Crown, Eye } from 'lucide-react';
+import { User, Shield, Ban, UserCheck, UserX, Edit3, Trash2, Crown, Eye, Camera } from 'lucide-react';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
+import AgentPhotoManager from './AgentPhotoManager';
 
 interface UserData {
   id: string;
@@ -24,6 +25,17 @@ interface UserData {
   is_banned?: boolean;
   banned_reason?: string | null;
   created_at: string;
+}
+
+interface Agent {
+  id: string;
+  user_id: string;
+  agent_id: string;
+  full_name: string;
+  phone: string;
+  country: string;
+  identity_photo: string | null;
+  status: string;
 }
 
 interface UserManagementModalProps {
@@ -39,6 +51,8 @@ const UserManagementModal = ({ isOpen, onClose, user, onUserUpdated, isSubAdmin 
   const deviceInfo = useDeviceDetection();
   const [isProcessing, setIsProcessing] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [showPhotoManager, setShowPhotoManager] = useState(false);
+  const [agentData, setAgentData] = useState<Agent | null>(null);
   const [formData, setFormData] = useState({
     full_name: user?.full_name || '',
     phone: user?.phone || '',
@@ -49,6 +63,23 @@ const UserManagementModal = ({ isOpen, onClose, user, onUserUpdated, isSubAdmin 
   const [banData, setBanData] = useState({
     reason: user?.banned_reason || ''
   });
+
+  const fetchAgentData = async () => {
+    if (user?.role === 'agent') {
+      try {
+        const { data, error } = await supabase
+          .from('agents')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error) throw error;
+        setAgentData(data);
+      } catch (error) {
+        console.error('Erreur lors du chargement des données agent:', error);
+      }
+    }
+  };
 
   React.useEffect(() => {
     if (user) {
@@ -62,6 +93,9 @@ const UserManagementModal = ({ isOpen, onClose, user, onUserUpdated, isSubAdmin 
       setBanData({
         reason: user.banned_reason || ''
       });
+      
+      // Charger les données agent si nécessaire
+      fetchAgentData();
     }
   }, [user]);
 
@@ -408,6 +442,17 @@ const UserManagementModal = ({ isOpen, onClose, user, onUserUpdated, isSubAdmin 
                       Modifier
                     </Button>
                     
+                    {user.role === 'agent' && agentData && (
+                      <Button
+                        onClick={() => setShowPhotoManager(true)}
+                        className="bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white"
+                        disabled={isProcessing}
+                      >
+                        <Camera className="w-4 h-4 mr-2" />
+                        Photos Agent
+                      </Button>
+                    )}
+                    
                     {user.is_banned ? (
                       <Button
                         onClick={handleUnbanUser}
@@ -542,6 +587,37 @@ const UserManagementModal = ({ isOpen, onClose, user, onUserUpdated, isSubAdmin 
                 )}
               </CardContent>
             </Card>
+          )}
+
+          {/* Gestionnaire de photos pour agents */}
+          {showPhotoManager && agentData && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center">
+              <div 
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm" 
+                onClick={() => setShowPhotoManager(false)}
+              ></div>
+              <div className="relative w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto bg-white rounded-lg shadow-2xl">
+                <div className="p-4 border-b flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-gray-800">Gestion des Photos - {agentData.full_name}</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowPhotoManager(false)}
+                  >
+                    ✕
+                  </Button>
+                </div>
+                <div className="p-6">
+                  <AgentPhotoManager 
+                    agent={agentData} 
+                    onPhotoUpdated={() => {
+                      fetchAgentData();
+                      onUserUpdated();
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Message d'information pour sous-admins */}
