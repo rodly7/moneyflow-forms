@@ -108,6 +108,18 @@ const AgentCommissions = () => {
   const loadCommissions = async () => {
     setIsLoading(true);
     try {
+      // Forcer le recalcul des performances avant de charger les commissions
+      if (user) {
+        const currentMonth = new Date().getMonth() + 1;
+        const currentYear = new Date().getFullYear();
+        
+        await supabase.rpc('calculate_agent_monthly_performance', {
+          agent_id_param: user.id,
+          month_param: currentMonth,
+          year_param: currentYear
+        });
+      }
+      
       const [daily, weekly, monthly] = await Promise.all([
         calculateCommissions('daily'),
         calculateCommissions('weekly'),
