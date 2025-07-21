@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, X } from 'lucide-react';
+import QrScanner from 'qr-scanner';
 
 interface SimpleQRScannerProps {
   isOpen: boolean;
@@ -19,8 +20,7 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
     phone: ''
   });
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const qrScannerRef = useRef<QrScanner | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -99,38 +99,49 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
   };
 
   const startQRDetection = () => {
-    if (!videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current) return;
+    
+    console.log('🚀 Initialisation du scanner QR...');
+    
+    qrScannerRef.current = new QrScanner(
+      videoRef.current,
+      (result) => {
+        console.log('✅ QR Code détecté:', result.data);
+        try {
+          // Essayer de parser les données JSON du QR code
+          const userData = JSON.parse(result.data);
+          if (userData.userId && userData.fullName && userData.phone) {
+            onScanSuccess(userData);
+            handleClose();
+          } else {
+            console.log('❌ Format QR Code invalide');
+            setError('Format QR Code invalide');
+          }
+        } catch (e) {
+          console.log('❌ Erreur parsing QR Code:', e);
+          setError('QR Code non reconnu');
+        }
+      },
+      {
+        returnDetailedScanResult: true,
+        highlightScanRegion: true,
+        highlightCodeOutline: true,
+      }
+    );
 
-    intervalRef.current = setInterval(() => {
-      scanForQRCode();
-    }, 1000); // Scanner toutes les secondes
-  };
-
-  const scanForQRCode = () => {
-    if (!videoRef.current || !canvasRef.current || !isScanning) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-
-    if (!context || video.videoWidth === 0 || video.videoHeight === 0) return;
-
-    // Définir la taille du canvas
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    // Dessiner l'image de la vidéo sur le canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Simuler une détection (pour le moment)
-    // Dans un vrai scanner, on analyserait l'image ici
-    console.log('🔍 Recherche de QR Code...');
+    qrScannerRef.current.start().then(() => {
+      console.log('✅ Scanner QR démarré');
+    }).catch((error) => {
+      console.error('❌ Erreur démarrage scanner:', error);
+      setError('Erreur du scanner QR');
+    });
   };
 
   const stopCamera = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    if (qrScannerRef.current) {
+      qrScannerRef.current.stop();
+      qrScannerRef.current.destroy();
+      qrScannerRef.current = null;
     }
 
     if (stream) {
@@ -203,11 +214,6 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
                 className="w-full h-64 bg-black rounded-lg object-cover"
                />
                
-               {/* Canvas pour la détection (invisible) */}
-               <canvas
-                 ref={canvasRef}
-                 className="hidden"
-               />
                
                {isScanning && (
                  <div className="absolute inset-0 flex items-center justify-center">
