@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Camera, X } from 'lucide-react';
+import { Camera, X, QrCode } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
+import QRCode from 'qrcode.react';
 
 interface SimpleQRScannerProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
   const [html5QrCode, setHtml5QrCode] = useState<Html5Qrcode | null>(null);
   const [cameras, setCameras] = useState<any[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string>('');
+  const [showTestQR, setShowTestQR] = useState(false);
 
   const qrCodeRegionId = "qr-reader-region";
 
@@ -71,10 +73,26 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
       const qrCodeInstance = new Html5Qrcode(qrCodeRegionId);
       setHtml5QrCode(qrCodeInstance);
 
+      // Configuration optimisée pour une meilleure détection
       const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
+        fps: 20, // Plus de FPS pour une meilleure détection
+        qrbox: function(viewfinderWidth: number, viewfinderHeight: number) {
+          // Zone de scan carrée adaptative
+          let minEdgePercentage = 0.7; // 70% de la zone
+          let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+          let qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
+          return {
+            width: qrboxSize,
+            height: qrboxSize
+          };
+        },
         aspectRatio: 1.0,
+        // Paramètres de détection améliorés
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true
+        },
+        rememberLastUsedCamera: false,
+        // supportedScanTypes: [0], // QR_CODE uniquement
       };
 
       await qrCodeInstance.start(
@@ -82,10 +100,14 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
         config,
         (decodedText, decodedResult) => {
           console.log('🎉 QR Code détecté:', decodedText);
+          console.log('📋 Résultat détaillé:', decodedResult);
           handleQRCodeScan(decodedText);
         },
         (errorMessage) => {
-          // Les erreurs de scan sont normales, ne pas les loguer
+          // Ne loguer que les vraies erreurs, pas les tentatives de scan normales
+          if (errorMessage && !errorMessage.includes('NotFoundException')) {
+            console.log('ℹ️ Info scan:', errorMessage);
+          }
         }
       );
 
@@ -181,6 +203,12 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
     handleClose();
   };
 
+  const testQRData = JSON.stringify({
+    userId: 'dda64997-5dbd-4a5f-b049-cd68ed31fe40',
+    fullName: 'Laureat NGANGOUE',
+    phone: '+242065224790'
+  });
+
   if (!isOpen) return null;
 
   return (
@@ -247,10 +275,37 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner QR C
           {/* Boutons */}
           <div className="space-y-2">
             <button
+              onClick={() => setShowTestQR(!showTestQR)}
+              className="w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 flex items-center justify-center gap-2"
+            >
+              <QrCode size={20} />
+              {showTestQR ? 'Masquer QR de test' : 'Afficher QR de test'}
+            </button>
+
+            {showTestQR && (
+              <div className="bg-white p-4 rounded-lg border-2 border-green-500">
+                <div className="text-center mb-2">
+                  <p className="text-sm font-medium text-green-700">QR Code de test - Scannez-le !</p>
+                </div>
+                <div className="flex justify-center">
+                  <QRCode 
+                    value={testQRData} 
+                    size={200}
+                    level="M"
+                    includeMargin={true}
+                  />
+                </div>
+                <p className="text-xs text-gray-600 mt-2 text-center">
+                  Utilisez un autre appareil pour scanner ce QR
+                </p>
+              </div>
+            )}
+            
+            <button
               onClick={simulateQRScan}
               className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600"
             >
-              🧪 Données de test (pour développement)
+              🧪 Données de test (simulation)
             </button>
             
             <button
