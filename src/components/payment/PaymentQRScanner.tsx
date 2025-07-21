@@ -90,15 +90,15 @@ const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerPr
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent className="max-w-md mx-auto">
+        <DialogHeader className="text-center">
           <DialogTitle>Scanner QR Code</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
+        <div className="space-y-4 flex flex-col items-center">
           {!showManualInput && (
-            <div>
-              <div className="bg-gray-100 rounded min-h-[300px] relative">
+            <div className="w-full max-w-sm">
+              <div className="bg-gray-100 rounded min-h-[300px] relative mx-auto">
                 {cameraStarted ? (
                   <video
                     ref={videoRef}
@@ -109,16 +109,16 @@ const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerPr
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <p>Démarrage caméra...</p>
+                    <p className="text-center">Démarrage caméra...</p>
                   </div>
                 )}
               </div>
 
-              <div className="flex gap-2 mt-4">
+              <div className="flex justify-center mt-4">
                 <Button
                   variant="outline"
                   onClick={() => setShowManualInput(true)}
-                  className="w-full"
+                  className="w-full max-w-xs"
                 >
                   Saisie manuelle
                 </Button>
