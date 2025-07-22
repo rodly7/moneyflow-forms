@@ -71,8 +71,15 @@ const QRPayment = () => {
       return;
     }
 
-    // Calculer le total avec les frais de 1%
-    const totalWithFees = transferAmount * 1.01;
+    // Vérifier que c'est un transfert national (pays identique)
+    const senderCountry = profile?.country || 'Unknown';
+    
+    // Pour les paiements QR, forcer le destinataire au même pays (national uniquement)
+    const recipientCountry = senderCountry;
+    
+    // Calculer les frais (1% pour transferts nationaux)
+    const fees = transferAmount * 0.01;
+    const totalWithFees = transferAmount + fees;
     
     // Vérifier le solde
     if (profile?.balance && profile.balance < totalWithFees) {
@@ -92,7 +99,7 @@ const QRPayment = () => {
         recipient: {
           email: scannedUser.phone, // Utilise le téléphone comme identifiant
           fullName: scannedUser.fullName,
-          country: profile?.country || 'Unknown',
+          country: recipientCountry, // Force le même pays pour les paiements QR
           phone: scannedUser.phone
         }
       });

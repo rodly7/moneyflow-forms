@@ -104,30 +104,37 @@ export const calculateFee = (
     return { fee: 0, rate: 0, agentCommission: 0, moneyFlowCommission: 0 };
   }
 
-  // Frais fixes de 1% pour tous les paiements
-  const baseRate = 0.01; // 1%
-  const fee = amount * baseRate;
-  
   // Déterminer si c'est un transfert national ou international
   const isNationalTransfer = senderCountry === recipientCountry;
   
-  // Calcul des commissions
-  let agentCommission: number;
-  let moneyFlowCommission: number;
+  let fee: number;
+  let rate: number;
   
   if (isNationalTransfer) {
-    // Pour les transferts nationaux : l'agent prend 0,5% et l'entreprise 0,5%
-    agentCommission = amount * 0.005;
-    moneyFlowCommission = amount * 0.005;
+    // Transferts nationaux : 1%
+    rate = 1;
+    fee = amount * 0.01;
   } else {
-    // Pour les transferts internationaux : l'agent prend 0,5% et l'entreprise 0,5%
-    agentCommission = amount * 0.005;
-    moneyFlowCommission = amount * 0.005;
+    // Transferts internationaux : frais progressifs
+    if (amount < 350000) {
+      rate = 6.5;
+      fee = amount * 0.065; // 6,5%
+    } else if (amount <= 750000) {
+      rate = 4.5;
+      fee = amount * 0.045; // 4,5%
+    } else {
+      rate = 3.5;
+      fee = amount * 0.035; // 3,5%
+    }
   }
+  
+  // Calcul des commissions (50/50 entre agent et plateforme)
+  const agentCommission = fee * 0.5;
+  const moneyFlowCommission = fee * 0.5;
   
   return {
     fee,
-    rate: baseRate * 100, // Retourner le pourcentage pour affichage (1%)
+    rate,
     agentCommission,
     moneyFlowCommission
   };
