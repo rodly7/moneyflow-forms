@@ -9,7 +9,7 @@ import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import TransactionDetailModal from "@/components/transactions/TransactionDetailModal";
+import SimpleTransactionDetail from "@/components/transactions/SimpleTransactionDetail";
 
 interface Transaction {
   id: string;
@@ -340,10 +340,10 @@ const Transactions = () => {
           </Card>
         </div>
 
-        {/* Modal des détails de transaction */}
-        <TransactionDetailModal 
+        {/* Détails simples de transaction */}
+        <SimpleTransactionDetail 
           transaction={selectedTransaction}
-          isOpen={isModalOpen}
+          isVisible={isModalOpen}
           onClose={closeTransactionDetail}
         />
       </div>

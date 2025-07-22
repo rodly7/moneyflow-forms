@@ -4,7 +4,7 @@ import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Trash2, Download, ArrowRightLeft, Wallet } from "lucide-react";
 import { useState } from "react";
-import TransactionDetailModal from "@/components/transactions/TransactionDetailModal";
+import SimpleTransactionDetail from "@/components/transactions/SimpleTransactionDetail";
 
 interface TransactionItemProps {
   transaction: {
@@ -119,10 +119,10 @@ const TransactionItem = ({ transaction, onDelete }: TransactionItemProps) => {
       </div>
     </div>
 
-    {/* Modal des détails */}
-    <TransactionDetailModal 
+    {/* Détails simples */}
+    <SimpleTransactionDetail 
       transaction={transaction}
-      isOpen={isModalOpen}
+      isVisible={isModalOpen}
       onClose={closeModal}
     />
     </>
