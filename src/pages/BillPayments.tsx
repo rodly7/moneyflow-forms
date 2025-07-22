@@ -178,9 +178,15 @@ const BillPayments = () => {
         {/* Services Tabs */}
         <Card className="bg-white shadow-xl rounded-3xl border-0">
           <CardHeader className="pb-4">
-            <CardTitle className="text-center text-lg text-gray-700">
-              Sélectionnez un service
+            <CardTitle className="text-center text-lg text-gray-700 mb-2">
+              Choisissez la facture à payer :
             </CardTitle>
+            <p className="text-center text-sm text-gray-600">
+              (Électricité, Eau, Wi-Fi, TV…)
+            </p>
+            <p className="text-center text-xs text-blue-600 mt-2">
+              Nous vous afficherons automatiquement les entreprises disponibles selon votre pays.
+            </p>
           </CardHeader>
           <CardContent>
             {/* Country Selection - Rempli automatiquement */}
