@@ -132,7 +132,7 @@ const BillPayments = () => {
     "Congo Brazzaville": {
       electricity: ["SNE"],
       water: ["LCDE"],
-      internet: ["MTN Congo", "Airtel Congo"],
+      internet: ["canalbox", "congotelecom"],
       phone: ["MTN Congo", "Airtel Congo"],
       tv: ["Canal+ Congo", "StarTimes"]
     },
