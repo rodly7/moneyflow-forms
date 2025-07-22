@@ -36,13 +36,15 @@ interface Withdrawal {
 interface TransactionsCardProps {
   transactions: Transaction[];
   withdrawals?: Withdrawal[];
+  receivedTransfers?: any[];
   onDeleteTransaction: (id: string, type: string) => void;
   isLoading?: boolean;
 }
 
 const TransactionsCard = ({ 
   transactions, 
-  withdrawals = [], 
+  withdrawals = [],
+  receivedTransfers = [],
   onDeleteTransaction,
   isLoading = false
 }: TransactionsCardProps) => {
@@ -121,7 +123,7 @@ const TransactionsCard = ({
     userType: (isAgent() ? 'agent' : 'user') as 'agent' | 'user'
   }));
 
-  // Combine all transactions and withdrawals for the history view
+  // Combine all transactions, withdrawals and received transfers for the history view
   const allOperations = [
     ...transactionsWithUserType,
     ...processedWithdrawals.map(withdrawal => ({
@@ -137,6 +139,16 @@ const TransactionsCard = ({
       verification_code: withdrawal.verification_code,
       created_at: withdrawal.created_at,
       showCode: withdrawal.showCode
+    })),
+    ...receivedTransfers.map(transfer => ({
+      id: transfer.id,
+      type: 'transfer_received' as const,
+      amount: transfer.amount,
+      date: new Date(transfer.created_at),
+      description: `Reçu de ${transfer.recipient_full_name || 'un expéditeur'}`,
+      currency: 'XAF',
+      status: transfer.status,
+      userType: (isAgent() ? 'agent' : 'user') as 'agent' | 'user'
     }))
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
@@ -254,13 +266,65 @@ const TransactionsCard = ({
                     </div>
                   );
                 } else {
-                  return (
-                    <TransactionItem 
-                      key={operation.id} 
-                      transaction={operation} 
-                      onDelete={onDeleteTransaction}
-                    />
-                  );
+                  if (operation.type === 'transfer_received') {
+                    return (
+                      <div 
+                        key={operation.id} 
+                        className="flex flex-col p-4 rounded-xl border border-gray-100 hover:bg-gray-50/50 transition-all duration-300 w-full shadow-sm hover:shadow-md cursor-pointer"
+                        onClick={() => openTransactionDetail(operation)}
+                      >
+                        <div className="flex justify-between items-start w-full">
+                          <div className="flex items-start gap-4 flex-1 min-w-0">
+                            <div className="p-3 rounded-xl bg-gradient-to-r from-green-100 to-emerald-100 shrink-0">
+                              <Download className="w-5 h-5 text-green-600 rotate-180" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-semibold text-gray-900 truncate">{operation.description}</p>
+                                {operation.userType && (
+                                  <span className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap ${
+                                    operation.userType === 'agent' 
+                                      ? 'bg-purple-100 text-purple-700' 
+                                      : 'bg-blue-100 text-blue-700'
+                                  }`}>
+                                    {operation.userType === 'agent' ? 'Agent' : 'Utilisateur'}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-600 mt-1 font-medium">
+                                {format(operation.date, 'PPP', { locale: fr })}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0 ml-3">
+                            <p className="font-bold text-green-600 whitespace-nowrap text-lg">
+                              +{new Intl.NumberFormat('fr-FR', {
+                                style: 'currency',
+                                currency: operation.currency || 'XAF',
+                                maximumFractionDigits: 0
+                              }).format(operation.amount)}
+                            </p>
+                            <span className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap inline-block mt-2 ${
+                              operation.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                              operation.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {operation.status === 'completed' ? 'Complété' : 
+                               operation.status === 'pending' ? 'En attente' : operation.status}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <TransactionItem 
+                        key={operation.id} 
+                        transaction={operation} 
+                        onDelete={onDeleteTransaction}
+                      />
+                    );
+                  }
                 }
               })}
               

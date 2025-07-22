@@ -22,15 +22,17 @@ interface Withdrawal {
   userType?: 'agent' | 'user';
 }
 
-export const useRealtimeTransactions = () => {
+export const useRealtimeTransactions = (userId?: string) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = async (currentUserId?: string) => {
+    if (!currentUserId) return;
+    
     try {
-      // Récupérer les transferts récents
-      const { data: transfersData } = await supabase
+      // Récupérer les transferts envoyés récents
+      const { data: sentTransfersData } = await supabase
         .from('transfers')
         .select(`
           id, 
@@ -41,6 +43,23 @@ export const useRealtimeTransactions = () => {
           sender_id,
           profiles!transfers_sender_id_fkey(role)
         `)
+        .eq('sender_id', currentUserId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      // Récupérer les transferts reçus récents  
+      const { data: receivedTransfersData } = await supabase
+        .from('transfers')
+        .select(`
+          id, 
+          amount, 
+          created_at, 
+          recipient_full_name, 
+          status,
+          recipient_id,
+          sender_id
+        `)
+        .eq('recipient_id', currentUserId)
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -57,20 +76,44 @@ export const useRealtimeTransactions = () => {
           user_id,
           profiles!withdrawals_user_id_fkey(role)
         `)
+        .eq('user_id', currentUserId)
         .order('created_at', { ascending: false })
         .limit(10);
 
-      // Transformer les transferts
-      const transformedTransfers: Transaction[] = (transfersData || []).map(transfer => ({
+      // Transformer les transferts envoyés
+      const transformedSentTransfers: Transaction[] = (sentTransfersData || []).map(transfer => ({
         id: transfer.id,
-        type: 'transfer',
-        amount: transfer.amount,
+        type: 'transfer_sent',
+        amount: -transfer.amount,
         date: new Date(transfer.created_at),
         description: `Transfert vers ${transfer.recipient_full_name}`,
         currency: 'XAF',
         status: transfer.status,
         userType: (transfer.profiles as any)?.role === 'agent' ? 'agent' : 'user'
       }));
+
+      // Transformer les transferts reçus - récupérer le nom de l'expéditeur
+      const transformedReceivedTransfers: Transaction[] = await Promise.all(
+        (receivedTransfersData || []).map(async (transfer) => {
+          // Récupérer le nom de l'expéditeur
+          const { data: senderProfile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', transfer.sender_id)
+            .single();
+
+          return {
+            id: transfer.id,
+            type: 'transfer_received',
+            amount: transfer.amount,
+            date: new Date(transfer.created_at),
+            description: `Reçu de ${senderProfile?.full_name || 'un expéditeur'}`,
+            currency: 'XAF',
+            status: transfer.status,
+            userType: 'user' as const
+          };
+        })
+      );
 
       // Transformer les retraits
       const transformedWithdrawals: Withdrawal[] = (withdrawalsData || []).map(withdrawal => ({
@@ -83,7 +126,7 @@ export const useRealtimeTransactions = () => {
         userType: (withdrawal.profiles as any)?.role === 'agent' ? 'agent' : 'user'
       }));
 
-      setTransactions(transformedTransfers);
+      setTransactions([...transformedSentTransfers, ...transformedReceivedTransfers]);
       setWithdrawals(transformedWithdrawals);
     } catch (error) {
       console.error('Erreur lors du chargement des transactions:', error);
@@ -93,7 +136,9 @@ export const useRealtimeTransactions = () => {
   };
 
   useEffect(() => {
-    fetchTransactions();
+    if (userId) {
+      fetchTransactions(userId);
+    }
 
     // Écouter les changements en temps réel pour les transferts
     const transfersChannel = supabase
@@ -106,7 +151,9 @@ export const useRealtimeTransactions = () => {
           table: 'transfers'
         },
         () => {
-          fetchTransactions();
+          if (userId) {
+            fetchTransactions(userId);
+          }
         }
       )
       .subscribe();
@@ -122,7 +169,9 @@ export const useRealtimeTransactions = () => {
           table: 'withdrawals'
         },
         () => {
-          fetchTransactions();
+          if (userId) {
+            fetchTransactions(userId);
+          }
         }
       )
       .subscribe();
@@ -131,7 +180,7 @@ export const useRealtimeTransactions = () => {
       supabase.removeChannel(transfersChannel);
       supabase.removeChannel(withdrawalsChannel);
     };
-  }, []);
+  }, [userId]);
 
   const deleteTransaction = async (id: string, type: string) => {
     try {
@@ -148,7 +197,9 @@ export const useRealtimeTransactions = () => {
       }
       
       // Rafraîchir les données
-      fetchTransactions();
+      if (userId) {
+        fetchTransactions(userId);
+      }
     } catch (error) {
       console.error('Erreur lors de la suppression:', error);
     }
@@ -158,7 +209,7 @@ export const useRealtimeTransactions = () => {
     transactions,
     withdrawals,
     isLoading,
-    refetch: fetchTransactions,
+    refetch: () => userId ? fetchTransactions(userId) : Promise.resolve(),
     deleteTransaction
   };
 };

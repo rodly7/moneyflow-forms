@@ -53,13 +53,28 @@ const Transactions = () => {
     enabled: !!user,
   });
 
-  const { data: transfers } = useQuery({
-    queryKey: ['transfers'],
+  const { data: sentTransfers } = useQuery({
+    queryKey: ['sentTransfers'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('transfers')
         .select('*')
         .eq('sender_id', user?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const { data: receivedTransfers } = useQuery({
+    queryKey: ['receivedTransfers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transfers')
+        .select('*')
+        .eq('recipient_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -152,12 +167,25 @@ const Transactions = () => {
       withdrawal_phone: w.withdrawal_phone,
       userType: isAgent() ? 'agent' as const : 'user' as const
     })) || []),
-    ...(transfers?.map(t => ({
+    ...(sentTransfers?.map(t => ({
       id: t.id,
-      type: 'transfer',
+      type: 'transfer_sent',
       amount: -t.amount,
       date: parseISO(t.created_at),
       description: `Transfert à ${t.recipient_full_name}`,
+      currency: 'XAF',
+      status: t.status,
+      recipient_full_name: t.recipient_full_name,
+      recipient_phone: t.recipient_phone,
+      fees: t.fees,
+      userType: isAgent() ? 'agent' as const : 'user' as const
+    })) || []),
+    ...(receivedTransfers?.map(t => ({
+      id: t.id,
+      type: 'transfer_received',
+      amount: t.amount,
+      date: parseISO(t.created_at),
+      description: `Reçu de ${t.recipient_full_name || 'un expéditeur'}`,
       currency: 'XAF',
       status: t.status,
       recipient_full_name: t.recipient_full_name,
@@ -187,8 +215,10 @@ const Transactions = () => {
     switch (type) {
       case 'withdrawal':
         return <Download className="h-4 w-4 text-red-500" />;
-      case 'transfer':
+      case 'transfer_sent':
         return <ArrowRightLeft className="h-4 w-4 text-blue-500" />;
+      case 'transfer_received':
+        return <ArrowRightLeft className="h-4 w-4 text-green-500" />;
       default:
         return null;
     }
@@ -206,6 +236,8 @@ const Transactions = () => {
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
               transaction.type === 'withdrawal' 
                 ? 'bg-gradient-to-r from-red-100 to-pink-100' 
+                : transaction.type === 'transfer_received'
+                ? 'bg-gradient-to-r from-green-100 to-emerald-100'
                 : 'bg-gradient-to-r from-blue-100 to-purple-100'
             }`}>
               {getIcon(transaction.type)}

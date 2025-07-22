@@ -32,7 +32,8 @@ const TransactionItem = ({ transaction, onDelete }: TransactionItemProps) => {
 
   const getTransactionIcon = (type: string) => {
     if (type === 'withdrawal') return <Download className="w-4 h-4 text-red-500" />;
-    if (type === 'transfer') return <ArrowRightLeft className="w-4 h-4 text-blue-500" />;
+    if (type === 'transfer_sent' || type === 'transfer') return <ArrowRightLeft className="w-4 h-4 text-blue-500" />;
+    if (type === 'transfer_received') return <ArrowRightLeft className="w-4 h-4 text-green-500" />;
     return <Wallet className="w-4 h-4 text-blue-500" />;
   };
 
@@ -73,7 +74,8 @@ const TransactionItem = ({ transaction, onDelete }: TransactionItemProps) => {
               <span className="text-xs text-gray-500">Type:</span>
               <span className="text-xs font-medium text-gray-700 capitalize">
                 {transaction.type === 'withdrawal' ? 'Retrait' : 
-                 transaction.type === 'transfer' ? 'Transfert' : 
+                 transaction.type === 'transfer_sent' || transaction.type === 'transfer' ? 'Transfert envoyé' :
+                 transaction.type === 'transfer_received' ? 'Transfert reçu' : 
                  transaction.type === 'deposit' ? 'Dépôt' : 
                  transaction.type}
               </span>

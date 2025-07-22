@@ -57,7 +57,7 @@ const CompactSubAdminDashboard = () => {
   const { toast } = useToast();
   const { isSubAdmin, canDepositToAgent } = useSubAdmin();
   const { data: dashboardData, isLoading: isLoadingDashboard } = useAdminDashboardData();
-  const { transactions, withdrawals, isLoading: isLoadingTransactions, deleteTransaction } = useRealtimeTransactions();
+  const { transactions, withdrawals, isLoading: isLoadingTransactions, deleteTransaction } = useRealtimeTransactions(user?.id);
   const { data: agentLocations, isLoading: isLoadingLocations } = useActiveAgentLocations();
   
   const [activeTab, setActiveTab] = useState("dashboard");
