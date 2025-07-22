@@ -1,12 +1,13 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-// Service pour gérer automatiquement les frais sur chaque transaction
+// Service pour gérer automatiquement les frais et commissions d'agent
 export const creditTransactionFees = async (
   transactionType: 'transfer' | 'withdrawal' | 'deposit',
   amount: number,
   isNational: boolean = false,
-  performedBy?: 'agent' | 'user'
+  performedBy?: 'agent' | 'user',
+  agentId?: string
 ) => {
   try {
     console.log(`💰 Calcul des frais pour ${transactionType} de ${amount} FCFA`);
@@ -49,7 +50,11 @@ export const creditTransactionFees = async (
       }
       
       console.log(`✅ Frais de ${fees} FCFA crédités sur le compte admin`);
-      return true;
+    }
+    
+    // Créditer la commission de l'agent si applicable
+    if (agentId && (transactionType === 'deposit' || transactionType === 'withdrawal')) {
+      await creditAgentCommission(agentId, transactionType, amount);
     }
     
     return true;
@@ -86,4 +91,47 @@ export const calculateTransactionFees = (
     return 0;
   }
   return 0;
+};
+
+// Fonction pour créditer automatiquement la commission de l'agent
+export const creditAgentCommission = async (
+  agentId: string,
+  transactionType: 'deposit' | 'withdrawal',
+  amount: number
+) => {
+  try {
+    let commission = 0;
+    
+    if (transactionType === 'deposit') {
+      commission = amount * 0.005; // 0.5% pour les dépôts
+    } else if (transactionType === 'withdrawal') {
+      commission = amount * 0.002; // 0.2% pour les retraits
+    }
+    
+    if (commission > 0) {
+      // Créditer la commission directement sur le commission_balance de l'agent
+      const { error } = await supabase
+        .from('agents')
+        .update({
+          commission_balance: supabase.rpc('increment_agent_commission', {
+            agent_user_id: agentId,
+            commission_amount: commission
+          })
+        })
+        .eq('user_id', agentId);
+      
+      if (error) {
+        console.error("❌ Erreur lors du crédit de la commission agent:", error);
+        return false;
+      }
+      
+      console.log(`✅ Commission de ${commission} FCFA créditée à l'agent`);
+      return true;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("❌ Erreur lors du traitement de la commission agent:", error);
+    return false;
+  }
 };
