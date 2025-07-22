@@ -261,24 +261,30 @@ const BillPayments = () => {
                     {/* Provider Selection - Élément HTML natif */}
                     <div className="space-y-2">
                       <Label htmlFor="provider" className="text-sm font-medium text-gray-700">
-                        Fournisseur
+                        Fournisseur disponible dans votre pays ({selectedCountry})
                       </Label>
-                      <select 
-                        value={provider} 
-                        onChange={(e) => {
-                          setProvider(e.target.value);
-                          // Charger automatiquement le numéro sauvegardé si disponible
-                          setTimeout(loadSavedMeterNumber, 100);
-                        }}
-                        className="w-full h-12 bg-gray-50 border-gray-200 rounded-xl px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="">Choisir un fournisseur</option>
-                        {(serviceProviders as any)[selectedCountry]?.[service.id]?.map((prov: string) => (
-                          <option key={prov} value={prov}>
-                            {prov}
-                          </option>
-                        ))}
-                      </select>
+                      {(serviceProviders as any)[selectedCountry]?.[service.id]?.length > 0 ? (
+                        <select 
+                          value={provider} 
+                          onChange={(e) => {
+                            setProvider(e.target.value);
+                            // Charger automatiquement le numéro sauvegardé si disponible
+                            setTimeout(loadSavedMeterNumber, 100);
+                          }}
+                          className="w-full h-12 bg-gray-50 border-gray-200 rounded-xl px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Choisir un fournisseur</option>
+                          {(serviceProviders as any)[selectedCountry]?.[service.id]?.map((prov: string) => (
+                            <option key={prov} value={prov}>
+                              {prov}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="w-full h-12 bg-gray-100 border-gray-200 rounded-xl px-3 flex items-center text-gray-500">
+                          Aucun fournisseur disponible pour {service.label} dans votre pays
+                        </div>
+                      )}
                     </div>
 
                     {/* Account Number avec sauvegarde */}
