@@ -23,9 +23,17 @@ const BillPayments = () => {
   // Remplir automatiquement le pays de l'utilisateur
   useEffect(() => {
     if (profile?.country) {
+      console.log('User country from profile:', profile.country);
       setSelectedCountry(profile.country);
     }
   }, [profile?.country]);
+
+  // Debug log pour voir les données disponibles
+  useEffect(() => {
+    console.log('Selected Country:', selectedCountry);
+    console.log('Selected Service:', selectedService);
+    console.log('Available providers:', (serviceProviders as any)[selectedCountry]?.[selectedService]);
+  }, [selectedCountry, selectedService]);
 
   // Charger les numéros de compteur sauvegardés depuis le localStorage
   useEffect(() => {
