@@ -128,6 +128,41 @@ const BillPayments = () => {
       internet: ["MTN Bénin", "Moov Bénin"],
       phone: ["MTN Bénin", "Moov Bénin"],
       tv: ["Canal+ Bénin", "StarTimes"]
+    },
+    "Congo Brazzaville": {
+      electricity: ["SNE"],
+      water: ["LCDE"],
+      internet: ["MTN Congo", "Airtel Congo"],
+      phone: ["MTN Congo", "Airtel Congo"],
+      tv: ["Canal+ Congo", "StarTimes"]
+    },
+    "République démocratique du Congo": {
+      electricity: ["SNEL"],
+      water: ["REGIDESO"],
+      internet: ["Vodacom RDC", "Orange RDC", "Airtel RDC"],
+      phone: ["Vodacom RDC", "Orange RDC", "Airtel RDC"],
+      tv: ["Canal+ RDC", "StarTimes"]
+    },
+    "Gabon": {
+      electricity: ["SEEG"],
+      water: ["SEEG"],
+      internet: ["Gabon Telecom", "Airtel Gabon"],
+      phone: ["Gabon Telecom", "Airtel Gabon"],
+      tv: ["Canal+ Gabon", "StarTimes"]
+    },
+    "Tchad": {
+      electricity: ["SNE"],
+      water: ["STE"],
+      internet: ["Airtel Tchad", "Tigo Tchad"],
+      phone: ["Airtel Tchad", "Tigo Tchad"],
+      tv: ["Canal+ Tchad", "StarTimes"]
+    },
+    "République centrafricaine": {
+      electricity: ["ENERCA"],
+      water: ["SODECA"],
+      internet: ["Orange RCA", "Telecel"],
+      phone: ["Orange RCA", "Telecel"],
+      tv: ["Canal+ RCA", "StarTimes"]
     }
   };
 
