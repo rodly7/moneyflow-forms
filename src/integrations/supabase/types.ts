@@ -1144,6 +1144,7 @@ export type Database = {
           is_deleted: boolean | null
           recipient_country: string
           recipient_full_name: string
+          recipient_id: string | null
           recipient_phone: string
           sender_id: string
           status: string
@@ -1157,6 +1158,7 @@ export type Database = {
           is_deleted?: boolean | null
           recipient_country: string
           recipient_full_name: string
+          recipient_id?: string | null
           recipient_phone: string
           sender_id: string
           status?: string
@@ -1170,6 +1172,7 @@ export type Database = {
           is_deleted?: boolean | null
           recipient_country?: string
           recipient_full_name?: string
+          recipient_id?: string | null
           recipient_phone?: string
           sender_id?: string
           status?: string
