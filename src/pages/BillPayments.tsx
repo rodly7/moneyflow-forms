@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Zap, Wifi, Tv, Droplets } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,17 +6,56 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/contexts/AuthContext";
 
 const BillPayments = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [accountNumber, setAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [provider, setProvider] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState("Sénégal");
+  const [selectedCountry, setSelectedCountry] = useState("");
   const [selectedService, setSelectedService] = useState("electricity");
+  const [savedMeterNumbers, setSavedMeterNumbers] = useState<{[key: string]: string}>({});
 
   const feeRate = 0.015; // 1.5% frais
+
+  // Remplir automatiquement le pays de l'utilisateur
+  useEffect(() => {
+    if (profile?.country) {
+      setSelectedCountry(profile.country);
+    }
+  }, [profile?.country]);
+
+  // Charger les numéros de compteur sauvegardés depuis le localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('savedMeterNumbers');
+    if (saved) {
+      setSavedMeterNumbers(JSON.parse(saved));
+    }
+  }, []);
+
+  // Sauvegarder le numéro de compteur
+  const saveMeterNumber = () => {
+    if (accountNumber && provider && selectedService) {
+      const key = `${selectedCountry}-${selectedService}-${provider}`;
+      const newSaved = { ...savedMeterNumbers, [key]: accountNumber };
+      setSavedMeterNumbers(newSaved);
+      localStorage.setItem('savedMeterNumbers', JSON.stringify(newSaved));
+      alert('Numéro de compteur sauvegardé!');
+    }
+  };
+
+  // Charger un numéro de compteur sauvegardé
+  const loadSavedMeterNumber = () => {
+    if (provider && selectedService) {
+      const key = `${selectedCountry}-${selectedService}-${provider}`;
+      const saved = savedMeterNumbers[key];
+      if (saved) {
+        setAccountNumber(saved);
+      }
+    }
+  };
 
   const serviceProviders = {
     "Sénégal": {
@@ -97,21 +136,16 @@ const BillPayments = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* Country Selection */}
+            {/* Country Selection - Rempli automatiquement */}
             <div className="space-y-2 mb-4">
               <Label className="text-sm font-medium text-gray-700">Pays</Label>
-              <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-                <SelectTrigger className="w-full h-12 bg-gray-50 border-gray-200 rounded-xl">
-                  <SelectValue placeholder="Choisir un pays" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.keys(serviceProviders).map((country) => (
-                    <SelectItem key={country} value={country}>
-                      {country}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <input 
+                type="text" 
+                value={selectedCountry} 
+                readOnly 
+                className="w-full h-12 bg-gray-100 border-gray-200 rounded-xl px-3 text-gray-600 cursor-not-allowed"
+                placeholder="Pays de l'utilisateur"
+              />
             </div>
 
             <Tabs value={selectedService} onValueChange={setSelectedService} className="w-full">
@@ -136,38 +170,57 @@ const BillPayments = () => {
               {services.map((service) => (
                 <TabsContent key={service.id} value={service.id} className="space-y-4">
                   <div className="space-y-4">
-                    {/* Provider Selection */}
+                    {/* Provider Selection - Élément HTML natif */}
                     <div className="space-y-2">
                       <Label htmlFor="provider" className="text-sm font-medium text-gray-700">
                         Fournisseur
                       </Label>
-                      <Select value={provider} onValueChange={setProvider}>
-                        <SelectTrigger className="w-full h-12 bg-gray-50 border-gray-200 rounded-xl">
-                          <SelectValue placeholder="Choisir un fournisseur" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(serviceProviders as any)[selectedCountry]?.[service.id]?.map((prov: string) => (
-                            <SelectItem key={prov} value={prov}>
-                              {prov}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <select 
+                        value={provider} 
+                        onChange={(e) => {
+                          setProvider(e.target.value);
+                          // Charger automatiquement le numéro sauvegardé si disponible
+                          setTimeout(loadSavedMeterNumber, 100);
+                        }}
+                        className="w-full h-12 bg-gray-50 border-gray-200 rounded-xl px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Choisir un fournisseur</option>
+                        {(serviceProviders as any)[selectedCountry]?.[service.id]?.map((prov: string) => (
+                          <option key={prov} value={prov}>
+                            {prov}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
-                    {/* Account Number */}
+                    {/* Account Number avec sauvegarde */}
                     <div className="space-y-2">
-                      <Label htmlFor="account" className="text-sm font-medium text-gray-700">
-                        Numéro de compte
-                      </Label>
+                      <div className="flex justify-between items-center">
+                        <Label htmlFor="account" className="text-sm font-medium text-gray-700">
+                          Numéro de compteur
+                        </Label>
+                        {accountNumber && (
+                          <button 
+                            onClick={saveMeterNumber}
+                            className="text-xs text-blue-600 hover:text-blue-800 underline"
+                          >
+                            Sauvegarder
+                          </button>
+                        )}
+                      </div>
                       <Input
                         id="account"
                         type="text"
-                        placeholder="Entrez votre numéro de compte"
+                        placeholder="Entrez votre numéro de compteur"
                         value={accountNumber}
                         onChange={(e) => setAccountNumber(e.target.value)}
                         className="h-12 bg-gray-50 border-gray-200 rounded-xl"
                       />
+                      {provider && selectedService && savedMeterNumbers[`${selectedCountry}-${selectedService}-${provider}`] && (
+                        <div className="text-xs text-gray-500">
+                          Numéro sauvegardé disponible
+                        </div>
+                      )}
                     </div>
 
                      {/* Amount */}
