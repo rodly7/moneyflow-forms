@@ -61,26 +61,65 @@ const BillPayments = () => {
     "Sénégal": {
       electricity: ["SENELEC"],
       water: ["SDE"],
-      internet: ["Orange", "Free", "Expresso"],
-      phone: ["Orange", "Free", "Expresso"]
+      internet: ["Orange Sénégal", "Free Sénégal", "Expresso"],
+      phone: ["Orange Sénégal", "Free Sénégal", "Expresso"],
+      tv: ["Canal+ Sénégal", "StarTimes"]
     },
     "Mali": {
-      electricity: ["EDM"],
+      electricity: ["EDM-SA"],
       water: ["SOMAGEP"],
       internet: ["Orange Mali", "Malitel"],
-      phone: ["Orange Mali", "Malitel"]
+      phone: ["Orange Mali", "Malitel"],
+      tv: ["Canal+ Mali", "StarTimes"]
     },
     "Burkina Faso": {
       electricity: ["SONABEL"],
       water: ["ONEA"],
-      internet: ["Orange BF", "Telmob"],
-      phone: ["Orange BF", "Telmob"]
+      internet: ["Orange Burkina", "Telmob"],
+      phone: ["Orange Burkina", "Telmob"],
+      tv: ["Canal+ Burkina", "StarTimes"]
     },
     "Côte d'Ivoire": {
       electricity: ["CIE"],
       water: ["SODECI"],
-      internet: ["Orange CI", "MTN"],
-      phone: ["Orange CI", "MTN", "Moov"]
+      internet: ["Orange CI", "MTN CI", "Moov CI"],
+      phone: ["Orange CI", "MTN CI", "Moov CI"],
+      tv: ["Canal+ CI", "StarTimes"]
+    },
+    "Niger": {
+      electricity: ["NIGELEC"],
+      water: ["SNE"],
+      internet: ["Orange Niger", "Airtel Niger"],
+      phone: ["Orange Niger", "Airtel Niger"],
+      tv: ["Canal+ Niger", "StarTimes"]
+    },
+    "Guinée": {
+      electricity: ["EDG"],
+      water: ["SEG"],
+      internet: ["Orange Guinée", "MTN Guinée"],
+      phone: ["Orange Guinée", "MTN Guinée"],
+      tv: ["Canal+ Guinée", "StarTimes"]
+    },
+    "Cameroun": {
+      electricity: ["ENEO"],
+      water: ["CAMWATER"],
+      internet: ["Orange Cameroun", "MTN Cameroun"],
+      phone: ["Orange Cameroun", "MTN Cameroun"],
+      tv: ["Canal+ Cameroun", "StarTimes"]
+    },
+    "Togo": {
+      electricity: ["CEET"],
+      water: ["TdE"],
+      internet: ["Togocom", "Moov Togo"],
+      phone: ["Togocom", "Moov Togo"],
+      tv: ["Canal+ Togo", "StarTimes"]
+    },
+    "Bénin": {
+      electricity: ["SBEE"],
+      water: ["SONEB"],
+      internet: ["MTN Bénin", "Moov Bénin"],
+      phone: ["MTN Bénin", "Moov Bénin"],
+      tv: ["Canal+ Bénin", "StarTimes"]
     }
   };
 
