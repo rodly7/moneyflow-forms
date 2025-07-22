@@ -9,6 +9,7 @@ import { Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import TransactionDetailModal from "@/components/transactions/TransactionDetailModal";
 
 interface Transaction {
   id: string;
@@ -50,6 +51,8 @@ const TransactionsCard = ({
   const { isAgent } = useAuth();
   const [processedWithdrawals, setProcessedWithdrawals] = useState<Withdrawal[]>([]);
   const [copiedCodes, setCopiedCodes] = useState<{[key: string]: boolean}>({});
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     // Process withdrawals to determine which codes should be visible based on creation time
@@ -103,6 +106,15 @@ const TransactionsCard = ({
     }, 2000);
   };
 
+  const openTransactionDetail = (transaction: any) => {
+    setSelectedTransaction(transaction);
+    setIsModalOpen(true);
+  };
+
+  const closeTransactionDetail = () => {
+    setSelectedTransaction(null);
+    setIsModalOpen(false);
+  };
   // Add userType to transactions
   const transactionsWithUserType = transactions.map(transaction => ({
     ...transaction,
@@ -120,7 +132,11 @@ const TransactionsCard = ({
       description: `Retrait vers ${withdrawal.withdrawal_phone}`,
       currency: 'XAF',
       status: withdrawal.status,
-      userType: withdrawal.userType
+      userType: withdrawal.userType,
+      withdrawal_phone: withdrawal.withdrawal_phone,
+      verification_code: withdrawal.verification_code,
+      created_at: withdrawal.created_at,
+      showCode: withdrawal.showCode
     }))
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
@@ -166,10 +182,11 @@ const TransactionsCard = ({
                 if (operation.type === 'withdrawal') {
                   const withdrawal = processedWithdrawals.find(w => w.id === operation.id);
                   return (
-                    <div 
-                      key={operation.id} 
-                      className="flex flex-col p-4 rounded-xl border border-gray-100 hover:bg-gray-50/50 transition-all duration-300 w-full shadow-sm hover:shadow-md"
-                    >
+                     <div 
+                       key={operation.id} 
+                       className="flex flex-col p-4 rounded-xl border border-gray-100 hover:bg-gray-50/50 transition-all duration-300 w-full shadow-sm hover:shadow-md cursor-pointer"
+                       onClick={() => openTransactionDetail(operation)}
+                     >
                       <div className="flex justify-between items-start w-full">
                         <div className="flex items-start gap-4 flex-1 min-w-0">
                           <div className="p-3 rounded-xl bg-gradient-to-r from-red-100 to-pink-100 shrink-0">
@@ -271,6 +288,13 @@ const TransactionsCard = ({
           )}
         </div>
       </CardContent>
+      
+      {/* Modal des détails de transaction */}
+      <TransactionDetailModal 
+        transaction={selectedTransaction}
+        isOpen={isModalOpen}
+        onClose={closeTransactionDetail}
+      />
     </Card>
   );
 };
