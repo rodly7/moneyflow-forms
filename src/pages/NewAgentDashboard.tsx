@@ -169,14 +169,7 @@ const NewAgentDashboard = () => {
       icon: Wallet,
       gradient: "bg-gradient-to-r from-emerald-600 to-teal-600",
       textColor: "text-emerald-100",
-      size: "large" // Indicateur pour élargir cette carte
-    },
-    {
-      label: "Commission Base (Mois)",
-      value: formatCurrency(convertedBaseCommission, agentCurrency),
-      icon: DollarSign,
-      gradient: "bg-gradient-to-r from-blue-600 to-indigo-600",
-      textColor: "text-blue-100"
+      size: "extra-large" // Indicateur pour agrandir encore plus cette carte
     },
     {
       label: "Gains Totaux (Mois)",

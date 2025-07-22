@@ -29,37 +29,37 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 relative overflow-hidden">
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200 relative overflow-hidden">
       {/* Enhanced background decorative elements */}
       <div className="absolute inset-0">
-        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10"></div>
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-indigo-300/10 to-purple-300/10 rounded-full blur-3xl animate-bounce-gentle"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-200/30 via-blue-300/20 to-blue-400/10"></div>
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-to-r from-blue-300/30 to-blue-400/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-r from-blue-400/20 to-blue-500/15 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-blue-300/15 to-blue-400/10 rounded-full blur-3xl animate-bounce-gentle"></div>
         
         {/* Floating particles */}
-        <div className="absolute top-10 left-10 w-4 h-4 bg-cyan-400/60 rounded-full animate-pulse"></div>
-        <div className="absolute top-20 right-20 w-6 h-6 bg-pink-400/60 rounded-full animate-pulse delay-500"></div>
-        <div className="absolute bottom-20 left-20 w-5 h-5 bg-purple-400/60 rounded-full animate-pulse delay-1000"></div>
-        <div className="absolute bottom-10 right-10 w-3 h-3 bg-blue-400/60 rounded-full animate-pulse delay-1500"></div>
+        <div className="absolute top-10 left-10 w-4 h-4 bg-blue-400/60 rounded-full animate-pulse"></div>
+        <div className="absolute top-20 right-20 w-6 h-6 bg-blue-500/60 rounded-full animate-pulse delay-500"></div>
+        <div className="absolute bottom-20 left-20 w-5 h-5 bg-blue-300/60 rounded-full animate-pulse delay-1000"></div>
+        <div className="absolute bottom-10 right-10 w-3 h-3 bg-blue-600/60 rounded-full animate-pulse delay-1500"></div>
       </div>
       
       <div className="relative z-10 container mx-auto px-4 py-8 md:py-16">
         {/* Enhanced Hero Section */}
         <div className="text-center mb-12 md:mb-20 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-20 h-20 md:w-24 md:h-24 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 rounded-full mb-8 shadow-2xl animate-pulse-glow">
+          <div className="inline-flex items-center justify-center w-20 h-20 md:w-24 md:h-24 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 rounded-full mb-8 shadow-2xl animate-pulse-glow">
             <Zap className="w-10 h-10 md:w-12 md:h-12 text-white animate-bounce-gentle" />
           </div>
           
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-8 bg-gradient-to-r from-cyan-300 via-blue-300 to-purple-300 bg-clip-text text-transparent leading-tight animate-scale-in">
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-8 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 bg-clip-text text-transparent leading-tight animate-scale-in">
             SendFlow
           </h1>
           
           <div className="relative">
-            <p className="text-xl md:text-2xl lg:text-3xl text-white/90 mb-10 max-w-5xl mx-auto leading-relaxed font-light animate-slide-up">
+            <p className="text-xl md:text-2xl lg:text-3xl text-blue-800 mb-10 max-w-5xl mx-auto leading-relaxed font-light animate-slide-up">
               🚀 La plateforme de transfert d'argent la plus rapide et sécurisée d'Afrique. 
               <br />
-              <span className="text-cyan-300 font-medium">Envoyez et recevez de l'argent instantanément, partout dans le monde.</span>
+              <span className="text-blue-700 font-medium">Envoyez et recevez de l'argent instantanément, partout dans le monde.</span>
             </p>
             <div className="absolute -top-4 -right-4 text-4xl animate-bounce-gentle">✨</div>
           </div>
@@ -68,7 +68,7 @@ const Index = () => {
             <Button 
               onClick={() => navigate('/auth')}
               size="xl"
-              className="bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 hover:from-cyan-600 hover:via-blue-600 hover:to-purple-700 text-white font-bold px-12 py-6 h-16 text-xl shadow-2xl hover:shadow-cyan-500/25 transform hover:-translate-y-2 hover:scale-110 transition-all duration-300 rounded-2xl border-2 border-white/20"
+              className="bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 text-white font-bold px-12 py-6 h-16 text-xl shadow-2xl hover:shadow-blue-500/25 transform hover:-translate-y-2 hover:scale-110 transition-all duration-300 rounded-2xl border-2 border-blue-300/30"
             >
               <Sparkles className="mr-3 h-7 w-7" />
               🌟 Commencer maintenant
@@ -79,10 +79,10 @@ const Index = () => {
               onClick={() => navigate('/agent-auth')}
               variant="outline"
               size="xl"
-              className="border-3 border-cyan-300/60 bg-white/10 backdrop-blur-md text-white hover:bg-white/20 hover:border-cyan-300 font-bold px-12 py-6 h-16 text-xl shadow-2xl hover:shadow-cyan-500/25 transform hover:-translate-y-2 hover:scale-110 transition-all duration-300 rounded-2xl"
+              className="border-3 border-blue-400 bg-blue-50/50 backdrop-blur-md text-blue-800 hover:bg-blue-100 hover:border-blue-500 font-bold px-12 py-6 h-16 text-xl shadow-xl hover:shadow-blue-500/25 transform hover:-translate-y-2 hover:scale-110 transition-all duration-300 rounded-2xl"
             >
               <Shield className="mr-3 h-7 w-7" />
-              👨‍💼 Espace Agent
+              👨‍💼 Agent
               <Crown className="ml-3 h-7 w-7" />
             </Button>
           </div>
@@ -189,46 +189,6 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Enhanced CTA Section */}
-        <div className="text-center animate-fade-in">
-          <Card className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white border-0 shadow-2xl overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-purple-500/20 animate-pulse"></div>
-            <CardContent className="p-10 md:p-16 relative z-10">
-              <div className="mb-8">
-                <div className="text-6xl mb-4 animate-bounce-gentle">🚀</div>
-                <h2 className="text-4xl md:text-5xl font-bold mb-6 animate-scale-in">
-                  Prêt à commencer ?
-                </h2>
-                <p className="text-2xl mb-10 text-blue-100 font-light animate-slide-up">
-                  Rejoignez des milliers d'utilisateurs qui font confiance à SendFlow pour leurs transferts d'argent.
-                </p>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-6 justify-center animate-scale-in">
-                <Button 
-                  onClick={() => navigate('/auth')}
-                  size="xl"
-                  className="bg-white text-indigo-600 hover:bg-gray-100 hover:text-indigo-700 font-bold px-12 py-6 h-16 text-xl shadow-2xl hover:shadow-white/25 transform hover:-translate-y-2 hover:scale-110 transition-all duration-300 rounded-2xl"
-                >
-                  <Award className="mr-3 h-7 w-7" />
-                  🎯 Créer un compte
-                  <ArrowRight className="ml-3 h-7 w-7" />
-                </Button>
-                
-                <Button 
-                  onClick={() => navigate('/agent-auth')}
-                  variant="outline"
-                  size="xl"
-                  className="border-3 border-white text-white hover:bg-white hover:text-indigo-600 font-bold px-12 py-6 h-16 text-xl shadow-2xl hover:shadow-white/25 transform hover:-translate-y-2 hover:scale-110 transition-all duration-300 rounded-2xl backdrop-blur-sm"
-                >
-                  <Crown className="mr-3 h-7 w-7" />
-                  👑 Devenir Agent
-                  <Shield className="ml-3 h-7 w-7" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   );
