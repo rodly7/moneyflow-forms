@@ -17,6 +17,7 @@ import CompactHeader from "@/components/dashboard/CompactHeader";
 import CompactStatsGrid from "@/components/dashboard/CompactStatsGrid";
 import CompactActionGrid from "@/components/dashboard/CompactActionGrid";
 import CompactInfoCard from "@/components/dashboard/CompactInfoCard";
+import { AgentCommissionWithdrawal } from "@/components/agent/AgentCommissionWithdrawal";
 
 import { useAgentLocationTracker } from "@/hooks/useSystemMetrics";
 
@@ -160,21 +161,15 @@ const NewAgentDashboard = () => {
   const convertedBaseCommission = convertCurrency(baseCommission, "XAF", agentCurrency);
   const convertedTotalEarnings = convertCurrency(totalEarnings, "XAF", agentCurrency);
 
-  // Stats pour le grid compact
+  // Stats pour le grid compact (solde principal élargi)
   const statsData = [
     {
       label: "Solde Principal",
       value: formatCurrency(convertedBalance, agentCurrency),
       icon: Wallet,
       gradient: "bg-gradient-to-r from-emerald-600 to-teal-600",
-      textColor: "text-emerald-100"
-    },
-    {
-      label: "Commissions",
-      value: formatCurrency(convertedCommissionBalance, agentCurrency),
-      icon: Percent,
-      gradient: "bg-gradient-to-r from-purple-600 to-pink-600",
-      textColor: "text-purple-100"
+      textColor: "text-emerald-100",
+      size: "large" // Indicateur pour élargir cette carte
     },
     {
       label: "Commission Base (Mois)",
@@ -254,19 +249,27 @@ const NewAgentDashboard = () => {
 
         <CompactStatsGrid stats={statsData} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <CompactActionGrid
-            title="Actions Agent"
-            titleIcon={Zap}
-            actions={actionItems}
-          />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2">
+            <CompactActionGrid
+              title="Actions Agent"
+              titleIcon={Zap}
+              actions={actionItems}
+            />
+          </div>
           
-          <CompactInfoCard
-            title="Guide Agent"
-            titleIcon={Shield}
-            items={infoItems}
+          <AgentCommissionWithdrawal
+            commissionBalance={commissionBalance}
+            onRefresh={fetchBalances}
+            userCountry={profile.country}
           />
         </div>
+
+        <CompactInfoCard
+          title="Guide Agent"
+          titleIcon={Shield}
+          items={infoItems}
+        />
       </div>
     </div>
   );
