@@ -1442,6 +1442,10 @@ export type Database = {
         Args: { user_id_param: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      increment_agent_commission: {
+        Args: { agent_user_id: string; commission_amount: number }
+        Returns: number
+      }
       increment_balance: {
         Args: { user_id: string; amount: number }
         Returns: number

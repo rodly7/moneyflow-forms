@@ -109,16 +109,11 @@ export const creditAgentCommission = async (
     }
     
     if (commission > 0) {
-      // Créditer la commission directement sur le commission_balance de l'agent
-      const { error } = await supabase
-        .from('agents')
-        .update({
-          commission_balance: supabase.rpc('increment_agent_commission', {
-            agent_user_id: agentId,
-            commission_amount: commission
-          })
-        })
-        .eq('user_id', agentId);
+      // Utiliser la fonction RPC pour créditer la commission
+      const { error } = await supabase.rpc('increment_agent_commission', {
+        agent_user_id: agentId,
+        commission_amount: commission
+      });
       
       if (error) {
         console.error("❌ Erreur lors du crédit de la commission agent:", error);
