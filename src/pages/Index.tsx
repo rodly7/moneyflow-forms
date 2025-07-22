@@ -64,7 +64,7 @@ const Index = () => {
             <div className="absolute -top-4 -right-4 text-4xl animate-bounce-gentle">✨</div>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center animate-scale-in">
+          <div className="flex justify-center items-center animate-scale-in">
             <Button 
               onClick={() => navigate('/auth')}
               size="xl"
@@ -73,17 +73,6 @@ const Index = () => {
               <Sparkles className="mr-3 h-7 w-7" />
               🌟 Commencer maintenant
               <ArrowRight className="ml-3 h-7 w-7" />
-            </Button>
-            
-            <Button 
-              onClick={() => navigate('/agent-auth')}
-              variant="outline"
-              size="xl"
-              className="border-3 border-blue-400 bg-blue-50/50 backdrop-blur-md text-blue-800 hover:bg-blue-100 hover:border-blue-500 font-bold px-12 py-6 h-16 text-xl shadow-xl hover:shadow-blue-500/25 transform hover:-translate-y-2 hover:scale-110 transition-all duration-300 rounded-2xl"
-            >
-              <Shield className="mr-3 h-7 w-7" />
-              👨‍💼 Agent
-              <Crown className="ml-3 h-7 w-7" />
             </Button>
           </div>
         </div>
@@ -97,12 +86,12 @@ const Index = () => {
               <div className="w-20 h-20 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-600 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-125 group-hover:rotate-12 transition-transform duration-500 shadow-xl">
                 <Zap className="w-10 h-10 text-white animate-pulse" />
               </div>
-              <CardTitle className="text-2xl md:text-3xl font-bold text-white mb-2 group-hover:text-cyan-300 transition-colors duration-300">
+              <CardTitle className="text-2xl md:text-3xl font-bold text-black mb-2 group-hover:text-cyan-300 transition-colors duration-300">
                 ⚡ Transferts Instantanés
               </CardTitle>
             </CardHeader>
             <CardContent className="text-center relative z-10">
-              <p className="text-white/80 leading-relaxed text-lg group-hover:text-white transition-colors duration-300">
+              <p className="text-black/80 leading-relaxed text-lg group-hover:text-white transition-colors duration-300">
                 Envoyez de l'argent en quelques secondes vers n'importe quel pays d'Afrique. 
                 Nos technologies avancées garantissent des transferts ultra-rapides.
               </p>
@@ -116,12 +105,12 @@ const Index = () => {
               <div className="w-20 h-20 bg-gradient-to-r from-emerald-400 via-green-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-125 group-hover:rotate-12 transition-transform duration-500 shadow-xl">
                 <Shield className="w-10 h-10 text-white animate-pulse" />
               </div>
-              <CardTitle className="text-2xl md:text-3xl font-bold text-white mb-2 group-hover:text-emerald-300 transition-colors duration-300">
+              <CardTitle className="text-2xl md:text-3xl font-bold text-black mb-2 group-hover:text-emerald-300 transition-colors duration-300">
                 🛡️ Sécurité Maximale
               </CardTitle>
             </CardHeader>
             <CardContent className="text-center relative z-10">
-              <p className="text-white/80 leading-relaxed text-lg group-hover:text-white transition-colors duration-300">
+              <p className="text-black/80 leading-relaxed text-lg group-hover:text-white transition-colors duration-300">
                 Vos transactions sont protégées par un cryptage de niveau bancaire. 
                 Nous utilisons les dernières technologies de sécurité pour protéger vos fonds.
               </p>
@@ -135,12 +124,12 @@ const Index = () => {
               <div className="w-20 h-20 bg-gradient-to-r from-purple-400 via-pink-500 to-rose-600 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-125 group-hover:rotate-12 transition-transform duration-500 shadow-xl">
                 <Globe className="w-10 h-10 text-white animate-pulse" />
               </div>
-              <CardTitle className="text-2xl md:text-3xl font-bold text-white mb-2 group-hover:text-purple-300 transition-colors duration-300">
+              <CardTitle className="text-2xl md:text-3xl font-bold text-black mb-2 group-hover:text-purple-300 transition-colors duration-300">
                 🌍 Couverture Globale
               </CardTitle>
             </CardHeader>
             <CardContent className="text-center relative z-10">
-              <p className="text-white/80 leading-relaxed text-lg group-hover:text-white transition-colors duration-300">
+              <p className="text-black/80 leading-relaxed text-lg group-hover:text-white transition-colors duration-300">
                 Présent dans plus de 15 pays africains avec un réseau d'agents locaux. 
                 Transférez vers le Cameroun, Congo, Gabon, Sénégal et bien plus encore.
               </p>
@@ -150,7 +139,7 @@ const Index = () => {
 
         {/* Enhanced Stats Section */}
         <div className="bg-gradient-to-r from-white/10 via-white/20 to-white/10 backdrop-blur-xl rounded-3xl shadow-2xl p-8 md:p-16 mb-20 border border-white/20 animate-scale-in hover:shadow-white/20 transition-all duration-500">
-          <h2 className="text-4xl md:text-5xl font-bold text-center mb-12 md:mb-16 bg-gradient-to-r from-cyan-300 via-blue-300 to-purple-300 bg-clip-text text-transparent animate-pulse-glow">
+          <h2 className="text-4xl md:text-5xl font-bold text-center mb-12 md:mb-16 text-black animate-pulse-glow">
             ✨ SendFlow en Chiffres
           </h2>
           
@@ -159,32 +148,32 @@ const Index = () => {
               <div className="w-20 h-20 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:shadow-blue-500/50 animate-bounce-gentle">
                 <Users className="w-10 h-10 text-white" />
               </div>
-              <h3 className="text-4xl md:text-5xl font-bold text-white mb-3 group-hover:text-blue-300 transition-colors duration-300">500K+</h3>
-              <p className="text-white/80 text-lg font-medium group-hover:text-white transition-colors duration-300">👥 Utilisateurs Actifs</p>
+              <h3 className="text-4xl md:text-5xl font-bold text-black mb-3 group-hover:text-blue-300 transition-colors duration-300">500K+</h3>
+              <p className="text-black/80 text-lg font-medium group-hover:text-white transition-colors duration-300">👥 Utilisateurs Actifs</p>
             </div>
             
             <div className="text-center group transform hover:scale-110 transition-all duration-300">
               <div className="w-20 h-20 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:shadow-emerald-500/50 animate-bounce-gentle delay-200">
                 <TrendingUp className="w-10 h-10 text-white" />
               </div>
-              <h3 className="text-4xl md:text-5xl font-bold text-white mb-3 group-hover:text-emerald-300 transition-colors duration-300">2M+</h3>
-              <p className="text-white/80 text-lg font-medium group-hover:text-white transition-colors duration-300">📊 Transactions Effectuées</p>
+              <h3 className="text-4xl md:text-5xl font-bold text-black mb-3 group-hover:text-emerald-300 transition-colors duration-300">2M+</h3>
+              <p className="text-black/80 text-lg font-medium group-hover:text-white transition-colors duration-300">📊 Transactions Effectuées</p>
             </div>
             
             <div className="text-center group transform hover:scale-110 transition-all duration-300">
               <div className="w-20 h-20 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:shadow-purple-500/50 animate-bounce-gentle delay-500">
                 <Globe className="w-10 h-10 text-white" />
               </div>
-              <h3 className="text-4xl md:text-5xl font-bold text-white mb-3 group-hover:text-purple-300 transition-colors duration-300">15+</h3>
-              <p className="text-white/80 text-lg font-medium group-hover:text-white transition-colors duration-300">🌍 Pays Couverts</p>
+              <h3 className="text-4xl md:text-5xl font-bold text-black mb-3 group-hover:text-purple-300 transition-colors duration-300">15+</h3>
+              <p className="text-black/80 text-lg font-medium group-hover:text-white transition-colors duration-300">🌍 Pays Couverts</p>
             </div>
             
             <div className="text-center group transform hover:scale-110 transition-all duration-300">
               <div className="w-20 h-20 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:shadow-orange-500/50 animate-bounce-gentle delay-700">
                 <Star className="w-10 h-10 text-white" />
               </div>
-              <h3 className="text-4xl md:text-5xl font-bold text-white mb-3 group-hover:text-orange-300 transition-colors duration-300">4.9/5</h3>
-              <p className="text-white/80 text-lg font-medium group-hover:text-white transition-colors duration-300">⭐ Note Utilisateurs</p>
+              <h3 className="text-4xl md:text-5xl font-bold text-black mb-3 group-hover:text-orange-300 transition-colors duration-300">4.9/5</h3>
+              <p className="text-black/80 text-lg font-medium group-hover:text-white transition-colors duration-300">⭐ Note Utilisateurs</p>
             </div>
           </div>
         </div>
