@@ -26,16 +26,16 @@ const TransactionItem = ({ transaction, onDelete }: TransactionItemProps) => {
   };
 
   return (
-    <div className="flex justify-between items-start p-3 rounded-lg border hover:bg-gray-50 transition-colors w-full">
+    <div className="flex justify-between items-start p-4 rounded-xl border hover:bg-gray-50 transition-colors w-full shadow-sm hover:shadow-md">
       <div className="flex items-start gap-3 flex-1 min-w-0 w-full">
-        <div className="p-2 rounded-full bg-gray-100 shrink-0">
+        <div className="p-3 rounded-xl bg-gradient-to-r from-gray-100 to-gray-200 shrink-0">
           {getTransactionIcon(transaction.type)}
         </div>
         <div className="flex-1 min-w-0 w-full">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-medium text-sm text-gray-900 truncate">{transaction.description}</p>
+          <div className="flex items-center gap-2 flex-wrap mb-2">
+            <p className="font-semibold text-sm text-gray-900 truncate">{transaction.description}</p>
             {transaction.userType && (
-              <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${
+              <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap font-medium ${
                 transaction.userType === 'agent' 
                   ? 'bg-purple-100 text-purple-700' 
                   : 'bg-blue-100 text-blue-700'
@@ -44,9 +44,26 @@ const TransactionItem = ({ transaction, onDelete }: TransactionItemProps) => {
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-500 mt-1">
-            {format(transaction.date, 'PPP', { locale: fr })}
-          </p>
+          <div className="space-y-1">
+            <p className="text-xs text-gray-600 font-medium">
+              ID: {transaction.id.slice(0, 8)}...
+            </p>
+            <p className="text-xs text-gray-500">
+              {format(transaction.date, 'PPP à HH:mm', { locale: fr })}
+            </p>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-xs text-gray-500">Type:</span>
+              <span className="text-xs font-medium text-gray-700 capitalize">
+                {transaction.type === 'withdrawal' ? 'Retrait' : 
+                 transaction.type === 'transfer' ? 'Transfert' : 
+                 transaction.type === 'deposit' ? 'Dépôt' : 
+                 transaction.type}
+              </span>
+              <span className="text-xs text-gray-500">•</span>
+              <span className="text-xs text-gray-500">Devise:</span>
+              <span className="text-xs font-medium text-gray-700">{transaction.currency}</span>
+            </div>
+          </div>
         </div>
       </div>
       <div className="flex items-start gap-2 shrink-0 ml-2">
