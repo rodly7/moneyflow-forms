@@ -9,6 +9,7 @@ import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import TransactionDetailModal from "@/components/transactions/TransactionDetailModal";
 
 interface Transaction {
   id: string;
@@ -22,6 +23,11 @@ interface Transaction {
   created_at?: string;
   showCode?: boolean;
   userType?: 'agent' | 'user';
+  recipient_full_name?: string;
+  recipient_phone?: string;
+  withdrawal_phone?: string;
+  fees?: number;
+  sender_id?: string;
 }
 
 const Transactions = () => {
@@ -29,6 +35,8 @@ const Transactions = () => {
   const { user, isAgent } = useAuth();
   const { toast } = useToast();
   const [copiedCodes, setCopiedCodes] = useState<{[key: string]: boolean}>({});
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: withdrawals } = useQuery({
     queryKey: ['withdrawals'],
@@ -116,6 +124,16 @@ const Transactions = () => {
     }, 2000);
   };
 
+  const openTransactionDetail = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setIsModalOpen(true);
+  };
+
+  const closeTransactionDetail = () => {
+    setSelectedTransaction(null);
+    setIsModalOpen(false);
+  };
+
   if (!user) {
     return null;
   }
@@ -131,6 +149,7 @@ const Transactions = () => {
       status: w.status,
       verification_code: w.verification_code,
       created_at: w.created_at,
+      withdrawal_phone: w.withdrawal_phone,
       userType: isAgent() ? 'agent' as const : 'user' as const
     })) || []),
     ...(transfers?.map(t => ({
@@ -141,6 +160,9 @@ const Transactions = () => {
       description: `Transfert à ${t.recipient_full_name}`,
       currency: 'XAF',
       status: t.status,
+      recipient_full_name: t.recipient_full_name,
+      recipient_phone: t.recipient_phone,
+      fees: t.fees,
       userType: isAgent() ? 'agent' as const : 'user' as const
     })) || [])
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -173,7 +195,11 @@ const Transactions = () => {
   };
 
   const renderTransaction = (transaction: Transaction) => (
-    <div key={transaction.id} className="p-5 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 transition-all duration-300">
+    <div 
+      key={transaction.id} 
+      className="p-5 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 transition-all duration-300 cursor-pointer"
+      onClick={() => openTransactionDetail(transaction)}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4 flex-1 min-w-0">
           <div className="relative">
@@ -313,6 +339,13 @@ const Transactions = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Modal des détails de transaction */}
+        <TransactionDetailModal 
+          transaction={selectedTransaction}
+          isOpen={isModalOpen}
+          onClose={closeTransactionDetail}
+        />
       </div>
     </div>
   );
