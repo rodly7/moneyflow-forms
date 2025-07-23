@@ -285,6 +285,7 @@ export type Database = {
           total_transactions: number
           total_volume: number
           transaction_bonus: number
+          transferred_to_balance: number | null
           updated_at: string
           volume_bonus: number
           withdrawals_count: number
@@ -306,6 +307,7 @@ export type Database = {
           total_transactions?: number
           total_volume?: number
           transaction_bonus?: number
+          transferred_to_balance?: number | null
           updated_at?: string
           volume_bonus?: number
           withdrawals_count?: number
@@ -327,6 +329,7 @@ export type Database = {
           total_transactions?: number
           total_volume?: number
           transaction_bonus?: number
+          transferred_to_balance?: number | null
           updated_at?: string
           volume_bonus?: number
           withdrawals_count?: number
