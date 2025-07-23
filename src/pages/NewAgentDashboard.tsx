@@ -51,7 +51,18 @@ const NewAgentDashboard = () => {
         if (profileError) throw profileError;
         setBalance(profileData.balance || 0);
 
-        // Récupérer le solde de commission
+        // Transférer automatiquement les commissions mensuelles vers le solde commission disponible
+        const { data: transferResult, error: transferError } = await supabase.rpc('transfer_monthly_commissions_to_balance', {
+          agent_id_param: user.id
+        });
+
+        if (transferError) {
+          console.error('Erreur lors du transfert des commissions:', transferError);
+        } else {
+          console.log('✅ Commissions transférées vers le solde disponible:', transferResult);
+        }
+
+        // Récupérer le solde de commission après transfert
         const { data: agentData, error: agentError } = await supabase
           .from('agents')
           .select('commission_balance')

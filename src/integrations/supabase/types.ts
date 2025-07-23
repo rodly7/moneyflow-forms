@@ -1532,6 +1532,14 @@ export type Database = {
         Args: { p_user_agent?: string; p_ip_address?: unknown }
         Returns: string
       }
+      transfer_monthly_commissions_to_balance: {
+        Args: {
+          agent_id_param: string
+          month_param?: number
+          year_param?: number
+        }
+        Returns: number
+      }
       update_agent_daily_quota: {
         Args: { p_agent_id: string; p_deposit_amount: number }
         Returns: boolean
