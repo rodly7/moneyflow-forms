@@ -1,6 +1,7 @@
 
 import { useState, useEffect, Suspense, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAutoBalanceRefresh } from "@/hooks/useAutoBalanceRefresh";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowUpRight, QrCode, RefreshCw, LogOut, Wallet, History, PiggyBank, FileText, Sparkles, Crown, Star, Zap, Eye, EyeOff, Scan } from "lucide-react";
@@ -25,6 +26,20 @@ const Dashboard = () => {
   const [showBalance, setShowBalance] = useState(false);
 
   useBalanceCheck(balance);
+
+  // Auto-rafraîchissement optimisé du solde
+  useAutoBalanceRefresh({
+    intervalMs: 20000, // 20 secondes - plus rapide
+    enableRealtime: true,
+    onBalanceChange: (newBalance) => {
+      setBalance(newBalance);
+      toast({
+        title: "💰 Solde mis à jour",
+        description: `Nouveau solde : ${formatCurrency(convertCurrency(newBalance, "XAF", userCurrency), userCurrency)}`,
+        duration: 3000,
+      });
+    }
+  });
 
   const fetchBalance = useCallback(async () => {
     if (user?.id) {

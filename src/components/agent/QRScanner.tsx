@@ -1,5 +1,5 @@
 
-import SimpleQRScanner from '@/components/shared/SimpleQRScanner';
+import OptimizedQRScanner from '@/components/shared/OptimizedQRScanner';
 
 interface QRScannerProps {
   isOpen: boolean;
@@ -9,7 +9,7 @@ interface QRScannerProps {
 
 const QRScanner = ({ isOpen, onClose, onScanSuccess }: QRScannerProps) => {
   return (
-    <SimpleQRScanner
+    <OptimizedQRScanner
       isOpen={isOpen}
       onClose={onClose}
       onScanSuccess={onScanSuccess}
