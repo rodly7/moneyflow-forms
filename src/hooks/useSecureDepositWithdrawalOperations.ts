@@ -51,9 +51,18 @@ export const useSecureDepositWithdrawalOperations = () => {
       // Créditer le client de manière sécurisée
       await secureCreditUserBalance(recipientId, amount, 'agent_deposit', user.id);
 
-      // Créditer la commission à l'agent si applicable
+      // Créditer la commission sur le compte commission de l'agent
       if (agentCommission > 0) {
-        await secureCreditUserBalance(user.id, agentCommission, 'agent_commission');
+        const { error: commissionError } = await supabase.rpc('increment_agent_commission', {
+          agent_user_id: user.id,
+          commission_amount: agentCommission
+        });
+        
+        if (commissionError) {
+          console.error("❌ Erreur lors du crédit de la commission agent:", commissionError);
+        } else {
+          console.log(`✅ Commission de ${agentCommission} FCFA créditée sur le compte commission de l'agent`);
+        }
       }
 
       // Créer l'enregistrement de la transaction
@@ -128,8 +137,22 @@ export const useSecureDepositWithdrawalOperations = () => {
       // Débiter le client (montant + frais) de manière sécurisée
       await secureDebitUserBalance(clientId, totalAmount, 'agent_withdrawal', user.id);
 
-      // Créditer l'agent (montant + commission) de manière sécurisée
-      await secureCreditUserBalance(user.id, amount + agentCommission, 'agent_withdrawal_credit');
+      // Créditer l'agent du montant de manière sécurisée
+      await secureCreditUserBalance(user.id, amount, 'agent_withdrawal_credit');
+      
+      // Créditer la commission sur le compte commission de l'agent
+      if (agentCommission > 0) {
+        const { error: commissionError } = await supabase.rpc('increment_agent_commission', {
+          agent_user_id: user.id,
+          commission_amount: agentCommission
+        });
+        
+        if (commissionError) {
+          console.error("❌ Erreur lors du crédit de la commission agent:", commissionError);
+        } else {
+          console.log(`✅ Commission de ${agentCommission} FCFA créditée sur le compte commission de l'agent`);
+        }
+      }
 
       // Créditer la commission plateforme de manière sécurisée
       if (platformCommission > 0) {
