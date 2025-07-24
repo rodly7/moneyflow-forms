@@ -20,10 +20,17 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess }: SimpleQRScannerProp
         scannerRef.current = scanner;
         
         const devices = await Html5Qrcode.getCameras();
-        const cameraId = devices.find(d => d.label?.includes('back') || d.label?.includes('rear'))?.id || devices[0]?.id;
+        // Forcer la caméra arrière
+        const backCamera = devices.find(d => 
+          d.label?.toLowerCase().includes('back') || 
+          d.label?.toLowerCase().includes('rear') ||
+          d.label?.toLowerCase().includes('environment') ||
+          d.id.includes('1')
+        );
+        const cameraId = backCamera?.id || devices[devices.length - 1]?.id || devices[0]?.id;
         
         await scanner.start(
-          cameraId,
+          { facingMode: "environment" }, // Force caméra arrière
           { fps: 10, qrbox: { width: 250, height: 250 } },
           (decodedText) => {
             try {
