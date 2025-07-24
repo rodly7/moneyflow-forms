@@ -1,5 +1,5 @@
 
-import OptimizedQRScanner from '@/components/shared/OptimizedQRScanner';
+import SimpleQRScanner from '@/components/shared/SimpleQRScanner';
 
 interface QRScannerProps {
   isOpen: boolean;
@@ -9,11 +9,10 @@ interface QRScannerProps {
 
 const QRScanner = ({ isOpen, onClose, onScanSuccess }: QRScannerProps) => {
   return (
-    <OptimizedQRScanner
+    <SimpleQRScanner
       isOpen={isOpen}
       onClose={onClose}
       onScanSuccess={onScanSuccess}
-      title="Scanner le QR Code client"
     />
   );
 };

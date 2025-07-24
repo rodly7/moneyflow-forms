@@ -123,7 +123,6 @@ export const AgentCommissionWithdrawal = ({
         isOpen={isScanning}
         onClose={() => setIsScanning(false)}
         onScanSuccess={handleQRScanSuccess}
-        title="Scanner pour retrait commission"
       />
     </div>
   );
