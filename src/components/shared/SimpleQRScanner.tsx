@@ -19,21 +19,11 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess }: SimpleQRScannerProp
         const scanner = new Html5Qrcode("qr-reader");
         scannerRef.current = scanner;
         
-        const devices = await Html5Qrcode.getCameras();
-        // Forcer la caméra arrière
-        const backCamera = devices.find(d => 
-          d.label?.toLowerCase().includes('back') || 
-          d.label?.toLowerCase().includes('rear') ||
-          d.label?.toLowerCase().includes('environment') ||
-          d.id.includes('1')
-        );
-        const cameraId = backCamera?.id || devices[devices.length - 1]?.id || devices[0]?.id;
-        
         await scanner.start(
           { facingMode: "environment" }, // Force caméra arrière
           { 
-            fps: 30, // Augmenter pour plus de rapidité
-            qrbox: { width: 200, height: 200 }, // Zone plus petite = scan plus rapide
+            fps: 30,
+            qrbox: { width: 250, height: 250 }, // Zone de scan carrée
             aspectRatio: 1.0,
             disableFlip: false,
             videoConstraints: {
@@ -88,49 +78,167 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess }: SimpleQRScannerProp
       display: 'flex',
       flexDirection: 'column'
     }}>
-      <button 
-        onClick={onClose}
-        style={{
+      {/* Header avec bouton fermer */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '60px',
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 20px',
+        zIndex: 10001
+      }}>
+        <span style={{ color: 'white', fontSize: '18px', fontWeight: 'bold' }}>
+          Scanner QR Code
+        </span>
+        <button 
+          onClick={onClose}
+          style={{
+            backgroundColor: 'white',
+            border: 'none',
+            borderRadius: '50%',
+            width: '40px',
+            height: '40px',
+            fontSize: '20px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Zone de scan avec overlay */}
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <div 
+          id="qr-reader" 
+          style={{ 
+            width: '100%',
+            height: '100%'
+          }}
+        />
+        
+        {/* Overlay avec cadre carré */}
+        <div style={{
           position: 'absolute',
-          top: '10px',
-          right: '10px',
-          backgroundColor: 'white',
-          border: 'none',
-          borderRadius: '50%',
-          width: '40px',
-          height: '40px',
-          fontSize: '20px',
-          cursor: 'pointer',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          pointerEvents: 'none',
           zIndex: 10000
-        }}
-      >
-        ×
-      </button>
-      
-      <div 
-        id="qr-reader" 
-        style={{ 
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}
-      />
-      
+        }}>
+          {/* Zone sombre autour du cadre */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)'
+          }} />
+          
+          {/* Cadre carré transparent au centre */}
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            width: '280px',
+            height: '280px',
+            transform: 'translate(-50%, -50%)',
+            border: '3px solid #00ff00',
+            borderRadius: '20px',
+            backgroundColor: 'transparent',
+            boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)'
+          }}>
+            {/* Coins du cadre */}
+            <div style={{
+              position: 'absolute',
+              top: '-3px',
+              left: '-3px',
+              width: '30px',
+              height: '30px',
+              borderTop: '6px solid #00ff00',
+              borderLeft: '6px solid #00ff00',
+              borderRadius: '20px 0 0 0'
+            }} />
+            <div style={{
+              position: 'absolute',
+              top: '-3px',
+              right: '-3px',
+              width: '30px',
+              height: '30px',
+              borderTop: '6px solid #00ff00',
+              borderRight: '6px solid #00ff00',
+              borderRadius: '0 20px 0 0'
+            }} />
+            <div style={{
+              position: 'absolute',
+              bottom: '-3px',
+              left: '-3px',
+              width: '30px',
+              height: '30px',
+              borderBottom: '6px solid #00ff00',
+              borderLeft: '6px solid #00ff00',
+              borderRadius: '0 0 0 20px'
+            }} />
+            <div style={{
+              position: 'absolute',
+              bottom: '-3px',
+              right: '-3px',
+              width: '30px',
+              height: '30px',
+              borderBottom: '6px solid #00ff00',
+              borderRight: '6px solid #00ff00',
+              borderRadius: '0 0 20px 0'
+            }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Instructions */}
+      <div style={{
+        position: 'absolute',
+        bottom: '80px',
+        left: '20px',
+        right: '20px',
+        textAlign: 'center',
+        color: 'white',
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        padding: '15px',
+        borderRadius: '10px',
+        zIndex: 10001
+      }}>
+        <p style={{ margin: 0, fontSize: '16px', fontWeight: 'bold' }}>
+          📱 Centrez le QR code dans le cadre vert
+        </p>
+        <p style={{ margin: '5px 0 0 0', fontSize: '14px', opacity: 0.9 }}>
+          Maintenez l'appareil stable pour une détection rapide
+        </p>
+      </div>
+
+      {/* Erreur */}
       {error && (
         <div style={{
           position: 'absolute',
           bottom: '20px',
           left: '20px',
           right: '20px',
-          backgroundColor: 'red',
+          backgroundColor: '#ff4444',
           color: 'white',
-          padding: '10px',
-          borderRadius: '5px',
-          textAlign: 'center'
+          padding: '15px',
+          borderRadius: '10px',
+          textAlign: 'center',
+          zIndex: 10001
         }}>
-          {error}
+          <p style={{ margin: 0, fontWeight: 'bold' }}>❌ Erreur</p>
+          <p style={{ margin: '5px 0 0 0', fontSize: '14px' }}>{error}</p>
         </div>
       )}
     </div>
