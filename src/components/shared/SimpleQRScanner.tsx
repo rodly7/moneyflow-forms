@@ -31,7 +31,17 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess }: SimpleQRScannerProp
         
         await scanner.start(
           { facingMode: "environment" }, // Force caméra arrière
-          { fps: 10, qrbox: { width: 250, height: 250 } },
+          { 
+            fps: 30, // Augmenter pour plus de rapidité
+            qrbox: { width: 200, height: 200 }, // Zone plus petite = scan plus rapide
+            aspectRatio: 1.0,
+            disableFlip: false,
+            videoConstraints: {
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              frameRate: { ideal: 30 }
+            }
+          },
           (decodedText) => {
             try {
               const userData = JSON.parse(decodedText);
