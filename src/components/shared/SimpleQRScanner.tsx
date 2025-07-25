@@ -19,8 +19,29 @@ const SimpleQRScanner = ({ isOpen, onClose, onScanSuccess }: SimpleQRScannerProp
         const scanner = new Html5Qrcode("qr-reader");
         scannerRef.current = scanner;
         
+        // Obtenir la liste des caméras et forcer la caméra arrière
+        const devices = await Html5Qrcode.getCameras();
+        console.log('Caméras disponibles:', devices);
+        
+        // Chercher explicitement la caméra arrière
+        let backCamera = devices.find(device => 
+          device.label?.toLowerCase().includes('back') ||
+          device.label?.toLowerCase().includes('rear') ||
+          device.label?.toLowerCase().includes('environment') ||
+          device.label?.toLowerCase().includes('principale') ||
+          device.id?.includes('1') // Souvent la caméra arrière a l'ID avec '1'
+        );
+        
+        // Si pas trouvée, prendre la dernière caméra (souvent la principale)
+        if (!backCamera && devices.length > 1) {
+          backCamera = devices[devices.length - 1];
+        }
+        
+        const cameraToUse = backCamera || devices[0];
+        console.log('Caméra sélectionnée:', cameraToUse);
+        
         await scanner.start(
-          { facingMode: "environment" }, // Force caméra arrière
+          cameraToUse.id, // Utiliser l'ID explicite de la caméra
           { 
             fps: 30,
             qrbox: { width: 250, height: 250 },
