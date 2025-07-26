@@ -124,43 +124,62 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black flex items-center justify-center z-[9999]">
+    <div className="fixed inset-0 bg-black flex flex-col z-[9999]">
       {!showManualInput && isScanning ? (
         // Mode scanner QR
-        <div className="w-full h-full relative">
+        <div className="w-full h-full relative flex flex-col">
           <button 
             onClick={handleClose}
-            className="absolute top-4 right-4 bg-white rounded-full w-10 h-10 flex items-center justify-center text-black z-10 shadow-lg"
+            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-white z-10"
           >
-            ×
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
           
           <button 
             onClick={() => setShowManualInput(true)}
-            className="absolute top-4 left-4 bg-white/90 rounded-lg px-3 py-2 text-black text-sm z-10 shadow-lg"
+            className="absolute top-4 right-14 w-8 h-8 flex items-center justify-center text-white z-10"
           >
-            Saisie manuelle
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+              <path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+              <path d="m2 2 7.586 7.586"></path>
+              <circle cx="11" cy="11" r="2"></circle>
+            </svg>
           </button>
           
-          <div 
-            id="qr-reader-pwa" 
-            className="w-full h-full"
-          />
+          <div className="flex-1 relative">
+            <div 
+              id="qr-reader-pwa" 
+              className="w-full h-full"
+            />
+          </div>
           
           {error && (
-            <div className="absolute bottom-4 left-4 right-4 bg-red-500 text-white p-3 rounded-lg text-center">
+            <div className="absolute top-1/2 left-4 right-4 bg-red-500/90 text-white p-3 rounded-lg text-center">
               {error}
             </div>
           )}
           
-          <div className="absolute bottom-20 left-4 right-4 text-white text-center">
-            <p className="text-sm mb-2">Pointez vers un QR code</p>
-            <div className="bg-black/50 rounded-lg p-2">
+          <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
+            <div className="text-center mb-6">
+              <p className="text-white text-lg font-medium mb-2">Scanner un Code QR pour payer ou envoyer</p>
+            </div>
+            
+            <div className="flex gap-4">
               <button
                 onClick={simulateQRScan}
-                className="bg-blue-500 text-white py-2 px-4 rounded-md text-sm"
+                className="flex-1 bg-white/90 text-black py-4 px-6 rounded-full font-medium text-lg"
               >
-                Test rapide
+                Scanner un code
+              </button>
+              <button
+                onClick={() => setShowManualInput(true)}
+                className="bg-transparent border border-white/30 text-white py-4 px-6 rounded-full font-medium text-lg"
+              >
+                Ma carte
               </button>
             </div>
           </div>

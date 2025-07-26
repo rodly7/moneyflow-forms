@@ -1,4 +1,4 @@
-import SimpleQRScanner from '@/components/shared/SimpleQRScanner';
+import SimplePWAQRScanner from '@/components/shared/SimplePWAQRScanner';
 
 interface PaymentQRScannerProps {
   isOpen: boolean;
@@ -8,10 +8,11 @@ interface PaymentQRScannerProps {
 
 const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess }: PaymentQRScannerProps) => {
   return (
-    <SimpleQRScanner
+    <SimplePWAQRScanner
       isOpen={isOpen}
       onClose={onClose}
       onScanSuccess={onScanSuccess}
+      title="Scanner pour payer"
     />
   );
 };

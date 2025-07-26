@@ -1,5 +1,5 @@
 
-import SimpleQRScanner from '@/components/shared/SimpleQRScanner';
+import SimplePWAQRScanner from '@/components/shared/SimplePWAQRScanner';
 
 interface QRScannerProps {
   isOpen: boolean;
@@ -9,10 +9,11 @@ interface QRScannerProps {
 
 const QRScanner = ({ isOpen, onClose, onScanSuccess }: QRScannerProps) => {
   return (
-    <SimpleQRScanner
+    <SimplePWAQRScanner
       isOpen={isOpen}
       onClose={onClose}
       onScanSuccess={onScanSuccess}
+      title="Scanner pour agent"
     />
   );
 };
