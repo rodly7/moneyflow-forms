@@ -181,7 +181,10 @@ const QRPayment = () => {
             {/* Bouton pour scanner */}
             {!scannedUser && (
               <Button
-                onClick={() => setIsScanning(true)}
+                onClick={() => {
+                  console.log('📱 Ouverture du scanner QR...');
+                  setIsScanning(true);
+                }}
                 className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <QrCode className="w-5 h-5 mr-2" />
