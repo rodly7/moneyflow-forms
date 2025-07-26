@@ -43,28 +43,26 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
       const scanner = new Html5Qrcode("qr-reader-pwa");
       scannerRef.current = scanner;
       
-      // Configuration optimisée pour PWA avec caméra arrière
-      const cameraConfig = {
-        facingMode: { exact: "environment" }
-      };
+      console.log('📷 Demande d\'accès à la caméra...');
       
       await scanner.start(
-        cameraConfig,
+        { facingMode: "environment" }, // Simplifié pour la caméra arrière
         {
-          fps: 20, // Réduit pour les PWA
-          qrbox: { width: 200, height: 200 },
-          aspectRatio: 1.0,
-          disableFlip: false
+          fps: 10,
+          qrbox: { width: 250, height: 250 }
         },
         (decodedText) => {
+          console.log('✅ QR Code scanné:', decodedText);
           try {
             const userData = JSON.parse(decodedText);
             if (userData.userId && userData.fullName && userData.phone) {
               onScanSuccess(userData);
               handleClose();
+            } else {
+              throw new Error('Format invalide');
             }
           } catch {
-            // Si ce n'est pas du JSON, traiter comme du texte simple
+            // Si ce n'est pas du JSON valide, utiliser comme données brutes
             onScanSuccess({
               userId: 'scan-' + Date.now(),
               fullName: decodedText.substring(0, 20),
@@ -73,10 +71,16 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
             handleClose();
           }
         },
-        () => {} // errorCallback
+        (errorMessage) => {
+          // Erreur de scan (normale, pas critique)
+          console.log('🔍 Scan en cours...', errorMessage);
+        }
       );
+      
+      console.log('✅ Scanner démarré avec succès');
     } catch (err: any) {
-      setError('Erreur caméra: ' + err.message);
+      console.error('❌ Erreur scanner:', err);
+      setError(`Erreur caméra: ${err.message || 'Impossible d\'accéder à la caméra'}`);
       setIsScanning(false);
     }
   };
@@ -116,15 +120,15 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
     console.log('🔍 SimplePWAQRScanner useEffect:', { isOpen, showManualInput, isScanning });
     
     if (isOpen && !showManualInput) {
-      console.log('📱 Démarrage automatique du scanner...');
-      startScanning();
-    } else if (!isOpen) {
-      console.log('🛑 Fermeture demandée, arrêt du scanner...');
-      stopScanning();
+      console.log('📱 Lancement du scanner automatiquement...');
+      // Délai pour laisser le DOM se mettre à jour
+      setTimeout(() => {
+        startScanning();
+      }, 100);
     }
     
     return () => {
-      if (!isOpen) {
+      if (isOpen) {
         console.log('🛑 Nettoyage du scanner...');
         stopScanning();
       }
