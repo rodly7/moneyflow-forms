@@ -139,8 +139,8 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
 
   return (
     <div className="fixed inset-0 bg-black flex flex-col z-[9999]">
-      {!showManualInput && isScanning ? (
-        // Mode scanner QR
+      {!showManualInput ? (
+        // Mode scanner QR automatique
         <div className="w-full h-full relative flex flex-col">
           <button 
             onClick={handleClose}
