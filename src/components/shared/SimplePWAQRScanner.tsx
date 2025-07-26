@@ -115,14 +115,19 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
   useEffect(() => {
     console.log('🔍 SimplePWAQRScanner useEffect:', { isOpen, showManualInput, isScanning });
     
-    if (isOpen && !showManualInput && !isScanning) {
+    if (isOpen && !showManualInput) {
       console.log('📱 Démarrage automatique du scanner...');
       startScanning();
+    } else if (!isOpen) {
+      console.log('🛑 Fermeture demandée, arrêt du scanner...');
+      stopScanning();
     }
     
     return () => {
-      console.log('🛑 Nettoyage du scanner...');
-      stopScanning();
+      if (!isOpen) {
+        console.log('🛑 Nettoyage du scanner...');
+        stopScanning();
+      }
     };
   }, [isOpen, showManualInput]);
 
