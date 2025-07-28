@@ -144,7 +144,7 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
         <div className="w-full h-full relative flex flex-col">
           <button 
             onClick={handleClose}
-            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-white z-10"
+            className="absolute top-6 left-6 w-10 h-10 flex items-center justify-center text-white z-10 bg-black/30 rounded-full"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -154,13 +154,12 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
           
           <button 
             onClick={() => setShowManualInput(true)}
-            className="absolute top-4 right-14 w-8 h-8 flex items-center justify-center text-white z-10"
+            className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center text-white z-10 bg-black/30 rounded-full"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
-              <path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
-              <path d="m2 2 7.586 7.586"></path>
-              <circle cx="11" cy="11" r="2"></circle>
+              <path d="m15 3 3 3-6 6-3-3 6-6z"></path>
+              <path d="M10 12v6a1 1 0 0 0 1 1h6"></path>
+              <path d="M21 4a2 2 0 1 1-4 4"></path>
             </svg>
           </button>
           
@@ -170,26 +169,19 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
               className="w-full h-full"
             />
             
-            {/* Cadre de scan superposé */}
+            {/* Cadre de scan avec style arrondi */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="relative w-64 h-64">
-                {/* Coins du cadre de scan */}
-                <div className="absolute top-0 left-0 w-8 h-8 border-l-4 border-t-4 border-white"></div>
-                <div className="absolute top-0 right-0 w-8 h-8 border-r-4 border-t-4 border-white"></div>
-                <div className="absolute bottom-0 left-0 w-8 h-8 border-l-4 border-b-4 border-white"></div>
-                <div className="absolute bottom-0 right-0 w-8 h-8 border-r-4 border-b-4 border-white"></div>
-                
-                {/* Zone de scan avec bordure */}
-                <div className="absolute inset-2 border-2 border-white/30 rounded-lg"></div>
+              <div className="relative">
+                {/* Zone de scan arrondie comme dans l'image */}
+                <div className="w-72 h-72 border-4 border-white/80 rounded-3xl bg-white/10 backdrop-blur-sm"></div>
               </div>
             </div>
             
-            {/* Overlay sombre autour du cadre */}
+            {/* Overlay sombre avec effet flou autour du cadre */}
             <div className="absolute inset-0 pointer-events-none">
-              <div className="w-full h-full bg-black/50" style={{
+              <div className="w-full h-full" style={{
                 background: `
-                  linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.7) calc(50% - 128px), transparent calc(50% - 128px), transparent calc(50% + 128px), rgba(0,0,0,0.7) calc(50% + 128px), rgba(0,0,0,0.7) 100%),
-                  linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.7) calc(50% - 128px), transparent calc(50% - 128px), transparent calc(50% + 128px), rgba(0,0,0,0.7) calc(50% + 128px), rgba(0,0,0,0.7) 100%)
+                  radial-gradient(circle at center, transparent 120px, rgba(0,0,0,0.8) 200px)
                 `
               }}></div>
             </div>
@@ -206,16 +198,16 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
               <p className="text-white text-lg font-medium mb-2">Scanner un Code QR pour payer ou envoyer</p>
             </div>
             
-            <div className="flex gap-4">
+            <div className="flex gap-3">
               <button
                 onClick={simulateQRScan}
-                className="flex-1 bg-white/90 text-black py-4 px-6 rounded-full font-medium text-lg"
+                className="flex-1 bg-white/90 backdrop-blur text-black py-4 px-6 rounded-full font-medium text-lg shadow-lg"
               >
                 Scanner un code
               </button>
               <button
                 onClick={() => setShowManualInput(true)}
-                className="bg-transparent border border-white/30 text-white py-4 px-6 rounded-full font-medium text-lg"
+                className="flex-1 bg-black/80 backdrop-blur text-white py-4 px-6 rounded-full font-medium text-lg shadow-lg"
               >
                 Ma carte
               </button>
