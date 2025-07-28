@@ -169,6 +169,30 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
               id="qr-reader-pwa" 
               className="w-full h-full"
             />
+            
+            {/* Cadre de scan superposé */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="relative w-64 h-64">
+                {/* Coins du cadre de scan */}
+                <div className="absolute top-0 left-0 w-8 h-8 border-l-4 border-t-4 border-white"></div>
+                <div className="absolute top-0 right-0 w-8 h-8 border-r-4 border-t-4 border-white"></div>
+                <div className="absolute bottom-0 left-0 w-8 h-8 border-l-4 border-b-4 border-white"></div>
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-r-4 border-b-4 border-white"></div>
+                
+                {/* Zone de scan avec bordure */}
+                <div className="absolute inset-2 border-2 border-white/30 rounded-lg"></div>
+              </div>
+            </div>
+            
+            {/* Overlay sombre autour du cadre */}
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="w-full h-full bg-black/50" style={{
+                background: `
+                  linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.7) calc(50% - 128px), transparent calc(50% - 128px), transparent calc(50% + 128px), rgba(0,0,0,0.7) calc(50% + 128px), rgba(0,0,0,0.7) 100%),
+                  linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.7) calc(50% - 128px), transparent calc(50% - 128px), transparent calc(50% + 128px), rgba(0,0,0,0.7) calc(50% + 128px), rgba(0,0,0,0.7) 100%)
+                `
+              }}></div>
+            </div>
           </div>
           
           {error && (
