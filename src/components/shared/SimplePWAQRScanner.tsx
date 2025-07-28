@@ -45,13 +45,9 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
       
       console.log('📷 Demande d\'accès à la caméra...');
       
-      // Configuration optimisée pour PWA mobile avec caméra arrière
+      // Configuration simple pour caméra arrière - Corrigé pour l'API html5-qrcode
       await scanner.start(
-        { 
-          facingMode: { exact: "environment" }, // Force caméra arrière
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
+        { facingMode: "environment" }, // Simplifié - une seule propriété
         {
           fps: 15,
           qrbox: (viewfinderWidth, viewfinderHeight) => {
@@ -103,10 +99,15 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
   const stopScanning = async () => {
     if (scannerRef.current) {
       try {
-        await scannerRef.current.stop();
+        // Vérifier si le scanner est en cours d'exécution avant d'essayer de l'arrêter
+        const state = scannerRef.current.getState();
+        if (state === 2) { // SCANNING state
+          await scannerRef.current.stop();
+        }
         scannerRef.current = null;
       } catch (err) {
-        console.error('Erreur arrêt scanner:', err);
+        // Ignorer les erreurs de nettoyage silencieusement
+        console.log('Scanner déjà arrêté');
       }
     }
     setIsScanning(false);
@@ -153,7 +154,7 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black flex flex-col z-[9999] overflow-hidden">
+    <div className="fixed inset-0 bg-black flex flex-col z-[9999] overflow-hidden touch-none" style={{ height: '100dvh' }}>
       {!showManualInput ? (
         // Mode scanner QR avec caméra arrière - Design mobile PWA responsive
         <div className="w-full h-full relative flex flex-col">
