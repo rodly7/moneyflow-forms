@@ -195,25 +195,25 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
             
             {/* Overlay avec carré semi-transparent centré plus haut */}
             <div className="absolute inset-0 flex items-center justify-center" style={{ paddingTop: '20vh', paddingBottom: '30vh' }}>
-              {/* Fond sombre avec découpe pour le scanner */}
+              {/* Fond sombre avec découpe claire pour le scanner */}
               <div className="absolute inset-0" style={{
                 background: `
-                  radial-gradient(280px at center, transparent 120px, rgba(0,0,0,0.6) 150px, rgba(0,0,0,0.9) 220px)
+                  radial-gradient(280px at center, transparent 140px, rgba(0,0,0,0.8) 180px)
                 `
               }}></div>
               
-              {/* Carré de scan semi-transparent iOS style */}
+              {/* Cadre de scan transparent avec vision claire */}
               <div className="relative z-10">
-                <div className="w-64 h-64 border-2 border-white/90 rounded-3xl bg-white/10 backdrop-blur-sm relative overflow-hidden">
+                <div className="w-64 h-64 border-2 border-white/70 rounded-3xl bg-transparent relative overflow-hidden">
                   {/* Coins du cadre avec style iOS */}
                   <div className="absolute top-3 left-3 w-8 h-8 border-l-4 border-t-4 border-white rounded-tl-xl"></div>
                   <div className="absolute top-3 right-3 w-8 h-8 border-r-4 border-t-4 border-white rounded-tr-xl"></div>
                   <div className="absolute bottom-3 left-3 w-8 h-8 border-l-4 border-b-4 border-white rounded-bl-xl"></div>
                   <div className="absolute bottom-3 right-3 w-8 h-8 border-r-4 border-b-4 border-white rounded-br-xl"></div>
                   
-                  {/* Ligne de scan animée */}
+                  {/* Ligne de scan animée fine */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-full h-1 bg-gradient-to-r from-transparent via-white to-transparent animate-pulse"></div>
+                    <div className="w-3/4 h-0.5 bg-gradient-to-r from-transparent via-white/80 to-transparent animate-pulse"></div>
                   </div>
                 </div>
               </div>
