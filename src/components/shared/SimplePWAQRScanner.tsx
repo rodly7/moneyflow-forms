@@ -51,15 +51,15 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
       await scanner.start(
         { facingMode: "environment" }, // Simplifié - une seule propriété
         {
-          fps: 15,
+          fps: 30, // Scan plus rapide
           qrbox: (viewfinderWidth, viewfinderHeight) => {
-            // Responsive QR box - 60% de la zone visible
-            const minEdgePercentage = 0.6;
+            // Responsive QR box optimisé - 70% de la zone visible pour scan plus facile
+            const minEdgePercentage = 0.7;
             const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
             const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
             return {
-              width: Math.min(qrboxSize, 280),
-              height: Math.min(qrboxSize, 280)
+              width: Math.min(qrboxSize, 320), // Augmenté pour cadre plus grand
+              height: Math.min(qrboxSize, 320)
             };
           },
           aspectRatio: 1.0
@@ -198,22 +198,25 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
               {/* Fond sombre avec découpe claire pour le scanner */}
               <div className="absolute inset-0" style={{
                 background: `
-                  radial-gradient(280px at center, transparent 140px, rgba(0,0,0,0.8) 180px)
+                  radial-gradient(320px at center, transparent 160px, rgba(0,0,0,0.8) 200px)
                 `
               }}></div>
               
-              {/* Cadre de scan transparent avec vision claire */}
+              {/* Cadre de scan transparent avec vision claire agrandi */}
               <div className="relative z-10">
-                <div className="w-64 h-64 border-2 border-white/70 rounded-3xl bg-transparent relative overflow-hidden">
+                <div className="w-72 h-72 border-2 border-white/70 rounded-3xl bg-transparent relative overflow-hidden">
                   {/* Coins du cadre avec style iOS */}
                   <div className="absolute top-3 left-3 w-8 h-8 border-l-4 border-t-4 border-white rounded-tl-xl"></div>
                   <div className="absolute top-3 right-3 w-8 h-8 border-r-4 border-t-4 border-white rounded-tr-xl"></div>
                   <div className="absolute bottom-3 left-3 w-8 h-8 border-l-4 border-b-4 border-white rounded-bl-xl"></div>
                   <div className="absolute bottom-3 right-3 w-8 h-8 border-r-4 border-b-4 border-white rounded-br-xl"></div>
                   
-                  {/* Ligne de scan animée fine */}
+                  {/* Zone de délimitation du scanner */}
+                  <div className="absolute inset-4 border border-white/30 rounded-2xl"></div>
+                  
+                  {/* Ligne de scan animée plus rapide */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-3/4 h-0.5 bg-gradient-to-r from-transparent via-white/80 to-transparent animate-pulse"></div>
+                    <div className="w-3/4 h-0.5 bg-gradient-to-r from-transparent via-white to-transparent animate-[pulse_1s_ease-in-out_infinite]"></div>
                   </div>
                 </div>
               </div>
