@@ -158,35 +158,11 @@ const FastQRScanner = ({
         </div>
       </div>
 
-      {/* Zone de scan */}
+      {/* Zone de scan - Caméra plein écran */}
       <div className="flex-1 relative">
         <div 
           id="fast-qr-scanner" 
           className="w-full h-full object-cover"
-        />
-        
-        {/* Cadre de scan simple */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-64 h-64 border-4 border-white rounded-2xl relative">
-            {/* Coins du cadre */}
-            <div className="absolute top-2 left-2 w-6 h-6 border-l-2 border-t-2 border-white"></div>
-            <div className="absolute top-2 right-2 w-6 h-6 border-r-2 border-t-2 border-white"></div>
-            <div className="absolute bottom-2 left-2 w-6 h-6 border-l-2 border-b-2 border-white"></div>
-            <div className="absolute bottom-2 right-2 w-6 h-6 border-r-2 border-b-2 border-white"></div>
-            
-            {/* Ligne de scan */}
-            <div className="absolute inset-4 flex items-center">
-              <div className="w-full h-0.5 bg-white animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Overlay sombre */}
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'radial-gradient(circle at center, transparent 25%, rgba(0,0,0,0.8) 50%)'
-          }}
         />
       </div>
 
