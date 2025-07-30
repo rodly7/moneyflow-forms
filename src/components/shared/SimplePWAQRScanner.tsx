@@ -38,79 +38,62 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
 
   const startScanning = async () => {
     try {
-      console.log('🔄 Tentative de démarrage du scanner...');
       setError('');
       setIsScanning(true);
       
       const scanner = new Html5Qrcode("qr-reader-pwa");
       scannerRef.current = scanner;
       
-      console.log('📷 Demande d\'accès à la caméra...');
-      
-      // Configuration optimisée pour vitesse et précision maximale
+      // Configuration ultra-simple et efficace
       await scanner.start(
-        { facingMode: "environment" }, // Caméra arrière
+        { facingMode: "environment" },
         {
-          fps: 60, // Vitesse maximale
-          qrbox: (viewfinderWidth, viewfinderHeight) => {
-            // Zone de scan optimisée - plus petite pour plus de vitesse
-            const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-            const qrboxSize = Math.floor(minEdgeSize * 0.5); // Réduit à 50% pour plus de vitesse
-            return {
-              width: Math.min(qrboxSize, 250), // Zone plus petite = scan plus rapide
-              height: Math.min(qrboxSize, 250)
-            };
-          },
-          aspectRatio: 1.0
+          fps: 10,
+          qrbox: { width: 300, height: 300 },
+          aspectRatio: 1.0,
+          disableFlip: false
         },
         (decodedText) => {
-          console.log('✅ QR Code scanné avec succès:', decodedText);
-          console.log('🔍 Type de données:', typeof decodedText);
-          console.log('📏 Longueur des données:', decodedText.length);
+          console.log('✅ QR scanné:', decodedText);
+          
+          // Arrêter immédiatement le scanner pour éviter les scans multiples
+          stopScanning();
           
           try {
-            // Tentative de parsing JSON
+            // Tentative de parsing JSON d'abord
             const userData = JSON.parse(decodedText);
-            console.log('📦 Données JSON parsées:', userData);
             
-            if (userData.userId && userData.fullName && userData.phone) {
-              console.log('✅ Données utilisateur valides trouvées');
+            // Vérification des champs requis
+            if (userData && typeof userData === 'object' && 
+                userData.userId && userData.fullName && userData.phone) {
               onScanSuccess(userData);
-              handleClose();
             } else {
-              console.log('❌ Données JSON incomplètes:', {
-                hasUserId: !!userData.userId,
-                hasFullName: !!userData.fullName,
-                hasPhone: !!userData.phone
+              // JSON incomplet - utiliser comme fallback
+              onScanSuccess({
+                userId: 'manual-' + Date.now(),
+                fullName: userData.fullName || userData.name || 'Utilisateur',
+                phone: userData.phone || decodedText
               });
-              throw new Error('Données utilisateur incomplètes');
             }
-          } catch (parseError) {
-            console.log('⚠️ Erreur de parsing JSON:', parseError);
-            console.log('🔄 Tentative avec données texte brut...');
-            
-            // Si ce n'est pas du JSON valide, créer des données de test
-            const fallbackData = {
+          } catch {
+            // Pas du JSON - traiter comme numéro de téléphone ou ID
+            onScanSuccess({
               userId: 'scan-' + Date.now(),
-              fullName: decodedText.length > 20 ? decodedText.substring(0, 20) + '...' : decodedText,
+              fullName: 'Utilisateur scanné',
               phone: decodedText
-            };
-            
-            console.log('📱 Données de fallback créées:', fallbackData);
-            onScanSuccess(fallbackData);
-            handleClose();
+            });
           }
+          
+          handleClose();
         },
-        (errorMessage) => {
-          // Erreur de scan - normal pendant le scan
-          // Ne pas logger pour éviter le spam
+        () => {
+          // Pas d'erreur logging pour éviter le spam
         }
       );
       
-      console.log('✅ Scanner html5-qrcode démarré avec succès (60 FPS)');
     } catch (err: any) {
-      console.error('❌ Erreur scanner:', err);
-      setError(`Erreur caméra: ${err.message || 'Impossible d\'accéder à la caméra'}`);
+      console.error('Erreur scanner:', err);
+      setError('Impossible d\'accéder à la caméra');
       setIsScanning(false);
     }
   };
