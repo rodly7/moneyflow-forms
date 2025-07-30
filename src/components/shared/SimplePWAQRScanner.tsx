@@ -47,50 +47,67 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
       
       console.log('📷 Demande d\'accès à la caméra...');
       
-      // Configuration simple pour caméra arrière - Corrigé pour l'API html5-qrcode
+      // Configuration optimisée pour vitesse et précision maximale
       await scanner.start(
-        { facingMode: "environment" }, // Simplifié - une seule propriété
+        { facingMode: "environment" }, // Caméra arrière
         {
-          fps: 30, // Scan plus rapide
+          fps: 60, // Vitesse maximale
           qrbox: (viewfinderWidth, viewfinderHeight) => {
-            // Responsive QR box optimisé - 70% de la zone visible pour scan plus facile
-            const minEdgePercentage = 0.7;
+            // Zone de scan optimisée - plus petite pour plus de vitesse
             const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-            const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
+            const qrboxSize = Math.floor(minEdgeSize * 0.5); // Réduit à 50% pour plus de vitesse
             return {
-              width: Math.min(qrboxSize, 320), // Augmenté pour cadre plus grand
-              height: Math.min(qrboxSize, 320)
+              width: Math.min(qrboxSize, 250), // Zone plus petite = scan plus rapide
+              height: Math.min(qrboxSize, 250)
             };
           },
           aspectRatio: 1.0
         },
         (decodedText) => {
-          console.log('✅ QR Code scanné:', decodedText);
+          console.log('✅ QR Code scanné avec succès:', decodedText);
+          console.log('🔍 Type de données:', typeof decodedText);
+          console.log('📏 Longueur des données:', decodedText.length);
+          
           try {
+            // Tentative de parsing JSON
             const userData = JSON.parse(decodedText);
+            console.log('📦 Données JSON parsées:', userData);
+            
             if (userData.userId && userData.fullName && userData.phone) {
+              console.log('✅ Données utilisateur valides trouvées');
               onScanSuccess(userData);
               handleClose();
             } else {
-              throw new Error('Format invalide');
+              console.log('❌ Données JSON incomplètes:', {
+                hasUserId: !!userData.userId,
+                hasFullName: !!userData.fullName,
+                hasPhone: !!userData.phone
+              });
+              throw new Error('Données utilisateur incomplètes');
             }
-          } catch {
-            // Si ce n'est pas du JSON valide, utiliser comme données brutes
-            onScanSuccess({
+          } catch (parseError) {
+            console.log('⚠️ Erreur de parsing JSON:', parseError);
+            console.log('🔄 Tentative avec données texte brut...');
+            
+            // Si ce n'est pas du JSON valide, créer des données de test
+            const fallbackData = {
               userId: 'scan-' + Date.now(),
-              fullName: decodedText.substring(0, 20),
+              fullName: decodedText.length > 20 ? decodedText.substring(0, 20) + '...' : decodedText,
               phone: decodedText
-            });
+            };
+            
+            console.log('📱 Données de fallback créées:', fallbackData);
+            onScanSuccess(fallbackData);
             handleClose();
           }
         },
         (errorMessage) => {
-          // Erreur de scan (normale, pas critique)
-          console.log('🔍 Scan en cours...', errorMessage);
+          // Erreur de scan - normal pendant le scan
+          // Ne pas logger pour éviter le spam
         }
       );
       
-      console.log('✅ Scanner démarré avec succès');
+      console.log('✅ Scanner html5-qrcode démarré avec succès (60 FPS)');
     } catch (err: any) {
       console.error('❌ Erreur scanner:', err);
       setError(`Erreur caméra: ${err.message || 'Impossible d\'accéder à la caméra'}`);
