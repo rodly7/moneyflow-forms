@@ -30,43 +30,74 @@ const FastQRScanner = ({
       const scanner = new Html5Qrcode("fast-qr-scanner");
       scannerRef.current = scanner;
 
-      // Configuration ultra-simple pour performance maximale
+      // Configuration optimisée pour détection rapide des données utilisateur
       await scanner.start(
         { facingMode: "environment" },
         {
-          fps: 5, // FPS très bas pour stabilité
-          qrbox: 200, // Zone fixe simple
+          fps: 10, // FPS optimisé pour rapidité
+          qrbox: { width: 250, height: 250 }, // Zone optimisée
           aspectRatio: 1.0
         },
         (decodedText) => {
+          console.log('QR détecté:', decodedText);
+          
           // Arrêt immédiat pour éviter les scans multiples
           stopScanner();
           
           try {
+            // Tentative de parsing JSON pour les QR codes utilisateur
             const userData = JSON.parse(decodedText);
+            console.log('Données utilisateur parsées:', userData);
+            
+            // Vérification stricte des données utilisateur
             if (userData.userId && userData.fullName && userData.phone) {
-              onScanSuccess(userData);
-            } else {
-              // Fallback pour données incomplètes
+              console.log('QR utilisateur valide détecté');
               onScanSuccess({
-                userId: userData.userId || 'scan-' + Date.now(),
-                fullName: userData.fullName || userData.name || 'Utilisateur',
-                phone: userData.phone || decodedText
+                userId: userData.userId,
+                fullName: userData.fullName,
+                phone: userData.phone
+              });
+            } else if (userData.id && userData.name && userData.phone) {
+              // Format alternatif
+              console.log('QR utilisateur format alternatif détecté');
+              onScanSuccess({
+                userId: userData.id,
+                fullName: userData.name,
+                phone: userData.phone
+              });
+            } else {
+              // Données JSON incomplètes
+              console.log('Données JSON incomplètes, utilisation de fallback');
+              onScanSuccess({
+                userId: userData.userId || userData.id || 'user-' + Date.now(),
+                fullName: userData.fullName || userData.name || userData.fullName || 'Utilisateur',
+                phone: userData.phone || userData.tel || userData.telephone || decodedText
               });
             }
-          } catch {
-            // Traiter comme texte simple
-            onScanSuccess({
-              userId: 'scan-' + Date.now(),
-              fullName: 'Utilisateur',
-              phone: decodedText
-            });
+          } catch (parseError) {
+            console.log('Erreur parsing JSON, traitement comme texte simple:', parseError);
+            
+            // Si ce n'est pas du JSON, traiter comme numéro de téléphone
+            const cleanedText = decodedText.replace(/[^+\d]/g, '');
+            if (cleanedText.length >= 8) {
+              onScanSuccess({
+                userId: 'qr-user-' + Date.now(),
+                fullName: 'Utilisateur QR',
+                phone: cleanedText
+              });
+            } else {
+              setError('QR code non reconnu comme données utilisateur');
+              return;
+            }
           }
           onClose();
         },
-        () => {} // Pas de log d'erreur
+        (errorMessage) => {
+          // Log silencieux des erreurs de scan
+        }
       );
     } catch (err: any) {
+      console.error('Erreur démarrage scanner:', err);
       setError('Impossible d\'accéder à la caméra');
       setIsScanning(false);
     }
