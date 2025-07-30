@@ -1,4 +1,4 @@
-import SimplePWAQRScanner from '@/components/shared/SimplePWAQRScanner';
+import FastQRScanner from '@/components/shared/FastQRScanner';
 
 interface PaymentQRScannerProps {
   isOpen: boolean;
@@ -9,7 +9,7 @@ interface PaymentQRScannerProps {
 
 const PaymentQRScanner = ({ isOpen, onClose, onScanSuccess, onMyCard }: PaymentQRScannerProps) => {
   return (
-    <SimplePWAQRScanner
+    <FastQRScanner
       isOpen={isOpen}
       onClose={onClose}
       onScanSuccess={onScanSuccess}
