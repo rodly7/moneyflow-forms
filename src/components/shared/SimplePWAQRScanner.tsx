@@ -198,25 +198,26 @@ const SimplePWAQRScanner = ({ isOpen, onClose, onScanSuccess, title = "Scanner Q
               {/* Fond sombre avec découpe claire pour le scanner */}
               <div className="absolute inset-0" style={{
                 background: `
-                  radial-gradient(320px at center, transparent 160px, rgba(0,0,0,0.8) 200px)
+                  radial-gradient(400px at center, transparent 200px, rgba(0,0,0,0.8) 240px)
                 `
               }}></div>
               
-              {/* Cadre de scan transparent avec vision claire agrandi */}
+              {/* Cadre de scan transparent avec vision claire agrandi davantage */}
               <div className="relative z-10">
-                <div className="w-72 h-72 border-2 border-white/70 rounded-3xl bg-transparent relative overflow-hidden">
+                <div className="w-80 h-80 border-2 border-white/70 rounded-3xl bg-transparent relative overflow-hidden">
                   {/* Coins du cadre avec style iOS */}
                   <div className="absolute top-3 left-3 w-8 h-8 border-l-4 border-t-4 border-white rounded-tl-xl"></div>
                   <div className="absolute top-3 right-3 w-8 h-8 border-r-4 border-t-4 border-white rounded-tr-xl"></div>
                   <div className="absolute bottom-3 left-3 w-8 h-8 border-l-4 border-b-4 border-white rounded-bl-xl"></div>
                   <div className="absolute bottom-3 right-3 w-8 h-8 border-r-4 border-b-4 border-white rounded-br-xl"></div>
                   
-                  {/* Zone de délimitation du scanner */}
-                  <div className="absolute inset-4 border border-white/30 rounded-2xl"></div>
+                  {/* Zone de délimitation du scanner - mieux centrée dans le cadre */}
+                  <div className="absolute inset-6 border-2 border-white/50 rounded-2xl bg-white/5"></div>
+                  <div className="absolute inset-8 border border-white/30 rounded-xl"></div>
                   
-                  {/* Ligne de scan animée plus rapide */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-3/4 h-0.5 bg-gradient-to-r from-transparent via-white to-transparent animate-[pulse_1s_ease-in-out_infinite]"></div>
+                  {/* Ligne de scan animée plus rapide dans la zone de délimitation */}
+                  <div className="absolute inset-8 flex items-center justify-center">
+                    <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-white to-transparent animate-[pulse_1s_ease-in-out_infinite]"></div>
                   </div>
                 </div>
               </div>
