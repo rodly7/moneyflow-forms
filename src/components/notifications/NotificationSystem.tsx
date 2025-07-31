@@ -63,8 +63,11 @@ const NotificationSystem = () => {
         };
       }).filter(Boolean) || [];
 
+      // Filtrer pour ne garder que les notifications non lues pour la cloche
+      const unreadNotifications = formattedNotifications.filter(n => !n.read_at);
+      
       setNotifications(formattedNotifications);
-      setUnreadCount(formattedNotifications.filter(n => !n.read_at).length);
+      setUnreadCount(unreadNotifications.length);
     } catch (error) {
       console.error('Erreur lors du chargement des notifications:', error);
     }
@@ -165,7 +168,7 @@ const NotificationSystem = () => {
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -189,32 +192,29 @@ const NotificationSystem = () => {
               <div className="p-4 text-center text-gray-500">
                 Chargement...
               </div>
-            ) : notifications.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">
-                Aucune notification
+            ) : notifications.filter(n => !n.read_at).length === 0 ? (
+              <div className="p-4 text-center text-muted-foreground">
+                Aucune nouvelle notification
               </div>
             ) : (
-              notifications.map((notification) => (
+              // Afficher seulement les notifications non lues
+              notifications.filter(n => !n.read_at).map((notification) => (
                 <Card
                   key={notification.id}
-                  className={`m-2 cursor-pointer border-l-4 ${getPriorityColor(notification.priority)} ${
-                    !notification.read_at ? 'bg-blue-50' : ''
-                  }`}
-                  onClick={() => !notification.read_at && markAsRead(notification.id)}
+                  className={`m-2 cursor-pointer border-l-4 ${getPriorityColor(notification.priority)} bg-muted/50 hover:bg-muted transition-colors`}
+                  onClick={() => markAsRead(notification.id)}
                 >
                   <CardContent className="p-3">
                     <div className="flex items-start gap-2">
                       {getNotificationIcon(notification.notification_type)}
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm">{notification.title}</h4>
-                        <p className="text-xs text-gray-600 mt-1">{notification.message}</p>
-                        <p className="text-xs text-gray-400 mt-2">
+                        <h4 className="font-medium text-sm text-foreground">{notification.title}</h4>
+                        <p className="text-xs text-muted-foreground mt-1">{notification.message}</p>
+                        <p className="text-xs text-muted-foreground/60 mt-2">
                           {new Date(notification.created_at).toLocaleString('fr-FR')}
                         </p>
                       </div>
-                      {!notification.read_at && (
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      )}
+                      <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
                     </div>
                   </CardContent>
                 </Card>
