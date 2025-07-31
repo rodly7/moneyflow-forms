@@ -21,6 +21,7 @@ const FastQRScanner = ({
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [error, setError] = useState<string>('');
   const [isScanning, setIsScanning] = useState(false);
+  const [scannedUsers, setScannedUsers] = useState<Array<{ userId: string; fullName: string; phone: string; timestamp: string }>>([]);
 
   const startScanner = async () => {
     try {
@@ -30,67 +31,92 @@ const FastQRScanner = ({
       const scanner = new Html5Qrcode("fast-qr-scanner");
       scannerRef.current = scanner;
 
-      // Configuration optimisée pour détection rapide des données utilisateur
+      // Configuration optimisée pour détection continue
       await scanner.start(
         { facingMode: "environment" },
         {
-          fps: 10, // FPS optimisé pour rapidité
-          qrbox: { width: 250, height: 250 }, // Zone optimisée
+          fps: 15, // FPS élevé pour détection continue
           aspectRatio: 1.0
         },
         (decodedText) => {
           console.log('QR détecté:', decodedText);
-          
-          // Arrêt immédiat pour éviter les scans multiples
-          stopScanner();
           
           try {
             // Tentative de parsing JSON pour les QR codes utilisateur
             const userData = JSON.parse(decodedText);
             console.log('Données utilisateur parsées:', userData);
             
+            let finalUserData;
+            
             // Vérification stricte des données utilisateur
             if (userData.userId && userData.fullName && userData.phone) {
               console.log('QR utilisateur valide détecté');
-              onScanSuccess({
+              finalUserData = {
                 userId: userData.userId,
                 fullName: userData.fullName,
                 phone: userData.phone
-              });
+              };
             } else if (userData.id && userData.name && userData.phone) {
               // Format alternatif
               console.log('QR utilisateur format alternatif détecté');
-              onScanSuccess({
+              finalUserData = {
                 userId: userData.id,
                 fullName: userData.name,
                 phone: userData.phone
-              });
+              };
             } else {
               // Données JSON incomplètes
               console.log('Données JSON incomplètes, utilisation de fallback');
-              onScanSuccess({
+              finalUserData = {
                 userId: userData.userId || userData.id || 'user-' + Date.now(),
-                fullName: userData.fullName || userData.name || userData.fullName || 'Utilisateur',
+                fullName: userData.fullName || userData.name || 'Utilisateur',
                 phone: userData.phone || userData.tel || userData.telephone || decodedText
-              });
+              };
             }
+            
+            // Ajouter à la liste des utilisateurs scannés avec horodatage
+            const newUser = {
+              ...finalUserData,
+              timestamp: new Date().toLocaleTimeString()
+            };
+            
+            setScannedUsers(prev => {
+              // Éviter les doublons récents (même userId dans les 2 dernières secondes)
+              const now = Date.now();
+              const filtered = prev.filter(user => 
+                user.userId !== finalUserData.userId || 
+                (now - new Date(`1970-01-01 ${user.timestamp}`).getTime()) > 2000
+              );
+              return [newUser, ...filtered].slice(0, 5); // Garder seulement les 5 derniers
+            });
+            
+            // Appeler onScanSuccess pour les composants parents
+            onScanSuccess(finalUserData);
+            
           } catch (parseError) {
             console.log('Erreur parsing JSON, traitement comme texte simple:', parseError);
             
             // Si ce n'est pas du JSON, traiter comme numéro de téléphone
             const cleanedText = decodedText.replace(/[^+\d]/g, '');
             if (cleanedText.length >= 8) {
-              onScanSuccess({
+              const finalUserData = {
                 userId: 'qr-user-' + Date.now(),
                 fullName: 'Utilisateur QR',
                 phone: cleanedText
-              });
+              };
+              
+              const newUser = {
+                ...finalUserData,
+                timestamp: new Date().toLocaleTimeString()
+              };
+              
+              setScannedUsers(prev => [newUser, ...prev].slice(0, 5));
+              onScanSuccess(finalUserData);
             } else {
               setError('QR code non reconnu comme données utilisateur');
-              return;
+              setTimeout(() => setError(''), 3000);
             }
           }
-          onClose();
         },
         (errorMessage) => {
           // Log silencieux des erreurs de scan
@@ -166,19 +192,29 @@ const FastQRScanner = ({
         />
       </div>
 
-      {/* Footer */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 pb-[env(safe-area-inset-bottom)]">
-        <div className="text-center mb-4">
-          <h3 className="text-white text-lg font-medium mb-2">{title}</h3>
-          <p className="text-white/80 text-sm">Positionnez le QR code dans le cadre</p>
+      {/* Affichage des utilisateurs scannés */}
+      {scannedUsers.length > 0 && (
+        <div className="absolute bottom-0 left-0 right-0 p-4 pb-[env(safe-area-inset-bottom)] max-h-64 overflow-y-auto">
+          <div className="space-y-2">
+            {scannedUsers.map((user, index) => (
+              <div key={`${user.userId}-${user.timestamp}`} className="bg-white/90 backdrop-blur rounded-lg p-3 text-black">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-sm">{user.fullName}</h4>
+                    <p className="text-xs text-gray-600">{user.phone}</p>
+                    <p className="text-xs text-gray-500">ID: {user.userId}</p>
+                  </div>
+                  <span className="text-xs text-gray-500 ml-2">{user.timestamp}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        
-        <button
-          onClick={simulateQRScan}
-          className="w-full bg-white text-black py-3 rounded-xl font-medium"
-        >
-          Scanner un code test
-        </button>
+      )}
+
+      {/* Instructions PWA */}
+      <div className="absolute bottom-4 left-4 right-4 text-center">
+        <p className="text-white/80 text-sm">Détection automatique continue - Mode PWA</p>
       </div>
 
       {/* Message d'erreur */}
