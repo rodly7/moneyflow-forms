@@ -119,12 +119,12 @@ export const calculateFee = (
     if (amount < 350000) {
       rate = 6.5;
       fee = amount * 0.065; // 6,5%
-    } else if (amount <= 750000) {
+    } else if (amount <= 850000) {
+      rate = 5.5;
+      fee = amount * 0.055; // 5,5%
+    } else {
       rate = 4.5;
       fee = amount * 0.045; // 4,5%
-    } else {
-      rate = 3.5;
-      fee = amount * 0.035; // 3,5%
     }
   }
   

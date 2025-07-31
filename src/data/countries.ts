@@ -84,30 +84,6 @@ export const countries: Country[] = [
     paymentMethods: ["Orange Money", "MTN Mobile Money", "Moov Money"]
   },
   {
-    name: "Mali",
-    code: "+223",
-    cities: [
-      { name: "Bamako" },
-      { name: "Sikasso" },
-      { name: "Mopti" },
-      { name: "Koutiala" },
-      { name: "Ségou" }
-    ],
-    paymentMethods: ["Orange Money", "Malitel Money"]
-  },
-  {
-    name: "Burkina Faso",
-    code: "+226",
-    cities: [
-      { name: "Ouagadougou" },
-      { name: "Bobo-Dioulasso" },
-      { name: "Koudougou" },
-      { name: "Ouahigouya" },
-      { name: "Banfora" }
-    ],
-    paymentMethods: ["Orange Money", "Moov Money"]
-  },
-  {
     name: "Guinée",
     code: "+224",
     cities: [
@@ -132,18 +108,6 @@ export const countries: Country[] = [
     paymentMethods: ["Moov Money", "T-Money"]
   },
   {
-    name: "Bénin",
-    code: "+229",
-    cities: [
-      { name: "Cotonou" },
-      { name: "Porto-Novo" },
-      { name: "Parakou" },
-      { name: "Djougou" },
-      { name: "Bohicon" }
-    ],
-    paymentMethods: ["MTN Mobile Money", "Moov Money"]
-  },
-  {
     name: "Niger",
     code: "+227",
     cities: [
@@ -154,18 +118,6 @@ export const countries: Country[] = [
       { name: "Tahoua" }
     ],
     paymentMethods: ["Orange Money", "Moov Money"]
-  },
-  {
-    name: "Tchad",
-    code: "+235",
-    cities: [
-      { name: "N'Djamena" },
-      { name: "Moundou" },
-      { name: "Sarh" },
-      { name: "Abéché" },
-      { name: "Kelo" }
-    ],
-    paymentMethods: ["Airtel Money", "Tigo Cash"]
   },
   {
     name: "Centrafrique",
@@ -180,27 +132,37 @@ export const countries: Country[] = [
     paymentMethods: ["Orange Money", "Moov Money"]
   },
   {
-    name: "Ghana",
-    code: "+233",
+    name: "France",
+    code: "+33",
     cities: [
-      { name: "Accra" },
-      { name: "Kumasi" },
-      { name: "Tamale" },
-      { name: "Takoradi" },
-      { name: "Cape Coast" }
+      { name: "Paris" },
+      { name: "Marseille" },
+      { name: "Lyon" },
+      { name: "Toulouse" },
+      { name: "Nice" },
+      { name: "Nantes" },
+      { name: "Strasbourg" },
+      { name: "Bordeaux" },
+      { name: "Lille" },
+      { name: "Rennes" }
     ],
-    paymentMethods: ["MTN Mobile Money", "Vodafone Cash", "AirtelTigo Money"]
+    paymentMethods: ["Carte Bancaire", "PayPal", "Virement", "Lydia"]
   },
   {
-    name: "Nigeria",
-    code: "+234",
+    name: "Canada",
+    code: "+1",
     cities: [
-      { name: "Lagos" },
-      { name: "Kano" },
-      { name: "Ibadan" },
-      { name: "Abuja" },
-      { name: "Port Harcourt" }
+      { name: "Toronto" },
+      { name: "Montreal" },
+      { name: "Vancouver" },
+      { name: "Calgary" },
+      { name: "Ottawa" },
+      { name: "Edmonton" },
+      { name: "Winnipeg" },
+      { name: "Quebec" },
+      { name: "Hamilton" },
+      { name: "Kitchener" }
     ],
-    paymentMethods: ["Paga", "OPay", "PalmPay", "Kuda"]
+    paymentMethods: ["Interac e-Transfer", "PayPal", "Virement", "Paymi"]
   }
 ];

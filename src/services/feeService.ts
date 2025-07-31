@@ -77,10 +77,10 @@ export const calculateTransactionFees = (
       // Transferts internationaux : frais progressifs
       if (amount < 350000) {
         return amount * 0.065; // 6,5%
-      } else if (amount <= 750000) {
-        return amount * 0.045; // 4,5%
+      } else if (amount <= 850000) {
+        return amount * 0.055; // 5,5%
       } else {
-        return amount * 0.035; // 3,5%
+        return amount * 0.045; // 4,5%
       }
     }
   } else if (transactionType === 'withdrawal') {
