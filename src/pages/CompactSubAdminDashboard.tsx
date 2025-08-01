@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Users, Shield, DollarSign, Activity, Eye, UserPlus, BarChart3, Bell, TrendingUp } from "lucide-react";
+import { ArrowLeft, Users, Shield, DollarSign, Activity, Eye, UserPlus, BarChart3, Bell, TrendingUp, Bug } from "lucide-react";
 import AdminNotificationBell from "@/components/admin/AdminNotificationBell";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +31,9 @@ import CommissionSummaryCard from "@/components/admin/CommissionSummaryCard";
 import { useActiveAgentLocations } from "@/hooks/useAgentLocations";
 import AgentLocationMap from "@/components/admin/AgentLocationMap";
 import { AgentQuotaTracker } from "@/components/admin/AgentQuotaTracker";
+import { TerritorialAgentManager } from "@/components/admin/TerritorialAgentManager";
+import { TerritorialStatsCard } from "@/components/admin/TerritorialStatsCard";
+import { BugReportSystem } from "@/components/admin/BugReportSystem";
 
 interface StatsData {
   totalUsers: number;
@@ -55,7 +58,7 @@ const CompactSubAdminDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isSubAdmin, canDepositToAgent } = useSubAdmin();
+  const { isSubAdmin, canDepositToAgent, userCountry } = useSubAdmin();
   const { data: dashboardData, isLoading: isLoadingDashboard } = useAdminDashboardData();
   const { transactions, withdrawals, isLoading: isLoadingTransactions, deleteTransaction } = useRealtimeTransactions(user?.id);
   const { data: agentLocations, isLoading: isLoadingLocations } = useActiveAgentLocations();
@@ -277,7 +280,7 @@ const CompactSubAdminDashboard = () => {
           console.log('Changing tab to:', value);
           setActiveTab(value);
         }} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-7 h-12">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 h-12">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
               <span className="hidden sm:inline">Tableau de bord</span>
@@ -289,6 +292,10 @@ const CompactSubAdminDashboard = () => {
             <TabsTrigger value="agents" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
               <span className="hidden sm:inline">Agents</span>
+            </TabsTrigger>
+            <TabsTrigger value="territorial" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden sm:inline">Territoire</span>
             </TabsTrigger>
             <TabsTrigger value="quotas" className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
@@ -302,49 +309,15 @@ const CompactSubAdminDashboard = () => {
               <Bell className="w-4 h-4" />
               <span className="hidden sm:inline">Notifications</span>
             </TabsTrigger>
-            <TabsTrigger value="deposits" className="flex items-center gap-2">
-              <UserPlus className="w-4 h-4" />
-              <span className="hidden sm:inline">Dépôts</span>
+            <TabsTrigger value="reports" className="flex items-center gap-2">
+              <Bug className="w-4 h-4" />
+              <span className="hidden sm:inline">Rapports</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4">
-            {/* Tableau de bord complet - Solde total masqué */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border-blue-200/60">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-blue-700">Total Utilisateurs</p>
-                      <p className="text-2xl font-bold text-blue-900">{stats.totalUsers}</p>
-                    </div>
-                    <Users className="w-8 h-8 text-blue-600" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-gradient-to-br from-emerald-50 to-teal-100 border-emerald-200/60">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-emerald-700">Total Agents</p>
-                      <p className="text-2xl font-bold text-emerald-900">{stats.totalAgents}</p>
-                    </div>
-                    <Shield className="w-8 h-8 text-emerald-600" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-gradient-to-br from-amber-50 to-orange-100 border-amber-200/60">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-amber-700">Transactions</p>
-                      <p className="text-2xl font-bold text-amber-900">{stats.totalTransactions}</p>
-                    </div>
-                    <Activity className="w-8 h-8 text-amber-600" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Statistiques territoriales */}
+            <TerritorialStatsCard />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <LowBalanceAgentsCard 
@@ -394,13 +367,16 @@ const CompactSubAdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="agents" className="space-y-4">
+            {/* Gestion territoriale des agents */}
+            <TerritorialAgentManager />
+            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card>
                 <CardContent className="p-4">
                   <div className="mb-4">
-                    <h3 className="font-semibold text-lg">Performances des Agents</h3>
+                    <h3 className="font-semibold text-lg">Performances des Agents - {userCountry}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Tableau de bord de performance des agents actifs
+                      Tableau de bord de performance des agents de votre territoire
                     </p>
                   </div>
                   <div className="space-y-4">
@@ -415,15 +391,15 @@ const CompactSubAdminDashboard = () => {
               <Card>
                 <CardContent className="p-4">
                   <div className="mb-4">
-                    <h3 className="font-semibold text-lg">Résumé des Commissions</h3>
+                    <h3 className="font-semibold text-lg">Commissions Territoriales</h3>
                     <p className="text-sm text-muted-foreground">
-                      Vue d'ensemble des commissions générées
+                      Résumé des commissions dans votre zone
                     </p>
                   </div>
                   <div className="space-y-4">
                     <div className="text-center py-8">
                       <DollarSign className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground">Résumé des commissions à venir</p>
+                      <p className="text-muted-foreground">Relevés des commissions à venir</p>
                     </div>
                   </div>
                 </CardContent>
@@ -433,9 +409,9 @@ const CompactSubAdminDashboard = () => {
             <Card>
               <CardContent className="p-4">
                 <div className="mb-4">
-                  <h3 className="font-semibold text-lg">Localisation des Agents</h3>
+                  <h3 className="font-semibold text-lg">Localisation des Agents - {userCountry}</h3>
                   <p className="text-sm text-muted-foreground">
-                    Carte géographique des agents actifs
+                    Carte géographique des agents de votre territoire
                   </p>
                 </div>
                 <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
@@ -530,28 +506,29 @@ const CompactSubAdminDashboard = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="deposits" className="space-y-4">
+          <TabsContent value="territorial" className="space-y-4">
             <div className="space-y-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="mb-4">
-                    <h3 className="font-semibold text-lg">Système de Dépôt Personnalisé</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Outils de dépôt et de gestion des soldes pour les agents
-                    </p>
-                  </div>
-                  <CustomDepositSystem />
-                </CardContent>
-              </Card>
+              <TerritorialStatsCard />
               
-              {canDepositToAgent && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <CustomDepositSystem />
                 <Card>
                   <CardContent className="p-4">
+                    <div className="mb-4">
+                      <h3 className="font-semibold text-lg">Dépôts Agents - {userCountry}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Dépôts pour les agents de votre territoire
+                      </p>
+                    </div>
                     <BatchAgentDeposit onBack={() => setActiveTab("dashboard")} />
                   </CardContent>
                 </Card>
-              )}
+              </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="reports" className="space-y-4">
+            <BugReportSystem />
           </TabsContent>
         </Tabs>
 
