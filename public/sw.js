@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sendflow-v2';
+const CACHE_NAME = 'sendflow-v' + new Date().getTime();
 const urlsToCache = [
   '/',
   '/static/js/bundle.js',

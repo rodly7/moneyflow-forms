@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { calculateFee } from "@/integrations/supabase/client";
 import { useReceiptGeneration } from "./useReceiptGeneration";
+import { transactionLimitService } from "@/services/transactionLimitService";
 
 type PendingTransferInfo = {
   recipientPhone: string;
@@ -41,6 +42,7 @@ export function useTransferForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [pendingTransferInfo, setPendingTransferInfo] = useState<PendingTransferInfo | null>(null);
   const [showTransferConfirmation, setShowTransferConfirmation] = useState(false);
+  const [showBiometricConfirmation, setShowBiometricConfirmation] = useState(false);
 
   const [data, setData] = useState<FormData>({
     recipient: {
@@ -96,8 +98,30 @@ export function useTransferForm() {
       return;
     }
 
-    setIsLoading(true);
+    // Vérifier la limite mensuelle avant de procéder
+    const { canTransfer, message } = await transactionLimitService.checkMonthlyLimit(
+      user.id,
+      data.transfer.amount
+    );
+
+    if (!canTransfer) {
+      toast({
+        title: "Limite mensuelle dépassée",
+        description: message,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setShowTransferConfirmation(false);
+    setShowBiometricConfirmation(true);
+  };
+
+  const processFinalTransfer = async () => {
+    if (!user || !profile) return;
+
+    setIsLoading(true);
+    setShowBiometricConfirmation(false);
 
     try {
       const senderCountry = profile.country || "Cameroun";
@@ -108,13 +132,6 @@ export function useTransferForm() {
         userRole || 'user'
       );
 
-      console.log('Tentative de transfert avec les données:', {
-        sender_id: user.id,
-        recipient_identifier: data.recipient.phone,
-        transfer_amount: data.transfer.amount,
-        transfer_fees: fee
-      });
-
       const { data: result, error } = await supabase.rpc('process_money_transfer', {
         sender_id: user.id,
         recipient_identifier: data.recipient.phone,
@@ -122,12 +139,7 @@ export function useTransferForm() {
         transfer_fees: fee
       });
 
-      if (error) {
-        console.error('Erreur RPC:', error);
-        throw error;
-      }
-
-      console.log('Résultat du transfert:', result);
+      if (error) throw error;
 
       const { data: pendingTransfer, error: pendingError } = await supabase
         .from('pending_transfers')
@@ -188,11 +200,14 @@ export function useTransferForm() {
     isLoading,
     pendingTransferInfo,
     showTransferConfirmation,
+    showBiometricConfirmation,
     updateFields,
     back,
     handleSubmit,
     handleConfirmedTransfer,
+    processFinalTransfer,
     resetForm,
-    setShowTransferConfirmation
+    setShowTransferConfirmation,
+    setShowBiometricConfirmation
   };
 }

@@ -6,6 +6,7 @@ import TransferDetails from "./transfer-steps/TransferDetails";
 import TransferSummary from "./transfer-steps/TransferSummary";
 import TransferStepper from "./transfer/TransferStepper";
 import SimpleHtmlTransferConfirmation from "./transfer/SimpleHtmlTransferConfirmation";
+import { BiometricConfirmation } from "@/components/security/BiometricConfirmation";
 import { useTransferForm } from "@/hooks/useTransferForm";
 import { useState } from "react";
 import { CheckCircle, Copy } from "lucide-react";
@@ -19,12 +20,15 @@ const TransferForm = () => {
     isLoading,
     pendingTransferInfo,
     showTransferConfirmation,
+    showBiometricConfirmation,
     updateFields,
     back,
     handleSubmit,
     handleConfirmedTransfer,
+    processFinalTransfer,
     resetForm,
-    setShowTransferConfirmation
+    setShowTransferConfirmation,
+    setShowBiometricConfirmation
   } = useTransferForm();
 
   const [copied, setCopied] = useState(false);
@@ -171,6 +175,16 @@ const TransferForm = () => {
           senderCountry: profile?.country || "Cameroun"
         }}
         isProcessing={isLoading}
+      />
+
+      {/* Confirmation biométrique */}
+      <BiometricConfirmation
+        isOpen={showBiometricConfirmation}
+        onClose={() => setShowBiometricConfirmation(false)}
+        onConfirm={processFinalTransfer}
+        amount={data.transfer.amount}
+        operationType="Transfert d'argent"
+        recipient={data.recipient.fullName}
       />
     </div>
   );

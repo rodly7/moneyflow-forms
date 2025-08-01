@@ -143,12 +143,47 @@ const NotificationSystem = () => {
           table: 'notification_recipients',
           filter: `user_id=eq.${user.id}`
         },
-        () => {
-          fetchNotifications();
-          toast({
-            title: "Nouvelle notification",
-            description: "Vous avez reçu une nouvelle notification",
-          });
+        async (payload) => {
+          await fetchNotifications();
+          
+          // Récupérer les détails de la notification
+          const { data: notification } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('id', payload.new.notification_id)
+            .single();
+
+          if (notification) {
+            // Gérer spécialement les notifications d'argent reçu
+            if (notification.title === 'Argent reçu') {
+              toast({
+                title: "💰 " + notification.title,
+                description: notification.message,
+                duration: 10000,
+                action: (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      markAsRead(notification.id);
+                      toast({
+                        title: "✅ Réception confirmée",
+                        description: "Merci d'avoir confirmé la réception",
+                        duration: 3000
+                      });
+                    }}
+                  >
+                    Confirmer
+                  </Button>
+                )
+              });
+            } else {
+              toast({
+                title: "Nouvelle notification",
+                description: notification.message,
+              });
+            }
+          }
         }
       )
       .subscribe();

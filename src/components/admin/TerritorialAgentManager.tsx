@@ -31,16 +31,36 @@ export const TerritorialAgentManager = () => {
     
     setIsLoading(true);
     try {
+      console.log('Fetching agents for country:', userCountry);
+      
+      // Récupérer d'abord les profils du pays pour obtenir les user_ids
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('country', userCountry);
+
+      if (profilesError) throw profilesError;
+      
+      if (!profiles || profiles.length === 0) {
+        console.log('No profiles found for country:', userCountry);
+        setAgents([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const userIds = profiles.map(p => p.id);
+      console.log('Found user IDs:', userIds);
+
+      // Récupérer les agents correspondants
       const { data, error } = await supabase
         .from('agents')
-        .select(`
-          *,
-          profiles!inner(country)
-        `)
-        .eq('profiles.country', userCountry)
+        .select('*')
+        .in('user_id', userIds)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
+      console.log('Fetched agents:', data);
       setAgents(data || []);
     } catch (error) {
       console.error('Erreur lors du chargement des agents:', error);

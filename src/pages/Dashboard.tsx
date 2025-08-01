@@ -14,6 +14,7 @@ import { useBalanceCheck } from "@/hooks/useBalanceCheck";
 import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import MobileOptimizedDashboard from "@/components/mobile/MobileOptimizedDashboard";
 import NotificationSystem from "@/components/notifications/NotificationSystem";
+import { MonthlyLimitCard } from "@/components/dashboard/MonthlyLimitCard";
 
 const Dashboard = () => {
   const { user, profile, signOut } = useAuth();
@@ -316,6 +317,9 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Monthly Limit Card */}
+        <MonthlyLimitCard />
 
         {/* Beautiful Actions Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
