@@ -508,6 +508,148 @@ export type Database = {
           },
         ]
       }
+      automatic_bills: {
+        Row: {
+          amount: number
+          bill_name: string
+          created_at: string
+          due_date: string
+          id: string
+          is_automated: boolean
+          last_payment_date: string | null
+          max_attempts: number
+          next_due_date: string | null
+          payment_attempts: number
+          priority: number
+          recurrence: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          bill_name: string
+          created_at?: string
+          due_date: string
+          id?: string
+          is_automated?: boolean
+          last_payment_date?: string | null
+          max_attempts?: number
+          next_due_date?: string | null
+          payment_attempts?: number
+          priority?: number
+          recurrence?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          bill_name?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          is_automated?: boolean
+          last_payment_date?: string | null
+          max_attempts?: number
+          next_due_date?: string | null
+          payment_attempts?: number
+          priority?: number
+          recurrence?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      bill_notifications: {
+        Row: {
+          bill_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          notification_type: string
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          bill_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          notification_type: string
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          bill_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          notification_type?: string
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_notifications_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "automatic_bills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bill_payment_history: {
+        Row: {
+          amount: number
+          attempt_number: number
+          balance_after: number | null
+          balance_before: number
+          bill_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          payment_date: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          attempt_number?: number
+          balance_after?: number | null
+          balance_before: number
+          bill_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          payment_date?: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          attempt_number?: number
+          balance_after?: number | null
+          balance_before?: number
+          bill_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          payment_date?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_payment_history_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "automatic_bills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cities: {
         Row: {
           country_id: number
@@ -1480,6 +1622,10 @@ export type Database = {
       is_verified_agent: {
         Args: { user_id_param: string }
         Returns: boolean
+      }
+      process_automatic_bill_payment: {
+        Args: { bill_id_param: string }
+        Returns: Json
       }
       process_international_deposit: {
         Args: {
