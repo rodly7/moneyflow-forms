@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Zap, Wifi, Tv, Droplets, Settings } from "lucide-react";
+import { ArrowLeft, Zap, Wifi, Tv, Droplets, Settings, QrCode } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { AutomaticBillsManager } from "@/components/bills/AutomaticBillsManager";
+import { BillQRScanner } from "@/components/bills/BillQRScanner";
 
 const BillPayments = () => {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ const BillPayments = () => {
   const [selectedService, setSelectedService] = useState("electricity");
   const [savedMeterNumbers, setSavedMeterNumbers] = useState<{[key: string]: string}>({});
   const [activeTab, setActiveTab] = useState<'manual' | 'automatic'>('manual');
+  const [showQRScanner, setShowQRScanner] = useState(false);
 
   const feeRate = 0.015; // 1.5% frais
 
@@ -188,6 +190,18 @@ const BillPayments = () => {
     water: ["SDE", "SODECI", "CAMWATER", "EDM"]
   };
 
+  const handleQRScanSuccess = (billData: any) => {
+    // Remplir automatiquement les champs avec les données du QR code
+    setSelectedService(billData.serviceType);
+    setProvider(billData.provider);
+    setAccountNumber(billData.accountNumber);
+    if (billData.amount) {
+      setAmount(billData.amount);
+    }
+    setShowQRScanner(false);
+    alert(`QR code scanné avec succès!\nFournisseur: ${billData.provider}\nCompte: ${billData.accountNumber}`);
+  };
+
   const handleVerifyDetails = () => {
     if (!accountNumber || !amount || !provider) {
       alert("Veuillez remplir tous les champs");
@@ -250,9 +264,21 @@ const BillPayments = () => {
                 <p className="text-center text-sm text-gray-600">
                   (Électricité, Eau, Wi-Fi, TV…)
                 </p>
-                <p className="text-center text-xs text-blue-600 mt-2">
-                  Nous vous afficherons automatiquement les entreprises disponibles selon votre pays.
-                </p>
+                 <p className="text-center text-xs text-blue-600 mt-2">
+                   Nous vous afficherons automatiquement les entreprises disponibles selon votre pays.
+                 </p>
+                 
+                 {/* QR Scanner Button */}
+                 <div className="mt-4 text-center">
+                   <Button
+                     onClick={() => setShowQRScanner(true)}
+                     variant="outline"
+                     className="bg-gradient-to-r from-purple-500 to-blue-500 text-white border-0 hover:opacity-90"
+                   >
+                     <QrCode className="h-4 w-4 mr-2" />
+                     Scanner QR Facture
+                   </Button>
+                 </div>
               </CardHeader>
               <CardContent>
                 {/* Country Selection - Rempli automatiquement */}
@@ -431,6 +457,14 @@ const BillPayments = () => {
               </CardContent>
             </Card>
           </div>
+        )}
+        
+        {/* QR Scanner Modal */}
+        {showQRScanner && (
+          <BillQRScanner
+            onScanSuccess={handleQRScanSuccess}
+            onClose={() => setShowQRScanner(false)}
+          />
         )}
       </div>
     </div>
