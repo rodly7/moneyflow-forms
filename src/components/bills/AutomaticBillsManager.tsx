@@ -114,6 +114,34 @@ export const AutomaticBillsManager = () => {
     }
   };
 
+  const billOptions = [
+    { value: 'electricity_senelec', label: 'Électricité SENELEC' },
+    { value: 'electricity_edm', label: 'Électricité EDM' },
+    { value: 'electricity_cie', label: 'Électricité CIE' },
+    { value: 'electricity_eneo', label: 'Électricité ENEO' },
+    { value: 'water_sde', label: 'Eau SDE' },
+    { value: 'water_sodeci', label: 'Eau SODECI' },
+    { value: 'water_camwater', label: 'Eau CAMWATER' },
+    { value: 'internet_orange', label: 'Internet Orange' },
+    { value: 'internet_free', label: 'Internet Free' },
+    { value: 'internet_mtn', label: 'Internet MTN' },
+    { value: 'internet_moov', label: 'Internet Moov' },
+    { value: 'tv_canal', label: 'TV Canal+' },
+    { value: 'tv_startimes', label: 'TV StarTimes' },
+    { value: 'phone_orange', label: 'Téléphone Orange' },
+    { value: 'phone_mtn', label: 'Téléphone MTN' },
+    { value: 'phone_moov', label: 'Téléphone Moov' },
+    { value: 'rent', label: 'Loyer' },
+    { value: 'insurance', label: 'Assurance' },
+    { value: 'school_fees', label: 'Frais de scolarité' },
+    { value: 'other', label: 'Autre' }
+  ];
+
+  const getBillName = (value: string) => {
+    const option = billOptions.find(opt => opt.value === value);
+    return option ? option.label : value;
+  };
+
   const getRecurrenceText = (recurrence: string) => {
     switch (recurrence) {
       case 'monthly': return 'Mensuelle';
@@ -305,7 +333,7 @@ export const AutomaticBillsManager = () => {
               <div className="flex flex-between mb-2" style={{ marginBottom: '12px' }}>
                 <div className="flex flex-gap" style={{ alignItems: 'center' }}>
                   <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>
-                    {bill.bill_name}
+                    {getBillName(bill.bill_name)}
                   </h3>
                   <span className="badge" style={{
                     backgroundColor: bill.status === 'pending' ? '#fef3c7' : bill.status === 'paid' ? '#dcfce7' : '#fee2e2',
@@ -426,15 +454,20 @@ export const AutomaticBillsManager = () => {
               
               <form onSubmit={handleCreateBill}>
                 <div className="form-group">
-                  <label className="form-label">Nom de la facture</label>
-                  <input
-                    className="form-input"
-                    type="text"
+                  <label className="form-label">Type de facture</label>
+                  <select
+                    className="form-select"
                     value={formData.bill_name}
                     onChange={(e) => setFormData({ ...formData, bill_name: e.target.value })}
-                    placeholder="Ex: Électricité, Loyer, Internet..."
                     required
-                  />
+                  >
+                    <option value="">Sélectionnez un type de facture</option>
+                    {billOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div className="form-group">
@@ -533,14 +566,20 @@ export const AutomaticBillsManager = () => {
               
               <form onSubmit={handleEditBill}>
                 <div className="form-group">
-                  <label className="form-label">Nom de la facture</label>
-                  <input
-                    className="form-input"
-                    type="text"
+                  <label className="form-label">Type de facture</label>
+                  <select
+                    className="form-select"
                     value={formData.bill_name}
                     onChange={(e) => setFormData({ ...formData, bill_name: e.target.value })}
                     required
-                  />
+                  >
+                    <option value="">Sélectionnez un type de facture</option>
+                    {billOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div className="form-group">
