@@ -1,13 +1,4 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Plus, Calendar, Clock, AlertTriangle, CheckCircle, X, Edit, Trash2 } from 'lucide-react';
 import { useAutomaticBills } from '@/hooks/useAutomaticBills';
 import { format } from 'date-fns';
@@ -26,10 +17,10 @@ export const AutomaticBillsManager = () => {
     fetchPaymentHistory
   } = useAutomaticBills();
 
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedBill, setSelectedBill] = useState<any>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const [formData, setFormData] = useState({
     bill_name: '',
@@ -52,7 +43,7 @@ export const AutomaticBillsManager = () => {
         is_automated: formData.is_automated,
         status: 'pending'
       });
-      setIsCreateDialogOpen(false);
+      setShowCreateForm(false);
       setFormData({
         bill_name: '',
         amount: '',
@@ -79,14 +70,14 @@ export const AutomaticBillsManager = () => {
         priority: parseInt(formData.priority),
         is_automated: formData.is_automated
       });
-      setIsEditDialogOpen(false);
+      setShowEditForm(false);
       setSelectedBill(null);
     } catch (error) {
       console.error('Error updating bill:', error);
     }
   };
 
-  const openEditDialog = (bill: any) => {
+  const openEditForm = (bill: any) => {
     setSelectedBill(bill);
     setFormData({
       bill_name: bill.bill_name,
@@ -96,38 +87,30 @@ export const AutomaticBillsManager = () => {
       priority: bill.priority.toString(),
       is_automated: bill.is_automated
     });
-    setIsEditDialogOpen(true);
+    setShowEditForm(true);
   };
 
-  const openHistoryDialog = (bill: any) => {
+  const openHistory = (bill: any) => {
     setSelectedBill(bill);
     fetchPaymentHistory(bill.id);
-    setIsHistoryDialogOpen(true);
+    setShowHistory(true);
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending':
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700"><Clock className="w-3 h-3 mr-1" />En attente</Badge>;
-      case 'paid':
-        return <Badge variant="outline" className="bg-green-50 text-green-700"><CheckCircle className="w-3 h-3 mr-1" />Payée</Badge>;
-      case 'failed':
-        return <Badge variant="outline" className="bg-red-50 text-red-700"><AlertTriangle className="w-3 h-3 mr-1" />Échouée</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+      case 'pending': return 'background: #fef3c7; color: #92400e;';
+      case 'paid': return 'background: #dcfce7; color: #166534;';
+      case 'failed': return 'background: #fee2e2; color: #991b1b;';
+      default: return 'background: #f3f4f6; color: #374151;';
     }
   };
 
-  const getPriorityBadge = (priority: number) => {
+  const getPriorityColor = (priority: number) => {
     switch (priority) {
-      case 1:
-        return <Badge className="bg-red-100 text-red-800">Haute</Badge>;
-      case 2:
-        return <Badge className="bg-yellow-100 text-yellow-800">Moyenne</Badge>;
-      case 3:
-        return <Badge className="bg-green-100 text-green-800">Basse</Badge>;
-      default:
-        return <Badge variant="outline">Inconnue</Badge>;
+      case 1: return 'background: #fee2e2; color: #991b1b;';
+      case 2: return 'background: #fef3c7; color: #92400e;';
+      case 3: return 'background: #dcfce7; color: #166534;';
+      default: return 'background: #f3f4f6; color: #374151;';
     }
   };
 
@@ -145,304 +128,562 @@ export const AutomaticBillsManager = () => {
     return new Date(dueDate) < new Date();
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Factures Automatiques</h2>
-          <p className="text-muted-foreground">Gérez vos paiements automatiques</p>
-        </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Nouvelle Facture
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Créer une nouvelle facture automatique</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreateBill} className="space-y-4">
-              <div>
-                <Label htmlFor="bill_name">Nom de la facture</Label>
-                <Input
-                  id="bill_name"
-                  value={formData.bill_name}
-                  onChange={(e) => setFormData({ ...formData, bill_name: e.target.value })}
-                  placeholder="Ex: Électricité, Loyer, Internet..."
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="amount">Montant (XAF)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  placeholder="0"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="due_date">Date d'échéance</Label>
-                <Input
-                  id="due_date"
-                  type="date"
-                  value={formData.due_date}
-                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="recurrence">Récurrence</Label>
-                <Select value={formData.recurrence} onValueChange={(value) => setFormData({ ...formData, recurrence: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="monthly">Mensuelle</SelectItem>
-                    <SelectItem value="quarterly">Trimestrielle</SelectItem>
-                    <SelectItem value="yearly">Annuelle</SelectItem>
-                    <SelectItem value="once">Une fois</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="priority">Priorité</Label>
-                <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Haute</SelectItem>
-                    <SelectItem value="2">Moyenne</SelectItem>
-                    <SelectItem value="3">Basse</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="is_automated"
-                  checked={formData.is_automated}
-                  onCheckedChange={(checked) => setFormData({ ...formData, is_automated: checked })}
-                />
-                <Label htmlFor="is_automated">Paiement automatique activé</Label>
-              </div>
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  Annuler
-                </Button>
-                <Button type="submit">Créer</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+  const styles = `
+    .bill-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .overdue-card {
+      border-color: #fee2e2;
+      background: #fef2f2;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .form-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .form-container {
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-label {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 500;
+      color: #374151;
+    }
+    .form-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .form-select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 14px;
+      background: white;
+    }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+      border: 1px solid #d1d5db;
+    }
+    .btn-small {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .grid {
+      display: grid;
+    }
+    .grid-2 {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    .grid-4 {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .flex {
+      display: flex;
+    }
+    .flex-between {
+      justify-content: space-between;
+    }
+    .flex-gap {
+      gap: 8px;
+    }
+    .mb-2 {
+      margin-bottom: 8px;
+    }
+    .text-muted {
+      color: #6b7280;
+      font-size: 14px;
+    }
+    .text-semibold {
+      font-weight: 600;
+    }
+    .text-center {
+      text-align: center;
+    }
+    .alert {
+      padding: 12px;
+      border-radius: 4px;
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    @media (max-width: 768px) {
+      .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  `;
 
-      {/* Liste des factures */}
-      <div className="grid gap-4">
-        {bills.map((bill) => (
-          <Card key={bill.id} className={`${isOverdue(bill.due_date) && bill.status === 'pending' ? 'border-red-200 bg-red-50' : ''}`}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CardTitle className="text-lg">{bill.bill_name}</CardTitle>
-                  {getStatusBadge(bill.status)}
-                  {getPriorityBadge(bill.priority)}
+  return (
+    <>
+      <style>{styles}</style>
+      <div>
+        <div className="flex flex-between mb-2" style={{ marginBottom: '24px' }}>
+          <div>
+            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '4px' }}>
+              Factures Automatiques
+            </h2>
+            <p className="text-muted">Gérez vos paiements automatiques</p>
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowCreateForm(true)}
+          >
+            <Plus size={16} />
+            Nouvelle Facture
+          </button>
+        </div>
+
+        {/* Liste des factures */}
+        <div>
+          {bills.map((bill) => (
+            <div
+              key={bill.id}
+              className={`bill-card ${isOverdue(bill.due_date) && bill.status === 'pending' ? 'overdue-card' : ''}`}
+            >
+              <div className="flex flex-between mb-2" style={{ marginBottom: '12px' }}>
+                <div className="flex flex-gap" style={{ alignItems: 'center' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>
+                    {bill.bill_name}
+                  </h3>
+                  <span className="badge" style={{
+                    backgroundColor: bill.status === 'pending' ? '#fef3c7' : bill.status === 'paid' ? '#dcfce7' : '#fee2e2',
+                    color: bill.status === 'pending' ? '#92400e' : bill.status === 'paid' ? '#166534' : '#991b1b'
+                  }}>
+                    {bill.status === 'pending' && <Clock size={12} />}
+                    {bill.status === 'paid' && <CheckCircle size={12} />}
+                    {bill.status === 'failed' && <AlertTriangle size={12} />}
+                    {bill.status === 'pending' ? 'En attente' : 
+                     bill.status === 'paid' ? 'Payée' : 'Échouée'}
+                  </span>
+                  <span className="badge" style={{
+                    backgroundColor: bill.priority === 1 ? '#fee2e2' : bill.priority === 2 ? '#fef3c7' : '#dcfce7',
+                    color: bill.priority === 1 ? '#991b1b' : bill.priority === 2 ? '#92400e' : '#166534'
+                  }}>
+                    {bill.priority === 1 ? 'Haute' : 
+                     bill.priority === 2 ? 'Moyenne' : 'Basse'}
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={bill.is_automated}
-                    onCheckedChange={(checked) => toggleAutomation(bill.id, checked)}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openEditDialog(bill)}
+                <div className="flex flex-gap" style={{ alignItems: 'center' }}>
+                  <label className="checkbox-container">
+                    <input
+                      type="checkbox"
+                      checked={bill.is_automated}
+                      onChange={(e) => toggleAutomation(bill.id, e.target.checked)}
+                    />
+                    Auto
+                  </label>
+                  <button
+                    className="btn btn-secondary btn-small"
+                    onClick={() => openEditForm(bill)}
                   >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                    <Edit size={14} />
+                  </button>
+                  <button
+                    className="btn btn-secondary btn-small"
                     onClick={() => deleteBill(bill.id)}
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+
+              <div className="grid grid-4" style={{ marginBottom: '16px' }}>
                 <div>
-                  <p className="text-muted-foreground">Montant</p>
-                  <p className="font-semibold">{bill.amount.toLocaleString()} XAF</p>
+                  <p className="text-muted" style={{ margin: '0 0 4px 0' }}>Montant</p>
+                  <p className="text-semibold" style={{ margin: 0 }}>
+                    {bill.amount.toLocaleString()} XAF
+                  </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Échéance</p>
-                  <p className={`font-semibold ${isOverdue(bill.due_date) && bill.status === 'pending' ? 'text-red-600' : ''}`}>
+                  <p className="text-muted" style={{ margin: '0 0 4px 0' }}>Échéance</p>
+                  <p 
+                    className="text-semibold"
+                    style={{ 
+                      margin: 0,
+                      color: isOverdue(bill.due_date) && bill.status === 'pending' ? '#dc2626' : 'inherit'
+                    }}
+                  >
                     {format(new Date(bill.due_date), 'dd/MM/yyyy', { locale: fr })}
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Récurrence</p>
-                  <p className="font-semibold">{getRecurrenceText(bill.recurrence)}</p>
+                  <p className="text-muted" style={{ margin: '0 0 4px 0' }}>Récurrence</p>
+                  <p className="text-semibold" style={{ margin: 0 }}>
+                    {getRecurrenceText(bill.recurrence)}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Tentatives</p>
-                  <p className="font-semibold">{bill.payment_attempts}/{bill.max_attempts}</p>
+                  <p className="text-muted" style={{ margin: '0 0 4px 0' }}>Tentatives</p>
+                  <p className="text-semibold" style={{ margin: 0 }}>
+                    {bill.payment_attempts}/{bill.max_attempts}
+                  </p>
                 </div>
               </div>
-              
+
               {isOverdue(bill.due_date) && bill.status === 'pending' && (
-                <div className="flex items-center gap-2 p-2 bg-red-100 rounded text-red-700 text-sm">
-                  <AlertTriangle className="w-4 h-4" />
-                  <span>Facture en retard - Paiement automatique en cours</span>
+                <div className="alert">
+                  <AlertTriangle size={16} />
+                  Facture en retard - Paiement automatique en cours
                 </div>
               )}
 
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
+              <div className="flex flex-gap" style={{ marginTop: '12px' }}>
+                <button
+                  className="btn btn-primary btn-small"
                   onClick={() => payBillManually(bill.id)}
                   disabled={bill.status === 'paid'}
                 >
                   Payer maintenant
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => openHistoryDialog(bill)}
+                </button>
+                <button
+                  className="btn btn-secondary btn-small"
+                  onClick={() => openHistory(bill)}
                 >
                   Historique
-                </Button>
+                </button>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            </div>
+          ))}
+        </div>
 
-      {/* Dialog d'édition */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Modifier la facture</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleEditBill} className="space-y-4">
-            <div>
-              <Label htmlFor="edit_bill_name">Nom de la facture</Label>
-              <Input
-                id="edit_bill_name"
-                value={formData.bill_name}
-                onChange={(e) => setFormData({ ...formData, bill_name: e.target.value })}
-                required
-              />
+        {/* Formulaire de création */}
+        {showCreateForm && (
+          <div className="form-overlay" onClick={() => setShowCreateForm(false)}>
+            <div className="form-container" onClick={(e) => e.stopPropagation()}>
+              <div className="flex flex-between mb-2" style={{ marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>
+                  Nouvelle Facture Automatique
+                </h3>
+                <button
+                  className="btn btn-secondary btn-small"
+                  onClick={() => setShowCreateForm(false)}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              
+              <form onSubmit={handleCreateBill}>
+                <div className="form-group">
+                  <label className="form-label">Nom de la facture</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    value={formData.bill_name}
+                    onChange={(e) => setFormData({ ...formData, bill_name: e.target.value })}
+                    placeholder="Ex: Électricité, Loyer, Internet..."
+                    required
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label className="form-label">Montant (XAF)</label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                    placeholder="0"
+                    required
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label className="form-label">Date d'échéance</label>
+                  <input
+                    className="form-input"
+                    type="date"
+                    value={formData.due_date}
+                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                    required
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label className="form-label">Récurrence</label>
+                  <select
+                    className="form-select"
+                    value={formData.recurrence}
+                    onChange={(e) => setFormData({ ...formData, recurrence: e.target.value })}
+                  >
+                    <option value="monthly">Mensuelle</option>
+                    <option value="quarterly">Trimestrielle</option>
+                    <option value="yearly">Annuelle</option>
+                    <option value="once">Une fois</option>
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label className="form-label">Priorité</label>
+                  <select
+                    className="form-select"
+                    value={formData.priority}
+                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                  >
+                    <option value="1">Haute</option>
+                    <option value="2">Moyenne</option>
+                    <option value="3">Basse</option>
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label className="checkbox-container">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_automated}
+                      onChange={(e) => setFormData({ ...formData, is_automated: e.target.checked })}
+                    />
+                    Paiement automatique activé
+                  </label>
+                </div>
+                
+                <div className="flex flex-gap">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setShowCreateForm(false)}
+                  >
+                    Annuler
+                  </button>
+                  <button type="submit" className="btn btn-primary">
+                    Créer
+                  </button>
+                </div>
+              </form>
             </div>
-            <div>
-              <Label htmlFor="edit_amount">Montant (XAF)</Label>
-              <Input
-                id="edit_amount"
-                type="number"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit_due_date">Date d'échéance</Label>
-              <Input
-                id="edit_due_date"
-                type="date"
-                value={formData.due_date}
-                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit_recurrence">Récurrence</Label>
-              <Select value={formData.recurrence} onValueChange={(value) => setFormData({ ...formData, recurrence: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly">Mensuelle</SelectItem>
-                  <SelectItem value="quarterly">Trimestrielle</SelectItem>
-                  <SelectItem value="yearly">Annuelle</SelectItem>
-                  <SelectItem value="once">Une fois</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="edit_priority">Priorité</Label>
-              <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Haute</SelectItem>
-                  <SelectItem value="2">Moyenne</SelectItem>
-                  <SelectItem value="3">Basse</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="edit_is_automated"
-                checked={formData.is_automated}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_automated: checked })}
-              />
-              <Label htmlFor="edit_is_automated">Paiement automatique activé</Label>
-            </div>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                Annuler
-              </Button>
-              <Button type="submit">Sauvegarder</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </div>
+        )}
 
-      {/* Dialog d'historique */}
-      <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Historique des paiements - {selectedBill?.bill_name}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 max-h-96 overflow-y-auto">
-            {paymentHistory.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">Aucun historique de paiement</p>
-            ) : (
-              paymentHistory.map((payment) => (
-                <Card key={payment.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold">{payment.amount.toLocaleString()} XAF</p>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(payment.payment_date), 'dd/MM/yyyy à HH:mm', { locale: fr })}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Tentative #{payment.attempt_number}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        {getStatusBadge(payment.status)}
-                        {payment.error_message && (
-                          <p className="text-sm text-red-600 mt-1">{payment.error_message}</p>
-                        )}
+        {/* Formulaire d'édition */}
+        {showEditForm && (
+          <div className="form-overlay" onClick={() => setShowEditForm(false)}>
+            <div className="form-container" onClick={(e) => e.stopPropagation()}>
+              <div className="flex flex-between mb-2" style={{ marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>
+                  Modifier la Facture
+                </h3>
+                <button
+                  className="btn btn-secondary btn-small"
+                  onClick={() => setShowEditForm(false)}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              
+              <form onSubmit={handleEditBill}>
+                <div className="form-group">
+                  <label className="form-label">Nom de la facture</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    value={formData.bill_name}
+                    onChange={(e) => setFormData({ ...formData, bill_name: e.target.value })}
+                    required
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label className="form-label">Montant (XAF)</label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                    required
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label className="form-label">Date d'échéance</label>
+                  <input
+                    className="form-input"
+                    type="date"
+                    value={formData.due_date}
+                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                    required
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label className="form-label">Récurrence</label>
+                  <select
+                    className="form-select"
+                    value={formData.recurrence}
+                    onChange={(e) => setFormData({ ...formData, recurrence: e.target.value })}
+                  >
+                    <option value="monthly">Mensuelle</option>
+                    <option value="quarterly">Trimestrielle</option>
+                    <option value="yearly">Annuelle</option>
+                    <option value="once">Une fois</option>
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label className="form-label">Priorité</label>
+                  <select
+                    className="form-select"
+                    value={formData.priority}
+                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                  >
+                    <option value="1">Haute</option>
+                    <option value="2">Moyenne</option>
+                    <option value="3">Basse</option>
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label className="checkbox-container">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_automated}
+                      onChange={(e) => setFormData({ ...formData, is_automated: e.target.checked })}
+                    />
+                    Paiement automatique activé
+                  </label>
+                </div>
+                
+                <div className="flex flex-gap">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setShowEditForm(false)}
+                  >
+                    Annuler
+                  </button>
+                  <button type="submit" className="btn btn-primary">
+                    Sauvegarder
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Historique */}
+        {showHistory && (
+          <div className="form-overlay" onClick={() => setShowHistory(false)}>
+            <div className="form-container" onClick={(e) => e.stopPropagation()}>
+              <div className="flex flex-between mb-2" style={{ marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>
+                  Historique - {selectedBill?.bill_name}
+                </h3>
+                <button
+                  className="btn btn-secondary btn-small"
+                  onClick={() => setShowHistory(false)}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              
+              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                {paymentHistory.length === 0 ? (
+                  <p className="text-center text-muted" style={{ padding: '16px' }}>
+                    Aucun historique de paiement
+                  </p>
+                ) : (
+                  paymentHistory.map((payment) => (
+                    <div key={payment.id} className="bill-card">
+                      <div className="flex flex-between">
+                        <div>
+                          <p className="text-semibold" style={{ margin: '0 0 4px 0' }}>
+                            {payment.amount.toLocaleString()} XAF
+                          </p>
+                          <p className="text-muted" style={{ margin: '0 0 4px 0' }}>
+                            {format(new Date(payment.payment_date), 'dd/MM/yyyy à HH:mm', { locale: fr })}
+                          </p>
+                          <p className="text-muted" style={{ margin: 0 }}>
+                            Tentative #{payment.attempt_number}
+                          </p>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <span className="badge" style={{
+                            backgroundColor: payment.status === 'success' ? '#dcfce7' : '#fee2e2',
+                            color: payment.status === 'success' ? '#166534' : '#991b1b'
+                          }}>
+                            {payment.status === 'success' ? 'Succès' : 
+                             payment.status === 'insufficient_funds' ? 'Solde insuffisant' : 
+                             payment.status}
+                          </span>
+                          {payment.error_message && (
+                            <p style={{ 
+                              margin: '4px 0 0 0', 
+                              fontSize: '12px', 
+                              color: '#dc2626' 
+                            }}>
+                              {payment.error_message}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
+                  ))
+                )}
+              </div>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+        )}
+      </div>
+    </>
   );
 };
