@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Calendar, Clock, AlertTriangle, CheckCircle, X, Edit, Trash2 } from 'lucide-react';
 import { useAutomaticBills } from '@/hooks/useAutomaticBills';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 export const AutomaticBillsManager = () => {
   const { profile } = useAuth();
+  const { toast } = useToast();
   const {
     bills,
     paymentHistory,
@@ -150,46 +152,28 @@ export const AutomaticBillsManager = () => {
       // Effectuer le paiement
       const result = await payBillManually(bill.id);
       
-      if (result && result.success) {
-        // Générer le reçu automatiquement
-        const receiptData = {
-          type: 'bill_payment',
-          title: `Paiement de facture - ${getBillName(bill.bill_name)}`,
-          items: [{
-            description: getBillName(bill.bill_name),
-            amount: bill.amount,
-            details: `Numéro de compteur: ${bill.meter_number || 'N/A'}`
-          }],
-          total: bill.amount,
-          metadata: {
-            bill_id: bill.id,
-            payment_date: new Date().toISOString(),
-            bill_type: bill.bill_name,
-            meter_number: bill.meter_number
-          }
-        };
-
-        // Créer le reçu dans la base de données
-        const { error: receiptError } = await supabase
-          .from('receipts')
-          .insert({
-            user_id: profile?.id,
-            type: receiptData.type,
-            title: receiptData.title,
-            items: receiptData.items,
-            total: receiptData.total,
-            metadata: receiptData.metadata
-          });
-
-        if (receiptError) {
-          console.error('Error creating receipt:', receiptError);
-        } else {
-          toast.success('Paiement effectué et reçu généré automatiquement');
-        }
+      // Type guard pour vérifier le résultat
+      const paymentResult = result as any;
+      if (paymentResult && paymentResult.success) {
+        toast({
+          title: "Succès",
+          description: "Paiement effectué avec succès",
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Erreur",
+          description: paymentResult.message || "Erreur lors du paiement",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('Error processing immediate payment:', error);
-      toast.error('Erreur lors du paiement');
+      toast({
+        title: "Erreur",
+        description: "Erreur lors du paiement",
+        variant: "destructive"
+      });
     }
   };
 
