@@ -650,6 +650,42 @@ export type Database = {
           },
         ]
       }
+      bill_payment_numbers: {
+        Row: {
+          bill_type: string
+          country: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          payment_number: string
+          provider_name: string
+          updated_at: string
+        }
+        Insert: {
+          bill_type: string
+          country: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          payment_number: string
+          provider_name: string
+          updated_at?: string
+        }
+        Update: {
+          bill_type?: string
+          country?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          payment_number?: string
+          provider_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cities: {
         Row: {
           country_id: number

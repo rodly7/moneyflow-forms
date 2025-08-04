@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Calendar, Clock, AlertTriangle, CheckCircle, X, Edit, Trash2 } from 'lucide-react';
 import { useAutomaticBills } from '@/hooks/useAutomaticBills';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 export const AutomaticBillsManager = () => {
+  const { profile } = useAuth();
   const {
     bills,
     paymentHistory,
@@ -21,6 +24,8 @@ export const AutomaticBillsManager = () => {
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [showEditForm, setShowEditForm] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [paymentNumbers, setPaymentNumbers] = useState<any[]>([]);
+  const [filteredBillOptions, setFilteredBillOptions] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     bill_name: '',
@@ -28,8 +33,47 @@ export const AutomaticBillsManager = () => {
     due_date: '',
     recurrence: 'monthly',
     priority: '2',
-    is_automated: true
+    is_automated: true,
+    payment_number: '',
+    meter_number: ''
   });
+
+  // Charger les numéros de paiement disponibles
+  useEffect(() => {
+    const loadPaymentNumbers = async () => {
+      if (!profile?.country) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('bill_payment_numbers')
+          .select('*')
+          .eq('country', profile.country)
+          .eq('is_active', true);
+
+        if (error) throw error;
+        setPaymentNumbers(data || []);
+      } catch (error) {
+        console.error('Error loading payment numbers:', error);
+      }
+    };
+
+    loadPaymentNumbers();
+  }, [profile?.country]);
+
+  // Filtrer les options de factures par pays
+  useEffect(() => {
+    if (!profile?.country || !paymentNumbers.length) {
+      setFilteredBillOptions([]);
+      return;
+    }
+
+    const availableTypes = [...new Set(paymentNumbers.map(p => p.bill_type))];
+    const filtered = billOptions.filter(option => 
+      availableTypes.includes(option.value) || option.value === 'other'
+    );
+    
+    setFilteredBillOptions(filtered);
+  }, [paymentNumbers, profile?.country]);
 
   const handleCreateBill = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +94,9 @@ export const AutomaticBillsManager = () => {
         due_date: '',
         recurrence: 'monthly',
         priority: '2',
-        is_automated: true
+        is_automated: true,
+        payment_number: '',
+        meter_number: ''
       });
     } catch (error) {
       console.error('Error creating bill:', error);
@@ -85,7 +131,9 @@ export const AutomaticBillsManager = () => {
       due_date: bill.due_date,
       recurrence: bill.recurrence,
       priority: bill.priority.toString(),
-      is_automated: bill.is_automated
+      is_automated: bill.is_automated,
+      payment_number: '',
+      meter_number: ''
     });
     setShowEditForm(true);
   };
@@ -94,6 +142,55 @@ export const AutomaticBillsManager = () => {
     setSelectedBill(bill);
     fetchPaymentHistory(bill.id);
     setShowHistory(true);
+  };
+
+  // Fonction pour le paiement immédiat avec génération de reçu
+  const handleImmediatePayment = async (bill: any) => {
+    try {
+      // Effectuer le paiement
+      const result = await payBillManually(bill.id);
+      
+      if (result && result.success) {
+        // Générer le reçu automatiquement
+        const receiptData = {
+          type: 'bill_payment',
+          title: `Paiement de facture - ${getBillName(bill.bill_name)}`,
+          items: [{
+            description: getBillName(bill.bill_name),
+            amount: bill.amount,
+            details: `Numéro de compteur: ${bill.meter_number || 'N/A'}`
+          }],
+          total: bill.amount,
+          metadata: {
+            bill_id: bill.id,
+            payment_date: new Date().toISOString(),
+            bill_type: bill.bill_name,
+            meter_number: bill.meter_number
+          }
+        };
+
+        // Créer le reçu dans la base de données
+        const { error: receiptError } = await supabase
+          .from('receipts')
+          .insert({
+            user_id: profile?.id,
+            type: receiptData.type,
+            title: receiptData.title,
+            items: receiptData.items,
+            total: receiptData.total,
+            metadata: receiptData.metadata
+          });
+
+        if (receiptError) {
+          console.error('Error creating receipt:', receiptError);
+        } else {
+          toast.success('Paiement effectué et reçu généré automatiquement');
+        }
+      }
+    } catch (error) {
+      console.error('Error processing immediate payment:', error);
+      toast.error('Erreur lors du paiement');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -462,7 +559,7 @@ export const AutomaticBillsManager = () => {
                     required
                   >
                     <option value="">Sélectionnez un type de facture</option>
-                    {billOptions.map((option) => (
+                    {filteredBillOptions.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
@@ -482,6 +579,39 @@ export const AutomaticBillsManager = () => {
                   />
                 </div>
                 
+                {formData.bill_name && (
+                  <div className="form-group">
+                    <label className="form-label">Numéro de paiement</label>
+                    <select
+                      className="form-select"
+                      value={formData.payment_number}
+                      onChange={(e) => setFormData({ ...formData, payment_number: e.target.value })}
+                      required
+                    >
+                      <option value="">Sélectionnez un numéro de paiement</option>
+                      {paymentNumbers
+                        .filter(p => p.bill_type === formData.bill_name)
+                        .map((paymentNumber) => (
+                          <option key={paymentNumber.id} value={paymentNumber.payment_number}>
+                            {paymentNumber.provider_name} - {paymentNumber.payment_number}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label className="form-label">Numéro de compteur</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    value={formData.meter_number}
+                    onChange={(e) => setFormData({ ...formData, meter_number: e.target.value })}
+                    placeholder="Numéro de compteur ou de contrat"
+                    required
+                  />
+                </div>
+
                 <div className="form-group">
                   <label className="form-label">Date d'échéance</label>
                   <input
@@ -574,12 +704,45 @@ export const AutomaticBillsManager = () => {
                     required
                   >
                     <option value="">Sélectionnez un type de facture</option>
-                    {billOptions.map((option) => (
+                    {filteredBillOptions.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {formData.bill_name && (
+                  <div className="form-group">
+                    <label className="form-label">Numéro de paiement</label>
+                    <select
+                      className="form-select"
+                      value={formData.payment_number}
+                      onChange={(e) => setFormData({ ...formData, payment_number: e.target.value })}
+                      required
+                    >
+                      <option value="">Sélectionnez un numéro de paiement</option>
+                      {paymentNumbers
+                        .filter(p => p.bill_type === formData.bill_name)
+                        .map((paymentNumber) => (
+                          <option key={paymentNumber.id} value={paymentNumber.payment_number}>
+                            {paymentNumber.provider_name} - {paymentNumber.payment_number}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label className="form-label">Numéro de compteur</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    value={formData.meter_number}
+                    onChange={(e) => setFormData({ ...formData, meter_number: e.target.value })}
+                    placeholder="Numéro de compteur ou de contrat"
+                    required
+                  />
                 </div>
                 
                 <div className="form-group">
