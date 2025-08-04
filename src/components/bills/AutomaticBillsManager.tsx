@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { BillPhoneInput } from './BillPhoneInput';
 
 export const AutomaticBillsManager = () => {
   const { profile } = useAuth();
@@ -37,8 +38,15 @@ export const AutomaticBillsManager = () => {
     priority: '2',
     is_automated: true,
     payment_number: '',
-    meter_number: ''
+    meter_number: '',
+    phone_number: '',
+    recipient_country: profile?.country || ''
   });
+
+  // Phone input states
+  const [phoneInput, setPhoneInput] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState(profile?.country || '');
+  const [foundUser, setFoundUser] = useState<any>(null);
 
   // Charger les numéros de paiement disponibles
   useEffect(() => {
@@ -100,7 +108,9 @@ export const AutomaticBillsManager = () => {
         priority: '2',
         is_automated: true,
         payment_number: '',
-        meter_number: ''
+        meter_number: '',
+        phone_number: '',
+        recipient_country: profile?.country || ''
       });
     } catch (error) {
       console.error('Error creating bill:', error);
@@ -137,7 +147,9 @@ export const AutomaticBillsManager = () => {
       priority: bill.priority.toString(),
       is_automated: bill.is_automated,
       payment_number: '',
-      meter_number: ''
+      meter_number: '',
+      phone_number: '',
+      recipient_country: profile?.country || ''
     });
     setShowEditForm(true);
   };
@@ -221,6 +233,13 @@ export const AutomaticBillsManager = () => {
   ];
 
   const getBillName = (value: string) => {
+    // First check in filtered bill options (available for user's country)
+    const filteredOption = filteredBillOptions.find(opt => opt.value === value);
+    if (filteredOption) {
+      return filteredOption.label;
+    }
+    
+    // Fallback to all bill options
     const option = billOptions.find(opt => opt.value === value);
     return option ? option.label : value;
   };
@@ -596,6 +615,41 @@ export const AutomaticBillsManager = () => {
                     placeholder="Numéro de compteur ou de contrat"
                     required
                   />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Recherche du destinataire</label>
+                  <BillPhoneInput
+                    phoneInput={phoneInput}
+                    countryCode={selectedCountry ? 
+                      (selectedCountry === 'Congo Brazzaville' ? '+242' : 
+                       selectedCountry === 'Cameroun' ? '+237' : 
+                       selectedCountry === 'Sénégal' ? '+221' : '+237') : '+237'}
+                    country={selectedCountry}
+                    onPhoneChange={setPhoneInput}
+                    onCountryChange={setSelectedCountry}
+                    onUserFound={(user) => {
+                      setFoundUser(user);
+                      setFormData({ 
+                        ...formData, 
+                        phone_number: user.phone,
+                        recipient_country: user.country || selectedCountry
+                      });
+                    }}
+                    label="Numéro de téléphone du destinataire"
+                  />
+                  {foundUser && (
+                    <div style={{ 
+                      marginTop: '8px', 
+                      padding: '8px', 
+                      backgroundColor: '#dcfce7', 
+                      color: '#166534',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}>
+                      ✓ Destinataire trouvé: {foundUser.full_name}
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group">
