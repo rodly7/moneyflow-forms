@@ -81,20 +81,19 @@ export const AutomaticBillsManager = () => {
     loadPaymentNumbers();
   }, [profile?.country]);
 
-  // Filtrer les options de factures par pays
-  useEffect(() => {
-    if (!profile?.country || !paymentNumbers.length) {
-      setFilteredBillOptions([]);
-      return;
-    }
+  // États pour le type de facture et l'entreprise sélectionnés
+  const [selectedBillType, setSelectedBillType] = useState('');
+  const [availableCompanies, setAvailableCompanies] = useState<any[]>([]);
 
-    const availableTypes = [...new Set(paymentNumbers.map(p => p.bill_type))];
-    const filtered = billOptions.filter(option => 
-      availableTypes.includes(option.value) || option.value === 'other'
-    );
-    
-    setFilteredBillOptions(filtered);
-  }, [paymentNumbers, profile?.country]);
+  // Mettre à jour les entreprises disponibles selon le type de facture et le pays
+  useEffect(() => {
+    if (selectedBillType && profile?.country) {
+      const companies = getCompaniesForType(selectedBillType, profile.country);
+      setAvailableCompanies(companies);
+    } else {
+      setAvailableCompanies([]);
+    }
+  }, [selectedBillType, profile?.country]);
 
   const handleCreateBill = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,39 +219,73 @@ export const AutomaticBillsManager = () => {
     }
   };
 
-  const billOptions = [
-    { value: 'electricity_senelec', label: 'Électricité SENELEC' },
-    { value: 'electricity_edm', label: 'Électricité EDM' },
-    { value: 'electricity_cie', label: 'Électricité CIE' },
-    { value: 'electricity_eneo', label: 'Électricité ENEO' },
-    { value: 'water_sde', label: 'Eau SDE' },
-    { value: 'water_sodeci', label: 'Eau SODECI' },
-    { value: 'water_camwater', label: 'Eau CAMWATER' },
-    { value: 'internet_orange', label: 'Internet Orange' },
-    { value: 'internet_free', label: 'Internet Free' },
-    { value: 'internet_mtn', label: 'Internet MTN' },
-    { value: 'internet_moov', label: 'Internet Moov' },
-    { value: 'tv_canal', label: 'TV Canal+' },
-    { value: 'tv_startimes', label: 'TV StarTimes' },
-    { value: 'phone_orange', label: 'Téléphone Orange' },
-    { value: 'phone_mtn', label: 'Téléphone MTN' },
-    { value: 'phone_moov', label: 'Téléphone Moov' },
+  // Types de factures principaux
+  const billTypes = [
     { value: 'rent', label: 'Loyer' },
-    { value: 'insurance', label: 'Assurance' },
-    { value: 'school_fees', label: 'Frais de scolarité' },
-    { value: 'other', label: 'Autre' }
+    { value: 'electricity', label: 'Électricité' },
+    { value: 'wifi', label: 'Wifi/Internet' },
+    { value: 'water', label: 'Eau' }
   ];
 
+  // Entreprises disponibles selon le pays et type de facture
+  const getCompaniesForType = (type: string, country: string) => {
+    const companies: any = {
+      electricity: {
+        'Sénégal': [{ value: 'electricity_senelec', label: 'SENELEC' }],
+        'Mali': [{ value: 'electricity_edm', label: 'EDM' }],
+        'Côte d\'Ivoire': [{ value: 'electricity_cie', label: 'CIE' }],
+        'Cameroun': [{ value: 'electricity_eneo', label: 'ENEO' }]
+      },
+      water: {
+        'Sénégal': [{ value: 'water_sde', label: 'SDE' }],
+        'Côte d\'Ivoire': [{ value: 'water_sodeci', label: 'SODECI' }],
+        'Cameroun': [{ value: 'water_camwater', label: 'CAMWATER' }]
+      },
+      wifi: {
+        'Sénégal': [
+          { value: 'internet_orange', label: 'Orange' },
+          { value: 'internet_free', label: 'Free' }
+        ],
+        'Mali': [
+          { value: 'internet_orange', label: 'Orange' },
+          { value: 'internet_mtn', label: 'MTN' }
+        ],
+        'Côte d\'Ivoire': [
+          { value: 'internet_orange', label: 'Orange' },
+          { value: 'internet_mtn', label: 'MTN' },
+          { value: 'internet_moov', label: 'Moov' }
+        ],
+        'Cameroun': [
+          { value: 'internet_orange', label: 'Orange' },
+          { value: 'internet_mtn', label: 'MTN' }
+        ]
+      },
+      rent: {
+        'Sénégal': [{ value: 'rent', label: 'Loyer' }],
+        'Mali': [{ value: 'rent', label: 'Loyer' }],
+        'Côte d\'Ivoire': [{ value: 'rent', label: 'Loyer' }],
+        'Cameroun': [{ value: 'rent', label: 'Loyer' }]
+      }
+    };
+    
+    return companies[type]?.[country] || [];
+  };
+
   const getBillName = (value: string) => {
-    // First check in filtered bill options (available for user's country)
-    const filteredOption = filteredBillOptions.find(opt => opt.value === value);
-    if (filteredOption) {
-      return filteredOption.label;
+    // Chercher dans toutes les entreprises de tous les types
+    for (const type of billTypes) {
+      if (profile?.country) {
+        const companies = getCompaniesForType(type.value, profile.country);
+        const company = companies.find(c => c.value === value);
+        if (company) {
+          return company.label;
+        }
+      }
     }
     
-    // Fallback to all bill options
-    const option = billOptions.find(opt => opt.value === value);
-    return option ? option.label : value;
+    // Fallback pour les types principaux
+    const typeOption = billTypes.find(opt => opt.value === value);
+    return typeOption ? typeOption.label : value;
   };
 
   const getRecurrenceText = (recurrence: string) => {
@@ -570,18 +603,40 @@ export const AutomaticBillsManager = () => {
                   <label className="form-label">Type de facture</label>
                   <select
                     className="form-select"
-                    value={formData.bill_name}
-                    onChange={(e) => setFormData({ ...formData, bill_name: e.target.value })}
+                    value={selectedBillType}
+                    onChange={(e) => {
+                      setSelectedBillType(e.target.value);
+                      setFormData({ ...formData, bill_name: '' });
+                    }}
                     required
                   >
                     <option value="">Sélectionnez un type de facture</option>
-                    {filteredBillOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
+                    {billTypes.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
                       </option>
                     ))}
                   </select>
                 </div>
+
+                {selectedBillType && availableCompanies.length > 0 && (
+                  <div className="form-group">
+                    <label className="form-label">Entreprise</label>
+                    <select
+                      className="form-select"
+                      value={formData.bill_name}
+                      onChange={(e) => setFormData({ ...formData, bill_name: e.target.value })}
+                      required
+                    >
+                      <option value="">Sélectionnez une entreprise</option>
+                      {availableCompanies.map((company) => (
+                        <option key={company.value} value={company.value}>
+                          {company.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 
                 <div className="form-group">
                   <label className="form-label">Montant (XAF)</label>
@@ -595,26 +650,6 @@ export const AutomaticBillsManager = () => {
                   />
                 </div>
                 
-                {formData.bill_name && (
-                  <div className="form-group">
-                    <label className="form-label">Numéro de paiement</label>
-                    <select
-                      className="form-select"
-                      value={formData.payment_number}
-                      onChange={(e) => setFormData({ ...formData, payment_number: e.target.value })}
-                      required
-                    >
-                      <option value="">Sélectionnez un numéro de paiement</option>
-                      {paymentNumbers
-                        .filter(p => p.bill_type === formData.bill_name)
-                        .map((paymentNumber) => (
-                          <option key={paymentNumber.id} value={paymentNumber.payment_number}>
-                            {paymentNumber.provider_name} - {paymentNumber.payment_number}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                )}
 
                 <div className="form-group">
                   <label className="form-label">Numéro de compteur</label>
