@@ -518,8 +518,10 @@ export type Database = {
           is_automated: boolean
           last_payment_date: string | null
           max_attempts: number
+          meter_number: string | null
           next_due_date: string | null
           payment_attempts: number
+          payment_number: string | null
           priority: number
           recurrence: string
           status: string
@@ -535,8 +537,10 @@ export type Database = {
           is_automated?: boolean
           last_payment_date?: string | null
           max_attempts?: number
+          meter_number?: string | null
           next_due_date?: string | null
           payment_attempts?: number
+          payment_number?: string | null
           priority?: number
           recurrence?: string
           status?: string
@@ -552,8 +556,10 @@ export type Database = {
           is_automated?: boolean
           last_payment_date?: string | null
           max_attempts?: number
+          meter_number?: string | null
           next_due_date?: string | null
           payment_attempts?: number
+          payment_number?: string | null
           priority?: number
           recurrence?: string
           status?: string
@@ -1151,6 +1157,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      receipts: {
+        Row: {
+          created_at: string
+          id: string
+          items: Json
+          metadata: Json | null
+          title: string
+          total: number
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          items: Json
+          metadata?: Json | null
+          title: string
+          total: number
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          items?: Json
+          metadata?: Json | null
+          title?: string
+          total?: number
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       recharges: {
         Row: {

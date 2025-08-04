@@ -87,7 +87,9 @@ export const AutomaticBillsManager = () => {
         recurrence: formData.recurrence,
         priority: parseInt(formData.priority),
         is_automated: formData.is_automated,
-        status: 'pending'
+        status: 'pending',
+        payment_number: formData.payment_number,
+        meter_number: formData.meter_number
       });
       setShowCreateForm(false);
       setFormData({
@@ -501,7 +503,7 @@ export const AutomaticBillsManager = () => {
               <div className="flex flex-gap" style={{ marginTop: '12px' }}>
                 <button
                   className="btn btn-primary btn-small"
-                  onClick={() => payBillManually(bill.id)}
+                  onClick={() => handleImmediatePayment(bill)}
                   disabled={bill.status === 'paid'}
                 >
                   Payer maintenant

@@ -19,6 +19,8 @@ interface AutomaticBill {
   created_at: string;
   updated_at: string;
   user_id: string;
+  payment_number?: string;
+  meter_number?: string;
 }
 
 interface PaymentResult {
