@@ -43,6 +43,17 @@ export const AutomaticBillsManager = () => {
     recipient_country: profile?.country || ''
   });
 
+  // Mettre à jour le pays automatiquement quand le profil change
+  useEffect(() => {
+    if (profile?.country) {
+      setFormData(prev => ({
+        ...prev,
+        recipient_country: profile.country
+      }));
+      setSelectedCountry(profile.country);
+    }
+  }, [profile?.country]);
+
   // Phone input states
   const [phoneInput, setPhoneInput] = useState('');
   const [selectedCountry, setSelectedCountry] = useState(profile?.country || '');
@@ -614,6 +625,21 @@ export const AutomaticBillsManager = () => {
                     onChange={(e) => setFormData({ ...formData, meter_number: e.target.value })}
                     placeholder="Numéro de compteur ou de contrat"
                     required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Pays de résidence</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    value={profile?.country || ''}
+                    disabled
+                    style={{
+                      backgroundColor: '#f9fafb',
+                      color: '#6b7280',
+                      cursor: 'not-allowed'
+                    }}
                   />
                 </div>
 
