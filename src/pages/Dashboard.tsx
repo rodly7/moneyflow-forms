@@ -205,7 +205,7 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4">
+    <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4 pb-8">
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Professional Header */}
         <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-1 rounded-3xl shadow-xl">

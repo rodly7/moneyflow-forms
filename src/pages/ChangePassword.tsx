@@ -7,7 +7,7 @@ const ChangePassword = () => {
   const { signOut } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+    <div className="bg-gradient-to-br from-primary/5 via-background to-secondary/5 pb-8">
       <CompactHeader 
         title="Sécurité"
         subtitle="Changement de mot de passe"

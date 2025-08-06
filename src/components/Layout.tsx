@@ -62,7 +62,7 @@ const Layout = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 animate-fade-in">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 animate-fade-in">
         <div className="text-center glass p-8 rounded-3xl shadow-2xl backdrop-blur-lg">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mx-auto mb-6 shadow-lg"></div>
           <p className="text-blue-600 font-semibold text-lg">✨ Chargement de votre espace...</p>
@@ -73,7 +73,7 @@ const Layout = () => {
   }
 
   return (
-    <div className={`min-h-screen w-full ${getThemeClass()}`}>
+    <div className={`w-full ${getThemeClass()}`}>
       <Outlet />
     </div>
   );

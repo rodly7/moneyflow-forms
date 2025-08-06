@@ -29,7 +29,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200 relative overflow-hidden">
+    <div className="w-full bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200 relative overflow-hidden pb-8">
       {/* Enhanced background decorative elements */}
       <div className="absolute inset-0">
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-200/30 via-blue-300/20 to-blue-400/10"></div>

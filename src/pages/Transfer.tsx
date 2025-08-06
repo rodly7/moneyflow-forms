@@ -24,7 +24,7 @@ const Transfer = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-2">
+    <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-2 pb-8">
       <div className="max-w-2xl mx-auto space-y-3">
         {/* Stunning Header */}
         <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-1 rounded-xl shadow-lg">
